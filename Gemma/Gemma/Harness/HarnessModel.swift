@@ -35,6 +35,9 @@ public final class HarnessModel {
     public private(set) var partialDownloads: [String: Int64] = [:]
     public private(set) var downloads: [String: DownloadProgress] = [:]
     public var showCatalog: Bool = false  // sheet presentation
+    public var showBenchmark: Bool = false
+    public private(set) var benchmark = BenchmarkModel()
+    public private(set) var benchmarkModelURL: URL?
 
     // MARK: - Collaborators (not observed)
     @ObservationIgnored
@@ -133,34 +136,24 @@ public final class HarnessModel {
         }
     }
 
-    public func runBench() async {
-        guard !isGenerating else { return }
-        isGenerating = true
-        streamedOutput = "Running bench…"
-        defer { isGenerating = false }
-        do {
-            let report = try await runner.run(
-                runtime: runtime,
-                modelDescription: "\(runtimeKind.displayName) (Plan 1 scaffold)",
-                useSpeculativeDecoding: false,
-                useMmap: true,
-                prompts: PromptSet.all,
-                imageProvider: { prompt in
-                    guard let name = prompt.imageAssetName else { return nil }
-                    return UIImage(named: name)
-                },
-                onProgress: { [weak self] completed, total in
-                    self?.streamedOutput = "Running bench… (\(completed)/\(total))"
-                }
-            )
-            let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-            let url = try report.writeToDocuments(filename: "bench-\(stamp).json")
-            benchReportPath = url.path
-            streamedOutput = "Bench done: \(report.results.count) prompts. Report at \(url.lastPathComponent)."
-            lastMetrics = report.results.last?.metrics
-        } catch {
-            streamedOutput = "Bench failed: \(error)"
+    public func presentBenchmark() async {
+        guard let requiredId = runtimeKind.requiredModelId else {
+            statusMessage = "Benchmark needs a model — pick Gemma E2B/E4B."
+            return
         }
+        guard let descriptor = ModelCatalog.find(requiredId),
+              case .installed(let url) = installedStore.status(of: descriptor) else {
+            statusMessage = "Benchmark needs the model installed. Open Models to download it."
+            return
+        }
+        // Free our runtime's engine first so the benchmark's own engine isn't a 2nd copy.
+        if modelLoaded {
+            await runtime.unload()
+            modelLoaded = false
+            statusMessage = "Runtime: \(runtimeKind.displayName) (unloaded for benchmark)"
+        }
+        benchmarkModelURL = url
+        showBenchmark = true
     }
 
     // MARK: - Catalog / download actions

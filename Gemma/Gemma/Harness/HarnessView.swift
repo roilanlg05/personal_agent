@@ -87,10 +87,10 @@ struct HarnessView: View {
                 }
                 .disabled(!model.modelLoaded || model.isGenerating)
 
-                Button("Run Bench") {
-                    Task { await model.runBench() }
+                Button("Benchmark") {
+                    Task { await model.presentBenchmark() }
                 }
-                .disabled(!model.modelLoaded || model.isGenerating)
+                .disabled(model.isGenerating)
             }
         }
     }

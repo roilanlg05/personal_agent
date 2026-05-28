@@ -41,14 +41,11 @@ final class HarnessModelTests: XCTestCase {
         XCTAssertNotNil(m.lastMetrics)
     }
 
-    func test_runBench_writesReportAndSetsPath() async {
-        let m = HarnessModel()
-        await m.toggleLoad()
-        await m.runBench()
-        XCTAssertNotNil(m.benchReportPath)
-        XCTAssertTrue(m.streamedOutput.starts(with: "Bench done"))
-        // PromptSet has 20 prompts total — image prompts included via UIImage(named:) lookup.
-        XCTAssertTrue(m.streamedOutput.contains("20 prompts"))
+    func test_presentBenchmark_dummyKind_doesNotOpenSheet() async {
+        let m = HarnessModel()  // .dummy
+        await m.presentBenchmark()
+        XCTAssertFalse(m.showBenchmark)
+        XCTAssertTrue(m.statusMessage.contains("Benchmark needs a model"))
     }
 
     func test_benchImage1_assetExistsInBundle() {

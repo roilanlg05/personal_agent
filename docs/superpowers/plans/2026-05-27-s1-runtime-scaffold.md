@@ -142,7 +142,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -30
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -30
 ```
 Expected: `Test Suite 'GemmaTests' passed` and `** TEST SUCCEEDED **`.
 
@@ -219,7 +219,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -10
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -10
 ```
 Expected: compile errors referring to `RuntimeMetrics`, `ModelLoadOptions`, `GenerationOptions` not found.
 
@@ -344,7 +344,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:GemmaTests/ModelRuntimeTypesTests 2>&1 | tail -10
 ```
 Expected: 4 tests passed.
@@ -394,7 +394,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:GemmaTests/MemoryReporterTests 2>&1 | tail -10
 ```
 Expected: compile error — `MemoryReporter` not found.
@@ -436,7 +436,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:GemmaTests/MemoryReporterTests 2>&1 | tail -10
 ```
 Expected: 2 tests passed.
@@ -561,7 +561,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:GemmaTests/DummyRuntimeTests 2>&1 | tail -10
 ```
 Expected: compile error — `DummyRuntime` not found.
@@ -650,7 +650,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:GemmaTests/DummyRuntimeTests 2>&1 | tail -15
 ```
 Expected: 6 tests passed.
@@ -727,7 +727,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:GemmaTests/PromptSetTests 2>&1 | tail -10
 ```
 Expected: compile error — `PromptSet` not found.
@@ -850,7 +850,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:GemmaTests/PromptSetTests 2>&1 | tail -15
 ```
 Expected: 6 tests passed.
@@ -934,7 +934,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:GemmaTests/BenchReportTests 2>&1 | tail -10
 ```
 Expected: compile error — `BenchReport` not found.
@@ -1048,7 +1048,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:GemmaTests/BenchReportTests 2>&1 | tail -10
 ```
 Expected: 2 tests passed.
@@ -1146,7 +1146,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:GemmaTests/BenchRunnerTests 2>&1 | tail -10
 ```
 Expected: compile error — `BenchRunner` not found.
@@ -1225,7 +1225,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:GemmaTests/BenchRunnerTests 2>&1 | tail -10
 ```
 Expected: 3 tests passed.
@@ -1296,7 +1296,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild build -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -5
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -5
 ```
 Expected: `** BUILD SUCCEEDED **`.
 
@@ -1510,7 +1510,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild build -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -5
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -5
 ```
 Expected: `** BUILD SUCCEEDED **`.
 
@@ -1561,7 +1561,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild build -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -5
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -5
 ```
 Expected: `** BUILD SUCCEEDED **`.
 
@@ -1586,7 +1586,7 @@ Run:
 cd /Users/hashdown/Projects/personal_agent/Gemma
 xcodebuild test -project Gemma.xcodeproj -scheme Gemma \
   -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -30
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -30
 ```
 Expected: all tests pass (`** TEST SUCCEEDED **`). Approximate counts:
 - GemmaTests (sanity): 1

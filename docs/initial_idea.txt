@@ -1,0 +1,553 @@
+/using-superpowers ok, quiero crear un ai agente lo mas parecido a jarvis, q viva en mi telefono iphone, este debera manejar schedule, abrir app, poner recordatorios, alarmas, buscar en internet, buscar en google maps,  abrirme el mapa con la direccion, ya sea google maps o applemaps, info del weather en mi zona, chat conversacional, ordering(uber eats type, lo q se hara es lo q hace alexa, busca en el mapa, ofrece el menu del restaurante y pone una orden, mas adelante quiero hacer un marketplase o somethin estilo uber eats/doordash, donde la hente hable con el agente, este le de sujerencias, y pueda pedir, pagar etc), lectura de documentos, no muy largos, de lo contrario remitir  a una version web con mas contexto q debuelva el resumen(tener en cuenta q correremos gemma4 4B asi q el contexto es limitado), analisis de imagenes, para preguntas como, q estoy viendo, o q es esto, debemos manejar memoria, pienso tener un rag para construir la personalidad del usuario guardar recuerdos del agente, recuerdos de conversaciones etc, importante, recordar lugares, personas, relacion entre las personas, el agente me puede hablar a mi sin yo hablarle para alertarme de algo, como x ejemplo si va a llover o cosas asi, control de smart home, acceso a la red de modo q yo pueda pedirle q escanee dispositivos en la red, q se conecte a ellos, q los controle etc, y iremos agregando mas capasidades, cosas a estudiar antes de escribir un plan/spec:(https://github.com/google-ai-edge/LiteRT-LM, https://github.com/google-ai-edge, https://github.com/ggml-org/llama.cpp, https://github.com/langchain-ai/langgraph, https://github.com/safishamsi/graphify) quiero tanbien vector search para busqueda mas rapida etc(Qdrant) esto + graphify hacen la memoria a corto y largo plazo, el agente podra ejecutarse en 2do plano para compactar la memoria a corto plazo y asi liverar la ventana de contexto, hay q manejar todo bien ya q vamos a usar un modelo q correra en el telefono, trabaja en el proyecto actual(Gemma) asi se llamara, para despertarla la llaaremos como "Hey gemma", para desir q espere, x ejemplo si estamos en una conversacion con alguien mas le decimos "espera"(una vez q  abramos la conversacion con el "Hey, Gemma" esta quedara en modo platica abierta hasta q la pausemos con "espera" o la detengamos con algun despido), y se pausara hasta q digamos "continua". 2. “Interruption handling”
+
+1. Memoria contextual automática
+
+El agente recuerda pequeñas cosas sin que el usuario diga “recuerda esto”.
+
+Ejemplo:
+
+comida favorita
+lugares frecuentes
+rutina
+horario
+personas mencionadas
+
+Eso hace que se sienta vivo inmediatamente.
+
+2. “Interruption handling”
+Como voz real.
+
+Usuario:
+
+“Busca restaurantes ita—”
+“No, mejor sushi.”
+
+El agente cancela y cambia en tiempo real.
+
+3. Frases cortas dinámicas
+
+En vez de silencio:
+
+“Voy viendo eso.”
+“Un momento.”
+“Déjame revisar.”
+“Ya te digo.”
+
+4. Memoria temporal automática
+Ejemplo:
+
+TTL = 2 horas
+
+Recuerda:
+
+“el usuario está manejando”
+“tiene hambre”
+“está en el aeropuerto”
+
+Luego desaparece sola.
+
+BRUTAL para naturalidad.
+
+5. Context awareness
+
+El agente cambia comportamiento según:
+
+hora
+ubicación
+batería
+calendario
+velocidad del carro
+audífonos conectados
+
+Ejemplo:
+
+“Parece que vas conduciendo, ¿quieres que lo haga por voz?”
+
+6. Tool chaining
+
+Esto se siente mágico.
+
+Usuario:
+
+“Invita a Juan a cenar mañana.”
+
+El agente:
+
+revisa calendario
+encuentra hueco
+busca contacto
+crea evento
+manda mensaje
+
+TODO automático.
+
+7. Personalidad persistente
+
+No solo memoria.
+
+También:
+
+humor
+estilo
+expresiones
+forma de hablar
+
+Hace que se sienta como alguien consistente.
+
+8. “Ambient memory”
+
+Recuerda cosas SIN interacción directa.
+
+Ejemplo:
+
+música escuchada
+lugares visitados
+apps usadas
+hábitos
+
+Con permisos obviamente.
+
+9. Compresión inteligente de memoria
+
+MUY importante.
+
+Cada cierto tiempo:
+
+"Últimos 3 días:
+- Usuario estuvo trabajando en Tradzzy
+- Buscó restaurantes italianos
+- Tuvo reuniones el martes"
+
+Así no explota el contexto.
+
+10. Streaming de pensamiento visible
+
+NO chain-of-thought.
+
+Pero sí:
+
+“Buscando…”
+“Comparando opciones…”
+“Encontré algo interesante…”
+
+Da sensación de actividad.
+
+11. Modo proactivo
+
+MUY Jarvis.
+
+Ejemplo:
+
+“Tienes tráfico hacia el aeropuerto. Deberías salir 15 minutos antes.”
+
+o:
+
+“Tu batería está baja y tienes una reunión pronto.”
+
+12. “Soft memory confidence”
+
+El agente recuerda con niveles de confianza.
+
+Ejemplo:
+
+seguro
+probable
+quizá
+
+Así evita:
+
+“Recuerdo perfectamente…”
+
+cuando realmente no.
+
+13. Voice barge-in
+
+Poder interrumpir al agente mientras habla.
+
+Esto se siente ULTRA premium.
+
+14. Emotion tagging ligero
+
+No emociones profundas raras.
+
+Solo:
+
+estrés
+prisa
+cansancio
+entusiasmo
+
+Ejemplo:
+
+“Te noto ocupado, voy rápido.”
+
+15. Multi-step memory linking
+
+Esto es MUY cool.
+
+Usuario:
+
+“Quiero ir a Japón.”
+
+Semanas después:
+
+“Busca vuelos.”
+
+El agente conecta automáticamente:
+
+destino
+fechas habladas antes
+presupuesto mencionado antes
+16. Background task memory
+
+El agente sigue tareas.
+
+Ejemplo:
+
+“Recuérdame cuando bajen los vuelos.”
+
+Luego días después:
+
+“Encontré uno más barato.”
+
+17. Relationship graph
+
+Recuerda personas.
+
+Juan
+ ├── amigo
+ ├── trabaja contigo
+ └── le gusta sushi
+
+Esto hace conversaciones MUY naturales.
+
+18. Smart context injection
+
+NO meter toda memoria al prompt.
+
+Solo:
+
+lo relevante
+reciente
+relacionado semánticamente
+
+SUPER importante para velocidad.
+
+19. “Focus mode”
+
+El agente detecta:
+
+trabajo
+manejo
+descanso
+
+y cambia:
+
+verbosity
+velocidad
+tipo de respuestas
+20. Internal scratchpad
+
+MUY importante para agentes.
+
+Memoria invisible temporal:
+
+- usuario quiere cenar
+- buscar cerca
+- evitar tráfico
+
+Luego se borra.
+
+21. Hybrid local/cloud brain
+
+Esto es probablemente el futuro.
+
+Tarea	Modelo
+Conversación rápida	local
+Memoria	local
+tareas complejas	cloud
+privacidad	local
+22. “Memory importance scoring”
+
+No todo merece guardarse.
+
+Score:
+
+relevancia
+repetición
+emoción
+frecuencia
+23. Conversational latency tricks
+
+MUY importante.
+
+El agente:
+
+responde instantáneo
+aunque siga pensando detrás
+
+Ejemplo:
+
+“Déjame revisar eso.”
+
+Mientras realmente ejecuta tools.
+
+24. Dynamic voice style
+
+Cambiar tono según contexto:
+
+rápido
+relajado
+serio
+nocturno
+25. Daily summary memory
+
+Al final del día:
+
+Resumen:
+- 3 reuniones
+- buscaste vuelos
+- trabajaste en Tradzzy
+- cenaste con Juan
+
+Eso crea continuidad brutal.
+
+
+memoria episódica humana
+timelines
+experiencias conectadas
+
+que a un simple chatbot con historial.
+
+Y sí, puedes hacer exactamente eso:
+
+Graph por día + Meta-Graph global
+
+Es una arquitectura MUY sólida para asistentes personales.
+
+Cómo se vería
+Nivel 1 — Daily Graphs
+
+Cada día tiene su propio graph.
+
+Ejemplo:
+
+2026-05-27
+Usuario
+ ├── buscó restaurantes
+ ├── estaba conduciendo
+ ├── habló con Juan
+ ├── trabajó en Tradzzy
+ └── programó reunión
+2026-05-28
+Usuario
+ ├── buscó vuelos Japón
+ ├── revisó calendario
+ ├── escuchó jazz
+ └── pidió comida sushi
+Nivel 2 — Cross-Day Graph
+
+Luego tienes otro graph superior:
+
+Japón Trip
+ ├── conectado a vuelos
+ ├── conectado a presupuesto
+ ├── conectado a vacaciones
+ └── aparece en varios días
+Esto es MUY poderoso porque…
+1. Mantienes contexto temporal
+
+El tiempo importa MUCHO.
+
+No es lo mismo:
+
+algo dicho hace 5 minutos
+hace 2 semanas
+hace 1 año
+2. Puedes comprimir días viejos
+
+Ejemplo:
+
+Día activo
+
+Graph completo.
+
+Día viejo
+
+Resumen:
+
+2026-05-20 Summary:
+- trabajo intenso
+- buscó apartamentos
+- habló mucho sobre mudanza
+3. Puedes crear “episodios”
+
+MUY importante.
+
+Ejemplo:
+
+Episode: Japan Planning
+ ├── 2026-05-20
+ ├── 2026-05-22
+ ├── 2026-05-28
+ └── 2026-06-01
+
+Eso se parece muchísimo más a memoria humana.
+
+4. Retrieval MUCHO mejor
+
+Cuando el usuario dice:
+
+“Continúa lo del viaje.”
+
+Puedes buscar:
+
+episodios relacionados
+no solo embeddings similares
+5. Reduce contexto brutalmente
+
+En vez de meter:
+
+500 conversaciones
+
+metes:
+
+summary del episodio
+nodos relevantes
+últimos eventos
+
+MUCHO más eficiente.
+
+Arquitectura que yo usaría
+Layer 1 — Live Context
+
+Conversación actual.
+
+TTL:
+
+minutos
+Layer 2 — Daily Memory Graph
+
+Memoria del día.
+
+TTL:
+
+24h–7 días activos
+Layer 3 — Episodic Memory
+
+Clusters importantes:
+
+viajes
+trabajo
+relaciones
+proyectos
+
+TTL:
+
+meses/años
+Layer 4 — Long-term Identity
+
+Cosas persistentes:
+
+personalidad
+gustos
+hábitos
+relaciones
+Y esto conecta PERFECTO con Vector Search
+
+Porque puedes hacer:
+
+Retrieval híbrido
+Vector Search
+
+Encuentra:
+
+similitud semántica
+Graph Traversal
+
+Encuentra:
+
+relaciones
+causalidad
+episodios
+timelines
+Ejemplo REAL
+
+Usuario:
+
+“Busca el restaurante que mencioné cuando estaba con Juan.”
+
+Vector search
+
+Encuentra:
+
+“restaurante”
+Graph traversal
+
+Conecta:
+
+Juan
+ese día
+ubicación
+contexto
+
+Y recupera EXACTAMENTE el correcto.
+
+Otra cosa MUY cool
+
+Puedes tener:
+
+Emotional timelines
+
+Ejemplo:
+
+Semana:
+- estrés alto
+- trabajo intenso
+- poco sueño
+
+Y el agente adapta comportamiento.
+
+O hábitos
+Todos los martes:
+- gimnasio
+- sushi
+- llamadas familiares
+
+Eso empieza a parecer:
+
+un compañero real
+no un chatbot.
+Lo MÁS importante
+
+Tu idea ya NO es simplemente:
+
+“guardar memoria”
+
+Tu idea es:
+
+construir continuidad narrativa
+
+Y honestamente…
+eso probablemente es una de las claves más importantes para AGI-like assistants.
+
+Porque humanos pensamos muchísimo en:
+
+episodios
+relaciones
+timelines
+contexto continuo
+
+más que en “chunks de texto”.
+
+Honestamente tu arquitectura va MUY bien encaminada
+
+Porque:
+
+daily graphs → escalabilidad
+episodic graphs → continuidad
+vector search → recuperación rápida
+summaries → compresión
+live context → naturalidad
+
+Eso ya es arquitectura bastante seria de asistentes AI modernos.

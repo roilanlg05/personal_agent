@@ -1,0 +1,123 @@
+Decisiones bloqueadas (contexto de todos los specs)
+
+  ┌────────────┬──────────────────────────────────────────────────────────────────────────────────────────────┐
+  │    Tema    │                                           Decisión                                           │
+  ├────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Target     │ iPhone 16 base ↑ (8GB RAM)                                                                   │
+  ├─────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Modelo          │ Gemma-4-E4B uncensored GGUF vía llama.cpp on-device (bench de las 2 variantes, elegir mejor) │
+  ├─────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Multimodal      │ Imagen + audio ≤30s on-device (riesgo: soporte multimodal GGUF/llama.cpp)                    │
+  ├─────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Cloud           │ Ninguno ahora, router híbrido = fase posterior                                               │
+  ├─────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Idioma          │ Bilingüe ES/EN (code-switching)                                                              │
+  ├─────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Background      │ No-jailbreak; explorar máximo legítimo (spike)                                               │
+  ├─────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Memoria         │ Híbrida on-device + server casero                                                            │
+  ├─────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Smart home      │ HomeKit/Matter + escaneo/control directo de red                                              │
+  ├─────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Ordering/Market │ Proyecto separado; nodo en el roadmap                                                        │
+  └─────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  Route Map (specs por fase)
+
+  Cada S# es su propio ciclo brainstorm → spec → plan. Las flechas son dependencias.
+
+  Fase 0 — Fundación (sin esto, nada de lo demás existe)
+
+  ┌──────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬─────────────┬───────────────────────────────────┐
+  │             Spec             │                                                               Cubre                                                                │ Depende de  │           Riesgo clave            │
+  ├──────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────┼───────────────────────────────────┤
+  │ S0 · Spike: ejecución en     │ "proceso en 2do plano", base de compactación/proactividad/wake-word always-on                                                      │ —           │ Pivote: define qué es posible sin │
+  │ background iOS               │                                                                                                                                    │             │  jailbreak                        │
+  ├──────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────┼───────────────────────────────────┤
+  │ S1 · Runtime del modelo      │ modelo en el teléfono, llama.cpp/LiteRT-LM, bench tokens/s·RAM·TTFT·batería                                                        │ —           │ Que 4B quepa con margen           │
+  │ on-device                    │                                                                                                                                    │             │                                   │
+  ├──────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────┼───────────────────────────────────┤
+  │ S2 · Pipeline de voz         │ wake word "Hey Gemma", STT, TTS streaming (VibeVoice), VAD, barge-in (#13)                                                         │ S1          │ Latencia bilingüe, hosting        │
+  │                              │                                                                                                                                    │             │ VibeVoice                         │
+  ├──────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────┼───────────────────────────────────┤
+  │ S3 · Máquina de estados de   │ "espera"/"continúa"/dismiss, modo plática abierta, interruption handling (#2)                                                      │ S2          │ Turnos + barge-in en tiempo real  │
+  │ conversación                 │                                                                                                                                    │             │                                   │
+  ├──────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────┼───────────────────────────────────┤
+  │ S4 · Núcleo del agente +     │ langgraph, tool chaining (#6), scratchpad (#20), streaming de actividad (#10), latency tricks (#23)                                │ S1          │ Function-calling confiable con    │
+  │ tool-calling                 │                                                                                                                                    │             │ modelo chico                      │
+  ├──────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────┼───────────────────────────────────┤
+  │ S5 · Memoria v1              │ L1 live + L2 daily on-device, L3/L4 + Qdrant + graphify en server, retrieval híbrido vector+grafo, captura automática (#1), TTL    │ S1, S4,     │ Sincronía device↔server,          │
+  │                              │ (#4), smart injection (#18), grafo de personas/lugares base (#17)                                                                  │ server      │ embeddings bilingües              │
+  └──────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─────────────┴───────────────────────────────────┘
+
+  Fase 1 — Asistente útil del día a día
+
+  ┌─────────────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬────────────────────────┐
+  │              Spec               │                                                      Cubre                                                       │       Depende de       │
+  ├─────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────┤
+  │ S6 · Tools iOS nativas          │ schedule/Calendar, recordatorios, alarmas, contactos, abrir apps, Maps (buscar + navegar, Apple/Google), weather │ S4                     │
+  ├─────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────┤
+  │ S7 · Búsqueda web               │ buscar en internet                                                                                               │ S4                     │
+  ├─────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────┤
+  │ S8 · Lectura de documentos      │ docs cortos on-device; largos → cloud (DIFERIDO a S15)                                                           │ S4 (largo: S15)        │
+  ├─────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────┤
+  │ S9 · Visión de imágenes         │ "¿qué estoy viendo?", "¿qué es esto?"                                                                            │ S1 (riesgo multimodal) │
+  ├─────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────┤
+  │ S10 · Comprensión de audio ≤30s │ audio on-device                                                                                                  │ S1 (riesgo multimodal) │
+  └─────────────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴────────────────────────┘
+
+  Fase 2 — Carácter / "se siente vivo"
+
+  ┌─────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬────────────┐
+  │              Spec               │                                                                                Cubre                                                                                │ Depende de │
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ S11 · Memoria v2 (episódica)    │ memoria episódica/timelines, daily graph + meta-graph, episodios, importance scoring (#22), soft confidence (#12), memory linking (#15), daily summary (#25),       │ S5, S0     │
+  │                                 │ compresión (#9), compactación en background                                                                                                                         │            │
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ S12 · Personalidad y voz        │ personalidad persistente (#7), estilo de voz dinámico (#24), emotion tagging (#14), frases cortas dinámicas (#3)                                                    │ S2, S4, S5 │
+  │ dinámica                        │                                                                                                                                                                     │            │
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ S13 · Context awareness + focus │ hora, ubicación, batería, calendario, velocidad, audífonos (#5); focus mode (#19)                                                                                   │ S4         │
+  │  mode                           │                                                                                                                                                                     │            │
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ S14 · Proactividad & ambient    │ modo proactivo (#11), ambient memory (#8), background task memory (#16), alertas iniciadas por el agente (lluvia/tráfico)                                           │ S0, S11,   │
+  │                                 │                                                                                                                                                                     │ S13        │
+  └─────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴────────────┘
+
+  Fase 3 — Expansión (cada uno es grande)
+
+  ┌──────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────┬────────────┐
+  │               Spec               │                                       Cubre                                        │ Depende de │
+  ├──────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ S15 · Router híbrido local/cloud │ hybrid brain (#21), proveedor cloud, resumen de docs largos (habilita S8 largo)    │ S4         │
+  ├──────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ S16 · Smart home                 │ control HomeKit/Matter                                                             │ S4         │
+  ├──────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ S17 · Red / IoT                  │ escanear, conectar, controlar dispositivos directo                                 │ S4         │
+  ├──────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ S18 · Ordering por voz           │ estilo Alexa: mapa → restaurante → menú → orden (deep-link/API). Punto de decisión │ S6, S7     │
+  ├──────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ S19 · Marketplace                │ DoorDash-style: sugerencias, pedir, pagar. PROYECTO SEPARADO (solo nodo)           │ —          │
+  └──────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────┴────────────┘
+
+  Transversales (se diseñan dentro de los specs, no son fases)
+
+  - CC1 · Framework de permisos & privacidad (ambient "con permisos", sensores de context awareness).
+  - CC2 · Extensibilidad de tools/plugins ("iremos agregando más capacidades") → S4 debe ser extensible desde el día 1.
+
+  ---
+  Matriz de cobertura — prueba de que no se omitió nada
+  
+  Capacidades del intro: schedule→S6 · abrir app→S6 · recordatorios→S6 · alarmas→S6 · internet→S7 · google maps→S6 · abrir mapa→S6 · weather→S6 · chat→S2/S3/S4 · ordering→S18 · marketplace→S19 · docs→S8(+S15) ·
+  imágenes→S9 · memoria/RAG→S5/S11/S12 · lugares/personas/relaciones→S5/S11 · alertas no solicitadas→S14 · smart home→S16 · escaneo/control red→S17 · "más capacidades"→CC2 · LiteRT-LM/llama.cpp→S1 · langgraph→S4 ·
+  graphify→S5/S11 · Qdrant→S5/S11 · compactar en 2do plano→S0/S11/S14 · modelo en teléfono→S1 · "Hey Gemma"→S2 · espera/continúa/dismiss→S3 · interruption→S3
+
+  Features 1–25: 1→S5 · 2→S3 · 3→S12 · 4→S5 · 5→S13 · 6→S4 · 7→S12 · 8→S14 · 9→S11 · 10→S4 · 11→S14 · 12→S11 · 13→S2/S3 · 14→S12 · 15→S11 · 16→S14 · 17→S5/S11 · 18→S5 · 19→S13 · 20→S4 · 21→S15 · 22→S11 · 23→S4 · 24→S12 ·
+   25→S11
+
+  Arquitectura de memoria: episódica/timelines→S11 · daily+meta-graph→S5/S11 · L1 Live→S5 · L2 Daily→S5 · L3 Episodic→S11 · L4 Identity→S5/S11/S12 · vector+graph traversal→S5 · emotional timelines→S11/S13 ·
+  hábitos→S11/S14
+
+  Decisiones diferidas a su spec: proveedor cloud (S15) · umbral X tokens doc→cloud (S8/S15) · modelo de embeddings bilingüe (S5) · STT/TTS + hosting VibeVoice (S2) · mecanismo exacto de background (S0) · viabilidad
+  multimodal GGUF (S1/S9/S10) · motor de wake word (S2).

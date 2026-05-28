@@ -93,6 +93,36 @@ final class ModelDownloaderTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: completed!), full)
     }
 
+    func test_download_overwritesStalePartialWhenServerIgnoresRangeAndReturns200() async throws {
+        // Existing partial, but the server ignores Range and replies 200 with the
+        // full body. The download must overwrite the stale partial, not append to
+        // it (which would produce an oversized, corrupt file and waste disk).
+        let full = Data(repeating: 0x37, count: 2048)
+        let stalePartial = Data(repeating: 0xFF, count: 1024)
+        let partialURL = tempDir.appendingPathComponent("restart.bin.partial")
+        try stalePartial.write(to: partialURL)
+
+        MockURLProtocol.responseFor = { _ in
+            MockURLProtocol.Response(
+                statusCode: 200,
+                headers: ["Content-Length": "2048"],
+                body: full
+            )
+        }
+        let downloader = ModelDownloader(session: makeMockedSession(), destinationDir: tempDir)
+        var completed: URL?
+        var lastTotal: Int64 = -1
+        for try await event in downloader.download(from: URL(string: "https://mock/restart.bin")!, filename: "restart.bin") {
+            switch event {
+            case .completed(let u): completed = u
+            case .progress(_, let total): lastTotal = total
+            }
+        }
+        XCTAssertEqual(try Data(contentsOf: completed!), full,
+                       "200 (range ignored) must overwrite the stale partial, not append")
+        XCTAssertEqual(lastTotal, 2048)
+    }
+
     // MARK: helpers
     private func makeMockedSession() -> URLSession {
         let config = URLSessionConfiguration.ephemeral

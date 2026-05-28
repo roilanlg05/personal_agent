@@ -44,18 +44,23 @@ public actor ModelDownloader {
                     }
 
                     let contentLength = http.expectedContentLength
-                    let totalBytes: Int64 = (existingBytes > 0 && http.statusCode == 206)
-                        ? existingBytes + contentLength
-                        : contentLength
+                    // Only resume when the server honored Range with 206. A 200 means
+                    // it's sending the whole file, so any existing partial is stale and
+                    // must be overwritten — appending would corrupt and bloat the file.
+                    let resuming = existingBytes > 0 && http.statusCode == 206
+                    let totalBytes: Int64 = resuming ? existingBytes + contentLength : contentLength
 
-                    // Append (or create) the .partial file.
                     if !fm.fileExists(atPath: partialURL.path) {
                         fm.createFile(atPath: partialURL.path, contents: nil)
                     }
                     let handle = try FileHandle(forWritingTo: partialURL)
-                    try handle.seekToEnd()
+                    if resuming {
+                        try handle.seekToEnd()
+                    } else {
+                        try handle.truncate(atOffset: 0)
+                    }
 
-                    var downloaded: Int64 = existingBytes
+                    var downloaded: Int64 = resuming ? existingBytes : 0
                     var buffer = Data()
                     buffer.reserveCapacity(64 * 1024)
                     let flushThreshold = 64 * 1024

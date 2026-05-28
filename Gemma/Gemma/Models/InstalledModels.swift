@@ -46,6 +46,19 @@ public struct InstalledModels: Sendable {
         }
     }
 
+    /// Size in bytes of a leftover `<modelFile>.partial` from an interrupted
+    /// download, or nil if none. status() ignores partials, so this is the only
+    /// way to see the disk they occupy.
+    public func partialSize(for descriptor: ModelDescriptor) -> Int64? {
+        let partialURL = fileURL(for: descriptor).appendingPathExtension("partial")
+        guard fileManager.fileExists(atPath: partialURL.path),
+              let attrs = try? fileManager.attributesOfItem(atPath: partialURL.path),
+              let size = attrs[.size] as? NSNumber else {
+            return nil
+        }
+        return size.int64Value
+    }
+
     public func remove(_ descriptor: ModelDescriptor) throws {
         let url = fileURL(for: descriptor)
         if fileManager.fileExists(atPath: url.path) {

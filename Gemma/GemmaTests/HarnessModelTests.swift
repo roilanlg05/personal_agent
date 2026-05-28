@@ -78,6 +78,23 @@ final class HarnessModelTests: XCTestCase {
         await Task.yield()
     }
 
+    func test_partialDownloads_surfacesOrphanPartial() async throws {
+        // A leftover .partial with no final file should be surfaced so the UI can
+        // offer to reclaim the (potentially multi-GB) space.
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("gemma-partial-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let desc = ModelCatalog.find("gemma-4-e2b-it")!
+        try Data(repeating: 0, count: 8192).write(to: dir.appendingPathComponent(desc.modelFile + ".partial"))
+
+        let store = InstalledModels(rootDir: dir)
+        let m = HarnessModel(installedStore: store)
+        XCTAssertEqual(m.partialDownloads[desc.id], 8192)
+        XCTAssertFalse(m.installedModels.contains(desc))
+        await Task.yield()
+    }
+
     func test_toggleLoad_litertlmKind_withoutInstall_setsStatusMessage() async {
         // Hermetic: inject an isolated empty store so a sideloaded model in the
         // app's real Documents/Models/ can't satisfy the "without install" premise.

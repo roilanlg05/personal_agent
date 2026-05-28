@@ -61,6 +61,19 @@ final class InstalledModelsTests: XCTestCase {
         )
     }
 
+    func test_partialSize_returnsBytesWhenPartialPresent() throws {
+        let desc = ModelCatalog.find("gemma-4-e2b-it")!
+        try Data(repeating: 0, count: 4096).write(to: dir.appendingPathComponent(desc.modelFile + ".partial"))
+        let store = InstalledModels(rootDir: dir)
+        XCTAssertEqual(store.partialSize(for: desc), 4096)
+    }
+
+    func test_partialSize_returnsNilWhenNoPartial() {
+        let desc = ModelCatalog.find("gemma-4-e2b-it")!
+        let store = InstalledModels(rootDir: dir)
+        XCTAssertNil(store.partialSize(for: desc))
+    }
+
     func test_allInstalled_listsOnlyExistingMatches() throws {
         let e4b = ModelCatalog.find("gemma-4-e4b-it")!
         let e2bURL = dir.appendingPathComponent(ModelCatalog.find("gemma-4-e2b-it")!.modelFile)

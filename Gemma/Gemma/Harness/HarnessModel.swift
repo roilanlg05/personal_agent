@@ -30,6 +30,9 @@ public final class HarnessModel {
     public let catalog: [ModelDescriptor] = ModelCatalog.builtIn
     public let deviceCapability: DeviceCapability = .current()
     public private(set) var installedModels: [ModelDescriptor] = []
+    /// Orphan `.partial` downloads (model id → bytes on disk) with no final file,
+    /// so the UI can offer to reclaim the space. See InstalledModels.partialSize.
+    public private(set) var partialDownloads: [String: Int64] = [:]
     public private(set) var downloads: [String: DownloadProgress] = [:]
     public var showCatalog: Bool = false  // sheet presentation
 
@@ -159,6 +162,13 @@ public final class HarnessModel {
 
     public func refreshInstalled() {
         installedModels = installedStore.allInstalled(from: catalog)
+        var partials: [String: Int64] = [:]
+        for descriptor in catalog where !installedModels.contains(descriptor) {
+            if let size = installedStore.partialSize(for: descriptor) {
+                partials[descriptor.id] = size
+            }
+        }
+        partialDownloads = partials
     }
 
     public func startDownload(_ descriptor: ModelDescriptor) {

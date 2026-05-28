@@ -162,7 +162,7 @@ Archivo: `docs/superpowers/specs/01-s1-runtime-report.md`. Contenido obligatorio
 
 | # | Riesgo | Mitigación |
 |---|---|---|
-| R1 | MTP de Gemma 4 está embebido en el `.litertlm`; no se sabe si llama.cpp puede aprovecharlo en GGUF (probablemente no). | Verificar repo de llama.cpp al iniciar Plan 3. Esperado: combo (c) corre sin MTP; eso ya es el plan. |
+| R1 | MTP de Gemma 4 está embebido en el `.litertlm`; no se sabe si llama.cpp puede aprovecharlo en GGUF (probablemente no). | Verificar repo de llama.cpp al iniciar Plan 4. Esperado: combo (c) corre sin MTP; eso ya es el plan. |
 | R2 | Multimodal de imagen en llama.cpp iOS para Gemma 4 E4B puede requerir build con flags o un fork específico. | Validar en setup del proyecto Swift, antes de medir. Si no hay path razonable, marcar (b)/(c) como "solo texto" en imagen y reportar limitación. |
 | R3 | ~~Tokenizer del drafter vs fine-tune~~ — eliminado: el MTP es interno al `.litertlm` oficial. El uncensored GGUF simplemente no tiene MTP. | — |
 | R4 | Cuantización óptima para uncensored (Q4_K_M vs Q5_K_M vs Q6_K) afecta RAM y calidad. | Pre-screening rápido con 1-2 prompts ANTES del bench formal; elegir 1 cuantización ganadora para el bench oficial. |

@@ -35,17 +35,26 @@ public struct ModelLoadOptions: Sendable {
     public var drafterPath: URL?
     public var useMmap: Bool
     public var contextLength: Int
+    public var systemPrompt: String?
+    public var enableThinking: Bool
+    public var useSpeculativeDecoding: Bool
 
     public init(
         modelPath: URL,
         drafterPath: URL? = nil,
         useMmap: Bool = true,
-        contextLength: Int = 4096
+        contextLength: Int = 32_000,
+        systemPrompt: String? = nil,
+        enableThinking: Bool = false,
+        useSpeculativeDecoding: Bool = false
     ) {
         self.modelPath = modelPath
         self.drafterPath = drafterPath
         self.useMmap = useMmap
         self.contextLength = contextLength
+        self.systemPrompt = systemPrompt
+        self.enableThinking = enableThinking
+        self.useSpeculativeDecoding = useSpeculativeDecoding
     }
 }
 
@@ -53,17 +62,22 @@ public struct GenerationOptions: Sendable {
     public var maxTokens: Int
     public var temperature: Double
     public var topP: Double
+    public var topK: Int
+    /// Legacy per-call MTP request. Plan 3a moves the authoritative MTP toggle to ModelLoadOptions.
+    /// Kept for backward source compatibility; runtimes may ignore it.
     public var useSpeculativeDecoding: Bool
 
     public init(
-        maxTokens: Int = 256,
-        temperature: Double = 0.7,
-        topP: Double = 0.9,
+        maxTokens: Int = 4000,
+        temperature: Double = 1.0,
+        topP: Double = 0.95,
+        topK: Int = 64,
         useSpeculativeDecoding: Bool = false
     ) {
         self.maxTokens = maxTokens
         self.temperature = temperature
         self.topP = topP
+        self.topK = topK
         self.useSpeculativeDecoding = useSpeculativeDecoding
     }
 }

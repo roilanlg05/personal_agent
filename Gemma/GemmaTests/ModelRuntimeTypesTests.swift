@@ -24,20 +24,23 @@ final class ModelRuntimeTypesTests: XCTestCase {
         XCTAssertEqual(m.tokensPerSecond, 0)
     }
 
+    func test_generationOptions_defaultsAreSane() {
+        let opts = GenerationOptions()
+        XCTAssertEqual(opts.maxTokens, 4000)
+        XCTAssertEqual(opts.temperature, 1.0, accuracy: 0.001)
+        XCTAssertEqual(opts.topP, 0.95, accuracy: 0.001)
+        XCTAssertEqual(opts.topK, 64)
+        XCTAssertFalse(opts.useSpeculativeDecoding)  // legacy field; load-time MTP supersedes
+    }
+
     func test_modelLoadOptions_defaultsAreSane() {
         let url = URL(fileURLWithPath: "/tmp/model.bin")
         let opts = ModelLoadOptions(modelPath: url)
         XCTAssertEqual(opts.modelPath, url)
-        XCTAssertNil(opts.drafterPath)
         XCTAssertTrue(opts.useMmap)
-        XCTAssertEqual(opts.contextLength, 4096)
-    }
-
-    func test_generationOptions_defaultsAreSane() {
-        let opts = GenerationOptions()
-        XCTAssertEqual(opts.maxTokens, 256)
-        XCTAssertEqual(opts.temperature, 0.7, accuracy: 0.001)
-        XCTAssertEqual(opts.topP, 0.9, accuracy: 0.001)
+        XCTAssertEqual(opts.contextLength, 32_000)
         XCTAssertFalse(opts.useSpeculativeDecoding)
+        XCTAssertFalse(opts.enableThinking)
+        XCTAssertNil(opts.systemPrompt)
     }
 }

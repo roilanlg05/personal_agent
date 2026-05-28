@@ -170,8 +170,14 @@ public final class LiteRTLMRuntime: ModelRuntime {
                 }
             }
         } catch {
-            continuation.finish(throwing: RuntimeError.generationFailed("\(error)"))
-            return
+            // Reaching the token budget cancels the conversation, which surfaces
+            // here as a thrown "CANCELLED: Process cancelled" error. That's the
+            // expected end of a capped generation, not a failure — fall through to
+            // emit the (truncated) completion. Only real errors propagate.
+            if !capped {
+                continuation.finish(throwing: RuntimeError.generationFailed("\(error)"))
+                return
+            }
         }
         let elapsed = Date().timeIntervalSince(start)
         let ttft = firstTokenAt?.timeIntervalSince(start) ?? 0

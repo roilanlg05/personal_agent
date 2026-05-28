@@ -12,11 +12,13 @@ public enum PerfBenchmarker {
     ) async throws -> BenchmarkResult {
         let backend: Backend = config.backend == .gpu ? .gpu : .cpu()
 
-        // Dedicated temp cache dir, cleaned up afterwards (matches Edge Gallery).
-        let cacheDir = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("bench-\(UUID().uuidString)", isDirectory: true)
-        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: cacheDir) }
+        // Disable the on-disk weight cache. In benchmark mode the engine forces
+        // `wait_for_weights_conversion_complete_in_benchmark`, so a failed MLDrift
+        // weight-cache write ("cannot append buffer to cache file") becomes fatal —
+        // engine creation fails and its native cleanup path bad-accesses (crash).
+        // ":nocache" is the documented opt-out and is the right behavior for a
+        // benchmark (each run measures a cold build).
+        let cacheDir = ":nocache"
 
         var runs: [BenchmarkRun] = []
         for i in 0..<max(1, config.runCount) {
@@ -25,7 +27,7 @@ public enum PerfBenchmarker {
                 backend: backend,
                 prefillTokens: config.prefillTokens,
                 decodeTokens: config.decodeTokens,
-                cacheDir: cacheDir.path
+                cacheDir: cacheDir
             )
             runs.append(BenchmarkRun(
                 initSeconds: info.initTimeInSecond,

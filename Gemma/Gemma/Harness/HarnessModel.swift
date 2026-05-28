@@ -101,7 +101,11 @@ public final class HarnessModel {
                 modelDescription: "\(runtimeKind.displayName) (Plan 1 scaffold)",
                 useSpeculativeDecoding: false,
                 useMmap: true,
-                prompts: PromptSet.all.filter { $0.category != .image }
+                prompts: PromptSet.all,
+                imageProvider: { prompt in
+                    guard let name = prompt.imageAssetName else { return nil }
+                    return UIImage(named: name)
+                }
             )
             let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
             let url = try report.writeToDocuments(filename: "bench-\(stamp).json")

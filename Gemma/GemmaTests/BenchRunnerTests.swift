@@ -60,4 +60,26 @@ final class BenchRunnerTests: XCTestCase {
         )
         XCTAssertGreaterThanOrEqual(report.completedAt, report.startedAt)
     }
+
+    func test_run_invokesImageProviderForImagePrompts() async throws {
+        let runtime = DummyRuntime(cannedResponse: "a b", tokensPerSecondTarget: 200)
+        try await runtime.load(options: ModelLoadOptions(modelPath: URL(fileURLWithPath: "/dev/null")))
+
+        let observedIds = Mutex<[String]>([])
+        let runner = BenchRunner()
+        _ = try await runner.run(
+            runtime: runtime,
+            modelDescription: "dummy",
+            useSpeculativeDecoding: false,
+            useMmap: true,
+            prompts: PromptSet.all.filter { $0.category == .image },
+            imageProvider: { prompt in
+                observedIds.write { $0.append(prompt.id) }
+                return nil  // DummyRuntime ignores the image anyway
+            }
+        )
+
+        let ids = observedIds.read { $0 }
+        XCTAssertEqual(Set(ids), Set(PromptSet.all.filter { $0.category == .image }.map(\.id)))
+    }
 }

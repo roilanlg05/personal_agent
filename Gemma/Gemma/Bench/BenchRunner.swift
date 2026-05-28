@@ -1,26 +1,29 @@
 import Foundation
+import UIKit
+
+public typealias ImageProvider = @Sendable (BenchPrompt) -> UIImage?
 
 public struct BenchRunner: Sendable {
     public init() {}
 
-    /// Runs every prompt against the runtime sequentially and assembles a report.
-    /// Image prompts are passed with `image == nil` here — Plan 2/3 will wire actual images.
     public func run(
         runtime: ModelRuntime,
         modelDescription: String,
         useSpeculativeDecoding: Bool,
         useMmap: Bool,
         prompts: [BenchPrompt],
-        generationOptions: GenerationOptions = GenerationOptions(maxTokens: 64)
+        generationOptions: GenerationOptions = GenerationOptions(maxTokens: 64),
+        imageProvider: ImageProvider = { _ in nil }
     ) async throws -> BenchReport {
         let started = Date()
         var results: [BenchPromptResult] = []
         results.reserveCapacity(prompts.count)
 
         for prompt in prompts {
+            let image = imageProvider(prompt)
             let stream = await runtime.generate(
                 prompt: prompt.text,
-                image: nil,  // Plan 2/3 attaches images via asset name lookup
+                image: image,
                 options: generationOptions
             )
             var streamedText = ""

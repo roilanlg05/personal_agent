@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import Gemma
 
 @MainActor
@@ -46,5 +47,12 @@ final class HarnessModelTests: XCTestCase {
         await m.runBench()
         XCTAssertNotNil(m.benchReportPath)
         XCTAssertTrue(m.streamedOutput.starts(with: "Bench done"))
+        // PromptSet has 20 prompts total — image prompts included via UIImage(named:) lookup.
+        XCTAssertTrue(m.streamedOutput.contains("20 prompts"))
+    }
+
+    func test_benchImage1_assetExistsInBundle() {
+        let img = UIImage(named: "bench-image-1")
+        XCTAssertNotNil(img, "bench-image-1 must be present in Assets.xcassets")
     }
 }

@@ -70,10 +70,28 @@ public final class HarnessModel {
             statusMessage = "Runtime: \(runtimeKind.displayName) (unloaded)"
             return
         }
+        // Resolve the model file (dummy needs none).
+        var modelURL: URL = URL(fileURLWithPath: "/dev/null")
+        if let requiredId = runtimeKind.requiredModelId {
+            guard let descriptor = ModelCatalog.find(requiredId) else {
+                statusMessage = "Model descriptor missing for \(requiredId)"
+                return
+            }
+            switch installedStore.status(of: descriptor) {
+            case .installed(let url):
+                modelURL = url
+            case .notInstalled:
+                statusMessage = "Model not installed. Open Models to download \(descriptor.displayName)."
+                return
+            case .corrupted(let actual, let expected):
+                statusMessage = "Model file corrupted (\(actual) / \(expected) bytes). Remove and re-download."
+                return
+            }
+        }
         isLoadingModel = true
         statusMessage = "Loading…"
         do {
-            try await runtime.load(options: ModelLoadOptions(modelPath: URL(fileURLWithPath: "/dev/null")))
+            try await runtime.load(options: ModelLoadOptions(modelPath: modelURL))
             modelLoaded = true
             statusMessage = "Runtime: \(runtimeKind.displayName) (loaded)"
         } catch {

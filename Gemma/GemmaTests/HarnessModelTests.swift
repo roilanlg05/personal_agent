@@ -77,4 +77,15 @@ final class HarnessModelTests: XCTestCase {
         }
         await Task.yield()
     }
+
+    func test_toggleLoad_litertlmKind_withoutInstall_setsStatusMessage() async {
+        let m = HarnessModel(initialKind: .litertlmE4B)
+        await m.toggleLoad()
+        await Task.yield()
+        XCTAssertFalse(m.modelLoaded)
+        XCTAssertTrue(
+            m.statusMessage.contains("not installed") || m.statusMessage.contains("Open Models"),
+            "statusMessage was: \(m.statusMessage)"
+        )
+    }
 }

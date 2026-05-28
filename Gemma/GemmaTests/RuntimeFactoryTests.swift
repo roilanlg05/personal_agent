@@ -40,4 +40,14 @@ final class RuntimeFactoryTests: XCTestCase {
         XCTAssertTrue(RuntimeKind.allCases.contains(.litertlmE4B))
         XCTAssertTrue(RuntimeKind.allCases.contains(.litertlmE2B))
     }
+
+    func test_make_litertlmE4B_returnsLiteRTLMRuntime() async {
+        let r = RuntimeFactory.make(.litertlmE4B)
+        XCTAssertEqual(r.identifier, "litertlm")
+    }
+
+    func test_make_litertlmE2B_returnsLiteRTLMRuntime() async {
+        let r = RuntimeFactory.make(.litertlmE2B)
+        XCTAssertEqual(r.identifier, "litertlm")
+    }
 }

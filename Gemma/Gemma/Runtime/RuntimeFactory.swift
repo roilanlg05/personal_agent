@@ -27,12 +27,14 @@ public enum RuntimeKind: String, Sendable, CaseIterable, Codable, Hashable, Iden
 }
 
 public enum RuntimeFactory {
-    /// Returns a fresh runtime instance for the given kind. Caller owns the lifecycle.
-    /// Plan 2 returns a DummyRuntime for the LiteRT-LM kinds; Plan 3 swaps in the real runtime.
+    /// Returns a fresh runtime instance for the given kind. Caller owns the lifecycle
+    /// and must call `load(options:)` with the correct model path themselves.
     public static func make(_ kind: RuntimeKind) -> ModelRuntime {
         switch kind {
-        case .dummy, .litertlmE4B, .litertlmE2B:
+        case .dummy:
             return DummyRuntime()
+        case .litertlmE4B, .litertlmE2B:
+            return LiteRTLMRuntime()
         }
     }
 }

@@ -13,7 +13,8 @@ public struct BenchRunner: Sendable {
         useMmap: Bool,
         prompts: [BenchPrompt],
         generationOptions: GenerationOptions = GenerationOptions(maxTokens: 64),
-        imageProvider: ImageProvider = { _ in nil }
+        imageProvider: ImageProvider = { _ in nil },
+        onProgress: (@MainActor @Sendable (_ completed: Int, _ total: Int) -> Void)? = nil
     ) async throws -> BenchReport {
         let started = Date()
         var results: [BenchPromptResult] = []
@@ -47,6 +48,7 @@ public struct BenchRunner: Sendable {
                 outputText: r.text.isEmpty ? streamedText : r.text,
                 metrics: r.metrics
             ))
+            await onProgress?(results.count, prompts.count)
         }
 
         return BenchReport(

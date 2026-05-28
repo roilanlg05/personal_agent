@@ -148,6 +148,9 @@ public final class HarnessModel {
                 imageProvider: { prompt in
                     guard let name = prompt.imageAssetName else { return nil }
                     return UIImage(named: name)
+                },
+                onProgress: { [weak self] completed, total in
+                    self?.streamedOutput = "Running bench… (\(completed)/\(total))"
                 }
             )
             let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")

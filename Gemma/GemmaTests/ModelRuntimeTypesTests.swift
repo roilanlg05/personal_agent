@@ -38,7 +38,9 @@ final class ModelRuntimeTypesTests: XCTestCase {
         let opts = ModelLoadOptions(modelPath: url)
         XCTAssertEqual(opts.modelPath, url)
         XCTAssertTrue(opts.useMmap)
-        XCTAssertEqual(opts.contextLength, 32_000)
+        // KV-cache size (maxNumTokens). Matches the Edge Gallery recipe for Gemma 4;
+        // 32K blows the GPU Metal texture budget on-device (failedToCreateEngine).
+        XCTAssertEqual(opts.contextLength, 4096)
         XCTAssertFalse(opts.useSpeculativeDecoding)
         XCTAssertFalse(opts.enableThinking)
         XCTAssertNil(opts.systemPrompt)

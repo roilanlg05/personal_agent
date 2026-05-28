@@ -43,7 +43,10 @@ public struct ModelLoadOptions: Sendable {
         modelPath: URL,
         drafterPath: URL? = nil,
         useMmap: Bool = true,
-        contextLength: Int = 32_000,
+        // KV-cache size (maps to EngineConfig.maxNumTokens = sum of input+output
+        // tokens). 4096 matches the Edge Gallery recipe for Gemma 4; 32K overflows
+        // the on-device GPU Metal texture budget and fails engine creation.
+        contextLength: Int = 4096,
         systemPrompt: String? = nil,
         enableThinking: Bool = false,
         useSpeculativeDecoding: Bool = false

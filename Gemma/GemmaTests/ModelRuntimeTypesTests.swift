@@ -31,6 +31,7 @@ final class ModelRuntimeTypesTests: XCTestCase {
         XCTAssertEqual(opts.topP, 0.95, accuracy: 0.001)
         XCTAssertEqual(opts.topK, 64)
         XCTAssertFalse(opts.useSpeculativeDecoding)  // legacy field; load-time MTP supersedes
+        XCTAssertNil(opts.systemPrompt)
     }
 
     func test_modelLoadOptions_defaultsAreSane() {

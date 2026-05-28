@@ -79,19 +79,24 @@ public struct GenerationOptions: Sendable {
     /// Legacy per-call MTP request. Plan 3a moves the authoritative MTP toggle to ModelLoadOptions.
     /// Kept for backward source compatibility; runtimes may ignore it.
     public var useSpeculativeDecoding: Bool
+    /// Optional system prompt applied when the conversation is (re)created for this
+    /// generation. nil = no system message.
+    public var systemPrompt: String?
 
     public init(
         maxTokens: Int = 4000,
         temperature: Double = 1.0,
         topP: Double = 0.95,
         topK: Int = 64,
-        useSpeculativeDecoding: Bool = false
+        useSpeculativeDecoding: Bool = false,
+        systemPrompt: String? = nil
     ) {
         self.maxTokens = maxTokens
         self.temperature = temperature
         self.topP = topP
         self.topK = topK
         self.useSpeculativeDecoding = useSpeculativeDecoding
+        self.systemPrompt = systemPrompt
     }
 }
 

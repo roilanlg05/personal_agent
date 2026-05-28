@@ -3,6 +3,7 @@ import UIKit
 
 struct HarnessView: View {
     @State private var model = HarnessModel()
+    @FocusState private var promptFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -26,6 +27,13 @@ struct HarnessView: View {
             }
             .padding()
             .navigationTitle("Gemma Harness")
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { promptFocused = false }
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
             .sheet(isPresented: $model.showImagePicker) {
                 ImagePickerView(image: $model.pickedImage)
             }
@@ -61,7 +69,10 @@ struct HarnessView: View {
     private var promptArea: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Prompt").font(.headline)
-            TextEditor(text: $model.prompt).frame(minHeight: 80).border(.quaternary)
+            TextEditor(text: $model.prompt)
+                .frame(minHeight: 80)
+                .border(.quaternary)
+                .focused($promptFocused)
             HStack {
                 Button(model.pickedImage == nil ? "Attach image" : "Replace image") {
                     model.showImagePicker = true

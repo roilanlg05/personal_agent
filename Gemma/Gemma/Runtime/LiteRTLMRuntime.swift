@@ -15,7 +15,6 @@ public final class LiteRTLMRuntime: ModelRuntime {
     private var conversation: Conversation?
     private var loaded: Bool = false
     private var lastMetrics: RuntimeMetrics?
-    private var systemPrompt: String?
 
     public nonisolated init() {}
 
@@ -42,20 +41,21 @@ public final class LiteRTLMRuntime: ModelRuntime {
         try await engine.initialize()  // actor isolation requires await; method itself is sync-throws
 
         self.engine = engine
-        self.systemPrompt = options.systemPrompt
-        self.conversation = try await makeConversation(engine: engine)
+        self.conversation = try await makeConversation(engine: engine, options: GenerationOptions(systemPrompt: options.systemPrompt))
         self.loaded = true
     }
 
-    /// Creates a fresh `Conversation` (clean context) on the loaded engine. Each
-    /// generation gets a new one so history doesn't accumulate across prompts and
-    /// overflow the KV cache — otherwise a second bench/run stalls in prefill.
-    private func makeConversation(engine: Engine) async throws -> Conversation {
-        let sampler = try SamplerConfig(topK: 64, topP: 0.95, temperature: 1.0)
-        let convCfg = ConversationConfig(
-            systemMessage: systemPrompt.map { Message($0, role: .system) },
-            samplerConfig: sampler
+    /// Creates a fresh `Conversation` (clean context) on the loaded engine, using
+    /// this generation's sampler + system prompt.
+    private func makeConversation(engine: Engine, options: GenerationOptions) async throws -> Conversation {
+        let sampler = try SamplerConfig(
+            topK: max(1, options.topK),
+            topP: Float(options.topP),
+            temperature: Float(options.temperature)
         )
+        let trimmed = options.systemPrompt?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let systemMessage = (trimmed?.isEmpty == false) ? Message(trimmed!, role: .system) : nil
+        let convCfg = ConversationConfig(systemMessage: systemMessage, samplerConfig: sampler)
         return try await engine.createConversation(with: convCfg)
     }
 
@@ -64,7 +64,6 @@ public final class LiteRTLMRuntime: ModelRuntime {
         engine = nil
         loaded = false
         lastMetrics = nil
-        systemPrompt = nil
     }
 
     public func generate(
@@ -76,9 +75,8 @@ public final class LiteRTLMRuntime: ModelRuntime {
         // Conversation (a non-Sendable class) is only ever touched from the same
         // executor that created the Engine. A detached Task would run off-actor on
         // an arbitrary thread and crash the native runtime (SIGSEGV).
-        let maxTokens = options.maxTokens
         return AsyncThrowingStream { continuation in
-            let task = Task { await self.streamGeneration(prompt: prompt, image: image, maxTokens: maxTokens, into: continuation) }
+            let task = Task { await self.streamGeneration(prompt: prompt, image: image, options: options, into: continuation) }
             continuation.onTermination = { _ in task.cancel() }
         }
     }
@@ -86,13 +84,14 @@ public final class LiteRTLMRuntime: ModelRuntime {
     private func streamGeneration(
         prompt: String,
         image: UIImage?,
-        maxTokens: Int,
+        options: GenerationOptions,
         into continuation: AsyncThrowingStream<GenerationEvent, Error>.Continuation
     ) async {
         guard loaded, let engine else {
             continuation.finish(throwing: RuntimeError.notLoaded)
             return
         }
+        let maxTokens = options.maxTokens
         // Fresh conversation per generation → clean context, no KV-cache overflow
         // from accumulated history on repeated runs. The engine allows only one
         // session at a time, so release the existing one first (Conversation.deinit
@@ -100,7 +99,7 @@ public final class LiteRTLMRuntime: ModelRuntime {
         conversation = nil
         let conv: Conversation
         do {
-            conv = try await makeConversation(engine: engine)
+            conv = try await makeConversation(engine: engine, options: options)
         } catch {
             // Defense-in-depth for the single-session constraint: if the prior
             // session hasn't finished tearing down, let pending cleanup run and
@@ -108,7 +107,7 @@ public final class LiteRTLMRuntime: ModelRuntime {
             await Task.yield()
             conversation = nil
             do {
-                conv = try await makeConversation(engine: engine)
+                conv = try await makeConversation(engine: engine, options: options)
             } catch {
                 continuation.finish(throwing: RuntimeError.generationFailed("conversation init: \(error)"))
                 return

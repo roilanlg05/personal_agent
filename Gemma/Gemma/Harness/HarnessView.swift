@@ -29,6 +29,9 @@ struct HarnessView: View {
             .sheet(isPresented: $model.showImagePicker) {
                 ImagePickerView(image: $model.pickedImage)
             }
+            .sheet(isPresented: $model.showCatalog) {
+                CatalogView(model: model)
+            }
         }
     }
 
@@ -36,6 +39,8 @@ struct HarnessView: View {
         HStack {
             Text(model.statusMessage).font(.caption).foregroundStyle(.secondary)
             Spacer()
+            Button("Models") { model.showCatalog = true }
+                .disabled(model.isGenerating)
             Button(model.modelLoaded ? "Unload" : "Load") {
                 Task { await model.toggleLoad() }
             }

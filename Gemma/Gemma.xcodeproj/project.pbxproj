@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0DD45C602FC8B551004C8891 /* LiteRTLM in Frameworks */ = {isa = PBXBuildFile; productRef = 0DD45C5F2FC8B551004C8891 /* LiteRTLM */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		0D5285162FC7F35B0028A19E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -54,6 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0DD45C602FC8B551004C8891 /* LiteRTLM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,6 +110,7 @@
 			);
 			name = Gemma;
 			packageProductDependencies = (
+				0DD45C5F2FC8B551004C8891 /* LiteRTLM */,
 			);
 			productName = Gemma;
 			productReference = 0D5284F72FC7D2190028A19E /* Gemma.app */;
@@ -161,6 +167,9 @@
 			);
 			mainGroup = 0D5284EE2FC7D2190028A19E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0DD45C5E2FC8B551004C8891 /* XCLocalSwiftPackageReference "../vendor/LiteRT-LM" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0D5284F82FC7D2190028A19E /* Products */;
 			projectDirPath = "";
@@ -356,6 +365,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				"OTHER_LDFLAGS[arch=*]" = "-all_load";
 				PRODUCT_BUNDLE_IDENTIFIER = "lambert-dev-group.Gemma";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -388,6 +398,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				"OTHER_LDFLAGS[arch=*]" = "-all_load";
 				PRODUCT_BUNDLE_IDENTIFIER = "lambert-dev-group.Gemma";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -473,6 +484,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		0DD45C5E2FC8B551004C8891 /* XCLocalSwiftPackageReference "../vendor/LiteRT-LM" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../vendor/LiteRT-LM";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0DD45C5F2FC8B551004C8891 /* LiteRTLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LiteRTLM;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 0D5284EF2FC7D2190028A19E /* Project object */;
 }

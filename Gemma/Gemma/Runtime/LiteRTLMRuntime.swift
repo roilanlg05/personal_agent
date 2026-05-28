@@ -101,11 +101,20 @@ public final class LiteRTLMRuntime: ModelRuntime {
         let conv: Conversation
         do {
             conv = try await makeConversation(engine: engine)
-            conversation = conv
         } catch {
-            continuation.finish(throwing: RuntimeError.generationFailed("conversation init: \(error)"))
-            return
+            // Defense-in-depth for the single-session constraint: if the prior
+            // session hasn't finished tearing down, let pending cleanup run and
+            // retry once before giving up.
+            await Task.yield()
+            conversation = nil
+            do {
+                conv = try await makeConversation(engine: engine)
+            } catch {
+                continuation.finish(throwing: RuntimeError.generationFailed("conversation init: \(error)"))
+                return
+            }
         }
+        conversation = conv
         var tempImageURL: URL?
         let userMessage: Message
         if let image {
@@ -129,12 +138,22 @@ public final class LiteRTLMRuntime: ModelRuntime {
         var firstTokenAt: Date?
         var accumulated = ""
         var tokenCount = 0
+        var capped = false
         do {
             for try await chunk in conv.sendMessageStream(userMessage) {
                 if Task.isCancelled {
+                    try? conv.cancel()
                     continuation.finish(throwing: CancellationError())
                     return
                 }
+                // After hitting the output-token budget we keep draining the stream
+                // (without yielding) until it ends. Breaking early would leave the
+                // native stream's context holding the Conversation, so releasing it
+                // wouldn't tear the single engine session down in time and the next
+                // generation's createConversation would intermittently fail with
+                // FAILED_PRECONDITION ("a session already exists"). cancel() makes
+                // the stream end promptly, so draining is cheap.
+                if capped { continue }
                 let piece = chunk.toString
                 if !piece.isEmpty {
                     if firstTokenAt == nil { firstTokenAt = Date() }
@@ -146,7 +165,7 @@ public final class LiteRTLMRuntime: ModelRuntime {
                     // 10+ minutes and look stuck at "Running bench…".
                     if maxTokens > 0 && tokenCount >= maxTokens {
                         try? conv.cancel()
-                        break
+                        capped = true
                     }
                 }
             }

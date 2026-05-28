@@ -8,6 +8,8 @@ public final class BenchmarkModel {
     public private(set) var isRunning = false
     public private(set) var progress: (completed: Int, total: Int)?
     public private(set) var result: BenchmarkResult?
+    public private(set) var comparison: MTPComparison?
+    public private(set) var isComparing = false
     public private(set) var errorMessage: String?
 
     public init() {}
@@ -28,6 +30,27 @@ public final class BenchmarkModel {
                 }
             )
             result = r
+        } catch {
+            errorMessage = "\(error)"
+        }
+    }
+
+    public func compareMTP(modelURL: URL) async {
+        guard !isRunning && !isComparing else { return }
+        isComparing = true
+        errorMessage = nil
+        comparison = nil
+        progress = (0, config.runCount * 2)
+        defer { isComparing = false }
+        do {
+            let c = try await PerfBenchmarker.compareMTP(
+                modelPath: modelURL.path,
+                config: config,
+                onProgress: { [weak self] completed, total in
+                    self?.progress = (completed, total)
+                }
+            )
+            comparison = c
         } catch {
             errorMessage = "\(error)"
         }

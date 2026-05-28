@@ -30,6 +30,10 @@ public actor DummyRuntime: ModelRuntime {
         lastMetrics = nil
     }
 
+    public func reset() async throws {
+        // Stateless: the dummy keeps no conversation context.
+    }
+
     public func generate(
         prompt: String,
         image: UIImage?,

@@ -55,4 +55,26 @@ final class HarnessModelTests: XCTestCase {
         let img = UIImage(named: "bench-image-1")
         XCTAssertNotNil(img, "bench-image-1 must be present in Assets.xcassets")
     }
+
+    func test_catalog_isModelCatalogBuiltIn() async {
+        let m = HarnessModel()
+        XCTAssertEqual(m.catalog.map(\.id), ModelCatalog.builtIn.map(\.id))
+        // Same deinit-hop workaround as test_init_defaultsAreDummyAndNotLoaded.
+        await Task.yield()
+    }
+
+    func test_deviceCapability_isRealisticForTestDevice() async {
+        let m = HarnessModel()
+        XCTAssertGreaterThan(m.deviceCapability.totalRAMBytes, 0)
+        XCTAssertGreaterThan(m.deviceCapability.freeDiskBytes, 0)
+        await Task.yield()
+    }
+
+    func test_initialInstalledModels_isEmptyOrSubsetOfCatalog() async {
+        let m = HarnessModel()
+        for installed in m.installedModels {
+            XCTAssertTrue(m.catalog.contains(installed))
+        }
+        await Task.yield()
+    }
 }

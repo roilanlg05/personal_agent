@@ -46,6 +46,21 @@ final class InstalledModelsTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
     }
 
+    func test_remove_alsoDeletesOrphanPartial() throws {
+        // An interrupted/cancelled download leaves a multi-GB `<modelFile>.partial`
+        // with no final file. status() reports .notInstalled (it checks the final
+        // file), so the space is invisible; remove() must still reclaim the partial.
+        let desc = ModelCatalog.find("gemma-4-e2b-it")!
+        let partialURL = dir.appendingPathComponent(desc.modelFile + ".partial")
+        try Data(repeating: 0, count: 1024).write(to: partialURL)
+        let store = InstalledModels(rootDir: dir)
+        try store.remove(desc)
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: partialURL.path),
+            "remove() must also delete the leftover .partial"
+        )
+    }
+
     func test_allInstalled_listsOnlyExistingMatches() throws {
         let e4b = ModelCatalog.find("gemma-4-e4b-it")!
         let e2bURL = dir.appendingPathComponent(ModelCatalog.find("gemma-4-e2b-it")!.modelFile)

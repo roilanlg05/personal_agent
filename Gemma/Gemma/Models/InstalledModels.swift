@@ -51,6 +51,12 @@ public struct InstalledModels: Sendable {
         if fileManager.fileExists(atPath: url.path) {
             try fileManager.removeItem(at: url)
         }
+        // Also reclaim any leftover `.partial` from an interrupted download; it can
+        // be multiple GB and is invisible to status()/allInstalled().
+        let partialURL = url.appendingPathExtension("partial")
+        if fileManager.fileExists(atPath: partialURL.path) {
+            try fileManager.removeItem(at: partialURL)
+        }
     }
 
     public func allInstalled(from catalog: [ModelDescriptor]) -> [ModelDescriptor] {

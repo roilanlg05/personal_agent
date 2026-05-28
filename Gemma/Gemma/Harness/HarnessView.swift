@@ -40,6 +40,9 @@ struct HarnessView: View {
             .sheet(isPresented: $model.showCatalog) {
                 CatalogView(model: model)
             }
+            .sheet(isPresented: $model.showBenchmark) {
+                BenchmarkView(model: model.benchmark, modelURL: model.benchmarkModelURL)
+            }
         }
     }
 

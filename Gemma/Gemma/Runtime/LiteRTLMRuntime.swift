@@ -92,7 +92,10 @@ public final class LiteRTLMRuntime: ModelRuntime {
             return
         }
         // Fresh conversation per generation → clean context, no KV-cache overflow
-        // from accumulated history on repeated runs.
+        // from accumulated history on repeated runs. The engine allows only one
+        // session at a time, so release the existing one first (Conversation.deinit
+        // calls litert_lm_conversation_delete) before creating the replacement.
+        conversation = nil
         let conv: Conversation
         do {
             conv = try await makeConversation(engine: engine)

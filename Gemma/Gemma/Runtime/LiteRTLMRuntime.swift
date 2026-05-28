@@ -76,8 +76,9 @@ public final class LiteRTLMRuntime: ModelRuntime {
         // Conversation (a non-Sendable class) is only ever touched from the same
         // executor that created the Engine. A detached Task would run off-actor on
         // an arbitrary thread and crash the native runtime (SIGSEGV).
+        let maxTokens = options.maxTokens
         return AsyncThrowingStream { continuation in
-            let task = Task { await self.streamGeneration(prompt: prompt, image: image, into: continuation) }
+            let task = Task { await self.streamGeneration(prompt: prompt, image: image, maxTokens: maxTokens, into: continuation) }
             continuation.onTermination = { _ in task.cancel() }
         }
     }
@@ -85,6 +86,7 @@ public final class LiteRTLMRuntime: ModelRuntime {
     private func streamGeneration(
         prompt: String,
         image: UIImage?,
+        maxTokens: Int,
         into continuation: AsyncThrowingStream<GenerationEvent, Error>.Continuation
     ) async {
         guard loaded, let engine else {
@@ -139,6 +141,13 @@ public final class LiteRTLMRuntime: ModelRuntime {
                     accumulated += piece
                     tokenCount += 1
                     continuation.yield(.token(piece))
+                    // Enforce the output-token budget: without this each prompt runs
+                    // until EOS (hundreds of tokens), making a 20-prompt bench take
+                    // 10+ minutes and look stuck at "Running bench…".
+                    if maxTokens > 0 && tokenCount >= maxTokens {
+                        try? conv.cancel()
+                        break
+                    }
                 }
             }
         } catch {

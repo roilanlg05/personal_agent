@@ -43,6 +43,9 @@ struct HarnessView: View {
             .sheet(isPresented: $model.showBenchmark) {
                 BenchmarkView(model: model.benchmark, modelURL: model.benchmarkModelURL)
             }
+            .sheet(isPresented: $model.showSettings) {
+                SettingsView(model: model)
+            }
         }
     }
 
@@ -50,6 +53,8 @@ struct HarnessView: View {
         HStack {
             Text(model.statusMessage).font(.caption).foregroundStyle(.secondary)
             Spacer()
+            Button { model.showSettings = true } label: { Image(systemName: "gearshape") }
+                .disabled(model.isGenerating)
             Button("Models") { model.showCatalog = true }
                 .disabled(model.isGenerating)
             Button(model.modelLoaded ? "Unload" : "Load") {

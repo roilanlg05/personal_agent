@@ -36,6 +36,7 @@ public final class HarnessModel {
     public private(set) var settings: GenerationSettings
     public private(set) var downloads: [String: DownloadProgress] = [:]
     public var showCatalog: Bool = false  // sheet presentation
+    public var showSettings: Bool = false
     public var showBenchmark: Bool = false
     public private(set) var benchmark = BenchmarkModel()
     public private(set) var benchmarkModelURL: URL?

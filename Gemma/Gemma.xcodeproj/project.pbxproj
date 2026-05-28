@@ -22,12 +22,12 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		0D5284FA2FC7D2190028A19E /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		0D5284FA2FC7D2190028A19E /* Exceptions for "Gemma" folder in "Gemma" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				"Bench/.gitkeep",
-				"Harness/.gitkeep",
-				"Runtime/.gitkeep",
+				Bench/.gitkeep,
+				Harness/.gitkeep,
+				Runtime/.gitkeep,
 			);
 			target = 0D5284F62FC7D2190028A19E /* Gemma */;
 		};
@@ -37,7 +37,7 @@
 		0D5284F92FC7D2190028A19E /* Gemma */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				0D5284FA2FC7D2190028A19E /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+				0D5284FA2FC7D2190028A19E /* Exceptions for "Gemma" folder in "Gemma" target */,
 			);
 			path = Gemma;
 			sourceTree = "<group>";

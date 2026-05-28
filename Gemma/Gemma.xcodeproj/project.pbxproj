@@ -6,20 +6,58 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		0D5285162FC7F35B0028A19E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0D5284EF2FC7D2190028A19E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0D5284F62FC7D2190028A19E;
+			remoteInfo = Gemma;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		0D5284F72FC7D2190028A19E /* Gemma.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gemma.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0D5285122FC7F35B0028A19E /* GemmaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GemmaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		0D5284FA2FC7D2190028A19E /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Bench/.gitkeep",
+				"Harness/.gitkeep",
+				"Runtime/.gitkeep",
+			);
+			target = 0D5284F62FC7D2190028A19E /* Gemma */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0D5284F92FC7D2190028A19E /* Gemma */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				0D5284FA2FC7D2190028A19E /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 			path = Gemma;
+			sourceTree = "<group>";
+		};
+		0D5285132FC7F35B0028A19E /* GemmaTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GemmaTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		0D5284F42FC7D2190028A19E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0D52850F2FC7F35B0028A19E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				0D5284F92FC7D2190028A19E /* Gemma */,
+				0D5285132FC7F35B0028A19E /* GemmaTests */,
 				0D5284F82FC7D2190028A19E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +80,7 @@
 			isa = PBXGroup;
 			children = (
 				0D5284F72FC7D2190028A19E /* Gemma.app */,
+				0D5285122FC7F35B0028A19E /* GemmaTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +110,29 @@
 			productReference = 0D5284F72FC7D2190028A19E /* Gemma.app */;
 			productType = "com.apple.product-type.application";
 		};
+		0D5285112FC7F35B0028A19E /* GemmaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0D5285182FC7F35B0028A19E /* Build configuration list for PBXNativeTarget "GemmaTests" */;
+			buildPhases = (
+				0D52850E2FC7F35B0028A19E /* Sources */,
+				0D52850F2FC7F35B0028A19E /* Frameworks */,
+				0D5285102FC7F35B0028A19E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0D5285172FC7F35B0028A19E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				0D5285132FC7F35B0028A19E /* GemmaTests */,
+			);
+			name = GemmaTests;
+			packageProductDependencies = (
+			);
+			productName = GemmaTests;
+			productReference = 0D5285122FC7F35B0028A19E /* GemmaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +145,10 @@
 				TargetAttributes = {
 					0D5284F62FC7D2190028A19E = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					0D5285112FC7F35B0028A19E = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 0D5284F62FC7D2190028A19E;
 					};
 				};
 			};
@@ -100,12 +167,20 @@
 			projectRoot = "";
 			targets = (
 				0D5284F62FC7D2190028A19E /* Gemma */,
+				0D5285112FC7F35B0028A19E /* GemmaTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		0D5284F52FC7D2190028A19E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0D5285102FC7F35B0028A19E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +197,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		0D52850E2FC7F35B0028A19E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0D5285172FC7F35B0028A19E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0D5284F62FC7D2190028A19E /* Gemma */;
+			targetProxy = 0D5285162FC7F35B0028A19E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0D5285002FC7D2190028A19E /* Debug */ = {
@@ -310,6 +400,48 @@
 			};
 			name = Release;
 		};
+		0D5285192FC7F35B0028A19E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8FF63857X2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "lambert-dev-group.GemmaTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Gemma.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Gemma";
+			};
+			name = Debug;
+		};
+		0D52851A2FC7F35B0028A19E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8FF63857X2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "lambert-dev-group.GemmaTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Gemma.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Gemma";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -327,6 +459,15 @@
 			buildConfigurations = (
 				0D5285032FC7D2190028A19E /* Debug */,
 				0D5285042FC7D2190028A19E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0D5285182FC7F35B0028A19E /* Build configuration list for PBXNativeTarget "GemmaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0D5285192FC7F35B0028A19E /* Debug */,
+				0D52851A2FC7F35B0028A19E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

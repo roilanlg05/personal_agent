@@ -11,7 +11,7 @@
 Elegir, basado en datos medidos en iPhone 16 físico:
 1. **Runtime de inferencia:** LiteRT-LM o llama.cpp.
 2. **Variante de modelo:** oficial (`litert-community/gemma-4-E4B-it-litert-lm`) o uncensored (`llmfan46/gemma-4-E4B-it-ultra-uncensored-heretic` GGUF).
-3. **Uso de decoding especulativo (MTP drafter):** sí / no.
+3. **Uso de decoding especulativo (MTP toggle):** sí / no.
 4. **Modo de carga del modelo:** memory-mapped (mmap) o carga completa.
 
 Y entregar un **harness SwiftUI mínimo** que cargue el ganador y exponga una capa `ModelRuntime` reusable por specs siguientes (S2 voz, S4 agente).
@@ -21,7 +21,7 @@ Y entregar un **harness SwiftUI mínimo** que cargue el ganador y exponga una ca
 **Dentro:**
 - Bench de inferencia en iPhone 16 base ↑ (dispositivo físico, no simulador).
 - Modalidades: **texto + imagen** (multimodal completo se posterga; audio/video van en S9/S10).
-- Comparación de 3 combos runtime+modelo+drafter (§5).
+- Comparación de 3 combos runtime+modelo+MTP-toggle (§5).
 - Sub-evaluación **mmap vs carga completa** sobre el combo ganador.
 - Medición energética: simple (% batería + temperatura) para iterar; **Xcode Instruments Energy Log** para validar al ganador.
 - Reporte tabulado + decisión justificada.
@@ -54,29 +54,29 @@ Y entregar un **harness SwiftUI mínimo** que cargue el ganador y exponga una ca
 | Alcance multimodal del bench | **Texto + imagen** |
 | Entregable | **Bench report + harness Swift mínimo** |
 | Criterios pasa/no-pasa | **No hay umbrales duros**; S1 reporta y elige |
-| Draft model | **MTP drafter oficial de Google para E4B** (Multi-Token Prediction, Apache 2.0, publicado 5 mayo 2026; usado por Google AI Edge Gallery; hasta 3× speedup) |
+| Speculative decoding | **MTP embebido en el `.litertlm` de Gemma 4 E4B** — no es un archivo de drafter aparte; es un toggle `ExperimentalFlags.enableSpeculativeDecoding = true` (verificado en el catálogo oficial de Google AI Edge Gallery iOS). |
 | Estrategia de bench | **3 combos clave** (§5) |
 | Medición energía | **Simple para iterar + Instruments para final** |
 | Modo de carga | **Evaluar mmap vs no-mmap** en el ganador (§7) |
 
 ## 5. Plan de bench — 3 combos clave
 
-| # | Runtime | Modelo (target) | Drafter |
+| # | Runtime | Modelo (target) | MTP / speculative decoding |
 |---|---|---|---|
-| **a** | LiteRT-LM | `litert-community/gemma-4-E4B-it-litert-lm` (oficial) | MTP drafter oficial de Google para E4B |
-| **b** | llama.cpp | `llmfan46/gemma-4-E4B-it-ultra-uncensored-heretic` (GGUF, uncensored) | MTP drafter oficial *(validar carga en llama.cpp; medir acceptance rate caído por el fine-tune)* |
-| **c** | llama.cpp | mismo uncensored GGUF | **Sin drafter** (baseline para aislar el efecto del MTP) |
+| **a** | LiteRT-LM | `litert-community/gemma-4-E4B-it-litert-lm` (oficial, `.litertlm`, 3.66 GB) | **ON** — flag `ExperimentalFlags.enableSpeculativeDecoding = true` |
+| **b** | LiteRT-LM | mismo oficial | **OFF** — baseline para aislar el efecto del MTP en el camino oficial |
+| **c** | llama.cpp | `llmfan46/gemma-4-E4B-it-ultra-uncensored-heretic` (GGUF, uncensored) | N/A — el MTP empotrado vive en el `.litertlm`; el GGUF uncensored se mide sin MTP. *(Investigar si llama.cpp expone Gemma 4 MTP separadamente; si sí, agregar combo `c2`.)* |
 
 **Combo "stretch" (solo si a/b/c se ejecutan rápido y queda tiempo):**
 
 | # | Runtime | Modelo | Drafter |
 |---|---|---|---|
-| d | llama.cpp | `HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive` (GGUF) | MTP drafter oficial |
+| d | llama.cpp | `HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive` (GGUF) | N/A (mismo razonamiento que combo c) |
 
 **Por qué estos 3:**
-- (a) es el camino de menor resistencia, máximo speedup MTP, modelo oficial → "ideal teórico".
-- (b) responde "¿cuánto pierdo del MTP al meter un uncensored?".
-- (c) responde "¿vale la pena el drafter o me quedo con uncensored puro?".
+- (a) es el camino de menor resistencia: LiteRT-LM oficial con MTP ON → "ideal teórico" según el catálogo de Edge Gallery.
+- (b) aísla el efecto del MTP en el camino oficial (mismo runtime y modelo, solo el flag cambia).
+- (c) responde "¿qué pierdo en latencia/calidad al cambiar oficial+LiteRT-LM por uncensored+llama.cpp?".
 
 ## 6. Métricas por combo
 
@@ -87,7 +87,7 @@ Y entregar un **harness SwiftUI mínimo** que cargue el ganador y exponga una ca
 | **RAM peak** | Pico de Resident Set Size durante carga + 5 min de inferencia mixta. |
 | **Tamaño en disco** | Bytes del archivo de modelo en Documents. |
 | **Calidad (manual)** | Set fijo de **~20 prompts bilingües** (factuales ES/EN, conversacionales ES/EN, una pregunta sobre imagen). Evaluación humana rápida (1-5). NO es eval académico — es comparativo entre combos. |
-| **Acceptance rate del drafter** (combos a y b) | % de tokens propuestos por el drafter aceptados por el target. |
+| **MTP speedup** (combo a vs b) | tokens/s con MTP ON dividido entre tokens/s con MTP OFF sobre el mismo set de prompts. Esperado ≈ hasta 3× según Google. |
 | **Energía — iteración** | % batería antes/después de **10 min de inferencia sostenida** + temperatura máxima del dispositivo. |
 | **Energía — final (ganador)** | Xcode Instruments **Energy Log**: impacto energético (mW), uso CPU/GPU/Neural Engine. |
 | **Modelo (cargado en frío vs caliente)** | TTFT con cold launch vs warm launch (mide impacto de mmap). |
@@ -138,7 +138,7 @@ Gemma/Gemma/
 ```
 
 **Protocolo `ModelRuntime` (forma mínima — detalles los fija el bench):**
-- `load(modelPath:, drafterPath:?, options:) async throws`
+- `load(options:) async throws` *(MTP se controla via `GenerationOptions.useSpeculativeDecoding`; no se carga un archivo de drafter separado)*
 - `generate(prompt:, image:?, onToken: (String) -> Void) async throws -> GenerationResult`
 - `unload()`
 - `currentMetrics() -> RuntimeMetrics` (tok/s, RAM, etc.)
@@ -153,8 +153,8 @@ Archivo: `docs/superpowers/specs/01-s1-runtime-report.md`. Contenido obligatorio
 2. Tabla comparativa con todas las métricas de §6 por combo.
 3. Sub-evaluación mmap vs no-mmap.
 4. Notas sobre comportamiento térmico y energético.
-5. Tokenizer y compatibilidad del drafter con cada target (especialmente en combo b).
-6. **Decisión final** justificada en prosa: runtime, modelo, drafter sí/no, mmap sí/no.
+5. Comportamiento del flag MTP en cada runtime (LiteRT-LM lo expone vía `ExperimentalFlags.enableSpeculativeDecoding`; llama.cpp se reporta como N/A o investigado).
+6. **Decisión final** justificada en prosa: runtime, modelo, MTP sí/no, mmap sí/no.
 7. Riesgos descubiertos que afecten specs siguientes (S2/S4/S9).
 8. Apéndice: outputs de muestra de cada combo sobre el set de prompts (para revisión cualitativa).
 
@@ -162,13 +162,13 @@ Archivo: `docs/superpowers/specs/01-s1-runtime-report.md`. Contenido obligatorio
 
 | # | Riesgo | Mitigación |
 |---|---|---|
-| R1 | Soporte del MTP drafter en llama.cpp móvil no está confirmado por la lista de runtimes publicada por Google. | Verificar repo de llama.cpp / abrir issue al iniciar S1. Si no carga, combo (b) corre sin drafter y combo (c) sigue siendo válido. |
+| R1 | MTP de Gemma 4 está embebido en el `.litertlm`; no se sabe si llama.cpp puede aprovecharlo en GGUF (probablemente no). | Verificar repo de llama.cpp al iniciar Plan 3. Esperado: combo (c) corre sin MTP; eso ya es el plan. |
 | R2 | Multimodal de imagen en llama.cpp iOS para Gemma 4 E4B puede requerir build con flags o un fork específico. | Validar en setup del proyecto Swift, antes de medir. Si no hay path razonable, marcar (b)/(c) como "solo texto" en imagen y reportar limitación. |
-| R3 | Tokenizer del drafter ≠ tokenizer del fine-tune uncensored → drafter inutilizable. | Verificar hashes/configs del tokenizer en setup. Si mismatch, combo (b) cae a sin-drafter (= combo c). |
+| R3 | ~~Tokenizer del drafter vs fine-tune~~ — eliminado: el MTP es interno al `.litertlm` oficial. El uncensored GGUF simplemente no tiene MTP. | — |
 | R4 | Cuantización óptima para uncensored (Q4_K_M vs Q5_K_M vs Q6_K) afecta RAM y calidad. | Pre-screening rápido con 1-2 prompts ANTES del bench formal; elegir 1 cuantización ganadora para el bench oficial. |
 | R5 | Modelo cargado desde Documents requiere flujo de descarga (no cabe en bundle). | Para S1: descarga manual del usuario o helper script. Flujo automático es out-of-scope. |
 | R6 | iOS puede matar la app si el modelo no cabe en RAM (combo sin mmap). | Esperado; documentar como hallazgo, no como falla. |
-| R7 | El MTP drafter oficial podría no estar publicado aún para todas las variantes E4B al iniciar S1. | Verificar HF/Kaggle al iniciar; si falta, combo (a) corre sin drafter como fallback. |
+| R7 | ~~Disponibilidad del drafter oficial~~ — eliminado: el `.litertlm` oficial ya incluye MTP (catálogo de Edge Gallery confirma `capabilities: ["speculative_decoding"]`). | — |
 
 ## 11. Definición de "hecho"
 
@@ -179,7 +179,7 @@ S1 termina cuando:
 - [ ] Los 3 combos (a, b, c) ejecutaron el set fijo de prompts completo.
 - [ ] La sub-evaluación mmap vs no-mmap se ejecutó sobre el combo ganador.
 - [ ] El reporte (`01-s1-runtime-report.md`) está escrito con todas las secciones de §9.
-- [ ] La decisión final (runtime + modelo + drafter + mmap) está documentada y justificada.
+- [ ] La decisión final (runtime + modelo + MTP toggle + mmap) está documentada y justificada.
 - [ ] El harness Swift carga el ganador automáticamente al lanzar la app y hace streaming de tokens end-to-end.
 
 ## 12. Out of scope explícito (para evitar scope creep)

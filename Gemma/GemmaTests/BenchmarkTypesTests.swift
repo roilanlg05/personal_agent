@@ -41,4 +41,30 @@ final class BenchmarkTypesTests: XCTestCase {
         XCTAssertEqual(r.firstInitSeconds, 7, accuracy: 0.0001)
         XCTAssertEqual(r.avgWarmInitSeconds, 7, accuracy: 0.0001)
     }
+
+    private func result(decode: Double, prefill: Double) -> BenchmarkResult {
+        BenchmarkResult(runs: [], firstInitSeconds: 0, avgWarmInitSeconds: 0,
+                        avgTTFTSeconds: 0, avgPrefillTokPerSec: prefill, avgDecodeTokPerSec: decode)
+    }
+
+    func test_mtpComparison_computesSpeedups() {
+        let c = MTPComparison(mtpOff: result(decode: 10, prefill: 100),
+                              mtpOn: result(decode: 22, prefill: 120))
+        XCTAssertEqual(c.decodeSpeedup, 2.2, accuracy: 0.0001)
+        XCTAssertEqual(c.prefillSpeedup, 1.2, accuracy: 0.0001)
+    }
+
+    func test_mtpComparison_zeroDenominatorIsZero() {
+        let c = MTPComparison(mtpOff: result(decode: 0, prefill: 0),
+                              mtpOn: result(decode: 22, prefill: 120))
+        XCTAssertEqual(c.decodeSpeedup, 0, accuracy: 0.0001)
+        XCTAssertEqual(c.prefillSpeedup, 0, accuracy: 0.0001)
+    }
+
+    func test_mtpComparison_equalResultsIsOne() {
+        let c = MTPComparison(mtpOff: result(decode: 10, prefill: 100),
+                              mtpOn: result(decode: 10, prefill: 100))
+        XCTAssertEqual(c.decodeSpeedup, 1.0, accuracy: 0.0001)
+        XCTAssertEqual(c.prefillSpeedup, 1.0, accuracy: 0.0001)
+    }
 }

@@ -76,3 +76,21 @@ public struct BenchmarkResult: Equatable, Sendable {
         )
     }
 }
+
+/// MTP (speculative decoding) off-vs-on comparison. Speedup = on/off; the decode
+/// speedup is the headline number MTP targets.
+public struct MTPComparison: Equatable, Sendable {
+    public var mtpOff: BenchmarkResult
+    public var mtpOn: BenchmarkResult
+    public var decodeSpeedup: Double
+    public var prefillSpeedup: Double
+
+    public init(mtpOff: BenchmarkResult, mtpOn: BenchmarkResult) {
+        self.mtpOff = mtpOff
+        self.mtpOn = mtpOn
+        self.decodeSpeedup = mtpOff.avgDecodeTokPerSec > 0
+            ? mtpOn.avgDecodeTokPerSec / mtpOff.avgDecodeTokPerSec : 0
+        self.prefillSpeedup = mtpOff.avgPrefillTokPerSec > 0
+            ? mtpOn.avgPrefillTokPerSec / mtpOff.avgPrefillTokPerSec : 0
+    }
+}

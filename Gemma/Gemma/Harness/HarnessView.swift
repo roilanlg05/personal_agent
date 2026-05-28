@@ -1,33 +1,22 @@
 import SwiftUI
 import UIKit
 
-@MainActor
 struct HarnessView: View {
-    @State private var prompt: String = "Hola, ¿cómo estás?"
-    @State private var streamedOutput: String = ""
-    @State private var isGenerating: Bool = false
-    @State private var isLoadingModel: Bool = false
-    @State private var modelLoaded: Bool = false
-    @State private var lastMetrics: RuntimeMetrics?
-    @State private var benchReportPath: String?
-    @State private var pickedImage: UIImage?
-    @State private var showImagePicker: Bool = false
-    @State private var statusMessage: String = "Runtime: dummy (not loaded)"
-
-    private let runtime: ModelRuntime = DummyRuntime()
-    private let runner = BenchRunner()
+    @State private var model = HarnessModel()
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
                 statusBar
                 Divider()
+                runtimePicker
+                Divider()
                 promptArea
                 Divider()
                 outputArea
                 Divider()
                 metricsBar
-                if let path = benchReportPath {
+                if let path = model.benchReportPath {
                     Text("Bench report: \(path)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -37,45 +26,55 @@ struct HarnessView: View {
             }
             .padding()
             .navigationTitle("Gemma Harness")
-            .sheet(isPresented: $showImagePicker) {
-                ImagePickerView(image: $pickedImage)
+            .sheet(isPresented: $model.showImagePicker) {
+                ImagePickerView(image: $model.pickedImage)
             }
         }
     }
 
     private var statusBar: some View {
         HStack {
-            Text(statusMessage).font(.caption).foregroundStyle(.secondary)
+            Text(model.statusMessage).font(.caption).foregroundStyle(.secondary)
             Spacer()
-            Button(modelLoaded ? "Unload" : "Load") {
-                Task { await toggleLoad() }
+            Button(model.modelLoaded ? "Unload" : "Load") {
+                Task { await model.toggleLoad() }
             }
-            .disabled(isLoadingModel || isGenerating)
+            .disabled(model.isLoadingModel || model.isGenerating)
         }
+    }
+
+    private var runtimePicker: some View {
+        Picker("Runtime", selection: $model.runtimeKind) {
+            ForEach(RuntimeKind.allCases) { kind in
+                Text(kind.displayName).tag(kind)
+            }
+        }
+        .pickerStyle(.segmented)
+        .disabled(model.isLoadingModel || model.isGenerating)
     }
 
     private var promptArea: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Prompt").font(.headline)
-            TextEditor(text: $prompt).frame(minHeight: 80).border(.quaternary)
+            TextEditor(text: $model.prompt).frame(minHeight: 80).border(.quaternary)
             HStack {
-                Button(pickedImage == nil ? "Attach image" : "Replace image") {
-                    showImagePicker = true
+                Button(model.pickedImage == nil ? "Attach image" : "Replace image") {
+                    model.showImagePicker = true
                 }
-                if let img = pickedImage {
+                if let img = model.pickedImage {
                     Image(uiImage: img).resizable().scaledToFit().frame(height: 32)
-                    Button("Clear") { pickedImage = nil }
+                    Button("Clear") { model.pickedImage = nil }
                 }
                 Spacer()
                 Button("Generate") {
-                    Task { await runSingle() }
+                    Task { await model.runSingle() }
                 }
-                .disabled(!modelLoaded || isGenerating)
+                .disabled(!model.modelLoaded || model.isGenerating)
 
                 Button("Run Bench") {
-                    Task { await runBench() }
+                    Task { await model.runBench() }
                 }
-                .disabled(!modelLoaded || isGenerating)
+                .disabled(!model.modelLoaded || model.isGenerating)
             }
         }
     }
@@ -84,7 +83,7 @@ struct HarnessView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Output").font(.headline)
             ScrollView {
-                Text(streamedOutput.isEmpty ? "—" : streamedOutput)
+                Text(model.streamedOutput.isEmpty ? "—" : model.streamedOutput)
                     .font(.body.monospaced())
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -95,7 +94,7 @@ struct HarnessView: View {
 
     private var metricsBar: some View {
         HStack(spacing: 16) {
-            if let m = lastMetrics {
+            if let m = model.lastMetrics {
                 Text(String(format: "tok/s: %.1f", m.tokensPerSecond))
                 Text(String(format: "TTFT: %.2fs", m.timeToFirstTokenSeconds))
                 Text("RAM: \(byteString(m.peakResidentMemoryBytes))")
@@ -109,72 +108,6 @@ struct HarnessView: View {
     private func byteString(_ b: UInt64) -> String {
         let mb = Double(b) / (1024.0 * 1024.0)
         return String(format: "%.1f MB", mb)
-    }
-
-    // MARK: - Actions
-
-    private func toggleLoad() async {
-        if modelLoaded {
-            await runtime.unload()
-            modelLoaded = false
-            statusMessage = "Runtime: dummy (unloaded)"
-            return
-        }
-        isLoadingModel = true
-        statusMessage = "Loading…"
-        do {
-            try await runtime.load(options: ModelLoadOptions(modelPath: URL(fileURLWithPath: "/dev/null")))
-            modelLoaded = true
-            statusMessage = "Runtime: dummy (loaded)"
-        } catch {
-            statusMessage = "Load failed: \(error)"
-        }
-        isLoadingModel = false
-    }
-
-    private func runSingle() async {
-        isGenerating = true
-        streamedOutput = ""
-        defer { isGenerating = false }
-        do {
-            let stream = await runtime.generate(
-                prompt: prompt,
-                image: pickedImage,
-                options: GenerationOptions(maxTokens: 128)
-            )
-            for try await event in stream {
-                switch event {
-                case .token(let piece):
-                    streamedOutput += piece
-                case .completed(let result):
-                    lastMetrics = result.metrics
-                }
-            }
-        } catch {
-            streamedOutput += "\n[error: \(error)]"
-        }
-    }
-
-    private func runBench() async {
-        isGenerating = true
-        streamedOutput = "Running bench…"
-        defer { isGenerating = false }
-        do {
-            let report = try await runner.run(
-                runtime: runtime,
-                modelDescription: "DummyRuntime (Plan 1 scaffold)",
-                useSpeculativeDecoding: false,
-                useMmap: true,
-                prompts: PromptSet.all.filter { $0.category != .image }
-            )
-            let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-            let url = try report.writeToDocuments(filename: "bench-\(stamp).json")
-            benchReportPath = url.path
-            streamedOutput = "Bench done: \(report.results.count) prompts. Report at \(url.lastPathComponent)."
-            lastMetrics = report.results.last?.metrics
-        } catch {
-            streamedOutput = "Bench failed: \(error)"
-        }
     }
 }
 

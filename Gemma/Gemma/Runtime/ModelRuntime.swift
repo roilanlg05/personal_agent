@@ -32,7 +32,7 @@ public struct RuntimeMetrics: Sendable, Codable, Equatable {
 
 /// Compute backend for a model runtime. Package-agnostic so DummyRuntime and the
 /// runtime types don't depend on LiteRTLM; LiteRTLMRuntime maps it to LiteRTLM.Backend.
-public enum ComputeBackend: Sendable, Equatable {
+public enum ComputeBackend: Sendable, Equatable, Codable {
     case cpu
     case gpu
 }

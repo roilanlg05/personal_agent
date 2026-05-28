@@ -39,6 +39,9 @@ public struct BenchRunner: Sendable {
             guard let r = finalResult else {
                 throw RuntimeError.generationFailed("stream ended without .completed for prompt \(prompt.id)")
             }
+            // Real runtimes may signal `.completed(_)` with an empty `result.text` and rely
+            // on the streamed `.token(_)` pieces for the visible output (e.g. when text is
+            // accumulated by the caller). Fall back to the collected stream in that case.
             results.append(BenchPromptResult(
                 promptId: prompt.id,
                 outputText: r.text.isEmpty ? streamedText : r.text,

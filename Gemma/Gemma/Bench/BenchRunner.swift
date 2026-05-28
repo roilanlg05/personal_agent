@@ -1,5 +1,4 @@
 import Foundation
-import UIKit
 
 public struct BenchRunner: Sendable {
     public init() {}
@@ -19,17 +18,28 @@ public struct BenchRunner: Sendable {
         results.reserveCapacity(prompts.count)
 
         for prompt in prompts {
-            let collector = TokenCollector()
-            let result = try await runtime.generate(
+            let stream = await runtime.generate(
                 prompt: prompt.text,
                 image: nil,  // Plan 2/3 attaches images via asset name lookup
-                options: generationOptions,
-                onToken: { token in collector.append(token) }
+                options: generationOptions
             )
+            var streamedText = ""
+            var finalResult: GenerationResult?
+            for try await event in stream {
+                switch event {
+                case .token(let piece):
+                    streamedText += piece
+                case .completed(let result):
+                    finalResult = result
+                }
+            }
+            guard let r = finalResult else {
+                throw RuntimeError.generationFailed("stream ended without .completed for prompt \(prompt.id)")
+            }
             results.append(BenchPromptResult(
                 promptId: prompt.id,
-                outputText: result.text.isEmpty ? collector.joined() : result.text,
-                metrics: result.metrics
+                outputText: r.text.isEmpty ? streamedText : r.text,
+                metrics: r.metrics
             ))
         }
 
@@ -42,19 +52,5 @@ public struct BenchRunner: Sendable {
             completedAt: Date(),
             results: results
         )
-    }
-}
-
-/// Thread-safe accumulator used inside the @Sendable token closure.
-final class TokenCollector: @unchecked Sendable {
-    private var parts: [String] = []
-    private let lock = NSLock()
-
-    func append(_ s: String) {
-        lock.lock(); parts.append(s); lock.unlock()
-    }
-    func joined() -> String {
-        lock.lock(); defer { lock.unlock() }
-        return parts.joined()
     }
 }

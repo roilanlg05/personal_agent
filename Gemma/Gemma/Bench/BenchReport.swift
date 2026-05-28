@@ -42,10 +42,7 @@ public struct BenchReport: Sendable, Codable, Equatable {
     /// Writes JSON to `Documents/<filename>` and returns the file URL.
     @discardableResult
     public func writeToDocuments(filename: String) throws -> URL {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        encoder.dateEncodingStrategy = .iso8601
-        let data = try encoder.encode(self)
+        let data = try Self.makeJSONEncoder().encode(self)
 
         let docs = try FileManager.default.url(
             for: .documentDirectory,
@@ -56,5 +53,22 @@ public struct BenchReport: Sendable, Codable, Equatable {
         let url = docs.appendingPathComponent(filename)
         try data.write(to: url, options: .atomic)
         return url
+    }
+}
+
+public extension BenchReport {
+    /// Canonical encoder for BenchReport JSON. Pretty-printed, sorted keys, iso8601 dates.
+    static func makeJSONEncoder() -> JSONEncoder {
+        let e = JSONEncoder()
+        e.outputFormatting = [.prettyPrinted, .sortedKeys]
+        e.dateEncodingStrategy = .iso8601
+        return e
+    }
+
+    /// Canonical decoder for BenchReport JSON. iso8601 dates.
+    static func makeJSONDecoder() -> JSONDecoder {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
     }
 }

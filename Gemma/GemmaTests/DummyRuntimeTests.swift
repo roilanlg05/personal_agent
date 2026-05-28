@@ -17,13 +17,9 @@ final class DummyRuntimeTests: XCTestCase {
 
     func test_generate_throwsWhenNotLoaded() async {
         let r = DummyRuntime()
+        let stream = await r.generate(prompt: "hola", image: nil, options: GenerationOptions())
         do {
-            _ = try await r.generate(
-                prompt: "hola",
-                image: nil,
-                options: GenerationOptions(),
-                onToken: { _ in }
-            )
+            for try await _ in stream { }
             XCTFail("Expected RuntimeError.notLoaded")
         } catch RuntimeError.notLoaded {
             // expected
@@ -39,16 +35,23 @@ final class DummyRuntimeTests: XCTestCase {
         )
         try await r.load(options: ModelLoadOptions(modelPath: URL(fileURLWithPath: "/dev/null")))
 
-        let received = Mutex<[String]>([])
-        let result = try await r.generate(
+        let stream = await r.generate(
             prompt: "hola",
             image: nil,
-            options: GenerationOptions(maxTokens: 10),
-            onToken: { token in received.write { $0.append(token) } }
+            options: GenerationOptions(maxTokens: 10)
         )
+        let received = Mutex<[String]>([])
+        var finalResult: GenerationResult?
+        for try await event in stream {
+            switch event {
+            case .token(let t): received.write { $0.append(t) }
+            case .completed(let result): finalResult = result
+            }
+        }
 
         let tokens = received.read { $0 }
         XCTAssertEqual(tokens.count, 3)
+        let result = try XCTUnwrap(finalResult)
         XCTAssertEqual(result.metrics.tokensGenerated, 3)
         XCTAssertGreaterThan(result.metrics.elapsedSeconds, 0)
         XCTAssertGreaterThan(result.metrics.timeToFirstTokenSeconds, 0)
@@ -62,14 +65,21 @@ final class DummyRuntimeTests: XCTestCase {
         )
         try await r.load(options: ModelLoadOptions(modelPath: URL(fileURLWithPath: "/dev/null")))
 
-        let received = Mutex<[String]>([])
-        let result = try await r.generate(
+        let stream = await r.generate(
             prompt: "p",
             image: nil,
-            options: GenerationOptions(maxTokens: 3),
-            onToken: { token in received.write { $0.append(token) } }
+            options: GenerationOptions(maxTokens: 3)
         )
+        let received = Mutex<[String]>([])
+        var finalResult: GenerationResult?
+        for try await event in stream {
+            switch event {
+            case .token(let t): received.write { $0.append(t) }
+            case .completed(let result): finalResult = result
+            }
+        }
         XCTAssertEqual(received.read { $0.count }, 3)
+        let result = try XCTUnwrap(finalResult)
         XCTAssertEqual(result.metrics.tokensGenerated, 3)
     }
 
@@ -78,13 +88,4 @@ final class DummyRuntimeTests: XCTestCase {
         let m = await r.currentMetrics()
         XCTAssertNil(m)
     }
-}
-
-/// Minimal thread-safe box for collecting from a Sendable closure in tests.
-final class Mutex<Value>: @unchecked Sendable {
-    private var value: Value
-    private let lock = NSLock()
-    init(_ initial: Value) { self.value = initial }
-    func write(_ f: (inout Value) -> Void) { lock.lock(); f(&value); lock.unlock() }
-    func read<T>(_ f: (Value) -> T) -> T { lock.lock(); defer { lock.unlock() }; return f(value) }
 }

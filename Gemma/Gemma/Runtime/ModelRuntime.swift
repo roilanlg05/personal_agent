@@ -85,6 +85,15 @@ public enum RuntimeError: Error, Sendable, Equatable {
     case generationFailed(String)
 }
 
+// MARK: - Streaming events
+
+public enum GenerationEvent: Sendable {
+    /// A single streamed piece of text.
+    case token(String)
+    /// Final result with metrics; the last event in the stream.
+    case completed(GenerationResult)
+}
+
 // MARK: - Protocol
 
 public protocol ModelRuntime: Sendable {
@@ -95,13 +104,12 @@ public protocol ModelRuntime: Sendable {
     func load(options: ModelLoadOptions) async throws
     func unload() async
 
-    /// Streams tokens via `onToken` as they are produced; returns the final result on completion.
+    /// Streams generation events. Last event is always `.completed(_)`. Errors propagate through the stream.
     func generate(
         prompt: String,
         image: UIImage?,
-        options: GenerationOptions,
-        onToken: @Sendable @escaping (String) -> Void
-    ) async throws -> GenerationResult
+        options: GenerationOptions
+    ) async -> AsyncThrowingStream<GenerationEvent, Error>
 
     func currentMetrics() async -> RuntimeMetrics?
 }

@@ -28,10 +28,8 @@ final class BenchReportTests: XCTestCase {
 
     func test_benchReport_codable_roundTrip() throws {
         let original = sampleReport()
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        let encoder = BenchReport.makeJSONEncoder()
+        let decoder = BenchReport.makeJSONDecoder()
         let data = try encoder.encode(original)
         let decoded = try decoder.decode(BenchReport.self, from: data)
         XCTAssertEqual(decoded.runtimeIdentifier, original.runtimeIdentifier)
@@ -47,8 +45,7 @@ final class BenchReportTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
 
         let data = try Data(contentsOf: url)
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        let decoder = BenchReport.makeJSONDecoder()
         let decoded = try decoder.decode(BenchReport.self, from: data)
         XCTAssertEqual(decoded.runtimeIdentifier, "dummy")
     }

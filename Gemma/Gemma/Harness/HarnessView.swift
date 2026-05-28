@@ -137,15 +137,19 @@ struct HarnessView: View {
         streamedOutput = ""
         defer { isGenerating = false }
         do {
-            let result = try await runtime.generate(
+            let stream = await runtime.generate(
                 prompt: prompt,
                 image: pickedImage,
-                options: GenerationOptions(maxTokens: 128),
-                onToken: { piece in
-                    Task { @MainActor in streamedOutput += piece }
-                }
+                options: GenerationOptions(maxTokens: 128)
             )
-            lastMetrics = result.metrics
+            for try await event in stream {
+                switch event {
+                case .token(let piece):
+                    streamedOutput += piece
+                case .completed(let result):
+                    lastMetrics = result.metrics
+                }
+            }
         } catch {
             streamedOutput += "\n[error: \(error)]"
         }

@@ -108,4 +108,37 @@ final class HarnessModelTests: XCTestCase {
             "statusMessage was: \(m.statusMessage)"
         )
     }
+
+    func test_init_loadsSettingsFromStore() async {
+        let suite = "HM-settings-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = SettingsStore(defaults: defaults)
+        store.save(GenerationSettings(temperature: 0.3))
+        let m = HarnessModel(settingsStore: store)
+        XCTAssertEqual(m.settings.temperature, 0.3, accuracy: 0.0001)
+        await Task.yield()
+    }
+
+    func test_saveSettings_persistsAndUpdates() async {
+        let suite = "HM-settings-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = SettingsStore(defaults: defaults)
+        let m = HarnessModel(settingsStore: store)
+        let new = GenerationSettings(systemPrompt: "be terse", topK: 10)
+        await m.saveSettings(new)
+        XCTAssertEqual(m.settings, new)
+        XCTAssertEqual(store.load(), new)
+        await Task.yield()
+    }
+
+    func test_saveSettings_liveOnlyChange_keepsModelLoaded() async {
+        let m = HarnessModel()  // .dummy default kind loads without a model file
+        await m.toggleLoad()
+        XCTAssertTrue(m.modelLoaded)
+        await m.saveSettings(GenerationSettings(temperature: 0.2))  // live-only field
+        XCTAssertTrue(m.modelLoaded)
+        XCTAssertEqual(m.settings.temperature, 0.2, accuracy: 0.0001)
+    }
 }

@@ -33,6 +33,7 @@ public final class HarnessModel {
     /// Orphan `.partial` downloads (model id → bytes on disk) with no final file,
     /// so the UI can offer to reclaim the space. See InstalledModels.partialSize.
     public private(set) var partialDownloads: [String: Int64] = [:]
+    public private(set) var settings: GenerationSettings
     public private(set) var downloads: [String: DownloadProgress] = [:]
     public var showCatalog: Bool = false  // sheet presentation
     public var showBenchmark: Bool = false
@@ -47,6 +48,8 @@ public final class HarnessModel {
     @ObservationIgnored
     private let installedStore: InstalledModels
     @ObservationIgnored
+    private let settingsStore: SettingsStore
+    @ObservationIgnored
     private let downloader: ModelDownloader
     @ObservationIgnored
     private var activeDownloadTasks: [String: Task<Void, Never>] = [:]
@@ -54,13 +57,16 @@ public final class HarnessModel {
     public init(
         initialKind: RuntimeKind = .dummy,
         runner: BenchRunner = BenchRunner(),
-        installedStore: InstalledModels = .defaultInDocuments()
+        installedStore: InstalledModels = .defaultInDocuments(),
+        settingsStore: SettingsStore = SettingsStore()
     ) {
         self.runtimeKind = initialKind
         self.runtime = RuntimeFactory.make(initialKind)
         self.runner = runner
         self.installedStore = installedStore
         self.downloader = ModelDownloader(destinationDir: installedStore.rootDir)
+        self.settingsStore = settingsStore
+        self.settings = settingsStore.load()
         self.statusMessage = "Runtime: \(initialKind.displayName) (not loaded)"
         refreshInstalled()
     }
@@ -103,13 +109,29 @@ public final class HarnessModel {
         isLoadingModel = true
         statusMessage = "Loading…"
         do {
-            try await runtime.load(options: ModelLoadOptions(modelPath: modelURL))
+            try await runtime.load(options: ModelLoadOptions(
+                modelPath: modelURL,
+                contextLength: settings.contextLength,
+                systemPrompt: settings.systemPrompt.isEmpty ? nil : settings.systemPrompt,
+                useSpeculativeDecoding: settings.useSpeculativeDecoding,
+                backend: settings.backend
+            ))
             modelLoaded = true
             statusMessage = "Runtime: \(runtimeKind.displayName) (loaded)"
         } catch {
             statusMessage = "Load failed: \(error)"
         }
         isLoadingModel = false
+    }
+
+    private func makeGenerationOptions() -> GenerationOptions {
+        GenerationOptions(
+            maxTokens: settings.maxOutputTokens,
+            temperature: settings.temperature,
+            topP: settings.topP,
+            topK: settings.topK,
+            systemPrompt: settings.systemPrompt.isEmpty ? nil : settings.systemPrompt
+        )
     }
 
     public func runSingle() async {
@@ -121,7 +143,7 @@ public final class HarnessModel {
             let stream = await runtime.generate(
                 prompt: prompt,
                 image: pickedImage,
-                options: GenerationOptions(maxTokens: 128)
+                options: makeGenerationOptions()
             )
             for try await event in stream {
                 switch event {
@@ -134,6 +156,17 @@ public final class HarnessModel {
         } catch {
             streamedOutput += "\n[error: \(error)]"
         }
+    }
+
+    public func saveSettings(_ new: GenerationSettings) async {
+        let needsReload = new.engineLevelDiffers(from: settings) && modelLoaded
+        settingsStore.save(new)
+        settings = new
+        if needsReload {
+            await toggleLoad()  // unload current engine
+            await toggleLoad()  // reload with the new Engine-level settings
+        }
+        // Live-only changes (sampler / systemPrompt) apply on the next generation.
     }
 
     public func presentBenchmark() async {

@@ -48,10 +48,30 @@ Todas las decisiones de arquitectura fijadas en el brainstorming. Cualquier spec
 |---|---|---|---|---|
 | **S0** | Spike: ejecución en background iOS | "agente podrá ejecutarse en 2do plano para compactar la memoria" | — | ¿Qué permite iOS sin jailbreak? Audio session, BGTask, VoIP push, location. Pivotal. |
 | **S1** | Runtime del modelo on-device | "modelo correrá en el teléfono", "LiteRT-LM", "llama.cpp" | — | Bench LiteRT-LM vs llama.cpp; cuantización; decoding especulativo; selección de draft model. |
+| **S1.1** | Cierre de S1: comparación de runtime/modelo + modalidades faltantes | lo de S1 que quedó abierto (ver §3.1) | S1 | Construir llama.cpp + GGUF uncensored para la comparación; mmap vs carga; energía; imagen multimodal funcional. |
 | **S4** | Núcleo del agente + tool-calling framework | "langgraph", tool chaining (#6), scratchpad (#20), streaming de actividad (#10), latency tricks (#23), "iremos agregando capacidades" (CC2) | S1 | Function-calling confiable con modelo chico; registro extensible de tools. |
 | **S2** | Pipeline de voz | wake word "Hey Gemma", barge-in (#13), VibeVoice streaming | S1 | Hosting VibeVoice (device vs server), latencia bilingüe, motor de wake word. |
 | **S3** | Máquina de estados de conversación | "Hey Gemma"/"espera"/"continúa"/dismiss, modo plática abierta, interruption handling (#2) | S2, S4 | Turnos + barge-in en tiempo real; cancelación de tools en vuelo. |
 | **S5** | Memoria v1 | RAG personalidad usuario / recuerdos / conversaciones; **L1 live + L2 daily on-device**; **L3/L4 + Qdrant + graphify en server**; retrieval híbrido vector + grafo; smart context injection (#18); contextual auto memory (#1); TTL memory (#4); base de relationship/places graph (#17) | S1, S4, server | Sincronía device↔server; embeddings bilingües; esquema del grafo. |
+
+#### 3.1 · Estado de S1 (2026-05-28)
+
+S1 se ejecutó como una serie de planes (tags `s1-plan1-*` … `s1-plan3c-mtp-report`). La rama **LiteRT-LM** quedó funcional y verificada en iPhone 16 físico; lo que falta para **cerrar S1 se reagrupa en S1.1**.
+
+**Hecho (cerrado):**
+- Runtime **LiteRT-LM** real en **GPU/Metal**, texto, on-device (iPhone 16). Requiere entitlement `increased-memory-limit`; KV-cache 4096.
+- Capa `ModelRuntime` + harness SwiftUI; infra de modelos (catálogo, descarga, gate de RAM, limpieza `.partial`).
+- **Settings UI** (backend, contexto, MTP, sampler, system prompt, max tokens; persistida).
+- **Benchmark** sobre la API oficial `benchmark()` + **decisión MTP = OFF** (reporte: `01-s1-runtime-report.md`). El "draft model para decoding especulativo" queda **moot** (MTP off por ahora).
+
+**Pendiente → S1.1:**
+1. **Decisión de runtime LiteRT-LM vs llama.cpp** — falta construir llama.cpp y benchear ambos (decisión central de S1, aún abierta).
+2. **Variante de modelo oficial vs uncensored GGUF** (candidatos b/c del §2) — no probados (requieren llama.cpp).
+3. **mmap vs carga completa** — sub-evaluación no corrida.
+4. **Medición energética** (batería/temp + Instruments Energy Log).
+5. **Modalidad imagen (multimodal)** — el spec S1 pide texto **+ imagen**; hoy `visionBackend` está deshabilitado en `EngineConfig` (se quitó para arreglar el load text-only), así que una imagen fallaría. Re-habilitar (vision GPU para Gemma 3n, condicional) y verificar en device. Se solapa con **S9**.
+
+> Nota: S2/S4/S5 pueden arrancar con los números de la rama LiteRT-LM ya medidos; S1.1 no bloquea avanzar, pero la **decisión final de runtime/modelo** sí depende de S1.1.
 
 ### Fase 1 · Asistente útil del día a día
 
@@ -116,9 +136,9 @@ S1 (runtime) ──► S4 (agente+tools) ──► S6/S7/S8/S9/S10  (Fase 1)
 
 | Decisión | Spec donde se resuelve |
 |---|---|
-| LiteRT-LM vs llama.cpp final | S1 |
-| Variante de modelo final (oficial vs uncensored) | S1 |
-| Draft model para decoding especulativo | S1 |
+| LiteRT-LM vs llama.cpp final | **S1.1** (abierta — falta llama.cpp) |
+| Variante de modelo final (oficial vs uncensored) | **S1.1** (abierta — falta probar GGUF) |
+| Draft model para decoding especulativo | S1 — **resuelta: MTP off** (draft model moot por ahora; ver `01-s1-runtime-report.md`) |
 | Mecanismo exacto de background iOS | S0 |
 | Motor de wake word ("Hey Gemma") | S2 |
 | STT engine bilingüe | S2 |
@@ -236,7 +256,6 @@ S1 (runtime) ──► S4 (agente+tools) ──► S6/S7/S8/S9/S10  (Fase 1)
 
 ## 7. Estado y próximo paso
 
-- **Estado:** Roadmap aprobado, sin specs hijos escritos todavía.
-- **Próximo paso:** entrar al ciclo `brainstorming → spec → plan` para el primer spec.
+- **Estado (2026-05-28):** **S1 ejecutado en su rama LiteRT-LM** (runtime GPU on-device, harness, Settings, benchmark, decisión MTP=off — ver §3.1 y `01-s1-runtime-report.md`). **S1.1 abierta** (llama.cpp + GGUF uncensored para la decisión runtime/modelo, mmap, energía, imagen). **S0 no iniciado** (debía correr en paralelo en Fase 0).
+- **Próximo paso (opciones):** (a) **S1.1** para cerrar la decisión runtime/modelo y la imagen multimodal; (b) **S0** spike de background iOS; (c) avanzar a **S4** con la rama LiteRT-LM ya medida (la decisión final de runtime/modelo sigue pendiente en S1.1).
 - **Orden de Fase 0 (elegido):** S1 → S4 → S2 → S3, con **S0 en paralelo** como investigación, y **S5 al final** de la fase.
-- **Sugerencia de arranque:** **S1** (runtime + bench), porque sus números (tokens/s, RAM, TTFT, batería, latencia con decoding especulativo) son entrada obligatoria para dimensionar S2, S4 y S5.

@@ -131,11 +131,6 @@ public protocol ModelRuntime: Sendable {
     func load(options: ModelLoadOptions) async throws
     func unload() async
 
-    /// Resets to a fresh, empty context for a new run (e.g. starts a new chat
-    /// session). Called once per user-initiated run so history doesn't accumulate
-    /// across runs. Stateless runtimes may no-op.
-    func reset() async throws
-
     /// Streams generation events. Last event is always `.completed(_)`. Errors propagate through the stream.
     func generate(
         prompt: String,

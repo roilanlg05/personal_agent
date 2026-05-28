@@ -47,7 +47,9 @@ public final class LiteRTLMRuntime: ModelRuntime {
         self.loaded = true
     }
 
-    /// Creates a fresh `Conversation` (clean context) on the loaded engine.
+    /// Creates a fresh `Conversation` (clean context) on the loaded engine. Each
+    /// generation gets a new one so history doesn't accumulate across prompts and
+    /// overflow the KV cache — otherwise a second bench/run stalls in prefill.
     private func makeConversation(engine: Engine) async throws -> Conversation {
         let sampler = try SamplerConfig(topK: 64, topP: 0.95, temperature: 1.0)
         let convCfg = ConversationConfig(
@@ -55,23 +57,6 @@ public final class LiteRTLMRuntime: ModelRuntime {
             samplerConfig: sampler
         )
         return try await engine.createConversation(with: convCfg)
-    }
-
-    /// Starts a fresh conversation (clean context) for a new run. The engine allows
-    /// only one session at a time, so release the current one first — Conversation
-    /// .deinit calls litert_lm_conversation_delete — before creating the new one.
-    public func reset() async throws {
-        guard let engine else { return }
-        conversation = nil
-        do {
-            conversation = try await makeConversation(engine: engine)
-        } catch {
-            // If the prior session hasn't finished tearing down, let pending cleanup
-            // run and retry once.
-            await Task.yield()
-            conversation = nil
-            conversation = try await makeConversation(engine: engine)
-        }
     }
 
     public func unload() {
@@ -104,15 +89,32 @@ public final class LiteRTLMRuntime: ModelRuntime {
         maxTokens: Int,
         into continuation: AsyncThrowingStream<GenerationEvent, Error>.Continuation
     ) async {
-        // Reuse the current conversation (created at load / reset). Recreating it
-        // per generation churned a fresh 4096-token KV cache each prompt; freeing
-        // lagged allocation and a 20-prompt bench OOM-killed the app around prompt
-        // 17. reset() gives a fresh context per run instead. cancel() (token cap)
-        // leaves the conversation reusable for the next prompt in the run.
-        guard loaded, let conv = conversation else {
+        guard loaded, let engine else {
             continuation.finish(throwing: RuntimeError.notLoaded)
             return
         }
+        // Fresh conversation per generation → clean context, no KV-cache overflow
+        // from accumulated history on repeated runs. The engine allows only one
+        // session at a time, so release the existing one first (Conversation.deinit
+        // calls litert_lm_conversation_delete) before creating the replacement.
+        conversation = nil
+        let conv: Conversation
+        do {
+            conv = try await makeConversation(engine: engine)
+        } catch {
+            // Defense-in-depth for the single-session constraint: if the prior
+            // session hasn't finished tearing down, let pending cleanup run and
+            // retry once before giving up.
+            await Task.yield()
+            conversation = nil
+            do {
+                conv = try await makeConversation(engine: engine)
+            } catch {
+                continuation.finish(throwing: RuntimeError.generationFailed("conversation init: \(error)"))
+                return
+            }
+        }
+        conversation = conv
         var tempImageURL: URL?
         let userMessage: Message
         if let image {

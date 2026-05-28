@@ -115,7 +115,6 @@ public final class HarnessModel {
         streamedOutput = ""
         defer { isGenerating = false }
         do {
-            try await runtime.reset()  // fresh context for this run
             let stream = await runtime.generate(
                 prompt: prompt,
                 image: pickedImage,
@@ -140,7 +139,6 @@ public final class HarnessModel {
         streamedOutput = "Running bench…"
         defer { isGenerating = false }
         do {
-            try await runtime.reset()  // fresh context for this bench run
             let report = try await runner.run(
                 runtime: runtime,
                 modelDescription: "\(runtimeKind.displayName) (Plan 1 scaffold)",

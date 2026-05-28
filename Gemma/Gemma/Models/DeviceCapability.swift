@@ -28,7 +28,10 @@ public struct DeviceCapability: Sendable, Equatable {
 
     public func fits(_ descriptor: ModelDescriptor) -> FitDecision {
         var reasons: [FitReason] = []
-        let actualRAMGB = Int(totalRAMBytes / (1024 * 1024 * 1024))
+        // Round to the nearest GB, not floor: a nominally-8GB device reports
+        // physicalMemory ≈ 7.5 GiB after the system carveout, and flooring would
+        // wrongly gate it below an 8GB-min model. Rounding recovers the bucket.
+        let actualRAMGB = Int((Double(totalRAMBytes) / (1024 * 1024 * 1024)).rounded())
         if actualRAMGB < descriptor.minDeviceMemoryGB {
             reasons.append(.insufficientRAM(
                 requiredGB: descriptor.minDeviceMemoryGB,

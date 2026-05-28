@@ -22,6 +22,22 @@ final class DeviceCapabilityTests: XCTestCase {
         }
     }
 
+    func test_fits_acceptsEightGBDeviceReportingUnderEightGiB_forE4B() {
+        // iPhone 16 (8GB) reports physicalMemory ≈ 7.5 GiB due to system carveout.
+        // Flooring blocked it from the 8GB-min E4B; rounding to the nearest GB
+        // recognizes the device as the 8GB it nominally is.
+        let cap = DeviceCapability(
+            totalRAMBytes: UInt64(Double(1024 * 1024 * 1024) * 7.5),
+            freeDiskBytes: UInt64(50) * 1024 * 1024 * 1024
+        )
+        let desc = ModelCatalog.find("gemma-4-e4b-it")!
+        switch cap.fits(desc) {
+        case .ok: break
+        case .insufficient(let reasons):
+            XCTFail("8GB device (7.5 GiB reported) should fit E4B, got: \(reasons)")
+        }
+    }
+
     func test_fits_rejectsForInsufficientRAM() {
         let cap = DeviceCapability(
             totalRAMBytes: UInt64(4) * 1024 * 1024 * 1024,

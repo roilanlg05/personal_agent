@@ -110,6 +110,7 @@ public final class HarnessModel {
     }
 
     public func runSingle() async {
+        guard !isGenerating else { return }
         isGenerating = true
         streamedOutput = ""
         defer { isGenerating = false }
@@ -133,6 +134,7 @@ public final class HarnessModel {
     }
 
     public func runBench() async {
+        guard !isGenerating else { return }
         isGenerating = true
         streamedOutput = "Running bench…"
         defer { isGenerating = false }

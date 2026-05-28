@@ -15,6 +15,7 @@ public final class LiteRTLMRuntime: ModelRuntime {
     private var conversation: Conversation?
     private var loaded: Bool = false
     private var lastMetrics: RuntimeMetrics?
+    private var systemPrompt: String?
 
     public nonisolated init() {}
 
@@ -40,20 +41,22 @@ public final class LiteRTLMRuntime: ModelRuntime {
         let engine = Engine(engineConfig: cfg)
         try await engine.initialize()  // actor isolation requires await; method itself is sync-throws
 
-        let sampler = try SamplerConfig(
-            topK: 64,
-            topP: 0.95,
-            temperature: 1.0
-        )
+        self.engine = engine
+        self.systemPrompt = options.systemPrompt
+        self.conversation = try await makeConversation(engine: engine)
+        self.loaded = true
+    }
+
+    /// Creates a fresh `Conversation` (clean context) on the loaded engine. Each
+    /// generation gets a new one so history doesn't accumulate across prompts and
+    /// overflow the KV cache — otherwise a second bench/run stalls in prefill.
+    private func makeConversation(engine: Engine) async throws -> Conversation {
+        let sampler = try SamplerConfig(topK: 64, topP: 0.95, temperature: 1.0)
         let convCfg = ConversationConfig(
-            systemMessage: options.systemPrompt.map { Message($0, role: .system) },
+            systemMessage: systemPrompt.map { Message($0, role: .system) },
             samplerConfig: sampler
         )
-        let conv = try await engine.createConversation(with: convCfg)
-
-        self.engine = engine
-        self.conversation = conv
-        self.loaded = true
+        return try await engine.createConversation(with: convCfg)
     }
 
     public func unload() {
@@ -61,6 +64,7 @@ public final class LiteRTLMRuntime: ModelRuntime {
         engine = nil
         loaded = false
         lastMetrics = nil
+        systemPrompt = nil
     }
 
     public func generate(
@@ -83,8 +87,18 @@ public final class LiteRTLMRuntime: ModelRuntime {
         image: UIImage?,
         into continuation: AsyncThrowingStream<GenerationEvent, Error>.Continuation
     ) async {
-        guard loaded, let conv = conversation else {
+        guard loaded, let engine else {
             continuation.finish(throwing: RuntimeError.notLoaded)
+            return
+        }
+        // Fresh conversation per generation → clean context, no KV-cache overflow
+        // from accumulated history on repeated runs.
+        let conv: Conversation
+        do {
+            conv = try await makeConversation(engine: engine)
+            conversation = conv
+        } catch {
+            continuation.finish(throwing: RuntimeError.generationFailed("conversation init: \(error)"))
             return
         }
         var tempImageURL: URL?

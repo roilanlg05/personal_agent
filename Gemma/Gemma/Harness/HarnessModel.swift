@@ -39,16 +39,22 @@ public final class HarnessModel {
     @ObservationIgnored
     private let runner: BenchRunner
     @ObservationIgnored
-    private let installedStore: InstalledModels = .defaultInDocuments()
+    private let installedStore: InstalledModels
     @ObservationIgnored
-    private let downloader: ModelDownloader = ModelDownloader(destinationDir: InstalledModels.defaultInDocuments().rootDir)
+    private let downloader: ModelDownloader
     @ObservationIgnored
     private var activeDownloadTasks: [String: Task<Void, Never>] = [:]
 
-    public init(initialKind: RuntimeKind = .dummy, runner: BenchRunner = BenchRunner()) {
+    public init(
+        initialKind: RuntimeKind = .dummy,
+        runner: BenchRunner = BenchRunner(),
+        installedStore: InstalledModels = .defaultInDocuments()
+    ) {
         self.runtimeKind = initialKind
         self.runtime = RuntimeFactory.make(initialKind)
         self.runner = runner
+        self.installedStore = installedStore
+        self.downloader = ModelDownloader(destinationDir: installedStore.rootDir)
         self.statusMessage = "Runtime: \(initialKind.displayName) (not loaded)"
         refreshInstalled()
     }

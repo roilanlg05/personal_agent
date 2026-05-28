@@ -79,7 +79,13 @@ final class HarnessModelTests: XCTestCase {
     }
 
     func test_toggleLoad_litertlmKind_withoutInstall_setsStatusMessage() async {
-        let m = HarnessModel(initialKind: .litertlmE4B)
+        // Hermetic: inject an isolated empty store so a sideloaded model in the
+        // app's real Documents/Models/ can't satisfy the "without install" premise.
+        let emptyStore = InstalledModels(
+            rootDir: URL(fileURLWithPath: NSTemporaryDirectory())
+                .appendingPathComponent("gemma-test-empty-\(UUID().uuidString)", isDirectory: true)
+        )
+        let m = HarnessModel(initialKind: .litertlmE4B, installedStore: emptyStore)
         await m.toggleLoad()
         await Task.yield()
         XCTAssertFalse(m.modelLoaded)

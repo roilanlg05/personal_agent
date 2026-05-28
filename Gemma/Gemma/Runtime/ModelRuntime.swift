@@ -30,6 +30,13 @@ public struct RuntimeMetrics: Sendable, Codable, Equatable {
     }
 }
 
+/// Compute backend for a model runtime. Package-agnostic so DummyRuntime and the
+/// runtime types don't depend on LiteRTLM; LiteRTLMRuntime maps it to LiteRTLM.Backend.
+public enum ComputeBackend: Sendable, Equatable {
+    case cpu
+    case gpu
+}
+
 public struct ModelLoadOptions: Sendable {
     public var modelPath: URL
     public var drafterPath: URL?
@@ -38,6 +45,7 @@ public struct ModelLoadOptions: Sendable {
     public var systemPrompt: String?
     public var enableThinking: Bool
     public var useSpeculativeDecoding: Bool
+    public var backend: ComputeBackend
 
     public init(
         modelPath: URL,
@@ -49,7 +57,8 @@ public struct ModelLoadOptions: Sendable {
         contextLength: Int = 4096,
         systemPrompt: String? = nil,
         enableThinking: Bool = false,
-        useSpeculativeDecoding: Bool = false
+        useSpeculativeDecoding: Bool = false,
+        backend: ComputeBackend = .gpu
     ) {
         self.modelPath = modelPath
         self.drafterPath = drafterPath
@@ -58,6 +67,7 @@ public struct ModelLoadOptions: Sendable {
         self.systemPrompt = systemPrompt
         self.enableThinking = enableThinking
         self.useSpeculativeDecoding = useSpeculativeDecoding
+        self.backend = backend
     }
 }
 

@@ -2,6 +2,7 @@ import XCTest
 import UIKit
 @testable import Gemma
 
+@MainActor
 final class LiteRTLMRuntimeTests: XCTestCase {
 
     /// Returns the path of an installed Gemma 4 .litertlm, or throws XCTSkip if not present.

@@ -2,7 +2,13 @@ import Foundation
 import UIKit
 import LiteRTLM
 
-public actor LiteRTLMRuntime: ModelRuntime {
+/// Pinned to the main actor on purpose: LiteRT-LM's GPU/Metal backend is
+/// thread-affine and crashes (SIGSEGV) when driven from an arbitrary executor.
+/// The official iOS sample drives Engine + Conversation from @MainActor; doing the
+/// same here is what makes the GPU backend work on-device. CPU tolerates other
+/// executors, but @MainActor keeps both paths correct.
+@MainActor
+public final class LiteRTLMRuntime: ModelRuntime {
     public nonisolated let identifier: String = "litertlm"
 
     private var engine: Engine?
@@ -10,7 +16,7 @@ public actor LiteRTLMRuntime: ModelRuntime {
     private var loaded: Bool = false
     private var lastMetrics: RuntimeMetrics?
 
-    public init() {}
+    public nonisolated init() {}
 
     public func isLoaded() -> Bool { loaded }
 
@@ -20,11 +26,14 @@ public actor LiteRTLMRuntime: ModelRuntime {
         ExperimentalFlags.optIntoExperimentalAPIs()
         ExperimentalFlags.enableSpeculativeDecoding = options.useSpeculativeDecoding
 
+        // Don't request vision/audio backends unconditionally: a text-only .litertlm
+        // has no TF_LITE_VISION_ENCODER section, so asking for one fails engine
+        // creation with NOT_FOUND. Leave them nil (matches the official iOS sample);
+        // multimodal support requires a vision-capable model file.
+        let backend: Backend = options.backend == .gpu ? .gpu : .cpu()
         let cfg = try EngineConfig(
             modelPath: options.modelPath.path,
-            backend: .gpu,
-            visionBackend: .cpu(),
-            audioBackend: .cpu(),
+            backend: backend,
             maxNumTokens: options.contextLength,
             cacheDir: NSTemporaryDirectory()
         )
@@ -59,73 +68,79 @@ public actor LiteRTLMRuntime: ModelRuntime {
         image: UIImage?,
         options: GenerationOptions
     ) async -> AsyncThrowingStream<GenerationEvent, Error> {
-        let conv = self.conversation
-        let loadedNow = self.loaded
+        // Drive generation through an actor-isolated method so the native
+        // Conversation (a non-Sendable class) is only ever touched from the same
+        // executor that created the Engine. A detached Task would run off-actor on
+        // an arbitrary thread and crash the native runtime (SIGSEGV).
         return AsyncThrowingStream { continuation in
-            let task = Task {
-                guard loadedNow, let conv else {
-                    continuation.finish(throwing: RuntimeError.notLoaded)
-                    return
-                }
-                var tempImageURL: URL?
-                let userMessage: Message
-                if let image {
-                    do {
-                        let url = try ImageTempFile.writeJPEG(image)
-                        tempImageURL = url
-                        userMessage = Message(contents: [
-                            .imageFile(url.path),
-                            .text(prompt)
-                        ])
-                    } catch {
-                        continuation.finish(throwing: RuntimeError.generationFailed("image encoding failed: \(error)"))
-                        return
-                    }
-                } else {
-                    userMessage = Message(prompt)
-                }
-                defer { tempImageURL.flatMap { try? FileManager.default.removeItem(at: $0) } }
-
-                let start = Date()
-                var firstTokenAt: Date?
-                var accumulated = ""
-                var tokenCount = 0
-                do {
-                    for try await chunk in conv.sendMessageStream(userMessage) {
-                        if Task.isCancelled {
-                            continuation.finish(throwing: CancellationError())
-                            return
-                        }
-                        let piece = chunk.toString
-                        if !piece.isEmpty {
-                            if firstTokenAt == nil { firstTokenAt = Date() }
-                            accumulated += piece
-                            tokenCount += 1
-                            continuation.yield(.token(piece))
-                        }
-                    }
-                } catch {
-                    continuation.finish(throwing: RuntimeError.generationFailed("\(error)"))
-                    return
-                }
-                let elapsed = Date().timeIntervalSince(start)
-                let ttft = firstTokenAt?.timeIntervalSince(start) ?? 0
-                let metrics = RuntimeMetrics(
-                    tokensGenerated: tokenCount,
-                    elapsedSeconds: elapsed,
-                    timeToFirstTokenSeconds: ttft,
-                    peakResidentMemoryBytes: MemoryReporter.currentResidentBytes(),
-                    draftAcceptanceRate: nil
-                )
-                await self.setLastMetrics(metrics)
-                continuation.yield(.completed(GenerationResult(text: accumulated, metrics: metrics)))
-                continuation.finish()
-            }
+            let task = Task { await self.streamGeneration(prompt: prompt, image: image, into: continuation) }
             continuation.onTermination = { _ in task.cancel() }
         }
     }
 
-    public func currentMetrics() -> RuntimeMetrics? { lastMetrics }
+    private func streamGeneration(
+        prompt: String,
+        image: UIImage?,
+        into continuation: AsyncThrowingStream<GenerationEvent, Error>.Continuation
+    ) async {
+        guard loaded, let conv = conversation else {
+            continuation.finish(throwing: RuntimeError.notLoaded)
+            return
+        }
+        var tempImageURL: URL?
+        let userMessage: Message
+        if let image {
+            do {
+                let url = try ImageTempFile.writeJPEG(image)
+                tempImageURL = url
+                userMessage = Message(contents: [
+                    .imageFile(url.path),
+                    .text(prompt)
+                ])
+            } catch {
+                continuation.finish(throwing: RuntimeError.generationFailed("image encoding failed: \(error)"))
+                return
+            }
+        } else {
+            userMessage = Message(prompt)
+        }
+        defer { tempImageURL.flatMap { try? FileManager.default.removeItem(at: $0) } }
 
-    private func setLastMetrics(_ m: RuntimeMetrics) { lastMetrics = m }
+        let start = Date()
+        var firstTokenAt: Date?
+        var accumulated = ""
+        var tokenCount = 0
+        do {
+            for try await chunk in conv.sendMessageStream(userMessage) {
+                if Task.isCancelled {
+                    continuation.finish(throwing: CancellationError())
+                    return
+                }
+                let piece = chunk.toString
+                if !piece.isEmpty {
+                    if firstTokenAt == nil { firstTokenAt = Date() }
+                    accumulated += piece
+                    tokenCount += 1
+                    continuation.yield(.token(piece))
+                }
+            }
+        } catch {
+            continuation.finish(throwing: RuntimeError.generationFailed("\(error)"))
+            return
+        }
+        let elapsed = Date().timeIntervalSince(start)
+        let ttft = firstTokenAt?.timeIntervalSince(start) ?? 0
+        let metrics = RuntimeMetrics(
+            tokensGenerated: tokenCount,
+            elapsedSeconds: elapsed,
+            timeToFirstTokenSeconds: ttft,
+            peakResidentMemoryBytes: MemoryReporter.currentResidentBytes(),
+            draftAcceptanceRate: nil
+        )
+        lastMetrics = metrics
+        continuation.yield(.completed(GenerationResult(text: accumulated, metrics: metrics)))
+        continuation.finish()
+    }
+
+    public func currentMetrics() -> RuntimeMetrics? { lastMetrics }
 }

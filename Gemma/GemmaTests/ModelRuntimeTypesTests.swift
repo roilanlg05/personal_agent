@@ -44,5 +44,6 @@ final class ModelRuntimeTypesTests: XCTestCase {
         XCTAssertFalse(opts.useSpeculativeDecoding)
         XCTAssertFalse(opts.enableThinking)
         XCTAssertNil(opts.systemPrompt)
+        XCTAssertEqual(opts.backend, .gpu)  // matches the real Edge Gallery default
     }
 }

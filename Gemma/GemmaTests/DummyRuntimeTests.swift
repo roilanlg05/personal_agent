@@ -47,6 +47,7 @@ final class DummyRuntimeTests: XCTestCase {
             switch event {
             case .token(let t): received.write { $0.append(t) }
             case .completed(let result): finalResult = result
+            case .toolCallStarted, .toolCallFinished: break
             }
         }
 
@@ -78,6 +79,7 @@ final class DummyRuntimeTests: XCTestCase {
             switch event {
             case .token(let t): received.write { $0.append(t) }
             case .completed(let result): finalResult = result
+            case .toolCallStarted, .toolCallFinished: break
             }
         }
         XCTAssertEqual(received.read { $0.count }, 3)

@@ -36,6 +36,7 @@ public struct BenchRunner: Sendable {
                     streamedText += piece
                 case .completed(let result):
                     finalResult = result
+                case .toolCallStarted, .toolCallFinished: break
                 }
             }
             guard let r = finalResult else {

@@ -167,6 +167,7 @@ public final class HarnessModel {
                     streamedOutput += piece
                 case .completed(let result):
                     lastMetrics = result.metrics
+                case .toolCallStarted, .toolCallFinished: break
                 }
             }
         } catch {

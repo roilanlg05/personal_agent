@@ -128,6 +128,10 @@ public enum RuntimeError: Error, Sendable, Equatable {
 public enum GenerationEvent: Sendable {
     /// A single streamed piece of text.
     case token(String)
+    /// A tool the model decided to call is about to run. `args` is a JSON string (may be "{}").
+    case toolCallStarted(name: String, args: String)
+    /// A tool finished; `result` is its stringified return (or an "error: …" message).
+    case toolCallFinished(name: String, result: String)
     /// Final result with metrics; the last event in the stream.
     case completed(GenerationResult)
 }

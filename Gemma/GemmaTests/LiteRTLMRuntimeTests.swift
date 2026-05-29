@@ -44,6 +44,7 @@ final class LiteRTLMRuntimeTests: XCTestCase {
             switch event {
             case .token(let t): text += t
             case .completed(let r): got = r
+            case .toolCallStarted, .toolCallFinished: break
             }
         }
         await runtime.unload()

@@ -91,6 +91,8 @@ public final class HarnessModel {
         }
         // Resolve the model file (dummy needs none).
         var modelURL: URL = URL(fileURLWithPath: "/dev/null")
+        var supportsImage = false
+        var supportsAudio = false
         if let requiredId = runtimeKind.requiredModelId {
             guard let descriptor = ModelCatalog.find(requiredId) else {
                 statusMessage = "Model descriptor missing for \(requiredId)"
@@ -99,6 +101,8 @@ public final class HarnessModel {
             switch installedStore.status(of: descriptor) {
             case .installed(let url):
                 modelURL = url
+                supportsImage = descriptor.supportsImage
+                supportsAudio = descriptor.supportsAudio
             case .notInstalled:
                 statusMessage = "Model not installed. Open Models to download \(descriptor.displayName)."
                 return
@@ -115,10 +119,20 @@ public final class HarnessModel {
                 contextLength: settings.contextLength,
                 systemPrompt: settings.systemPrompt.isEmpty ? nil : settings.systemPrompt,
                 useSpeculativeDecoding: settings.useSpeculativeDecoding,
+                supportsImage: supportsImage,
+                supportsAudio: supportsAudio,
                 backend: settings.backend
             ))
             modelLoaded = true
-            statusMessage = "Runtime: \(runtimeKind.displayName) (loaded)"
+            if let lr = runtime as? LiteRTLMRuntime {
+                let mm = await lr.multimodal
+                let img = supportsImage ? (mm.image ? "img✓" : "img✗") : ""
+                let aud = supportsAudio ? (mm.audio ? "audio✓" : "audio✗") : ""
+                let tags = [img, aud].filter { !$0.isEmpty }.joined(separator: " ")
+                statusMessage = "Runtime: \(runtimeKind.displayName) (loaded)" + (tags.isEmpty ? "" : " · \(tags)")
+            } else {
+                statusMessage = "Runtime: \(runtimeKind.displayName) (loaded)"
+            }
         } catch {
             statusMessage = "Load failed: \(error)"
         }

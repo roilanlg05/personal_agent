@@ -69,7 +69,7 @@ S1 se ejecutó como una serie de planes (tags `s1-plan1-*` … `s1-plan3c-mtp-re
 2. **Variante de modelo oficial vs uncensored GGUF** (candidatos b/c del §2) — no probados (requieren llama.cpp).
 3. **mmap vs carga completa** — sub-evaluación no corrida.
 4. **Medición energética** (batería/temp + Instruments Energy Log).
-5. **Modalidad imagen (multimodal)** — el spec S1 pide texto **+ imagen**; hoy `visionBackend` está deshabilitado en `EngineConfig` (se quitó para arreglar el load text-only), así que una imagen fallaría. Re-habilitar (vision GPU para Gemma 3n, condicional) y verificar en device. Se solapa con **S9**.
+5. **Modalidad imagen (multimodal)** — ✅ **HECHO y verificado en iPhone 16 (2026-05-29).** Se re-habilitó `visionBackend` vía cascada condicional GPU→CPU→text-only (`Runtime/MultimodalBackends.swift`, `LiteRTLMRuntime.load`); foto descrita correctamente en device. Audio cableado en la misma cascada, falta verificación con clip real (→ S10). Detalle: `01-s1-runtime-report.md` §7; spec/plan `2026-05-28-s1.1-multimodal*`. Se solapa con **S9**.
 
 > Nota: S2/S4/S5 pueden arrancar con los números de la rama LiteRT-LM ya medidos; S1.1 no bloquea avanzar, pero la **decisión final de runtime/modelo** sí depende de S1.1.
 

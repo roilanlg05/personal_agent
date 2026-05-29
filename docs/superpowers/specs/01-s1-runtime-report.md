@@ -61,3 +61,11 @@ Benchmark vía la API oficial `LiteRTLM.benchmark()` (engine dedicado por corrid
 - **mmap vs carga completa** sobre el combo ganador.
 - **Medición energética** (Instruments Energy Log).
 - Matrices CPU-vs-GPU y E2B-vs-E4B; eval de **decode real** con tasa de aceptación para cerrar la pregunta MTP.
+
+---
+
+## 7. Multimodal (imagen + audio) — S1.1 #5
+
+- **Imagen multimodal: VERIFICADA funcionando en iPhone 16 físico (2026-05-29).** Con la cascada de backends (GPU→CPU→text-only) re-habilitada, cargar el E4B con `supportsImage:true` levanta el vision executor y describir una foto desde el image picker devuelve una descripción correcta. Confirma que el `.litertlm` oficial de litert-community **sí** contiene el vision encoder (el `NOT_FOUND` histórico era por pedir el backend sin gate, no por falta de encoder).
+- **Implementación:** spec/plan `docs/superpowers/specs|plans/2026-05-28-s1.1-multimodal*`; cascada pura en `Runtime/MultimodalBackends.swift`, orquestada en `LiteRTLMRuntime.load`, con degradación segura en `streamGeneration` (adjunta imagen/audio solo si el executor cargó) y estado `multimodal:(image,audio)` reflejado en el status del harness. Commits `299571d`…`6c5ea49`.
+- **Audio:** ruta cableada (`generate(audioURL:)` → `.audioFile`, `audioBackend` en la cascada) y test skip-gated con asset sintético; **falta verificación en device con un clip real** (cae más en S10). Pendiente menor.

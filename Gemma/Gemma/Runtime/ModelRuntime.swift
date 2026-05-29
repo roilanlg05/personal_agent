@@ -45,6 +45,8 @@ public struct ModelLoadOptions: Sendable {
     public var systemPrompt: String?
     public var enableThinking: Bool
     public var useSpeculativeDecoding: Bool
+    public var supportsImage: Bool
+    public var supportsAudio: Bool
     public var backend: ComputeBackend
 
     public init(
@@ -58,6 +60,8 @@ public struct ModelLoadOptions: Sendable {
         systemPrompt: String? = nil,
         enableThinking: Bool = false,
         useSpeculativeDecoding: Bool = false,
+        supportsImage: Bool = false,
+        supportsAudio: Bool = false,
         backend: ComputeBackend = .gpu
     ) {
         self.modelPath = modelPath
@@ -67,6 +71,8 @@ public struct ModelLoadOptions: Sendable {
         self.systemPrompt = systemPrompt
         self.enableThinking = enableThinking
         self.useSpeculativeDecoding = useSpeculativeDecoding
+        self.supportsImage = supportsImage
+        self.supportsAudio = supportsAudio
         self.backend = backend
     }
 }

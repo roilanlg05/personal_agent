@@ -71,4 +71,40 @@ final class LiteRTLMRuntimeTests: XCTestCase {
         XCTAssertNotNil(got)
         XCTAssertGreaterThan(got!.metrics.tokensGenerated, 0)
     }
+
+    func test_load_textOnlyRequest_doesNotEnableMultimodal() async throws {
+        let (_, url) = try installedModelURL()
+        let runtime = LiteRTLMRuntime()
+        // Explicitly request no modalities → cascade goes straight to text-only.
+        try await runtime.load(options: ModelLoadOptions(
+            modelPath: url, supportsImage: false, supportsAudio: false
+        ))
+        let loaded = await runtime.isLoaded()
+        let mm = await runtime.multimodal
+        await runtime.unload()
+        XCTAssertTrue(loaded)
+        XCTAssertFalse(mm.image)
+        XCTAssertFalse(mm.audio)
+    }
+
+    func test_generate_audio_producesNonEmptyOutput() async throws {
+        let (desc, url) = try installedModelURL()
+        try XCTSkipUnless(desc.supportsAudio, "Model does not declare audio support.")
+        guard let audioURL = Bundle(for: type(of: self)).url(forResource: "bench-audio-1", withExtension: "m4a") else {
+            throw XCTSkip("No bench-audio-1.m4a bundled. Add a short (<=5s) clip to run this test.")
+        }
+        let runtime = LiteRTLMRuntime()
+        try await runtime.load(options: ModelLoadOptions(modelPath: url, supportsAudio: true))
+        let stream = await runtime.generate(
+            prompt: "Transcribe or describe this audio briefly.",
+            image: nil,
+            audioURL: audioURL,
+            options: GenerationOptions(maxTokens: 64)
+        )
+        var got: GenerationResult?
+        for try await event in stream { if case .completed(let r) = event { got = r } }
+        await runtime.unload()
+        XCTAssertNotNil(got)
+        XCTAssertGreaterThan(got!.metrics.tokensGenerated, 0)
+    }
 }

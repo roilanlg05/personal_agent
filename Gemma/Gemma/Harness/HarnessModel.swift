@@ -144,6 +144,7 @@ public final class HarnessModel {
             let stream = await runtime.generate(
                 prompt: prompt,
                 image: pickedImage,
+                audioURL: nil,
                 options: makeGenerationOptions()
             )
             for try await event in stream {

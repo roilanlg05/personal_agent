@@ -33,6 +33,7 @@ public actor DummyRuntime: ModelRuntime {
     public func generate(
         prompt: String,
         image: UIImage?,
+        audioURL: URL? = nil,
         options: GenerationOptions
     ) async -> AsyncThrowingStream<GenerationEvent, Error> {
         // Snapshot all actor-isolated state we need INSIDE the actor before creating the stream.

@@ -146,6 +146,7 @@ public protocol ModelRuntime: Sendable {
     func generate(
         prompt: String,
         image: UIImage?,
+        audioURL: URL?,
         options: GenerationOptions
     ) async -> AsyncThrowingStream<GenerationEvent, Error>
 

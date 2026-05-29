@@ -69,6 +69,7 @@ public final class LiteRTLMRuntime: ModelRuntime {
     public func generate(
         prompt: String,
         image: UIImage?,
+        audioURL: URL?,
         options: GenerationOptions
     ) async -> AsyncThrowingStream<GenerationEvent, Error> {
         // Drive generation through an actor-isolated method so the native
@@ -76,7 +77,7 @@ public final class LiteRTLMRuntime: ModelRuntime {
         // executor that created the Engine. A detached Task would run off-actor on
         // an arbitrary thread and crash the native runtime (SIGSEGV).
         return AsyncThrowingStream { continuation in
-            let task = Task { await self.streamGeneration(prompt: prompt, image: image, options: options, into: continuation) }
+            let task = Task { await self.streamGeneration(prompt: prompt, image: image, audioURL: audioURL, options: options, into: continuation) }
             continuation.onTermination = { _ in task.cancel() }
         }
     }
@@ -84,6 +85,7 @@ public final class LiteRTLMRuntime: ModelRuntime {
     private func streamGeneration(
         prompt: String,
         image: UIImage?,
+        audioURL: URL?,
         options: GenerationOptions,
         into continuation: AsyncThrowingStream<GenerationEvent, Error>.Continuation
     ) async {

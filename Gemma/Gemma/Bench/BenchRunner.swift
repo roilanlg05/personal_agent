@@ -25,6 +25,7 @@ public struct BenchRunner: Sendable {
             let stream = await runtime.generate(
                 prompt: prompt.text,
                 image: image,
+                audioURL: nil,
                 options: generationOptions
             )
             var streamedText = ""

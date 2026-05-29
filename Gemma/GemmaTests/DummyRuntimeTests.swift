@@ -17,7 +17,7 @@ final class DummyRuntimeTests: XCTestCase {
 
     func test_generate_throwsWhenNotLoaded() async {
         let r = DummyRuntime()
-        let stream = await r.generate(prompt: "hola", image: nil, options: GenerationOptions())
+        let stream = await r.generate(prompt: "hola", image: nil, audioURL: nil, options: GenerationOptions())
         do {
             for try await _ in stream { }
             XCTFail("Expected RuntimeError.notLoaded")
@@ -38,6 +38,7 @@ final class DummyRuntimeTests: XCTestCase {
         let stream = await r.generate(
             prompt: "hola",
             image: nil,
+            audioURL: nil,
             options: GenerationOptions(maxTokens: 10)
         )
         let received = Mutex<[String]>([])
@@ -68,6 +69,7 @@ final class DummyRuntimeTests: XCTestCase {
         let stream = await r.generate(
             prompt: "p",
             image: nil,
+            audioURL: nil,
             options: GenerationOptions(maxTokens: 3)
         )
         let received = Mutex<[String]>([])
@@ -87,5 +89,19 @@ final class DummyRuntimeTests: XCTestCase {
         let r = DummyRuntime()
         let m = await r.currentMetrics()
         XCTAssertNil(m)
+    }
+
+    func test_generate_withAudioURL_isIgnoredByDummy() async throws {
+        let r = DummyRuntime()
+        try await r.load(options: ModelLoadOptions(modelPath: URL(fileURLWithPath: "/dev/null")))
+        let stream = await r.generate(
+            prompt: "hola",
+            image: nil,
+            audioURL: URL(fileURLWithPath: "/tmp/nope.wav"),
+            options: GenerationOptions()
+        )
+        var text = ""
+        for try await event in stream { if case .token(let t) = event { text += t } }
+        XCTAssertFalse(text.isEmpty)
     }
 }

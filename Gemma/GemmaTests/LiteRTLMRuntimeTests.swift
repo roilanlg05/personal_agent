@@ -35,6 +35,7 @@ final class LiteRTLMRuntimeTests: XCTestCase {
         let stream = await runtime.generate(
             prompt: "Say hi in three words.",
             image: nil,
+            audioURL: nil,
             options: GenerationOptions(maxTokens: 32)
         )
         var text = ""
@@ -59,6 +60,7 @@ final class LiteRTLMRuntimeTests: XCTestCase {
         let stream = await runtime.generate(
             prompt: "Describe this image briefly.",
             image: img,
+            audioURL: nil,
             options: GenerationOptions(maxTokens: 64)
         )
         var got: GenerationResult?

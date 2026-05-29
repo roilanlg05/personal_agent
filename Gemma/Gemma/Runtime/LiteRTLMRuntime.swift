@@ -232,3 +232,72 @@ public final class LiteRTLMRuntime: ModelRuntime {
 
     public func currentMetrics() -> RuntimeMetrics? { lastMetrics }
 }
+
+// MARK: - ToolCallingRuntime
+
+extension LiteRTLMRuntime: ToolCallingRuntime {
+    public func generate(
+        prompt: String,
+        tools: [Tool],
+        options: GenerationOptions
+    ) async -> AsyncThrowingStream<GenerationEvent, Error> {
+        return AsyncThrowingStream { continuation in
+            let task = Task { await self.streamWithTools(prompt: prompt, tools: tools, options: options, into: continuation) }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    private func streamWithTools(
+        prompt: String,
+        tools: [Tool],
+        options: GenerationOptions,
+        into continuation: AsyncThrowingStream<GenerationEvent, Error>.Continuation
+    ) async {
+        guard loaded, let engine else {
+            continuation.finish(throwing: RuntimeError.notLoaded)
+            return
+        }
+        // Wire tool activity → stream events for this generation (one session at a time).
+        ToolActivityRelay.shared.sink = { activity in
+            switch activity {
+            case .started(let name, let args): continuation.yield(.toolCallStarted(name: name, args: args))
+            case .finished(let name, let result): continuation.yield(.toolCallFinished(name: name, result: result))
+            }
+        }
+        defer { ToolActivityRelay.shared.sink = nil }
+
+        let sampler = try? SamplerConfig(topK: max(1, options.topK), topP: Float(options.topP), temperature: Float(options.temperature))
+        let trimmed = options.systemPrompt?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let systemMessage = (trimmed?.isEmpty == false) ? Message(trimmed!, role: .system) : nil
+        let convCfg = ConversationConfig(systemMessage: systemMessage, tools: tools, samplerConfig: sampler)
+
+        let conv: Conversation
+        do { conv = try await engine.createConversation(with: convCfg) }
+        catch { continuation.finish(throwing: RuntimeError.generationFailed("conversation init: \(error)")); return }
+
+        let start = Date()
+        var firstTokenAt: Date?
+        var accumulated = ""
+        var tokenCount = 0
+        do {
+            for try await chunk in conv.sendMessageStream(Message(prompt)) {
+                if Task.isCancelled { try? conv.cancel(); continuation.finish(throwing: CancellationError()); return }
+                let piece = chunk.toString
+                if piece.isEmpty { continue }
+                if firstTokenAt == nil { firstTokenAt = Date() }
+                accumulated += piece
+                tokenCount += 1
+                continuation.yield(.token(piece))
+            }
+        } catch {
+            continuation.finish(throwing: RuntimeError.generationFailed("\(error)")); return
+        }
+        let elapsed = Date().timeIntervalSince(start)
+        let ttft = firstTokenAt?.timeIntervalSince(start) ?? 0
+        let metrics = RuntimeMetrics(
+            tokensGenerated: tokenCount, elapsedSeconds: elapsed, timeToFirstTokenSeconds: ttft,
+            peakResidentMemoryBytes: MemoryReporter.currentResidentBytes(), draftAcceptanceRate: nil)
+        continuation.yield(.completed(GenerationResult(text: accumulated, metrics: metrics)))
+        continuation.finish()
+    }
+}

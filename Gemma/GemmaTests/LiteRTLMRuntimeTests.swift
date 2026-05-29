@@ -53,9 +53,15 @@ final class LiteRTLMRuntimeTests: XCTestCase {
     }
 
     func test_generate_image_producesNonEmptyOutput() async throws {
-        let (_, url) = try installedModelURL()
+        let (desc, url) = try installedModelURL()
+        try XCTSkipUnless(desc.supportsImage, "Model does not declare image support.")
         let runtime = LiteRTLMRuntime()
-        try await runtime.load(options: ModelLoadOptions(modelPath: url))
+        try await runtime.load(options: ModelLoadOptions(modelPath: url, supportsImage: true))
+        // The cascade must have actually brought up the vision executor; otherwise
+        // streamGeneration would silently drop the image and this test would pass
+        // for the wrong reason (text-only output still yields tokens).
+        let mm = await runtime.multimodal
+        XCTAssertTrue(mm.image, "Vision executor must have loaded for an image-capable model.")
         let img = UIImage(named: "bench-image-1")!
         let stream = await runtime.generate(
             prompt: "Describe this image briefly.",
@@ -64,9 +70,7 @@ final class LiteRTLMRuntimeTests: XCTestCase {
             options: GenerationOptions(maxTokens: 64)
         )
         var got: GenerationResult?
-        for try await event in stream {
-            if case .completed(let r) = event { got = r }
-        }
+        for try await event in stream { if case .completed(let r) = event { got = r } }
         await runtime.unload()
         XCTAssertNotNil(got)
         XCTAssertGreaterThan(got!.metrics.tokensGenerated, 0)

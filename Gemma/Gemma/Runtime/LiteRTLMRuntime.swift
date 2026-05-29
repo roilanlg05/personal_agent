@@ -15,6 +15,11 @@ public final class LiteRTLMRuntime: ModelRuntime {
     private var conversation: Conversation?
     private var loaded: Bool = false
     private var lastMetrics: RuntimeMetrics?
+    private var visionEnabled = false
+    private var audioEnabled = false
+
+    /// Which multimodal executors actually initialized after `load`'s fallback cascade.
+    public var multimodal: (image: Bool, audio: Bool) { (visionEnabled, audioEnabled) }
 
     public nonisolated init() {}
 
@@ -26,19 +31,44 @@ public final class LiteRTLMRuntime: ModelRuntime {
         ExperimentalFlags.optIntoExperimentalAPIs()
         ExperimentalFlags.enableSpeculativeDecoding = options.useSpeculativeDecoding
 
-        // Don't request vision/audio backends unconditionally: a text-only .litertlm
-        // has no TF_LITE_VISION_ENCODER section, so asking for one fails engine
-        // creation with NOT_FOUND. Leave them nil (matches the official iOS sample);
-        // multimodal support requires a vision-capable model file.
         let backend: Backend = options.backend == .gpu ? .gpu : .cpu()
-        let cfg = try EngineConfig(
-            modelPath: options.modelPath.path,
-            backend: backend,
-            maxNumTokens: options.contextLength,
-            cacheDir: NSTemporaryDirectory()
-        )
-        let engine = Engine(engineConfig: cfg)
-        try await engine.initialize()  // actor isolation requires await; method itself is sync-throws
+        // Request vision/audio executors only for modalities the model declares.
+        // A text-only .litertlm has no TF_LITE_VISION_ENCODER section, so requesting
+        // one fails engine creation with NOT_FOUND. Fall back GPU → CPU → text-only so
+        // a missing/incompatible encoder degrades gracefully instead of bricking load.
+        let plan = multimodalAttemptPlan(image: options.supportsImage, audio: options.supportsAudio)
+        var lastError: Error?
+        var started: Engine?
+        for attempt in plan {
+            let (vb, ab) = multimodalBackends(
+                image: options.supportsImage,
+                audio: options.supportsAudio,
+                attempt: attempt,
+                main: backend
+            )
+            do {
+                let cfg = try EngineConfig(
+                    modelPath: options.modelPath.path,
+                    backend: backend,
+                    visionBackend: vb,
+                    audioBackend: ab,
+                    maxNumTokens: options.contextLength,
+                    cacheDir: NSTemporaryDirectory()
+                )
+                let candidate = Engine(engineConfig: cfg)
+                try await candidate.initialize()
+                started = candidate
+                self.visionEnabled = (vb != nil)
+                self.audioEnabled = (ab != nil)
+                break
+            } catch {
+                lastError = error
+                continue
+            }
+        }
+        guard let engine = started else {
+            throw RuntimeError.loadFailed("engine init failed across all fallbacks: \(String(describing: lastError))")
+        }
 
         self.engine = engine
         self.conversation = try await makeConversation(engine: engine, options: GenerationOptions(systemPrompt: options.systemPrompt))
@@ -64,6 +94,8 @@ public final class LiteRTLMRuntime: ModelRuntime {
         engine = nil
         loaded = false
         lastMetrics = nil
+        visionEnabled = false
+        audioEnabled = false
     }
 
     public func generate(
@@ -117,22 +149,27 @@ public final class LiteRTLMRuntime: ModelRuntime {
         }
         conversation = conv
         var tempImageURL: URL?
-        let userMessage: Message
-        if let image {
+        var contents: [Content] = []
+        // Only attach an image if the vision executor actually loaded; otherwise the
+        // engine would reject/ignore it. Degrade to a text-only prompt instead.
+        if let image, visionEnabled {
             do {
                 let url = try ImageTempFile.writeJPEG(image)
                 tempImageURL = url
-                userMessage = Message(contents: [
-                    .imageFile(url.path),
-                    .text(prompt)
-                ])
+                contents.append(.imageFile(url.path))
             } catch {
                 continuation.finish(throwing: RuntimeError.generationFailed("image encoding failed: \(error)"))
                 return
             }
-        } else {
-            userMessage = Message(prompt)
         }
+        // Audio arrives as an on-disk file URL already; no temp file needed. Attach
+        // only when the audio executor loaded.
+        if let audioURL, audioEnabled {
+            contents.append(.audioFile(audioURL.path))
+        }
+        let userMessage: Message = contents.isEmpty
+            ? Message(prompt)
+            : Message(contents: contents + [.text(prompt)])
         defer { tempImageURL.flatMap { try? FileManager.default.removeItem(at: $0) } }
 
         let start = Date()

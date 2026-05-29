@@ -63,11 +63,10 @@ public final class LiteRTLMRuntime: ModelRuntime {
                 break
             } catch {
                 lastError = error
-                continue
             }
         }
         guard let engine = started else {
-            throw RuntimeError.loadFailed("engine init failed across all fallbacks: \(String(describing: lastError))")
+            throw RuntimeError.loadFailed("engine init failed across all fallbacks: \(lastError.map { "\($0)" } ?? "unknown")")
         }
 
         self.engine = engine

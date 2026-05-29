@@ -26,6 +26,8 @@ public func multimodalBackends(
     main: Backend
 ) -> (vision: Backend?, audio: Backend?) {
     switch attempt {
+    // When `main` is already .cpu, .primary and .cpu produce the same tuple; the
+    // extra (identical) attempt on failure is harmless, not a bug.
     case .primary:
         return (image ? main : nil, audio ? main : nil)
     case .cpu:

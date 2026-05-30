@@ -38,6 +38,9 @@ public final class HarnessModel {
     public var showCatalog: Bool = false  // sheet presentation
     public var showSettings: Bool = false
     public var showBenchmark: Bool = false
+    public var showAgent: Bool = false
+    public var agentLog: [String] = []
+    public var agentRunning: Bool = false
     public private(set) var benchmark = BenchmarkModel()
     public private(set) var benchmarkModelURL: URL?
 
@@ -184,6 +187,27 @@ public final class HarnessModel {
             await toggleLoad()  // reload with the new Engine-level settings
         }
         // Live-only changes (sampler / systemPrompt) apply on the next generation.
+    }
+
+    public func runAgentTurn(_ prompt: String) async {
+        guard let lr = runtime as? ToolCallingRuntime else {
+            agentLog.append("[agent needs the LiteRT-LM runtime loaded]"); return
+        }
+        agentRunning = true; defer { agentRunning = false }
+        agentLog.append("you: \(prompt)")
+        let agent = Agent(runtime: lr, registry: ToolRegistry.withDefaults())
+        var answer = ""
+        do {
+            for try await event in agent.run(prompt: prompt, options: makeGenerationOptions()) {
+                switch event {
+                case .token(let t): answer += t
+                case .toolCallStarted(let n, _): agentLog.append("🔧 \(n)…")
+                case .toolCallFinished(let n, let r): agentLog.append("🔧 \(n) ✓ \(r)")
+                case .completed: agentLog.append("gemma: \(answer)")
+                case .failed(let m): agentLog.append("[error: \(m)]")
+                }
+            }
+        } catch { agentLog.append("[error: \(error)]") }
     }
 
     public func presentBenchmark() async {

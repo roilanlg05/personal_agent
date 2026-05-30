@@ -46,6 +46,9 @@ struct HarnessView: View {
             .sheet(isPresented: $model.showSettings) {
                 SettingsView(model: model)
             }
+            .sheet(isPresented: $model.showAgent) {
+                AgentView(model: model)
+            }
         }
     }
 
@@ -56,6 +59,8 @@ struct HarnessView: View {
             Button { model.showSettings = true } label: { Image(systemName: "gearshape") }
                 .disabled(model.isGenerating)
             Button("Models") { model.showCatalog = true }
+                .disabled(model.isGenerating)
+            Button("Agent") { model.showAgent = true }
                 .disabled(model.isGenerating)
             Button(model.modelLoaded ? "Unload" : "Load") {
                 Task { await model.toggleLoad() }

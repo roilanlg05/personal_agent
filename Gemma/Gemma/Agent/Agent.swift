@@ -96,10 +96,11 @@ final class Agent {
                         }
 
                         // Final answer when: the model requested no tools, OR the runtime already ran
-                        // them itself, OR it produced visible text alongside the call. In those cases
-                        // this iteration's `.completed` IS the turn's answer — yield it and finish.
-                        let producedVisibleAnswer = !(completed?.text.isEmpty ?? true)
-                        let isFinal = pendingToolCalls.isEmpty || runtimeFinishedAnyTool || producedVisibleAnswer
+                        // them itself. We must NOT treat visible text as final while tool calls are
+                        // still pending+unexecuted — otherwise a model that emits text alongside a
+                        // requested tool call would have that side-effecting call silently dropped.
+                        // Pending, unexecuted tool calls are always executed before the turn ends.
+                        let isFinal = pendingToolCalls.isEmpty || runtimeFinishedAnyTool
                         if isFinal {
                             if let completed { continuation.yield(.completed(completed)) }
                             break loop

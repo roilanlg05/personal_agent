@@ -32,7 +32,14 @@ final class Agent {
     }
 
     private func systemPrompt(memoryBlock: String) -> String {
-        let base = "You are Gemma, a helpful on-device assistant. You can call tools to get real information. When a tool is relevant (e.g. the user asks the time), call it instead of guessing. Use the remember tool to save durable facts the user shares."
+        let base = """
+        You are Gemma, a helpful on-device assistant. You can call tools to get real information. \
+        When a tool is relevant (e.g. the user asks the time), call it instead of guessing. \
+        Use the remember tool to save durable facts the user shares. \
+        IMPORTANT: after any tool runs, ALWAYS reply to the user in a short, natural sentence — \
+        confirm what you did or answer their question (e.g. "It's 3:42 PM." or "Got it — I'll remember you like red."). \
+        Never end your turn with only a tool call; the user must always see a written reply.
+        """
         return memoryBlock.isEmpty ? base : base + "\n\n" + memoryBlock
     }
 

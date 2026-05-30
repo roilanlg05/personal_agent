@@ -1,16 +1,10 @@
 import Foundation
-import LiteRTLM
 
-/// Activity emitted by a tool's `run()` while the Conversation tool-loop executes it.
 public enum ToolActivity: Sendable {
     case started(name: String, args: String)
     case finished(name: String, result: String)
 }
 
-/// Tools (instantiated by LiteRT-LM's ToolManager via `init()`) can't receive injected
-/// context, so they emit activity through this shared @MainActor relay. The runtime sets
-/// `sink` for the duration of one generation. Safe because LiteRTLMRuntime is @MainActor
-/// and the engine runs one session at a time.
 @MainActor
 public final class ToolActivityRelay {
     public static let shared = ToolActivityRelay()
@@ -20,12 +14,11 @@ public final class ToolActivityRelay {
     public func finished(name: String, result: String) { sink?(.finished(name: name, result: result)) }
 }
 
-/// A runtime that can run a generation with LiteRT-LM tools and stream tool-call events.
-/// Separate from `ModelRuntime` so the LiteRT `Tool` coupling stays out of the base protocol.
+/// A runtime that can run a generation with agent tools and stream tool-call events.
 public protocol ToolCallingRuntime: AnyObject {
     func generate(
         prompt: String,
-        tools: [Tool],
+        tools: [AgentTool],
         options: GenerationOptions
     ) async -> AsyncThrowingStream<GenerationEvent, Error>
 }

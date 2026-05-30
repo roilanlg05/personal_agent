@@ -1,5 +1,4 @@
 import Foundation
-import LiteRTLM
 
 public enum AgentEvent: Sendable {
     case token(String)

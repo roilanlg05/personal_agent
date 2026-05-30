@@ -1,5 +1,4 @@
 import Foundation
-import UIKit
 
 // MARK: - Value types
 
@@ -30,8 +29,8 @@ public struct RuntimeMetrics: Sendable, Codable, Equatable {
     }
 }
 
-/// Compute backend for a model runtime. Package-agnostic so DummyRuntime and the
-/// runtime types don't depend on LiteRTLM; LiteRTLMRuntime maps it to LiteRTLM.Backend.
+/// Compute backend for a model runtime. Package-agnostic so the runtime types
+/// stay decoupled from any specific backend.
 public enum ComputeBackend: Sendable, Equatable, Codable {
     case cpu
     case gpu
@@ -149,8 +148,6 @@ public protocol ModelRuntime: Sendable {
     /// Streams generation events. Last event is always `.completed(_)`. Errors propagate through the stream.
     func generate(
         prompt: String,
-        image: UIImage?,
-        audioURL: URL?,
         options: GenerationOptions
     ) async -> AsyncThrowingStream<GenerationEvent, Error>
 

@@ -7,12 +7,12 @@ struct ForgetTool: Tool {
     static let description = "Forget previously remembered facts that match the given keywords."
 
     @ToolParam(description: "Keywords describing what to forget.")
-    var query: String
+    var query: String? = nil
 
     init() {}
 
     func run() async throws -> Any {
-        let query = self.query ?? ""   // @ToolParam exposes Value as optional
+        let query = (self.query ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return "nothing to forget" }
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: query) }
         let result: String = await MainActor.run {

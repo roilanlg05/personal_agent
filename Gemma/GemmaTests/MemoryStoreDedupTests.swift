@@ -26,7 +26,7 @@ final class MemoryStoreDedupTests: XCTestCase {
 
     func testPromotesToIdentityAtThreshold() throws {
         let store = try makeStore()
-        for _ in 0..<3 { _ = try store.upsertMerging(node(label: "Juan", kind: .person)) }
+        for _ in 0..<3 { _ = try store.upsertMerging(node(kind: .person, label: "Juan")) }
         XCTAssertEqual(try store.allNodes().first?.layer, .identity)
     }
 

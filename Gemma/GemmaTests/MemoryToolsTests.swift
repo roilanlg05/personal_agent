@@ -42,7 +42,7 @@ final class MemoryToolsTests: XCTestCase {
 
     func testRememberNoStoreIsSafe() async throws {
         // No store set → tool degrades, does not crash.
-        var tool = try JSONDecoder().decode(RememberTool.self, from: Data(#"{"content":"x"}"#.utf8))
+        var tool = try JSONDecoder().decode(RememberTool.self, from: Data(#"{"content":"x","kind":"fact","permanent":false}"#.utf8))
         let output = try await tool.run()
         let result = output as? String
         XCTAssertEqual(result, "memory unavailable")

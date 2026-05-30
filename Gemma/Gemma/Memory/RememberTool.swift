@@ -4,22 +4,22 @@ import LiteRTLM
 /// Explicit-capture tool: the model calls this to save a durable fact the user shared.
 /// Reads the active store/embedder from MemoryToolbox.shared (tools are reconstructed via
 /// init() by LiteRT-LM). Emits activity through ToolActivityRelay.shared, like CurrentTimeTool.
+/// All @ToolParam values are Optional so the model may omit kind/permanent.
 struct RememberTool: Tool {
     static let name = "remember"
     static let description = "Save a durable fact about the user (preference, person, place, routine, etc.) to long-term memory."
 
     @ToolParam(description: "The fact to remember, as a short canonical phrase.")
-    var content: String
+    var content: String? = nil
     @ToolParam(description: "Category: one of person, place, fact, preference, topic.")
-    var kind: String
+    var kind: String? = nil
     @ToolParam(description: "Set true to remember permanently (identity).")
-    var permanent: Bool
+    var permanent: Bool? = nil
 
     init() {}
 
     func run() async throws -> Any {
-        // @ToolParam exposes values as optionals (wrappedValue is Value?); unwrap with defaults.
-        let content = self.content ?? ""
+        let content = (self.content ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let kind = self.kind ?? "fact"
         let permanent = self.permanent ?? false
         guard !content.isEmpty else { return "nothing to remember" }
@@ -27,11 +27,10 @@ struct RememberTool: Tool {
         let result: String = await MainActor.run {
             guard let store = MemoryToolbox.shared.store else { return "memory unavailable" }
             let now = Date().timeIntervalSince1970
-            let perm = permanent
-            let layer: MemoryLayer = perm ? .identity : .daily
+            let layer: MemoryLayer = permanent ? .identity : .daily
             let k = NodeKind(rawValue: kind) ?? .fact
             let node = Node(id: UUID().uuidString, kind: k, label: content, body: content, layer: layer,
-                            createdAt: now, updatedAt: now, lastSeenAt: now, salience: perm ? 8 : 3,
+                            createdAt: now, updatedAt: now, lastSeenAt: now, salience: permanent ? 8 : 3,
                             decayRate: Decay.defaultDecayRate(for: layer), confidence: .sure, mentionCount: 1,
                             ttlExpiresAt: nil, sourceRef: nil, origin: .explicit, serverId: nil,
                             dirty: true, deleted: false, extra: nil)

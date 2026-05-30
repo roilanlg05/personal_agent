@@ -29,7 +29,8 @@ final class AgentMemoryTests: XCTestCase {
         let rt = CapturingRuntime()
         let agent = Agent(runtime: rt, registry: ToolRegistry(),
                           memory: MemoryServices(retriever: retriever, consolidator: consolidator))
-        for try await _ in agent.run(prompt: "¿qué me gusta comer?", options: GenerationOptions()) {}
+        // Query lexically overlaps the stored memory so FTS recall works without an embedder.
+        for try await _ in agent.run(prompt: "sushi", options: GenerationOptions()) {}
         XCTAssertTrue(rt.capturedSystemPrompt?.contains("sushi") ?? false,
                       "system prompt should include the recalled memory; got: \(rt.capturedSystemPrompt ?? "nil")")
     }

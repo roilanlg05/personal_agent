@@ -14,7 +14,7 @@ enum MemoryError: Error { case embedderUnavailable }
 /// Apple NaturalLanguage contextual embeddings (iOS 17+), mean-pooled over token vectors.
 /// Multilingual (Latin script covers Spanish + English). `init` throws if the model or its
 /// assets aren't available — callers then degrade to non-vector retrieval (FTS + graph).
-final class NLContextualEmbedder: Embedder {
+nonisolated final class NLContextualEmbedder: Embedder {
     private let model: NLContextualEmbedding
     let dimension: Int
 
@@ -40,7 +40,7 @@ final class NLContextualEmbedder: Embedder {
 }
 
 /// Deterministic fake for Mac/sim tests (no NL assets needed).
-final class FakeEmbedder: Embedder {
+nonisolated final class FakeEmbedder: Embedder {
     let dimension: Int
     init(dimension: Int = 4) { self.dimension = dimension }
     func embed(_ text: String) throws -> [Float] {

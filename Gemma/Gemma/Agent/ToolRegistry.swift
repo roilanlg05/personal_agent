@@ -6,6 +6,10 @@ import Foundation
 final class ToolRegistry {
     private(set) var tools: [AgentTool] = []
     init() {}
+    // Keep the type @MainActor (it's app/UI-owned state), but let it be torn down off the
+    // main actor — its deinit does no main-actor work. Without this, an implicitly
+    // MainActor-isolated deinit double-frees under XCTMemoryChecker (macOS 26 XCTest).
+    nonisolated deinit {}
     func register(_ tool: AgentTool) { tools.append(tool) }
     func tool(named name: String) -> AgentTool? { tools.first { type(of: $0).name == name } }
 

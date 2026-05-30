@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
 
-final class MemoryStore {
+nonisolated final class MemoryStore {
     let dbQueue: DatabaseQueue
     let embeddingDim: Int
 

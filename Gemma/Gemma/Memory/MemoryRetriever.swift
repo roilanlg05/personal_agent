@@ -4,7 +4,7 @@ import Foundation
 /// spreading-activation, ranked by similarity × salience × recency. Produces a compact
 /// memory block to inject into the agent's system prompt (#18). Degrades to FTS+graph when
 /// no embedder is available.
-final class MemoryRetriever {
+nonisolated final class MemoryRetriever {
     private let store: MemoryStore
     private let embedder: Embedder?
 

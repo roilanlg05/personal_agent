@@ -91,3 +91,16 @@ Capa `Memory/` actual sin cambios; `Agent` inyecta recall (núcleo identity + re
 - **M0:** al borrar, **no tocar** lógica de Agent/tool-calling/ToolRegistry/Memory/harness — solo lo de LiteRT/on-device. Verificar tras cada borrado que los tests de agente/memoria siguen verdes.
 - **Transversal:** "de la forma más inteligente" → preferir des-acoplar (abstracción propia) sobre parchar; dejar el código base limpio y reutilizable.
 - **Doc:** actualizar `00-roadmap.md` y `[[gemma-project-state]]` al cerrar M0/M1 (la identidad del proyecto ya no es iOS).
+
+## 10. Resultado M0+M1 (VERIFICADO 2026-05-30)
+
+Plan `docs/superpowers/plans/2026-05-30-macos-mlx-m0-m1.md` ejecutado completo (subagent-driven, doble review spec+calidad por tarea). Commits en `main` `cddcfb4`…`1a942b7`.
+
+- **M0 (cleanup + de-couple):** LiteRT-LM + Bench/Models/on-device UI borrados; nueva abstracción `AgentTool` (reemplaza `Tool`/`@ToolParam` de LiteRT); runtime/agent des-acoplados de LiteRT+UIKit; target convertido a **macOS** (build verde, 0 refs LiteRT/UIImage). Desviación necesaria: `SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated` + `MACOSX_DEPLOYMENT_TARGET = 26.0` para evitar un crash del memory-checker de XCTest en macOS 26 (tipos que tocan estado/UI siguen `@MainActor` explícito).
+- **M1 (vertical slice):** servidor mlx-lm devuelve **OpenAI `tool_calls` normalizado (Branch A)** — el "thought channel" de Gemma va en `message.reasoning` aparte; `GemmaToolCallParser` no se necesitó. Nuevo `ServerRuntime` (HTTP→`localhost:8080`, surface de non-2xx como error). **Tool-loop del lado cliente añadido a `Agent.run`** (LiteRT lo hacía internamente; ahora el Agent ejecuta la tool y reenvía el resultado vía augmentación de prompt — proper tool-role messages = M2). `AgentChatView` (SwiftUI macOS).
+- **E2E contra el 26B real (`ServerE2ETests`, server-gated):**
+  - "What time is it right now?" → `get_current_time` disparó → **"It's 4:58 PM."**
+  - "Me llamo Roilan y me gusta el sushi." → el modelo llamó `remember` ×2 (nodos `User's name is Roilan`, `User likes sushi`) → nueva conversación "¿Qué me gusta?" → **"Te gusta el sushi."**
+  - Suite completa: **74 passed, 0 failed**.
+- **Pendiente (humano):** confirmación visual de la GUI (`⌘R` en Xcode) — el pipeline está verificado por el E2E automatizado; falta el check visual de que `AgentChatView` renderiza/wirea bien.
+- Follow-ups menores (no bloquean M1): consolidar el doble-constructo del cap de iteraciones en `Agent`; métricas de `ServerRuntime` en cero (TODO usage/timing); `ServerRuntime` sin timeout de generación; streaming SSE diferido (M1 usa non-streamed).

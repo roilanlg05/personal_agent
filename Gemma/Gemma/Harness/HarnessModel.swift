@@ -189,13 +189,46 @@ public final class HarnessModel {
         // Live-only changes (sampler / systemPrompt) apply on the next generation.
     }
 
+    // MARK: - Memory (S5a)
+    @ObservationIgnored private var memoryStore: MemoryStore?
+    @ObservationIgnored private var memoryEmbedder: Embedder?
+
+    /// Store backing the memory inspector view (Phase 6.3); nil until a memory turn runs.
+    /// Internal (not public) because MemoryStore is an internal type.
+    func inspectorStore() -> MemoryStore? { memoryStore }
+
+    /// Lazily builds the on-device memory stack and publishes it to MemoryToolbox.shared
+    /// (the remember/forget tools read it from there). Returns nil when memory is disabled
+    /// or unavailable, in which case the agent behaves exactly as in S4.
+    private func ensureMemory() -> MemoryServices? {
+        guard settings.memoryEnabled ?? true else { return nil }
+        if memoryStore == nil {
+            memoryEmbedder = try? NLContextualEmbedder()
+            let dim = memoryEmbedder?.dimension ?? 512
+            memoryStore = try? MemoryStore(url: try? MemoryStore.defaultURL(), embeddingDim: dim)
+        }
+        guard let store = memoryStore else { return nil }
+        MemoryToolbox.shared.store = store
+        MemoryToolbox.shared.embedder = memoryEmbedder
+        let retriever = MemoryRetriever(store: store, embedder: memoryEmbedder)
+        let consolidator = MemoryConsolidator(runtime: runtime, store: store, embedder: memoryEmbedder)
+        return MemoryServices(retriever: retriever, consolidator: consolidator)
+    }
+
     public func runAgentTurn(_ prompt: String) async {
         guard let lr = runtime as? ToolCallingRuntime else {
             agentLog.append("[agent needs the LiteRT-LM runtime loaded]"); return
         }
         agentRunning = true; defer { agentRunning = false }
         agentLog.append("you: \(prompt)")
-        let agent = Agent(runtime: lr, registry: ToolRegistry.withDefaults())
+        let memory = ensureMemory()
+        let registry = ToolRegistry()
+        registry.register(CurrentTimeTool())
+        if memory != nil {
+            registry.register(RememberTool())
+            registry.register(ForgetTool())
+        }
+        let agent = Agent(runtime: lr, registry: registry, memory: memory)
         var answer = ""
         do {
             for try await event in agent.run(prompt: prompt, options: makeGenerationOptions()) {

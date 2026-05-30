@@ -31,14 +31,17 @@ struct RememberTool: Tool {
             let k = NodeKind(rawValue: kind) ?? .fact
             // Clean the label so explicit memories dedupe with auto-extracted ones (same MemoryText).
             let label = MemoryText.cleanLabel(content)
-            let node = Node(id: UUID().uuidString, kind: k, label: label.isEmpty ? content : label, body: content, layer: layer,
+            let canonicalLabel = label.isEmpty ? content : label
+            let node = Node(id: UUID().uuidString, kind: k, label: canonicalLabel, body: content, layer: layer,
                             createdAt: now, updatedAt: now, lastSeenAt: now, salience: permanent ? 8 : 3,
                             decayRate: Decay.defaultDecayRate(for: layer), confidence: .sure, mentionCount: 1,
                             ttlExpiresAt: nil, sourceRef: nil, origin: .explicit, serverId: nil,
                             dirty: true, deleted: false, extra: nil)
             do {
                 let id = try store.upsertMerging(node)
-                if let emb = MemoryToolbox.shared.embedder, let v = try? emb.embed(content) {
+                // Index the canonical label (entity), not the raw content — consistent with
+                // the consolidator so explicit + auto memories share the same vector anchor.
+                if let emb = MemoryToolbox.shared.embedder, let v = try? emb.embed(canonicalLabel) {
                     try? store.setEmbedding(nodeId: id, v)
                 }
                 return "Saved to memory: \(content)"

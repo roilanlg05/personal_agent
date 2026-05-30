@@ -70,7 +70,9 @@ final class MemoryConsolidator {
                             serverId: nil, dirty: true, deleted: false, extra: nil)
             if let id = try? store.upsertMerging(node) {
                 labelToId[MemoryText.dedupKey(item.label)] = id
-                if let embedder, let v = try? embedder.embed(node.body) { try? store.setEmbedding(nodeId: id, v) }
+                // Index the canonical label (the entity), not the body — a clean anchor for
+                // semantic dedup and retrieval ("sushi", "Juan" vs the free-text body).
+                if let embedder, let v = try? embedder.embed(node.label) { try? store.setEmbedding(nodeId: id, v) }
             }
         }
         for rel in parsed.relations ?? [] {

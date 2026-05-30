@@ -1,9 +1,6 @@
 import XCTest
-import LiteRTLM
 @testable import Gemma
 
-/// Phase 4 — remember/forget tools via MemoryToolbox. Tools are built through the real
-/// Decodable param path (JSONDecoder), matching how LiteRT-LM constructs them.
 @MainActor
 final class MemoryToolsTests: XCTestCase {
     override func tearDown() {
@@ -16,10 +13,7 @@ final class MemoryToolsTests: XCTestCase {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
         MemoryToolbox.shared.store = store
         MemoryToolbox.shared.embedder = FakeEmbedder(dimension: 4)
-
-        var tool = try JSONDecoder().decode(RememberTool.self, from: Data(#"{"content":"user likes sushi","kind":"preference","permanent":true}"#.utf8))
-        _ = try await tool.run()
-
+        _ = await RememberTool().run(argsJSON: #"{"content":"user likes sushi","kind":"preference","permanent":true}"#)
         let nodes = try store.allNodes()
         XCTAssertEqual(nodes.count, 1)
         XCTAssertEqual(nodes[0].layer, .identity)
@@ -34,17 +28,12 @@ final class MemoryToolsTests: XCTestCase {
                               createdAt: now, updatedAt: now, lastSeenAt: now, salience: 3, decayRate: 0.001,
                               confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil,
                               origin: .explicit, serverId: nil, dirty: true, deleted: false, extra: nil))
-
-        var tool = try JSONDecoder().decode(ForgetTool.self, from: Data(#"{"query":"sushi"}"#.utf8))
-        _ = try await tool.run()
+        _ = await ForgetTool().run(argsJSON: #"{"query":"sushi"}"#)
         XCTAssertTrue(try store.allNodes().isEmpty)
     }
 
     func testRememberNoStoreIsSafe() async throws {
-        // No store set → tool degrades, does not crash.
-        var tool = try JSONDecoder().decode(RememberTool.self, from: Data(#"{"content":"x","kind":"fact","permanent":false}"#.utf8))
-        let output = try await tool.run()
-        let result = output as? String
+        let result = await RememberTool().run(argsJSON: #"{"content":"x","kind":"fact","permanent":false}"#)
         XCTAssertEqual(result, "memory unavailable")
     }
 }

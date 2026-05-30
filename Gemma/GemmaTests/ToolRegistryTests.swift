@@ -1,6 +1,5 @@
 import XCTest
 @testable import Gemma
-import LiteRTLM
 
 @MainActor
 final class ToolRegistryTests: XCTestCase {

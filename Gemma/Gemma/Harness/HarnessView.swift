@@ -49,6 +49,9 @@ struct HarnessView: View {
             .sheet(isPresented: $model.showAgent) {
                 AgentView(model: model)
             }
+            .sheet(isPresented: $model.showMemory) {
+                NavigationStack { MemoryInspectorView(store: model.inspectorStore()) }
+            }
         }
     }
 
@@ -61,6 +64,8 @@ struct HarnessView: View {
             Button("Models") { model.showCatalog = true }
                 .disabled(model.isGenerating)
             Button("Agent") { model.showAgent = true }
+                .disabled(model.isGenerating)
+            Button("Memory") { model.showMemory = true }
                 .disabled(model.isGenerating)
             Button(model.modelLoaded ? "Unload" : "Load") {
                 Task { await model.toggleLoad() }

@@ -39,6 +39,7 @@ public final class HarnessModel {
     public var showSettings: Bool = false
     public var showBenchmark: Bool = false
     public var showAgent: Bool = false
+    public var showMemory: Bool = false
     public var agentLog: [String] = []
     public var agentRunning: Bool = false
     public private(set) var benchmark = BenchmarkModel()

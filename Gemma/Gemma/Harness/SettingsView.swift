@@ -65,6 +65,12 @@ struct SettingsView: View {
                 Stepper("Top-K: \(draft.topK)", value: $draft.topK, in: 1...128)
                 Stepper("Max output tokens: \(draft.maxOutputTokens)", value: $draft.maxOutputTokens, in: 16...2048, step: 16)
             }
+            Section("Memory (S5a)") {
+                Toggle("Enable memory", isOn: Binding(
+                    get: { draft.memoryEnabled ?? true },
+                    set: { draft.memoryEnabled = $0 }
+                ))
+            }
         }
     }
 

@@ -34,6 +34,8 @@ public struct GenerationSettings: Codable, Equatable, Sendable {
     }
 
     /// Edge Gallery iOS recipe for Gemma 4.
+    public var memoryEnabled: Bool? = nil
+
     public static let `default` = GenerationSettings()
 
     /// True when an Engine-level field (backend / contextLength / MTP) differs.

@@ -48,7 +48,16 @@ final class MemoryRetriever {
             let s = (sim[n.id] ?? 0.1) * 0.6 + (eff / 10.0) * 0.25 + recency * 0.15
             return (n, s)
         }.sorted { $0.1 > $1.1 }
-        return Array(scored.prefix(k).map { $0.0 })
+        var result = Array(scored.prefix(k).map { $0.0 })
+
+        // 5. RC6: always union the identity core (name, top preferences, key people) so
+        // meta-questions like "what do I like?" — which match no single entity by keyword or
+        // vector — still recall the user's strong facts. Query-relevant nodes come first.
+        var ids = Set(result.map { $0.id })
+        for n in (try? store.coreMemories()) ?? [] where ids.insert(n.id).inserted {
+            result.append(n)
+        }
+        return result
     }
 
     /// Render retrieved nodes as a compact injection block (empty string if none).

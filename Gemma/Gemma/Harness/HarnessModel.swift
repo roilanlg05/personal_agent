@@ -16,7 +16,7 @@ public final class HarnessModel {
 
     public init() {
         self.settings = settingsStore.load()
-        self.runtime = DummyRuntime2()   // replaced by ServerRuntime in M1 Task 8
+        self.runtime = ServerRuntime()
     }
 
     func inspectorStore() -> MemoryStore? { memoryStore }
@@ -62,20 +62,5 @@ public final class HarnessModel {
                 }
             }
         } catch { agentLog.append("[error: \(error)]") }
-    }
-}
-
-/// Temporary M0 stand-in conforming to both protocols so the app compiles before ServerRuntime.
-final class DummyRuntime2: ModelRuntime, ToolCallingRuntime, @unchecked Sendable {
-    nonisolated let identifier = "dummy2"
-    func isLoaded() async -> Bool { true }
-    func load(options: ModelLoadOptions) async throws {}
-    func unload() async {}
-    func currentMetrics() async -> RuntimeMetrics? { nil }
-    func generate(prompt: String, options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
-        AsyncThrowingStream { $0.yield(.completed(GenerationResult(text: "(dummy)", metrics: .init(tokensGenerated: 0, elapsedSeconds: 0, timeToFirstTokenSeconds: 0, peakResidentMemoryBytes: 0, draftAcceptanceRate: nil)))); $0.finish() }
-    }
-    func generate(prompt: String, tools: [AgentTool], options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
-        await generate(prompt: prompt, options: options)
     }
 }

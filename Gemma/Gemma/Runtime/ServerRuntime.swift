@@ -55,7 +55,15 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     req.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-                    let (data, _) = try await session.data(for: req)
+                    let (data, response) = try await session.data(for: req)
+                    if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                        // Surface non-2xx as an error instead of falling through to empty content.
+                        let errJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                        let serverMsg = (errJson?["error"] as? [String: Any])?["message"] as? String
+                            ?? (errJson?["error"] as? String)
+                            ?? String(data: data.prefix(512), encoding: .utf8)
+                        throw RuntimeError.generationFailed("server returned HTTP \(http.statusCode): \(serverMsg ?? "<no body>")")
+                    }
                     let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
                     let choice = (json?["choices"] as? [[String: Any]])?.first
                     let message = choice?["message"] as? [String: Any]

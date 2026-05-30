@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0DA5A0010000000000000003 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 0DA5A0010000000000000002 /* GRDB */; };
+		0DA5A0010000000000000004 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 0DA5A0010000000000000005 /* GRDB */; };
 		0DD45C602FC8B551004C8891 /* LiteRTLM in Frameworks */ = {isa = PBXBuildFile; productRef = 0DD45C5F2FC8B551004C8891 /* LiteRTLM */; };
 /* End PBXBuildFile section */
 
@@ -59,6 +61,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0DD45C602FC8B551004C8891 /* LiteRTLM in Frameworks */,
+				0DA5A0010000000000000003 /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -66,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0DA5A0010000000000000004 /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -111,6 +115,7 @@
 			name = Gemma;
 			packageProductDependencies = (
 				0DD45C5F2FC8B551004C8891 /* LiteRTLM */,
+				0DA5A0010000000000000002 /* GRDB */,
 			);
 			productName = Gemma;
 			productReference = 0D5284F72FC7D2190028A19E /* Gemma.app */;
@@ -134,6 +139,7 @@
 			);
 			name = GemmaTests;
 			packageProductDependencies = (
+				0DA5A0010000000000000005 /* GRDB */,
 			);
 			productName = GemmaTests;
 			productReference = 0D5285122FC7F35B0028A19E /* GemmaTests.xctest */;
@@ -169,6 +175,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				0DD45C5E2FC8B551004C8891 /* XCLocalSwiftPackageReference "../vendor/LiteRT-LM" */,
+				0DA5A0010000000000000001 /* XCRemoteSwiftPackageReference "GRDB" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0D5284F82FC7D2190028A19E /* Products */;
@@ -494,7 +501,28 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		0DA5A0010000000000000001 /* XCRemoteSwiftPackageReference "GRDB" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		0DA5A0010000000000000002 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0DA5A0010000000000000001 /* XCRemoteSwiftPackageReference "GRDB" */;
+			productName = GRDB;
+		};
+		0DA5A0010000000000000005 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0DA5A0010000000000000001 /* XCRemoteSwiftPackageReference "GRDB" */;
+			productName = GRDB;
+		};
 		0DD45C5F2FC8B551004C8891 /* LiteRTLM */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = LiteRTLM;

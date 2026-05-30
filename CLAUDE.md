@@ -9,3 +9,4 @@ Rules:
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
 - always use the superpower skill
+- always check the /Users/hashdown/Projects/personal_agent/vendor/LiteRT-LM before implementing something that uses LiteRT-LM library, or the github repo of edge gallery for problem solving when you don't know how to do something

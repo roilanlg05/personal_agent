@@ -3,3 +3,6 @@ vendor/
 .DS_Store
 *.png
 .claude/
+images/
+# MLX spike (venv + downloaded weights, not for git)
+spike-mlx/

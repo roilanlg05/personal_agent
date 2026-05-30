@@ -68,6 +68,9 @@ Episodios/clustering, daily summary (#25), compresión (#9), importance scoring 
 
 ## Phase 0 — Spike de integración GRDB + sqlite-vec (de-risk primero)
 
+> **RESULTADO (2026-05-30): GRDB ✅ integrado (7.7.1, app+tests). sqlite-vec ⚠️ DIFERIDO → fallback BLOB+coseno.**
+> sqlite-vec no compila para iOS sin vendorizar `sqlite3ext.h` + un `sqlite3.h` compatible (riesgo de mismatch con la SQLite del sistema que usa GRDB). Se intentó: SPM remoto (falla: `sqlite3ext.h` no está en el SDK) → vendorizado + `SQLITE_CORE` + patch del header (falla: `implicit declaration` de `sqlite3_str_appendf`/`sqlite3_aggregate_context`/`sqlite3_value_*` — el `sqlite3.h` del SDK no declara las APIs que sqlite-vec llama directo con `SQLITE_CORE`). **Decisión: v1 usa BLOB+coseno en Swift sobre GRDB** (sub-ms a escala personal de miles de nodos; interfaz `MemoryStore.setEmbedding/nearest` idéntica → sqlite-vec se puede integrar luego sin tocar callers). El paquete vendorizado+parcheado queda en `vendor/sqlite-vec/` (desconectado) para un retry futuro. **Las Tasks de abajo que mencionan `sqlite-vec`/`vec0` se implementan con la variante BLOB+coseno descrita en Task 1.2 y 3.2.**
+
 Riesgo #1: que `sqlite-vec` no se integre en iOS. Validar antes de construir. Fallback documentado: vectores BLOB + coseno en Swift (misma interfaz).
 
 ### Task 0.1: Añadir GRDB
@@ -262,7 +265,8 @@ final class MemoryStore {
     let embeddingDim: Int
 
     init(url: URL? = nil, inMemory: Bool = false, embeddingDim: Int) throws {
-        SqliteVec.registerAutoExtension()
+        // (sqlite-vec deferred — see Phase 0 decision. Embeddings live in a regular
+        //  `node_embedding(node_id, embedding BLOB)` table; nearest() does cosine in Swift.)
         self.embeddingDim = embeddingDim
         if inMemory {
             self.dbQueue = try DatabaseQueue()
@@ -328,7 +332,12 @@ final class MemoryStore {
                 t.column("body")
             }
 
-            try db.execute(sql: "CREATE VIRTUAL TABLE node_vec USING vec0(node_id TEXT PRIMARY KEY, embedding float[\(self.embeddingDim)])")
+            // Embeddings: regular table (BLOB float32 LE). KNN = cosine in Swift (Task 3.2).
+            // (If sqlite-vec is integrated later, swap this for a vec0 virtual table; callers unchanged.)
+            try db.create(table: "node_embedding") { t in
+                t.primaryKey("node_id", .text)
+                t.column("embedding", .blob).notNull()
+            }
         }
         return m
     }
@@ -604,20 +613,37 @@ extension MemoryStore {
     func setEmbedding(nodeId: String, _ vector: [Float]) throws {
         precondition(vector.count == embeddingDim, "embedding dim mismatch")
         try dbQueue.write { db in
-            try db.execute(sql: "INSERT OR REPLACE INTO node_vec(node_id, embedding) VALUES (?, ?)",
+            try db.execute(sql: "INSERT OR REPLACE INTO node_embedding(node_id, embedding) VALUES (?, ?)",
                            arguments: [nodeId, Self.floatsToBlob(vector)])
         }
     }
+    /// KNN via cosine similarity in Swift (sqlite-vec deferred — Phase 0). `distance` = 1 - cosine.
+    /// Adequate at personal-memory scale (thousands of vectors). Returns ascending distance.
     func nearest(to vector: [Float], k: Int) throws -> [(id: String, distance: Double)] {
-        try dbQueue.read { db in
-            try Row.fetchAll(db, sql: "SELECT node_id, distance FROM node_vec WHERE embedding MATCH ? ORDER BY distance LIMIT ?",
-                             arguments: [Self.floatsToBlob(vector), k])
-                .map { (id: $0["node_id"] as String, distance: $0["distance"] as Double) }
+        let rows: [(String, [Float])] = try dbQueue.read { db in
+            try Row.fetchAll(db, sql: "SELECT node_id, embedding FROM node_embedding")
+                .map { ($0["node_id"] as String, Self.blobToFloats($0["embedding"] as Data)) }
         }
+        let qn = sqrt(vector.reduce(0) { $0 + $1 * $1 })
+        func cosineDistance(_ v: [Float]) -> Double {
+            guard v.count == vector.count else { return 2 }
+            var dot: Float = 0, n: Float = 0
+            for i in 0..<v.count { dot += v[i] * vector[i]; n += v[i] * v[i] }
+            let denom = Double(qn) * Double(sqrt(n))
+            return denom > 0 ? 1.0 - Double(dot) / denom : 2.0
+        }
+        return rows.map { ($0.0, cosineDistance($0.1)) }
+            .sorted { $0.1 < $1.1 }
+            .prefix(k)
+            .map { (id: $0.0, distance: $0.1) }
+    }
+
+    static func blobToFloats(_ data: Data) -> [Float] {
+        data.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
     }
 }
 ```
-> Si Fase 0 eligió fallback: `nearest` itera nodos con embedding y calcula coseno en Swift (misma firma). `setEmbedding` guarda el blob en una columna `node.extra`/tabla aparte.
+> Cuando se integre sqlite-vec (futuro), reemplazar `node_embedding` por una `vec0` virtual table y `nearest` por `MATCH … ORDER BY distance`; la firma no cambia.
 - [ ] **Step 4: Run → pasa.**
 - [ ] **Step 5: Commit:** `git add -A && git commit -m "feat(s5a): vector index (sqlite-vec setEmbedding/nearest)"`.
 

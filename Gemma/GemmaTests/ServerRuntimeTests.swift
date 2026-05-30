@@ -4,9 +4,26 @@ import XCTest
 final class ServerRuntimeMockProtocol: URLProtocol {
     static var responseBody = ""
     static var statusCode = 200
+    /// Captures the outgoing request body so tests can assert what we posted. URLSession often
+    /// moves the body into `httpBodyStream`, so fall back to reading the stream if `httpBody` is nil.
+    static var capturedBody: Data?
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for r: URLRequest) -> URLRequest { r }
     override func startLoading() {
+        Self.capturedBody = request.httpBody ?? request.httpBodyStream.map { stream in
+            stream.open()
+            defer { stream.close() }
+            var data = Data()
+            let bufferSize = 4096
+            let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+            defer { buffer.deallocate() }
+            while stream.hasBytesAvailable {
+                let read = stream.read(buffer, maxLength: bufferSize)
+                if read <= 0 { break }
+                data.append(buffer, count: read)
+            }
+            return data
+        }
         let data = Self.responseBody.data(using: .utf8)!
         let resp = HTTPURLResponse(url: request.url!, statusCode: Self.statusCode, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
         client?.urlProtocol(self, didReceive: resp, cacheStoragePolicy: .notAllowed)
@@ -19,6 +36,7 @@ final class ServerRuntimeMockProtocol: URLProtocol {
 final class ServerRuntimeTests: XCTestCase {
     private func makeRuntime() -> ServerRuntime {
         ServerRuntimeMockProtocol.statusCode = 200
+        ServerRuntimeMockProtocol.capturedBody = nil
         let cfg = URLSessionConfiguration.ephemeral
         cfg.protocolClasses = [ServerRuntimeMockProtocol.self]
         return ServerRuntime(baseURL: URL(string: "http://localhost:8080")!,
@@ -59,6 +77,18 @@ final class ServerRuntimeTests: XCTestCase {
         XCTAssertEqual(calls.count, 1)
         XCTAssertEqual(calls.first?.name, "get_current_time")
         XCTAssertEqual(calls.first?.args, "{}")
+    }
+
+    /// We disable the model's hidden chain-of-thought via `chat_template_kwargs.enable_thinking == false`.
+    func testPostsEnableThinkingFalse() async throws {
+        ServerRuntimeMockProtocol.responseBody = #"{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}"#
+        let rt = makeRuntime()
+        for try await _ in await rt.generate(prompt: "hi", options: GenerationOptions()) {}
+        let body = try XCTUnwrap(ServerRuntimeMockProtocol.capturedBody, "request body should have been captured")
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let kwargs = try XCTUnwrap(json["chat_template_kwargs"] as? [String: Any], "body should contain chat_template_kwargs")
+        let enableThinking = try XCTUnwrap(kwargs["enable_thinking"] as? Bool)
+        XCTAssertFalse(enableThinking, "enable_thinking should be false")
     }
 
     /// A non-2xx HTTP response must surface as a thrown error, not a silently-empty completion.

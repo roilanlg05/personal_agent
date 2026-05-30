@@ -11,13 +11,19 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
     let baseURL: URL
     let model: String
     let session: URLSession
+    /// When false, we send `chat_template_kwargs: {"enable_thinking": false}` so the model skips
+    /// its hidden chain-of-thought. Measured ~48x latency win (43s -> 0.9s for "hola") with an
+    /// identical answer; tool-calling and memory recall still work. Toggle to true to re-enable.
+    let enableThinking: Bool
 
     init(baseURL: URL = URL(string: "http://localhost:8080")!,
          model: String = "unsloth/gemma-4-26b-a4b-it-UD-MLX-4bit",
-         session: URLSession = .shared) {
+         session: URLSession = .shared,
+         enableThinking: Bool = false) {
         self.baseURL = baseURL
         self.model = model
         self.session = session
+        self.enableThinking = enableThinking
     }
 
     func isLoaded() async -> Bool { true }
@@ -45,6 +51,8 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                         "max_tokens": options.maxTokens,
                         "temperature": options.temperature,
                         "stream": false,
+                        // Skip the model's hidden chain-of-thought (~48x faster; see `enableThinking`).
+                        "chat_template_kwargs": ["enable_thinking": enableThinking],
                     ]
                     if !tools.isEmpty {
                         body["tools"] = tools.map { type(of: $0).functionSpec }

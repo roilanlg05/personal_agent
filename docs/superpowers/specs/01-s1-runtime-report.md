@@ -69,3 +69,11 @@ Benchmark vía la API oficial `LiteRTLM.benchmark()` (engine dedicado por corrid
 - **Imagen multimodal: VERIFICADA funcionando en iPhone 16 físico (2026-05-29).** Con la cascada de backends (GPU→CPU→text-only) re-habilitada, cargar el E4B con `supportsImage:true` levanta el vision executor y describir una foto desde el image picker devuelve una descripción correcta. Confirma que el `.litertlm` oficial de litert-community **sí** contiene el vision encoder (el `NOT_FOUND` histórico era por pedir el backend sin gate, no por falta de encoder).
 - **Implementación:** spec/plan `docs/superpowers/specs|plans/2026-05-28-s1.1-multimodal*`; cascada pura en `Runtime/MultimodalBackends.swift`, orquestada en `LiteRTLMRuntime.load`, con degradación segura en `streamGeneration` (adjunta imagen/audio solo si el executor cargó) y estado `multimodal:(image,audio)` reflejado en el status del harness. Commits `299571d`…`6c5ea49`.
 - **Audio:** ruta cableada (`generate(audioURL:)` → `.audioFile`, `audioBackend` en la cascada) y test skip-gated con asset sintético; **falta verificación en device con un clip real** (cae más en S10). Pendiente menor.
+
+---
+
+## 8. Agente + tool-calling (S4) — VERIFICADO en device
+
+- **Function-calling en E4B: VERIFICADO funcionando en iPhone 16 físico (2026-05-29).** Abriendo la hoja **"Agent"**, cargando Gemma 4 y preguntando *"what time is it?"*, el modelo **llamó de forma fiable a `get_current_time`** y respondió con la **fecha y hora correctas**. Cierra el riesgo central de S4 (que el E4B pequeño no hiciera function-calling de forma confiable).
+- **Conclusión:** el tool-loop nativo de LiteRT-LM (`Conversation(tools:)` + `ToolManager`) funciona end-to-end en device con el E4B. No fue necesario iterar el system prompt con few-shot para esta tool simple.
+- **Implementación:** spec/plan `docs/superpowers/specs|plans/2026-05-29-s4-agent-core*`; commits `2d7a4ab`…`6cb7f81`. Base para S5 (memoria) y S6 (tools reales).

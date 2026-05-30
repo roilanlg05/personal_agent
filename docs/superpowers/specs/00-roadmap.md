@@ -52,7 +52,17 @@ Todas las decisiones de arquitectura fijadas en el brainstorming. Cualquier spec
 | **S4** | Núcleo del agente + tool-calling framework | "langgraph", tool chaining (#6), scratchpad (#20), streaming de actividad (#10), latency tricks (#23), "iremos agregando capacidades" (CC2) | S1 | Function-calling confiable con modelo chico; registro extensible de tools. |
 | **S2** | Pipeline de voz | wake word "Hey Gemma", barge-in (#13), VibeVoice streaming | S1 | Hosting VibeVoice (device vs server), latencia bilingüe, motor de wake word. |
 | **S3** | Máquina de estados de conversación | "Hey Gemma"/"espera"/"continúa"/dismiss, modo plática abierta, interruption handling (#2) | S2, S4 | Turnos + barge-in en tiempo real; cancelación de tools en vuelo. |
-| **S5** | Memoria v1 | RAG personalidad usuario / recuerdos / conversaciones; **L1 live + L2 daily on-device**; **L3/L4 + Qdrant + graphify en server**; retrieval híbrido vector + grafo; smart context injection (#18); contextual auto memory (#1); TTL memory (#4); base de relationship/places graph (#17) | S1, S4, server | Sincronía device↔server; embeddings bilingües; esquema del grafo. |
+| **S5** | Memoria v1 — **DESCOMPUESTA en S5a/S5b/S5c** (ver §3.2) | RAG personalidad usuario / recuerdos / conversaciones; **L1 live + L2 daily on-device**; **L3/L4 + Qdrant + graphify en server**; retrieval híbrido vector + grafo; smart context injection (#18); contextual auto memory (#1); TTL memory (#4); base de relationship/places graph (#17) | S1, S4, server | Sincronía device↔server; embeddings bilingües; esquema del grafo. |
+
+#### 3.2 · Descomposición de S5 (2026-05-29)
+
+S5 era demasiado grande para un solo spec. Se parte en tres sub-proyectos (cada uno spec → plan → ejecución):
+
+- **S5a — Memoria on-device v1** (spec `2026-05-29-s5a-memoria-ondevice-design.md`): L1 live + L2 daily + L4 identity, captura híbrida (tool `remember`/`forget` + consolidación post-turno), grafo base personas/lugares/relaciones, recuperación híbrida (vector Apple `NLContextualEmbedding` + grafo + recencia) e inyección de contexto (#18). DB **SQLite (GRDB)+sqlite-vec+FTS5** con esquema unificado nodo/arista que llega hasta S11 sin migración destructiva. Todo en device, verificable en iPhone 16. **← arrancando ahora.**
+- **S5b — Backend de memoria en servidor** (nodo): embeddings premium bilingües, Qdrant, graphify en el PC de casa.
+- **S5c — Sync + retrieval híbrido contra servidor** (nodo): protocolo device↔servidor (columnas de sync ya nacen en S5a).
+
+Decisiones diferidas §5: **esquema del grafo (base)** → resuelta en S5a; **embeddings bilingües** y **device↔server** → S5b/S5c.
 
 #### 3.1 · Estado de S1 (2026-05-28)
 

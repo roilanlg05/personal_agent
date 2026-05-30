@@ -266,37 +266,78 @@ extension LiteRTLMRuntime: ToolCallingRuntime {
         }
         defer { ToolActivityRelay.shared.sink = nil }
 
-        let sampler = try? SamplerConfig(topK: max(1, options.topK), topP: Float(options.topP), temperature: Float(options.temperature))
+        // Fix 5: build sampler with `try` so errors propagate rather than silently
+        // producing a nil sampler (which would use LiteRT-LM defaults unexpectedly).
+        let sampler: SamplerConfig
+        do {
+            sampler = try SamplerConfig(topK: max(1, options.topK), topP: Float(options.topP), temperature: Float(options.temperature))
+        } catch {
+            continuation.finish(throwing: RuntimeError.generationFailed("sampler init: \(error)"))
+            return
+        }
+
         let trimmed = options.systemPrompt?.trimmingCharacters(in: .whitespacesAndNewlines)
         let systemMessage = (trimmed?.isEmpty == false) ? Message(trimmed!, role: .system) : nil
         let convCfg = ConversationConfig(systemMessage: systemMessage, tools: tools, samplerConfig: sampler)
 
+        // Fix 1 + 2: mirror streamGeneration's single-session reset + assign + retry.
+        // Release the existing session before creating the replacement so the engine's
+        // single-session constraint doesn't surface as FAILED_PRECONDITION on the second call.
+        conversation = nil
         let conv: Conversation
-        do { conv = try await engine.createConversation(with: convCfg) }
-        catch { continuation.finish(throwing: RuntimeError.generationFailed("conversation init: \(error)")); return }
+        do {
+            conv = try await engine.createConversation(with: convCfg)
+        } catch {
+            // Defense-in-depth: let any pending session teardown complete and retry once.
+            await Task.yield()
+            conversation = nil
+            do {
+                conv = try await engine.createConversation(with: convCfg)
+            } catch {
+                continuation.finish(throwing: RuntimeError.generationFailed("conversation init: \(error)"))
+                return
+            }
+        }
+        conversation = conv  // Fix 2: assign so unload() can tear it down.
 
+        let maxTokens = options.maxTokens  // Fix 3: enforce output-token budget.
         let start = Date()
         var firstTokenAt: Date?
         var accumulated = ""
         var tokenCount = 0
+        var capped = false
         do {
             for try await chunk in conv.sendMessageStream(Message(prompt)) {
                 if Task.isCancelled { try? conv.cancel(); continuation.finish(throwing: CancellationError()); return }
+                // Fix 3: drain without yielding after the budget is hit (same pattern as
+                // streamGeneration — breaking early leaves the native stream holding the
+                // Conversation and the next createConversation intermittently fails).
+                if capped { continue }
                 let piece = chunk.toString
                 if piece.isEmpty { continue }
                 if firstTokenAt == nil { firstTokenAt = Date() }
                 accumulated += piece
                 tokenCount += 1
                 continuation.yield(.token(piece))
+                if maxTokens > 0 && tokenCount >= maxTokens {
+                    try? conv.cancel()
+                    capped = true
+                }
             }
         } catch {
-            continuation.finish(throwing: RuntimeError.generationFailed("\(error)")); return
+            // Fix 3: cancelling the conversation surfaces as a thrown CANCELLED error —
+            // treat it as a normal capped end, not a failure.
+            if !capped {
+                continuation.finish(throwing: RuntimeError.generationFailed("\(error)"))
+                return
+            }
         }
         let elapsed = Date().timeIntervalSince(start)
         let ttft = firstTokenAt?.timeIntervalSince(start) ?? 0
         let metrics = RuntimeMetrics(
             tokensGenerated: tokenCount, elapsedSeconds: elapsed, timeToFirstTokenSeconds: ttft,
             peakResidentMemoryBytes: MemoryReporter.currentResidentBytes(), draftAcceptanceRate: nil)
+        lastMetrics = metrics  // Fix 4: persist metrics so currentMetrics() reflects tool generations.
         continuation.yield(.completed(GenerationResult(text: accumulated, metrics: metrics)))
         continuation.finish()
     }

@@ -43,7 +43,7 @@ final class MemoryConsolidator {
     func consolidate(user: String, assistant: String) async {
         let p = prompt(user: user, assistant: assistant)
         var raw = ""
-        let stream = await runtime.generate(prompt: p, image: nil, audioURL: nil,
+        let stream = await runtime.generate(prompt: p,
                                             options: GenerationOptions(maxTokens: 256, temperature: 0.2))
         do {
             for try await e in stream { if case .token(let t) = e { raw += t } }

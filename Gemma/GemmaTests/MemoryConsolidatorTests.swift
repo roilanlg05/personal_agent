@@ -1,5 +1,4 @@
 import XCTest
-import UIKit
 @testable import Gemma
 
 @MainActor
@@ -13,7 +12,7 @@ final class MemoryConsolidatorTests: XCTestCase {
         func load(options: ModelLoadOptions) async throws {}
         func unload() async {}
         func currentMetrics() async -> RuntimeMetrics? { nil }
-        func generate(prompt: String, image: UIImage?, audioURL: URL?, options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
+        func generate(prompt: String, options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
             let j = json
             return AsyncThrowingStream { c in
                 c.yield(.token(j))

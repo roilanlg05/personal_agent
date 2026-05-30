@@ -1,5 +1,4 @@
 import XCTest
-import LiteRTLM
 @testable import Gemma
 
 /// Phase 5 Task 5.1 — the Agent injects retrieved memories into the system prompt (#18).
@@ -17,7 +16,7 @@ final class AgentMemoryTests: XCTestCase {
     /// Captures the system prompt the runtime receives, then completes immediately.
     final class CapturingRuntime: ToolCallingRuntime {
         var capturedSystemPrompt: String?
-        func generate(prompt: String, tools: [Tool], options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
+        func generate(prompt: String, tools: [AgentTool], options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
             capturedSystemPrompt = options.systemPrompt
             return AsyncThrowingStream { c in
                 c.yield(.completed(GenerationResult(text: "ok", metrics: RuntimeMetrics(tokensGenerated: 0, elapsedSeconds: 0, timeToFirstTokenSeconds: 0, peakResidentMemoryBytes: 0, draftAcceptanceRate: nil))))

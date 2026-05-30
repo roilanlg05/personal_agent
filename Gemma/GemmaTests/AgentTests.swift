@@ -1,12 +1,11 @@
 import XCTest
 @testable import Gemma
-import LiteRTLM
 
 @MainActor
 final class AgentTests: XCTestCase {
     /// Stub tool-calling runtime that emits a fixed event sequence.
     final class StubRuntime: ToolCallingRuntime {
-        func generate(prompt: String, tools: [Tool], options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
+        func generate(prompt: String, tools: [AgentTool], options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
             AsyncThrowingStream { c in
                 c.yield(.token("It is "))
                 c.yield(.toolCallStarted(name: "get_current_time", args: "{}"))

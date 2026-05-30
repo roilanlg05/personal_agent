@@ -1,16 +1,16 @@
-# Graph Report - personal_agent  (2026-05-29)
+# Graph Report - personal_agent  (2026-05-30)
 
 ## Corpus Check
-- 81 files · ~58,021 words
+- 106 files · ~74,264 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1073 nodes · 1365 edges · 84 communities (67 shown, 17 thin omitted)
-- Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 172 edges (avg confidence: 0.81)
+- 1340 nodes · 1751 edges · 111 communities (87 shown, 24 thin omitted)
+- Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 235 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6cb7f812`
+- Built from commit: `6f7fe09a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -99,18 +99,45 @@
 - [[_COMMUNITY_Community 81|Community 81]]
 - [[_COMMUNITY_Community 82|Community 82]]
 - [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 85|Community 85]]
+- [[_COMMUNITY_Community 86|Community 86]]
+- [[_COMMUNITY_Community 87|Community 87]]
+- [[_COMMUNITY_Community 88|Community 88]]
+- [[_COMMUNITY_Community 89|Community 89]]
+- [[_COMMUNITY_Community 90|Community 90]]
+- [[_COMMUNITY_Community 91|Community 91]]
+- [[_COMMUNITY_Community 92|Community 92]]
+- [[_COMMUNITY_Community 93|Community 93]]
+- [[_COMMUNITY_Community 94|Community 94]]
+- [[_COMMUNITY_Community 95|Community 95]]
+- [[_COMMUNITY_Community 96|Community 96]]
+- [[_COMMUNITY_Community 97|Community 97]]
+- [[_COMMUNITY_Community 98|Community 98]]
+- [[_COMMUNITY_Community 99|Community 99]]
+- [[_COMMUNITY_Community 100|Community 100]]
+- [[_COMMUNITY_Community 101|Community 101]]
+- [[_COMMUNITY_Community 102|Community 102]]
+- [[_COMMUNITY_Community 103|Community 103]]
+- [[_COMMUNITY_Community 104|Community 104]]
+- [[_COMMUNITY_Community 105|Community 105]]
+- [[_COMMUNITY_Community 106|Community 106]]
+- [[_COMMUNITY_Community 107|Community 107]]
+- [[_COMMUNITY_Community 108|Community 108]]
+- [[_COMMUNITY_Community 109|Community 109]]
+- [[_COMMUNITY_Community 110|Community 110]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `HarnessModel` - 46 edges
-2. `LiteRTLMRuntime` - 28 edges
-3. `DummyRuntime` - 28 edges
-4. `InstalledModels` - 21 edges
-5. `ModelLoadOptions` - 19 edges
-6. `GenerationOptions` - 18 edges
-7. `HarnessModelTests` - 18 edges
-8. `RuntimeMetrics` - 17 edges
-9. `S1 Runtime — Plan 2 of 4: Model Catalog + Downloader + Memory Pre-flight` - 17 edges
-10. `BenchRunner` - 16 edges
+1. `HarnessModel` - 48 edges
+2. `MemoryStore` - 29 edges
+3. `LiteRTLMRuntime` - 29 edges
+4. `DummyRuntime` - 29 edges
+5. `GenerationOptions` - 22 edges
+6. `InstalledModels` - 21 edges
+7. `ModelLoadOptions` - 20 edges
+8. `RuntimeMetrics` - 19 edges
+9. `HarnessModelTests` - 18 edges
+10. `S5a — Memoria on-device v1 — Implementation Plan` - 18 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `ModelDownloaderTests` --implements--> `S1 Plan 2: Model Catalog + Downloader + Pre-flight`  [INFERRED]
@@ -132,10 +159,10 @@
 - **Bench pipeline test trio (Runner+PromptSet+Report+Runtime)** — gemmatests_benchrunnertests_class, gemmatests_promptsettests_class, gemmatests_benchreporttests_class, gemmatests_dummyruntimetests_class [INFERRED 0.85]
 - **Model infra layered subsystem (Descriptor+Catalog+Capability+Downloader+InstalledModels)** — gemmatests_modeldescriptortests_class, gemmatests_modelcatalogtests_class, gemmatests_devicecapabilitytests_class, gemmatests_modeldownloadertests_class, gemmatests_installedmodelstests_class [INFERRED 0.95]
 
-## Communities (84 total, 17 thin omitted)
+## Communities (111 total, 24 thin omitted)
 
 ### Community 0 - "Bench & Runtime Layer"
-Cohesion: 0.13
+Cohesion: 0.12
 Nodes (4): DummyRuntimeTests, DummyRuntime, MemoryReporter, GenerationOptions
 
 ### Community 1 - "Product Concepts & Plans"
@@ -155,12 +182,12 @@ Cohesion: 0.05
 Nodes (7): GenerationSettingsTests, HarnessModelTests, SettingsStoreTests, DownloadProgress, HarnessModel, GenerationSettings, SettingsStore
 
 ### Community 6 - "SwiftUI App Shell"
-Cohesion: 0.07
-Nodes (15): App, GemmaApp, AgentView, BenchmarkView, CatalogView, ModelRow, HarnessView, Coordinator (+7 more)
+Cohesion: 0.06
+Nodes (16): App, GemmaApp, AgentView, BenchmarkView, CatalogView, ModelRow, HarnessView, Coordinator (+8 more)
 
 ### Community 7 - "Model Downloader"
-Cohesion: 0.07
-Nodes (16): Error, ModelDownloaderTests, MockURLProtocol, ModelDownloaderTests, Response, DownloadError, cancelled, httpError (+8 more)
+Cohesion: 0.13
+Nodes (6): ModelDownloaderTests, MockURLProtocol, ModelDownloaderTests, Response, ModelDownloader, URLProtocol
 
 ### Community 8 - "Installed Models Storage"
 Cohesion: 0.12
@@ -169,6 +196,10 @@ Nodes (6): InstalledModelsTests, InstalledModels, Status, corrupted, installed, 
 ### Community 9 - "Bench Report Serialization"
 Cohesion: 0.05
 Nodes (40): code:block1 (Gemma/Gemma/), code:bash (xcodebuild test ... -only-testing:GemmaTests/ModelRuntimeTyp), code:bash (xcodebuild test ... 2>&1 | tail -10), code:bash (git add Gemma/Gemma/Runtime/ModelRuntime.swift Gemma/GemmaTe), code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Gemma/Gemma/Runtime/ImageTempFile.swift Gemma/GemmaT), code:swift (import XCTest) (+32 more)
+
+### Community 10 - "Device Capability"
+Cohesion: 0.16
+Nodes (5): DeviceCapabilityTests, DeviceCapability, FitDecision, insufficient, ok
 
 ### Community 11 - "AccentColor Asset"
 Cohesion: 0.40
@@ -187,12 +218,12 @@ Cohesion: 0.50
 Nodes (3): info, author, version
 
 ### Community 18 - "Community 18"
-Cohesion: 0.17
-Nodes (13): ImageProvider typealias, BenchPrompt, PromptCategory, conversational, factual, image, long, PromptLanguage (+5 more)
+Cohesion: 0.18
+Nodes (12): ImageProvider typealias, BenchPrompt, PromptCategory, conversational, factual, image, long, PromptLanguage (+4 more)
 
 ### Community 19 - "Community 19"
 Cohesion: 0.10
-Nodes (19): 1. Identidad del proyecto, 2. Decisiones bloqueadas, 3.1 · Estado de S1 (2026-05-28), 3.2 · S1.2 — Runtime MLX (modelo-agnóstico) (2026-05-29), 3. Route map por fases, 4. Gráfico de dependencias (alto nivel), 5. Decisiones diferidas (cada una se resuelve dentro de su spec), 6.1 Capacidades de la introducción (párrafo grande) (+11 more)
+Nodes (20): 1. Identidad del proyecto, 2. Decisiones bloqueadas, 3.1 · Estado de S1 (2026-05-28), 3.2 · Descomposición de S5 (2026-05-29), 3.2 · S1.2 — Runtime MLX (modelo-agnóstico) (2026-05-29), 3. Route map por fases, 4. Gráfico de dependencias (alto nivel), 5. Decisiones diferidas (cada una se resuelve dentro de su spec) (+12 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.12
@@ -315,52 +346,52 @@ Cohesion: 0.14
 Nodes (13): 1. Value types (package-agnostic — no LiteRTLM import), 2. `PerfBenchmarker` (imports LiteRTLM), 3. `BenchmarkModel` (@Observable @MainActor), 4. `BenchmarkView` (sheet), 5. `HarnessModel` / `HarnessView` integration, Components, Data flow, Error handling (+5 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.21
-Nodes (7): BenchPromptResult, BenchReport, Codable, Equatable, ComputeBackend, cpu, gpu
+Cohesion: 0.17
+Nodes (4): BenchPromptResult, BenchReport, Mutex, Sendable
 
 ### Community 52 - "Community 52"
 Cohesion: 0.20
-Nodes (7): ModelRuntime, RuntimeError, generationFailed, loadFailed, modelNotFound, notLoaded, RuntimeFactory
+Nodes (9): ComputeBackend, cpu, gpu, ModelRuntime, RuntimeError, generationFailed, loadFailed, modelNotFound (+1 more)
 
 ### Community 53 - "Community 53"
 Cohesion: 0.12
 Nodes (6): BenchmarkConfig, BenchmarkResult, BenchmarkRun, MTPComparison, BenchmarkTypesTests, PerfBenchmarker
 
 ### Community 54 - "Community 54"
-Cohesion: 0.50
-Nodes (3): FitDecision, insufficient, ok
+Cohesion: 0.05
+Nodes (7): MemoryConsolidatorTests, StubTextRuntime, MemoryStoreDedupTests, MemoryStoreTests, MemoryStoreVectorTests, MemoryToolsTests, MemoryStore
 
 ### Community 55 - "Community 55"
 Cohesion: 0.08
 Nodes (24): code:block1 (Gemma/Gemma/), code:bash (cd /Users/hashdown/Projects/personal_agent), code:swift (Button {), code:swift (if let c = model.comparison {), code:swift (private func comparisonRow(_ label: String, _ off: String, _), code:bash (cd /Users/hashdown/Projects/personal_agent), code:bash (cd /Users/hashdown/Projects/personal_agent/Gemma), code:bash (cd /Users/hashdown/Projects/personal_agent) (+16 more)
 
 ### Community 56 - "Community 56"
-Cohesion: 0.17
-Nodes (3): LiteRTLMRuntime, GenerationResult, RuntimeMetrics
+Cohesion: 0.13
+Nodes (4): ModelRuntimeTypesTests, LiteRTLMRuntime, GenerationResult, RuntimeMetrics
 
 ### Community 57 - "Community 57"
 Cohesion: 0.13
 Nodes (14): 1. `MTPComparison` (value type — append to `Gemma/Gemma/Bench/BenchmarkTypes.swift`), 2. `PerfBenchmarker.compareMTP(...)` (in `PerfBenchmarker.swift`, imports LiteRTLM), 3. `BenchmarkModel`, 4. `BenchmarkView`, 5. Report (authored after the device run, not code), code:block1 (public struct MTPComparison: Equatable, Sendable {), Components, Data flow (+6 more)
 
 ### Community 59 - "Community 59"
-Cohesion: 0.14
-Nodes (10): Mutex, DownloadEvent, completed, progress, GenerationEvent, completed, token, toolCallFinished (+2 more)
+Cohesion: 0.22
+Nodes (8): DownloadEvent, completed, progress, GenerationEvent, completed, token, toolCallFinished, toolCallStarted
 
 ### Community 60 - "Community 60"
 Cohesion: 0.05
 Nodes (33): code:swift (public var supportsImage: Bool), code:bash (git add Gemma/Gemma/Runtime/ModelRuntime.swift Gemma/Gemma/R), code:swift (private var visionEnabled = false), code:swift (let backend: Backend = options.backend == .gpu ? .gpu : .cpu), code:swift (visionEnabled = false), code:swift (let task = Task { await self.streamGeneration(prompt: prompt), code:swift (var tempImageURL: URL?), code:bash (git add Gemma/Gemma/Runtime/LiteRTLMRuntime.swift) (+25 more)
 
 ### Community 61 - "Community 61"
-Cohesion: 0.16
-Nodes (13): Hashable, Identifiable, FitReason, insufficientDisk, insufficientRAM, ModelDescriptor, ModelFormat, litertlmFile (+5 more)
+Cohesion: 0.18
+Nodes (12): Hashable, FitReason, insufficientDisk, insufficientRAM, ModelDescriptor, ModelFormat, litertlmFile, mlxRepo (+4 more)
 
 ### Community 62 - "Community 62"
-Cohesion: 0.22
-Nodes (8): 1. Resumen ejecutivo, 2. Comparación MTP off vs on, 3. Análisis, 4. Decisión, 5. Caveats, 6. Pendiente (Plan 4 / futuro), 7. Multimodal (imagen + audio) — S1.1 #5, S1 — Reporte del runtime (resultados medidos)
+Cohesion: 0.18
+Nodes (10): 1. Resumen ejecutivo, 2. Comparación MTP off vs on, 3. Análisis, 4. Decisión, 5. Caveats, 6. Pendiente (Plan 4 / futuro), 7. Multimodal (imagen + audio) — S1.1 #5, 8. Agente + tool-calling (S4) — VERIFICADO en device (+2 more)
 
 ### Community 63 - "Community 63"
 Cohesion: 0.17
-Nodes (8): CaseIterable, MultimodalBackendsTests, MMAttempt, cpu, primary, textOnly, multimodalAttemptPlan(), multimodalBackends()
+Nodes (7): MultimodalBackendsTests, MMAttempt, cpu, primary, textOnly, multimodalAttemptPlan(), multimodalBackends()
 
 ### Community 64 - "Community 64"
 Cohesion: 0.14
@@ -375,12 +406,12 @@ Cohesion: 0.06
 Nodes (31): code:swift (public enum GenerationEvent: Sendable {), code:bash (git add Gemma/Gemma/Agent/ToolRegistry.swift Gemma/GemmaTest), code:swift (extension LiteRTLMRuntime: ToolCallingRuntime {), code:bash (git add Gemma/Gemma/Runtime/LiteRTLMRuntime.swift), code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Gemma/Gemma/Agent/Agent.swift Gemma/GemmaTests/Agent), code:swift (public var showAgent = false) (+23 more)
 
 ### Community 67 - "Community 67"
-Cohesion: 0.08
-Nodes (16): Agent, AgentEvent, completed, failed, token, toolCallFinished, toolCallStarted, AnyObject (+8 more)
+Cohesion: 0.20
+Nodes (7): AnyObject, AgentTests, StubRuntime, ToolActivity, finished, started, ToolCallingRuntime
 
 ### Community 68 - "Community 68"
-Cohesion: 0.25
-Nodes (6): ModelCatalog, RuntimeKind, dummy, litertlmE2B, litertlmE4B, mlx
+Cohesion: 0.20
+Nodes (7): ModelCatalog, RuntimeFactory, RuntimeKind, dummy, litertlmE2B, litertlmE4B, mlx
 
 ### Community 71 - "Community 71"
 Cohesion: 0.25
@@ -391,36 +422,112 @@ Cohesion: 0.25
 Nodes (7): 1. Problema y objetivo, 2. Arquitectura, 3. Secuenciación, 4. Pruebas, 5. Riesgos, 6. Entregables, S1.2 — Runtime MLX (modelo-agnóstico, texto + visión) — Diseño
 
 ### Community 73 - "Community 73"
-Cohesion: 0.25
-Nodes (3): GemmaTests, ImageTempFileTests, XCTestCase
+Cohesion: 0.29
+Nodes (3): GemmaTests, SqliteVecSpikeTests, XCTestCase
 
-### Community 77 - "Community 77"
-Cohesion: 0.22
-Nodes (3): CurrentTimeTool, CurrentTimeToolTests, Tool
+### Community 79 - "Community 79"
+Cohesion: 0.12
+Nodes (16): 0. Descomposición de S5, 1. Problema y objetivo, 2. Decisiones tomadas (brainstorm 2026-05-29), 3.1 Modelo de datos (esquema unificado, a prueba de futuro), 3.2 Capas + olvido tipo humano, 3.3 Captura (híbrida), 3.4 Dedup / merge (consolidación), 3.5 Recuperación + inyección (#18, `MemoryRetriever`) (+8 more)
 
 ### Community 80 - "Community 80"
 Cohesion: 0.25
 Nodes (7): 1. Problema y objetivo, 2. Arquitectura, 3. Flujo de datos, errores, 4. Pruebas, 5. Riesgos, 6. Entregables, S4 — Núcleo del agente + tool-calling (primer slice) — Diseño
 
+### Community 84 - "Community 84"
+Cohesion: 0.16
+Nodes (14): CaseIterable, Confidence, maybe, probable, sure, MemoryLayer, daily, episodic (+6 more)
+
+### Community 85 - "Community 85"
+Cohesion: 0.14
+Nodes (12): Error, MemoryError, embedderUnavailable, DownloadError, cancelled, httpError, insufficientDisk, io (+4 more)
+
+### Community 86 - "Community 86"
+Cohesion: 0.18
+Nodes (4): MemoryE2ETests, ForgetTool, RememberTool, Tool
+
+### Community 88 - "Community 88"
+Cohesion: 0.24
+Nodes (4): Agent, MemoryServices, AgentMemoryTests, CapturingRuntime
+
+### Community 89 - "Community 89"
+Cohesion: 0.17
+Nodes (12): Relation, dislikes, family, happenedOn, knows, likes, locatedAt, mentionedIn (+4 more)
+
+### Community 90 - "Community 90"
+Cohesion: 0.18
+Nodes (10): Convenciones del proyecto (leer antes de ejecutar), File Structure, Hechos del código actual (verificados), Performance Considerations, References, S5a — Memoria on-device v1 — Implementation Plan, Self-Review (cobertura del spec), Spec (+2 more)
+
+### Community 91 - "Community 91"
+Cohesion: 0.20
+Nodes (10): code:swift (import Foundation), code:swift (import XCTest), code:swift (import Foundation), code:swift (import Foundation), code:swift (import XCTest), code:swift (import Foundation), Phase 4 — Captura: toolbox singleton + tools + consolidador, Task 4.1: MemoryToolbox (singleton para tools) (+2 more)
+
+### Community 92 - "Community 92"
+Cohesion: 0.22
+Nodes (9): NodeKind, conversation, day, episode, fact, person, place, preference (+1 more)
+
+### Community 93 - "Community 93"
+Cohesion: 0.22
+Nodes (9): code:swift (import Foundation), code:swift (func testEmbeddingNearest() throws {), code:swift (extension MemoryStore {), code:swift (import XCTest), code:swift (import Foundation), Phase 3 — Embedder + indexado vectorial + retriever, Task 3.1: Embedder (protocolo + Apple + fake), Task 3.2: Indexado vectorial en el store (TDD) (+1 more)
+
+### Community 94 - "Community 94"
+Cohesion: 0.32
+Nodes (3): Embedder, FakeEmbedder, NLContextualEmbedder
+
+### Community 96 - "Community 96"
+Cohesion: 0.25
+Nodes (8): code:swift (func testInjectsMemoryIntoSystemPrompt() async throws {), code:swift (import Foundation), code:swift (@ObservationIgnored private var memoryStore: MemoryStore?), code:swift (private func ensureMemory() -> MemoryServices? {), code:swift (public func runAgentTurn(_ prompt: String) async {), Phase 5 — Integración en el Agente y el Harness, Task 5.1: Agent gana MemoryServices opcional (TDD), Task 5.2: HarnessModel cablea memoria en runAgentTurn
+
+### Community 97 - "Community 97"
+Cohesion: 0.25
+Nodes (8): code:swift (func testMemoryEnabledDefaultsNilDecodesOldJSON() throws {), code:swift (public var memoryEnabled: Bool?), code:swift (Section("Memory") {), code:swift (import SwiftUI), Phase 6 — Settings toggle + inspector, Task 6.1: memoryEnabled en GenerationSettings (TDD), Task 6.2: Toggle en SettingsView, Task 6.3: Inspector de memoria
+
+### Community 98 - "Community 98"
+Cohesion: 0.48
+Nodes (6): Equatable, FetchableRecord, Identifiable, Edge, Node, PersistableRecord
+
+### Community 100 - "Community 100"
+Cohesion: 0.29
+Nodes (7): code:swift (import XCTest), code:objc (#ifndef Gemma_Bridging_Header_h), code:swift (import Foundation), code:swift (func testVecKNNRoundTrip() throws {), Phase 0 — Spike de integración GRDB + sqlite-vec (de-risk primero), Task 0.1: Añadir GRDB, Task 0.2: Integrar sqlite-vec (C + bridging header)
+
+### Community 101 - "Community 101"
+Cohesion: 0.29
+Nodes (7): code:swift (func testUpsertMergingReinforces() throws {), code:swift (extension MemoryStore {), code:swift (import XCTest), code:swift (import Foundation), Phase 2 — Decay / dedup / sweep, Task 2.1: Decay (math pura, TDD), Task 2.2: dedup/merge + sweep en MemoryStore (TDD)
+
+### Community 102 - "Community 102"
+Cohesion: 0.33
+Nodes (6): AgentEvent, completed, failed, token, toolCallFinished, toolCallStarted
+
+### Community 104 - "Community 104"
+Cohesion: 0.33
+Nodes (6): code:swift (import Foundation), code:swift (import XCTest), code:swift (import Foundation), Phase 1 — Modelos + MemoryStore (esquema, CRUD, FTS), Task 1.1: Modelos de dominio, Task 1.2: MemoryStore — esquema + CRUD + FTS (TDD)
+
+### Community 105 - "Community 105"
+Cohesion: 0.60
+Nodes (4): Codable, Extracted, Item, Rel
+
+### Community 108 - "Community 108"
+Cohesion: 0.40
+Nodes (5): code:swift (import XCTest), Phase 7 — E2E en device + cierre, Task 7.1: Test E2E device-gated, Task 7.2: Verificación manual en device, Task 7.3: Cierre
+
 ## Knowledge Gaps
-- **474 isolated node(s):** `factual`, `conversational`, `long`, `image`, `es` (+469 more)
+- **563 isolated node(s):** `factual`, `conversational`, `long`, `image`, `es` (+558 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **17 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **24 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `HarnessModel` connect `Harness Orchestrator` to `Bench & Runtime Layer`, `Community 68`, `Community 69`, `Community 70`, `SwiftUI App Shell`, `Installed Models Storage`, `Model Downloader`, `Device Capability`, `Community 18`, `Community 51`, `Community 52`, `Community 56`, `Community 61`?**
-  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+- **Why does `HarnessModel` connect `Harness Orchestrator` to `Bench & Runtime Layer`, `Community 68`, `Community 69`, `Community 70`, `SwiftUI App Shell`, `Installed Models Storage`, `Model Downloader`, `Device Capability`, `Community 18`, `Community 51`, `Community 52`, `Community 88`, `Community 56`, `Community 61`?**
+  _High betweenness centrality (0.063) - this node is a cross-community bridge._
 - **Why does `ModelDownloaderTests` connect `Model Downloader` to `Community 73`?**
-  _High betweenness centrality (0.041) - this node is a cross-community bridge._
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
 - **Are the 15 inferred relationships involving `HarnessModel` (e.g. with `.test_catalog_isModelCatalogBuiltIn()` and `.test_deviceCapability_isRealisticForTestDevice()`) actually correct?**
   _`HarnessModel` has 15 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 8 inferred relationships involving `LiteRTLMRuntime` (e.g. with `.test_agent_callsCurrentTimeTool()` and `.test_generate_audio_producesNonEmptyOutput()`) actually correct?**
-  _`LiteRTLMRuntime` has 8 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 13 inferred relationships involving `DummyRuntime` (e.g. with `.test_run_completedAtIsAfterStartedAt()` and `.test_run_executesAllNonImagePromptsAgainstRuntime()`) actually correct?**
-  _`DummyRuntime` has 13 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 11 inferred relationships involving `MemoryStore` (e.g. with `.testInjectsMemoryIntoSystemPrompt()` and `.testConsolidatesMemoriesAndRelations()`) actually correct?**
+  _`MemoryStore` has 11 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 9 inferred relationships involving `LiteRTLMRuntime` (e.g. with `.test_agent_callsCurrentTimeTool()` and `.test_generate_audio_producesNonEmptyOutput()`) actually correct?**
+  _`LiteRTLMRuntime` has 9 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `factual`, `conversational`, `long` to the rest of the system?**
-  _477 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _566 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Bench & Runtime Layer` be split into smaller, more focused modules?**
-  _Cohesion score 0.12987012987012986 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11956521739130435 - nodes in this community are weakly interconnected._

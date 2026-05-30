@@ -100,13 +100,13 @@
     "semantic_hash": "39baa8d7d409ac9b70593bc49b07093f"
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/HarnessModel.swift": {
-    "mtime": 1780099978.9422863,
-    "ast_hash": "7e5b53a77fea0af90a9157c2b65b8e44",
+    "mtime": 1780134689.0186124,
+    "ast_hash": "697326c5c6982a2b2ae6d2b209523f77",
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/HarnessView.swift": {
-    "mtime": 1780099995.0058177,
-    "ast_hash": "dcde499805d35252037a9ca546588b5c",
+    "mtime": 1780134687.5831685,
+    "ast_hash": "92c9585269de991501dde2e7dc224193",
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/ImagePickerView.swift": {
@@ -240,8 +240,8 @@
     "semantic_hash": "a765b23622a6977b2f3acb96ace0d8dc"
   },
   "/Users/hashdown/Projects/personal_agent/docs/superpowers/specs/00-roadmap.md": {
-    "mtime": 1780090273.4346511,
-    "ast_hash": "571a5f5f456faa91874ca5ff9a277cb8",
+    "mtime": 1780135201.3186266,
+    "ast_hash": "6f05572f61f32af5c6bfa4b4bbacd625",
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/docs/superpowers/specs/01-s1-runtime.md": {
@@ -300,8 +300,8 @@
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Settings/GenerationSettings.swift": {
-    "mtime": 1780008729.2793002,
-    "ast_hash": "8209008e5264e42f654cecccb811c592",
+    "mtime": 1780134417.412106,
+    "ast_hash": "3d35be5aa1517c1305c492215c46cc15",
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Settings/SettingsStore.swift": {
@@ -310,8 +310,8 @@
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/SettingsView.swift": {
-    "mtime": 1780009378.4928007,
-    "ast_hash": "c3bcbd465a629c1412c0ee31b0b3be87",
+    "mtime": 1780134682.801014,
+    "ast_hash": "9d35e744802b79ccfae17d8cdbda6d69",
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/GenerationSettingsTests.swift": {
@@ -330,8 +330,8 @@
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/docs/superpowers/specs/01-s1-runtime-report.md": {
-    "mtime": 1780034525.21977,
-    "ast_hash": "6454b6e7436d1c8be523331bf8057b05",
+    "mtime": 1780135201.2934017,
+    "ast_hash": "60174ce1677fc28b0206efd0439e8258",
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/docs/superpowers/specs/2026-05-28-s1-mtp-comparison-design.md": {
@@ -370,8 +370,8 @@
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Agent/Agent.swift": {
-    "mtime": 1780099659.0904398,
-    "ast_hash": "329508d226563bed423d01a5cab0b5be",
+    "mtime": 1780132863.762947,
+    "ast_hash": "fcb10cd270db62f095850939282bddd8",
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Agent/ToolRegistry.swift": {
@@ -422,6 +422,131 @@
   "/Users/hashdown/Projects/personal_agent/docs/superpowers/specs/2026-05-29-s4-agent-core-design.md": {
     "mtime": 1780091255.0284607,
     "ast_hash": "7b16e9068969f5892e9ae5fae92b4ba8",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Memory/MemoryStore+Dedup.swift": {
+    "mtime": 1780132391.7401567,
+    "ast_hash": "cdd51d952d92302dc002f96ba41a2281",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Memory/MemoryConsolidator.swift": {
+    "mtime": 1780132663.0514789,
+    "ast_hash": "c334689a8d549de20316a457ef8cac87",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Memory/MemoryStore.swift": {
+    "mtime": 1780131875.6622741,
+    "ast_hash": "f6c151c262ccf5bef38711513c70d10c",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Memory/MemoryModels.swift": {
+    "mtime": 1780131847.3703253,
+    "ast_hash": "a76064faa97f9845ef5c4ad2600efda5",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Memory/Embedder.swift": {
+    "mtime": 1780132449.3096423,
+    "ast_hash": "f82b799818b6cd44a3d3f52d85636b32",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Memory/RememberTool.swift": {
+    "mtime": 1780133805.8443904,
+    "ast_hash": "7d26c2e60905ded3b341e9df6584b46b",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Memory/MemoryStore+Vector.swift": {
+    "mtime": 1780132465.2542999,
+    "ast_hash": "132d7c747a9f5f061853b95f3d25f780",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Memory/Decay.swift": {
+    "mtime": 1780132381.18468,
+    "ast_hash": "689e76766305d455a9ca165f63ecdfdc",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Memory/ForgetTool.swift": {
+    "mtime": 1780133807.6741352,
+    "ast_hash": "7fcb156307db9433109b58bfef58ee83",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Memory/MemoryRetriever.swift": {
+    "mtime": 1780132510.322576,
+    "ast_hash": "395e3fbdba05cf37f532240941d3455e",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Memory/MemoryToolbox.swift": {
+    "mtime": 1780132610.1004684,
+    "ast_hash": "59be9670ba5717a17f82ce2d425ad3c6",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/MemoryInspectorView.swift": {
+    "mtime": 1780134694.578789,
+    "ast_hash": "a06363865abf15320c57edf720c512ab",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/SqliteVecSpikeTests.swift": {
+    "mtime": 1780131082.522332,
+    "ast_hash": "90c6353809f277ccc392216fef4e690e",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MemoryStoreDedupTests.swift": {
+    "mtime": 1780133031.885917,
+    "ast_hash": "2fc560913d6f1f0f1fb5f3e4f71e3d7f",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/DecayTests.swift": {
+    "mtime": 1780132381.1892307,
+    "ast_hash": "70ce2c270ccfc0f20f9be1dc33abb114",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MemorySettingTests.swift": {
+    "mtime": 1780134424.5488899,
+    "ast_hash": "1361a68556e8bc2be192cb60568d2dca",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MemoryRetrieverTests.swift": {
+    "mtime": 1780132531.6462636,
+    "ast_hash": "f22b39b93e90930f85f53e52913094bc",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MemoryE2ETests.swift": {
+    "mtime": 1780134732.370675,
+    "ast_hash": "341306ebd03e1fd3a884f0ec36289221",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MemoryToolsTests.swift": {
+    "mtime": 1780133909.3322554,
+    "ast_hash": "aa37c2f103d95683ae3f44926adca9ea",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MemoryStoreVectorTests.swift": {
+    "mtime": 1780132518.3228135,
+    "ast_hash": "08a1163b62fff74539c3c2fa40efcfe7",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MemoryStoreTests.swift": {
+    "mtime": 1780131864.7037303,
+    "ast_hash": "3b491b84d68efb47af3bd135799d2779",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/AgentMemoryTests.swift": {
+    "mtime": 1780133704.9354055,
+    "ast_hash": "32d52ce9ea362449140d4bca55a9b913",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MemoryConsolidatorTests.swift": {
+    "mtime": 1780132681.4495153,
+    "ast_hash": "671a6e8427da6a87cd5d579a2c990b6e",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/docs/superpowers/plans/2026-05-29-s5a-memoria-ondevice.md": {
+    "mtime": 1780131168.5547652,
+    "ast_hash": "019d3084d34b1dbde65fe369f4a28a97",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/docs/superpowers/specs/2026-05-29-s5a-memoria-ondevice-design.md": {
+    "mtime": 1780107366.6297472,
+    "ast_hash": "78fb390cfd7a4a39c415da30bfde3e80",
     "semantic_hash": ""
   }
 }

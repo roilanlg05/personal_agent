@@ -1,0 +1,297 @@
+{
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/GemmaApp.swift": {
+    "mtime": 1779941804.2679257,
+    "ast_hash": "162bde802f33a152d37bef59c593dfc2",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Settings/GenerationSettings.swift": {
+    "mtime": 1780008729.2793002,
+    "ast_hash": "8209008e5264e42f654cecccb811c592",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Settings/SettingsStore.swift": {
+    "mtime": 1780008833.940768,
+    "ast_hash": "f4f5f6f82bb81d6a5883ee16012c9c09",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Bench/BenchReport.swift": {
+    "mtime": 1779976042.870493,
+    "ast_hash": "236bad235c31db73c46d7edcf2db4ce5",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Bench/BenchmarkTypes.swift": {
+    "mtime": 1780010448.569354,
+    "ast_hash": "4ee8c874317dc155205acb25efc5259a",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Bench/BenchRunner.swift": {
+    "mtime": 1780022153.9130807,
+    "ast_hash": "3aa560a3e0ed68d11b9aad2478c2b305",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Bench/PromptSet.swift": {
+    "mtime": 1779941391.2020524,
+    "ast_hash": "e88c4c500ffab166f036023853fa8aad",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Assets.xcassets/Contents.json": {
+    "mtime": 1779931801.1686432,
+    "ast_hash": "9deb2ada1cc834bbebf8bbad9c8978a1",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Assets.xcassets/AppIcon.appiconset/Contents.json": {
+    "mtime": 1779931801.753217,
+    "ast_hash": "cbe75704b2680422c4156009a528e292",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Assets.xcassets/AccentColor.colorset/Contents.json": {
+    "mtime": 1779931801.1680973,
+    "ast_hash": "55019f7265dde0a78318b0807f98e847",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Assets.xcassets/bench-image-1.imageset/Contents.json": {
+    "mtime": 1779982438.0004287,
+    "ast_hash": "e26d3327fa7051995538d258054f6cc2",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/ImageTempFile.swift": {
+    "mtime": 1779990565.497618,
+    "ast_hash": "e11ce4b60fe46bc2176dd951d6f1b75b",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/MultimodalBackends.swift": {
+    "mtime": 1780032939.9483757,
+    "ast_hash": "84bcabf459dd8e9c270e5a8430d4c2dc",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/MemoryReporter.swift": {
+    "mtime": 1779941121.497996,
+    "ast_hash": "25d030ef6ebde50ca639750aaea85553",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/LiteRTLMRuntime.swift": {
+    "mtime": 1780032933.2446933,
+    "ast_hash": "0e20c70bc6312b29e48bdf1031cb74ac",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/RuntimeFactory.swift": {
+    "mtime": 1780084424.1033313,
+    "ast_hash": "158955a9df3954bd95d7108b1ea63000",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/ModelRuntime.swift": {
+    "mtime": 1780047542.6955178,
+    "ast_hash": "582be636f1e17132499ede90ffd70b5b",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/PerfBenchmarker.swift": {
+    "mtime": 1780010556.256158,
+    "ast_hash": "f9b992aa0a1791d8179f226516ee4031",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/MLXRuntime.swift": {
+    "mtime": 1780084276.1830068,
+    "ast_hash": "eaa89c22461151fff379409bbac7f569",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/DummyRuntime.swift": {
+    "mtime": 1780022145.6020067,
+    "ast_hash": "0d1d762a83ea628972bcc23ee1e5091e",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/MLXGenerateParameters.swift": {
+    "mtime": 1780047308.9190044,
+    "ast_hash": "083e6321113fc1c84cc522edfbcb5ee9",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Models/DeviceCapability.swift": {
+    "mtime": 1779995104.95972,
+    "ast_hash": "424af5a8fd431ad6d2f8d15f02f0f37c",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Models/InstalledModels.swift": {
+    "mtime": 1779996177.0756197,
+    "ast_hash": "694187f6c7ce5a325ca32e957e7d6922",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Models/ModelDescriptor.swift": {
+    "mtime": 1780084396.3887703,
+    "ast_hash": "7245e567114763376d3ad2464baea0a5",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Models/ModelDownloader.swift": {
+    "mtime": 1779996090.1768007,
+    "ast_hash": "0f078d638b76fb08607aabf229d35639",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Models/ModelCatalog.swift": {
+    "mtime": 1780084407.766877,
+    "ast_hash": "ad32686b3aa033b6c7b87410b14f56fa",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Models/DownloadEvent.swift": {
+    "mtime": 1779984951.7518084,
+    "ast_hash": "39baa8d7d409ac9b70593bc49b07093f",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/SettingsView.swift": {
+    "mtime": 1780009378.4928007,
+    "ast_hash": "c3bcbd465a629c1412c0ee31b0b3be87",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/BenchmarkView.swift": {
+    "mtime": 1780010658.8370402,
+    "ast_hash": "05527277ca5666c120230d9a1fb6fa69",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/HarnessModel.swift": {
+    "mtime": 1780084683.631065,
+    "ast_hash": "87cb2949ff5f68e6bc9722435cd3581d",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/HarnessView.swift": {
+    "mtime": 1780009387.08872,
+    "ast_hash": "ea9d4ef857a3e0e26c13189384283d1b",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/ImagePickerView.swift": {
+    "mtime": 1779941701.3405514,
+    "ast_hash": "ce3fb9903c721fccac939bf8005b0404",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/DownloadProgress.swift": {
+    "mtime": 1779985542.6461656,
+    "ast_hash": "490496c48d1150ffaf64b69cec8017f7",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/CatalogView.swift": {
+    "mtime": 1779996255.1469288,
+    "ast_hash": "b49d4231c85a7a8858ff2355e687b750",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Harness/BenchmarkModel.swift": {
+    "mtime": 1780010602.014167,
+    "ast_hash": "2194ece47a084c1fcc9a15414e66ccb7",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/BenchmarkTypesTests.swift": {
+    "mtime": 1780010430.5934224,
+    "ast_hash": "754b082b409f462718177b5ccdca5dcf",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/BenchRunnerTests.swift": {
+    "mtime": 1779982470.3312871,
+    "ast_hash": "3f861c06a4a1a03678fc0d24d73258aa",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/RuntimeFactoryTests.swift": {
+    "mtime": 1780084369.3824391,
+    "ast_hash": "aa17faaf20fa4b66aa22523af0a34ca3",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/ModelDescriptorTests.swift": {
+    "mtime": 1779984606.1213222,
+    "ast_hash": "4c904c364e5f9f840e0c254501d690af",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/ModelRuntimeTypesTests.swift": {
+    "mtime": 1780008909.1170328,
+    "ast_hash": "a1a36529677d28a6c89379db0ed8dd56",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/InstalledModelsTests.swift": {
+    "mtime": 1779996155.9589195,
+    "ast_hash": "13607072255de678d61886d42976702c",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/GemmaTests.swift": {
+    "mtime": 1779940524.0012324,
+    "ast_hash": "c71bd7ea8d6d616909b9b6b969649b06",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MLXRuntimeTests.swift": {
+    "mtime": 1780084889.5807168,
+    "ast_hash": "5b385189762dce210742fea7a9afc1e7",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/ImageTempFileTests.swift": {
+    "mtime": 1779990554.1108565,
+    "ast_hash": "28940003ba6619a61e6c52e010f62ec9",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/ModelDownloaderTests.swift": {
+    "mtime": 1779996019.255812,
+    "ast_hash": "a65d4687475cf9a5f0677073e28ad4b6",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MLXGenerateParametersTests.swift": {
+    "mtime": 1780047290.9392028,
+    "ast_hash": "47f11ece88d26bf9f39fadd72b6a866a",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MemoryReporterTests.swift": {
+    "mtime": 1779941111.0302339,
+    "ast_hash": "82acc34d7b8ae952e34442d15f14ba9d",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/ModelCatalogTests.swift": {
+    "mtime": 1779984713.3413548,
+    "ast_hash": "24e96f7022e3c13f2aaa3ae3481d8f2c",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/GenerationSettingsTests.swift": {
+    "mtime": 1780008713.5624382,
+    "ast_hash": "5b1f67a2759387aabe3bc3b306a5d574",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/BenchReportTests.swift": {
+    "mtime": 1779976073.7332764,
+    "ast_hash": "247afcab4ea8f29aab275b814abaf592",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/LiteRTLMRuntimeTests.swift": {
+    "mtime": 1780034228.020449,
+    "ast_hash": "5337376fd75f05d7833bb197e31937c9",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/HarnessModelTests.swift": {
+    "mtime": 1780009226.2287412,
+    "ast_hash": "e944d10787558788abab006723ea902c",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/Mutex.swift": {
+    "mtime": 1779976047.6416497,
+    "ast_hash": "57c2f2e4a35c0ed44da43b7a64d9b6bd",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/DummyRuntimeTests.swift": {
+    "mtime": 1780022123.1914752,
+    "ast_hash": "f7bce04b2fd8383958cbcfd3187d8732",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/SettingsStoreTests.swift": {
+    "mtime": 1780008819.3906662,
+    "ast_hash": "6b2b0a0b6a79ebf9bed48520d2b52265",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MultimodalBackendsTests.swift": {
+    "mtime": 1780021789.6986408,
+    "ast_hash": "a4f737a2370f64942673e2abc6b79fb1",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/DeviceCapabilityTests.swift": {
+    "mtime": 1779995042.5212657,
+    "ast_hash": "71fe82625c8eb43993c80be3abb7710c",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/PromptSetTests.swift": {
+    "mtime": 1779941364.8931983,
+    "ast_hash": "c3b5a0f0f8f57f122eb9c118ad63828c",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/Resources/bench-audio-1.m4a": {
+    "mtime": 1780033257.2170713,
+    "ast_hash": "d2dd96b672030388cc0410f367b697d7",
+    "semantic_hash": ""
+  }
+}

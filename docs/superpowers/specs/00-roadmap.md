@@ -58,7 +58,7 @@ Todas las decisiones de arquitectura fijadas en el brainstorming. Cualquier spec
 
 S5 era demasiado grande para un solo spec. Se parte en tres sub-proyectos (cada uno spec → plan → ejecución):
 
-- **S5a — Memoria on-device v1** (spec `2026-05-29-s5a-memoria-ondevice-design.md`): L1 live + L2 daily + L4 identity, captura híbrida (tool `remember`/`forget` + consolidación post-turno), grafo base personas/lugares/relaciones, recuperación híbrida (vector Apple `NLContextualEmbedding` + grafo + recencia) e inyección de contexto (#18). DB **SQLite (GRDB)+sqlite-vec+FTS5** con esquema unificado nodo/arista que llega hasta S11 sin migración destructiva. Todo en device, verificable en iPhone 16. **← arrancando ahora.**
+- **S5a — Memoria on-device v1** (spec `2026-05-29-s5a-memoria-ondevice-design.md`, plan `…/plans/2026-05-29-s5a-memoria-ondevice.md`): L1 live + L2 daily + L4 identity, captura híbrida (tool `remember`/`forget` + consolidación post-turno), grafo base personas/lugares/relaciones, recuperación híbrida (vector Apple `NLContextualEmbedding` + grafo + recencia) e inyección de contexto (#18). DB **SQLite (GRDB)+FTS5** con esquema unificado nodo/arista que llega hasta S11 sin migración destructiva. **✅ CÓDIGO COMPLETO (2026-05-30), 30 suites de test verdes en sim; commits `22fdaa4`…`6f7fe09`.** sqlite-vec **diferido** → vectores con BLOB+coseno en Swift (misma interfaz; ver `01-s1-runtime-report.md` §9). **Pendiente: verificación manual en iPhone 16** (recall + persistencia).
 - **S5b — Backend de memoria en servidor** (nodo): embeddings premium bilingües, Qdrant, graphify en el PC de casa.
 - **S5c — Sync + retrieval híbrido contra servidor** (nodo): protocolo device↔servidor (columnas de sync ya nacen en S5a).
 

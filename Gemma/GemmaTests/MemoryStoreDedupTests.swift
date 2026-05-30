@@ -24,6 +24,14 @@ final class MemoryStoreDedupTests: XCTestCase {
         XCTAssertEqual(nodes[0].mentionCount, 2)
     }
 
+    func testDedupCanonicalAcrossPhrasings() throws {
+        let store = try makeStore()
+        _ = try store.upsertMerging(node(label: "me gusta el sushi"))
+        _ = try store.upsertMerging(node(label: "Sushi"))
+        let nodes = try store.allNodes()
+        XCTAssertEqual(nodes.count, 1, "different phrasings of the same entity must merge; got: \(nodes.map { $0.label })")
+    }
+
     func testPromotesToIdentityAtThreshold() throws {
         let store = try makeStore()
         for _ in 0..<3 { _ = try store.upsertMerging(node(kind: .person, label: "Juan")) }

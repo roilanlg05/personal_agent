@@ -29,7 +29,9 @@ struct RememberTool: Tool {
             let now = Date().timeIntervalSince1970
             let layer: MemoryLayer = permanent ? .identity : .daily
             let k = NodeKind(rawValue: kind) ?? .fact
-            let node = Node(id: UUID().uuidString, kind: k, label: content, body: content, layer: layer,
+            // Clean the label so explicit memories dedupe with auto-extracted ones (same MemoryText).
+            let label = MemoryText.cleanLabel(content)
+            let node = Node(id: UUID().uuidString, kind: k, label: label.isEmpty ? content : label, body: content, layer: layer,
                             createdAt: now, updatedAt: now, lastSeenAt: now, salience: permanent ? 8 : 3,
                             decayRate: Decay.defaultDecayRate(for: layer), confidence: .sure, mentionCount: 1,
                             ttlExpiresAt: nil, sourceRef: nil, origin: .explicit, serverId: nil,

@@ -4,12 +4,15 @@ import GRDB
 /// Consolidation: dedup/merge on write (human memory consolidates, doesn't accumulate
 /// duplicates) + a forgetting sweep. Built on the Phase 1 MemoryStore CRUD + Phase 2 Decay.
 extension MemoryStore {
-    /// Find an existing non-deleted node to merge into, by exact (kind, label).
+    /// Find an existing non-deleted node to merge into, by (kind, canonical label). Uses
+    /// MemoryText.dedupKey so "Sushi", "sushi" and "me gusta el sushi" all collapse together —
+    /// the cause of the duplicate "Juan ×3 / sushi ×N" rows seen on device.
     func findDuplicate(kind: NodeKind, label: String) throws -> Node? {
-        try dbQueue.read { db in
-            try Node.filter(Column("kind") == kind.rawValue
-                            && Column("label") == label
-                            && Column("deleted") == false).fetchOne(db)
+        let key = MemoryText.dedupKey(label)
+        return try dbQueue.read { db in
+            try Node.filter(Column("kind") == kind.rawValue && Column("deleted") == false)
+                .fetchAll(db)
+                .first { MemoryText.dedupKey($0.label) == key }
         }
     }
 

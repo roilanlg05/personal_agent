@@ -95,3 +95,9 @@ Plan `…m2b-3-resume-followup.md` ejecutado (subagent-driven, doble review + fi
 - **Pendiente (humano):** check visual GUI — interrumpir un ciclo y ver que el agente menciona qué reflexionaba + reanuda ~15s; relanzar y ver follow-up proactivo; sin dar la lata a mitad de sesión.
 
 **M2b (la memoria "Sleep Consolidation") está COMPLETA:** captura episódica + save_memory estructurado + dedup semántico (M2b-1) → ciclo de sueño multi-fase con kinds extensibles, asociación, reflexión, curación, olvido (M2b-2) → retomar consciente + follow-up proactivo (M2b-3).
+
+## 10. Hallazgo: thinking-ON rompe la consolidación (decidido thinking-OFF, 2026-05-31)
+
+Se probó (petición del usuario) usar **thinking-ON** en las generaciones de consolidación, midiendo contra el 26B real. Resultado: **thinking-ON degrada TODAS las fases de salida-JSON.** El modelo sobre-razona (p.ej. 6900 chars / ~2048 tokens de razonamiento para una extracción simple), consume el presupuesto y **trunca el `content` a vacío** → 0 entidades (o 0 edges / 0 insights según la corrida), ~3.5–5× más lento (140–223s vs ~40s), e inventa kinds no estándar (`name`/`interest`/`workplace`). Subir el budget a 4096/8192 no lo hace fiable (el razonamiento es variable y a veces excede). El híbrido (thinking-on solo en associate/reflect) sólo movió la rotura a esas dos fases (0 edges/0 insights). 
+
+**Decisión: toda la consolidación corre thinking-OFF** (config verificada-buena: 7 entidades + 5 edges + 1 insight, ~40s, kinds estándar limpios). El chain-of-thought visible no ayuda a producir JSON estructurado en este modelo — lo rompe. Los turnos interactivos ya eran thinking-off. Se eliminó el override `enableThinking` por-request (quedó sin uso). `ServerRuntime.enableThinking` (default false) se conserva por si alguna vez se quiere razonamiento en alguna ruta. (Commits del análisis/revert: `e8a361b`…`c5d5f59`.)

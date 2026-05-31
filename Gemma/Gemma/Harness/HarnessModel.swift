@@ -81,7 +81,10 @@ public final class HarnessModel {
         MemoryToolbox.shared.embedder = memoryEmbedder
         // Build the consolidation engine + scheduler ONCE, then reuse across turns.
         if consolidationScheduler == nil {
-            let engine = MemoryConsolidationEngine(store: store, embedder: memoryEmbedder, runtime: runtime)
+            // Consolidation is reasoning-heavy background work: give it a DEDICATED thinking-on
+            // runtime for quality. Interactive turns keep the shared thinking-off `runtime` (snappy).
+            let engine = MemoryConsolidationEngine(store: store, embedder: memoryEmbedder,
+                                                   runtime: ServerRuntime(enableThinking: true))
             let sched = ConsolidationScheduler(runner: engine, isReady: { [weak self] in self?.serverManager.state == .ready },
                                                hasPendingCycle: { [weak self] in ((try? self?.memoryStore?.loadSleepCycle()) ?? nil) != nil })
             // Mirror short engine progress into the scheduler's summary so the

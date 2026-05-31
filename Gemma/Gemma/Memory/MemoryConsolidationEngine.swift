@@ -19,7 +19,10 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
     // MARK: shared
 
     /// Run one plain-text generation and return its full text.
-    private func generate(_ prompt: String, maxTokens: Int = 512) async -> String {
+    /// Budgets are generous because the engine runs thinking-on: hidden chain-of-thought tokens
+    /// count against max_tokens (mlx-lm) and are emitted BEFORE the JSON `content`, so reasoning
+    /// + JSON must both fit. (ServerRuntime surfaces only `content`; `reasoning` is dropped.)
+    private func generate(_ prompt: String, maxTokens: Int = 2048) async -> String {
         var out = ""
         let stream = await runtime.generate(prompt: prompt,
                                             options: GenerationOptions(maxTokens: maxTokens, temperature: 0.3))
@@ -100,7 +103,14 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         JSON:
         """
         guard let out = parse(await generate(prompt), FollowUpsOut.self) else { return }
-        var existing = Set(((try? store.allNodes()) ?? []).filter { $0.kind == NodeKind.followUp.rawValue }.map { MemoryText.dedupKey($0.body) })
+        // Label-only resolution (like reflect): a source must match an existing node's label
+        // by dedupKey; unresolvable labels are skipped.
+        let allNodes = (try? store.allNodes()) ?? []
+        func resolve(_ label: String) -> Node? {
+            let key = MemoryText.dedupKey(label)
+            return allNodes.first { MemoryText.dedupKey($0.label) == key }
+        }
+        var existing = Set(allNodes.filter { $0.kind == NodeKind.followUp.rawValue }.map { MemoryText.dedupKey($0.body) })
         var added = 0
         for f in out.followUps {
             let text = f.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -114,6 +124,11 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
                             decayRate: Decay.defaultDecayRate(for: .daily), confidence: .probable, mentionCount: 1,
                             ttlExpiresAt: nil, sourceRef: nil, origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: attrs.toJSON())
             try? store.upsert(node)
+            // Link the follow_up to each resolved source entity (mirrors reflect()'s source edges).
+            for src in (f.sources ?? []).compactMap(resolve) where src.id != node.id {
+                try? store.upsert(Edge(id: UUID().uuidString, srcId: node.id, dstId: src.id, relation: .relatedTo, weight: 1,
+                                       confidence: .probable, createdAt: t, updatedAt: t, dirty: true, deleted: false, extra: nil))
+            }
             added += 1
         }
         onProgress?("+\(added) follow-ups")
@@ -227,7 +242,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         Kinds to map: \(unknown.joined(separator: ", "))
         JSON:
         """
-        guard let out = parse(await generate(prompt, maxTokens: 256), KindMapOut.self) else { return }
+        guard let out = parse(await generate(prompt, maxTokens: 1024), KindMapOut.self) else { return }
         for (from, to) in out.map where from != to && !to.isEmpty {
             try? store.reassignKind(from: from, to: to)
         }
@@ -261,6 +276,20 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
             case .nrem:
                 let texts = state.episodeIds.compactMap { (try? store.node(id: $0))?.body }
                 await consolidate(episodeTexts: texts)
+                // Refine focus to the consolidated entities (semantic, reads naturally) now that
+                // NREM has minted nodes. The initial positional focus set at cycle start stays the
+                // fallback if NREM produced nothing. Persist so an interrupted resume keeps it.
+                let salient = ((try? store.allNodes()) ?? [])
+                    .filter { $0.kind != NodeKind.conversation.rawValue
+                              && $0.kind != NodeKind.insight.rawValue
+                              && $0.kind != NodeKind.episode.rawValue }
+                    .sorted { $0.salience > $1.salience }
+                    .prefix(6)
+                    .map { $0.label }
+                if !salient.isEmpty {
+                    state.focus = String(salient.joined(separator: ", ").prefix(100))
+                    try? store.saveSleepCycle(state)
+                }
             case .detect:
                 await detectFollowUps(episodeTexts: state.episodeIds.compactMap { (try? store.node(id: $0))?.body })
             case .rem: await associate()

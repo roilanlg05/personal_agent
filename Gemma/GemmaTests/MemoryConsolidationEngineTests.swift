@@ -151,6 +151,19 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         await engine.detectFollowUps(episodeTexts: ["x"])
         XCTAssertEqual(try store.allNodes().filter { $0.kind == NodeKind.followUp.rawValue }.count, 1)
     }
+    func test_detect_links_sources_to_entities() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
+        let now = Date().timeIntervalSince1970
+        try store.upsert(Node(id: "juan", kind: NodeKind.person.rawValue, label: "Juan", body: "Juan", layer: .daily, createdAt: now, updatedAt: now, lastSeenAt: now, salience: 3, decayRate: 0.001, confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil, origin: .explicit, serverId: nil, dirty: true, deleted: false, extra: nil))
+        let rt = CannedRuntime([#"{"followUps":[{"text":"hear about Juan's news","sources":["Juan"]}]}"#])
+        let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: rt)
+        await engine.detectFollowUps(episodeTexts: ["Juan was going to tell me his news"])
+        let fu = try store.allNodes().first { $0.kind == NodeKind.followUp.rawValue }
+        XCTAssertNotNil(fu, "follow_up node created")
+        let edges = try store.allEdges()
+        XCTAssertTrue(edges.contains { $0.srcId == fu?.id && $0.dstId == "juan" && $0.relation == .relatedTo },
+                      "follow_up linked to its source entity Juan")
+    }
     func test_runCycle_includes_detect_and_sets_focus() async throws {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
         let meta = EpisodeRecorder.Meta(threadId: "T", role: "user", turnIndex: 0, status: "closed")

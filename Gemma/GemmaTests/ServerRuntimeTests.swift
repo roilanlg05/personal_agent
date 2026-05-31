@@ -91,34 +91,6 @@ final class ServerRuntimeTests: XCTestCase {
         XCTAssertFalse(enableThinking, "enable_thinking should be false")
     }
 
-    /// A per-request `GenerationOptions.enableThinking` override wins over the runtime's own
-    /// default: a runtime built thinking-OFF, called with the option set to true, must post
-    /// `chat_template_kwargs.enable_thinking == true`.
-    func test_per_request_enableThinking_overrides_runtime_default() async throws {
-        ServerRuntimeMockProtocol.responseBody = #"{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}"#
-        // makeRuntime() builds a ServerRuntime with the default enableThinking (false).
-        let rt = makeRuntime()
-        for try await _ in await rt.generate(prompt: "hi", options: GenerationOptions(enableThinking: true)) {}
-        let body = try XCTUnwrap(ServerRuntimeMockProtocol.capturedBody)
-        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
-        let kwargs = try XCTUnwrap(json["chat_template_kwargs"] as? [String: Any])
-        let enableThinking = try XCTUnwrap(kwargs["enable_thinking"] as? Bool)
-        XCTAssertTrue(enableThinking, "per-request override (true) should win over the runtime default (false)")
-    }
-
-    /// The inverse: with no per-request override (option nil), the body falls back to the
-    /// runtime's own default — here false.
-    func test_no_override_uses_runtime_default_false() async throws {
-        ServerRuntimeMockProtocol.responseBody = #"{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}"#
-        let rt = makeRuntime()
-        for try await _ in await rt.generate(prompt: "hi", options: GenerationOptions()) {}
-        let body = try XCTUnwrap(ServerRuntimeMockProtocol.capturedBody)
-        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
-        let kwargs = try XCTUnwrap(json["chat_template_kwargs"] as? [String: Any])
-        let enableThinking = try XCTUnwrap(kwargs["enable_thinking"] as? Bool)
-        XCTAssertFalse(enableThinking, "no override → runtime default (false)")
-    }
-
     /// A non-2xx HTTP response must surface as a thrown error, not a silently-empty completion.
     func testNon2xxResponseThrows() async throws {
         ServerRuntimeMockProtocol.responseBody = #"{"error":{"message":"bad request"}}"#

@@ -87,9 +87,6 @@ public struct GenerationOptions: Sendable {
     /// Optional system prompt applied when the conversation is (re)created for this
     /// generation. nil = no system message.
     public var systemPrompt: String?
-    /// Per-request override for the model's hidden chain-of-thought. nil = use the
-    /// runtime's own `enableThinking` default; non-nil wins over it.
-    public var enableThinking: Bool?
 
     public init(
         maxTokens: Int = 4000,
@@ -97,8 +94,7 @@ public struct GenerationOptions: Sendable {
         topP: Double = 0.95,
         topK: Int = 64,
         useSpeculativeDecoding: Bool = false,
-        systemPrompt: String? = nil,
-        enableThinking: Bool? = nil
+        systemPrompt: String? = nil
     ) {
         self.maxTokens = maxTokens
         self.temperature = temperature
@@ -106,7 +102,6 @@ public struct GenerationOptions: Sendable {
         self.topK = topK
         self.useSpeculativeDecoding = useSpeculativeDecoding
         self.systemPrompt = systemPrompt
-        self.enableThinking = enableThinking
     }
 }
 

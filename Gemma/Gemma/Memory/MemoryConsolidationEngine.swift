@@ -20,18 +20,16 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
 
     /// Run one plain-text generation and return its full text.
     ///
-    /// HYBRID thinking (verified against the real 26B): mechanical JSON-extraction phases
-    /// (consolidate/detect/curate) run thinking-OFF — reliable and fast; thinking-on made the
-    /// model over-reason and truncate the JSON to empty (0 entities), ~5x slower, with non-standard
-    /// kinds. Genuine-inference phases (associate/reflect) run thinking-ON for reasoning room.
-    /// When thinking is on, hidden chain-of-thought tokens count against max_tokens (mlx-lm) and
-    /// are emitted BEFORE the JSON `content`, so 4096 lets reasoning + JSON both fit. (ServerRuntime
-    /// surfaces only `content`; `reasoning` is dropped.)
-    private func generate(_ prompt: String, maxTokens: Int, thinking: Bool) async -> String {
+    /// All consolidation phases run thinking-OFF (the runtime's default): verified against the
+    /// real 26B, this model over-reasons and truncates the JSON (often to empty — 0 entities)
+    /// when thinking is on, and is ~3.5-5x slower. Thinking-off is reliable and fast across every
+    /// phase (consolidate/detect/associate/reflect/curate), and 512 tokens is enough for the
+    /// JSON-only output we ask for (verified). (ServerRuntime surfaces only `content`; `reasoning`
+    /// is dropped.)
+    private func generate(_ prompt: String, maxTokens: Int = 512) async -> String {
         var out = ""
         let stream = await runtime.generate(prompt: prompt,
-                                            options: GenerationOptions(maxTokens: maxTokens, temperature: 0.3,
-                                                                       enableThinking: thinking))
+                                            options: GenerationOptions(maxTokens: maxTokens, temperature: 0.3))
         do { for try await e in stream {
             if case .token(let t) = e { out += t }
             if case .completed(let r) = e, out.isEmpty { out = r.text }
@@ -72,7 +70,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         \(convo)
         JSON:
         """
-        guard let out = parse(await generate(prompt, maxTokens: 512, thinking: false), EntitiesOut.self) else { return }
+        guard let out = parse(await generate(prompt, maxTokens: 512), EntitiesOut.self) else { return }
         var added = 0
         for e in out.entities {
             let label = MemoryText.cleanLabel(e.entity)
@@ -108,7 +106,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         \(convo)
         JSON:
         """
-        guard let out = parse(await generate(prompt, maxTokens: 512, thinking: false), FollowUpsOut.self) else { return }
+        guard let out = parse(await generate(prompt, maxTokens: 512), FollowUpsOut.self) else { return }
         // Label-only resolution (like reflect): a source must match an existing node's label
         // by dedupKey; unresolvable labels are skipped.
         let allNodes = (try? store.allNodes()) ?? []
@@ -159,7 +157,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         \(labels)
         JSON:
         """
-        guard let out = parse(await generate(prompt, maxTokens: 4096, thinking: true), EdgesOut.self) else { return }
+        guard let out = parse(await generate(prompt, maxTokens: 512), EdgesOut.self) else { return }
         func resolve(_ label: String) -> Node? {
             let key = MemoryText.dedupKey(label)
             if let n = nodes.first(where: { MemoryText.dedupKey($0.label) == key }) { return n }
@@ -201,7 +199,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         \(labels)
         JSON:
         """
-        guard let out = parse(await generate(prompt, maxTokens: 4096, thinking: true), InsightsOut.self) else { return }
+        guard let out = parse(await generate(prompt, maxTokens: 512), InsightsOut.self) else { return }
         // Label-only resolution by design: sources must be among the entities shown to the model
         // (unlike `associate`, which also falls back to semantic nearest-neighbor).
         func resolve(_ label: String) -> Node? {
@@ -248,7 +246,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         Kinds to map: \(unknown.joined(separator: ", "))
         JSON:
         """
-        guard let out = parse(await generate(prompt, maxTokens: 512, thinking: false), KindMapOut.self) else { return }
+        guard let out = parse(await generate(prompt, maxTokens: 512), KindMapOut.self) else { return }
         for (from, to) in out.map where from != to && !to.isEmpty {
             try? store.reassignKind(from: from, to: to)
         }

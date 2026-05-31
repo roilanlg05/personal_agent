@@ -81,8 +81,7 @@ final class SleepConsolidationE2ETests: XCTestCase {
         // The store embeddingDim must match the embedder; rebuild if NL gave a different dim.
         let memStore = dim == 512 ? store : try MemoryStore(inMemory: true, embeddingDim: dim)
 
-        // Match production: the engine controls thinking per phase via a GenerationOptions
-        // override, so the runtime keeps its default (per-phase override decides).
+        // Match production: all consolidation phases run thinking-OFF (the runtime's default).
         let runtime = ServerRuntime()
         let engine = MemoryConsolidationEngine(store: memStore, embedder: embedder, runtime: runtime)
         engine.onProgress = { [weak self] msg in self?.observe("🔧 E2E-OBSERVE: progress: \(msg)") }

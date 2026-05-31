@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HarnessView: View {
-    @State private var model = HarnessModel()
+    let model: HarnessModel
     var body: some View {
         AgentChatView(model: model)
             .task { model.startServer() }

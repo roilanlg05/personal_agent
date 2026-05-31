@@ -2,9 +2,14 @@ import SwiftUI
 
 @main
 struct GemmaApp: App {
+    @State private var model = HarnessModel()
+
     var body: some Scene {
         WindowGroup {
-            HarnessView()
+            HarnessView(model: model)
+        }
+        Settings {
+            SettingsView(model: model)
         }
     }
 }

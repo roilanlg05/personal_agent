@@ -1,13 +1,13 @@
 import Foundation
 
 /// The argv (after the executable) for `mlx_lm.server`. Pure → unit-testable.
-func serverArguments(for config: ServerConfig) -> [String] {
+nonisolated func serverArguments(for config: ServerConfig) -> [String] {
     ["--model", config.modelId, "--host", config.host, "--port", String(config.port)]
 }
 
 /// Owns a spawned `mlx_lm.server` process. Captures a tail of stderr for diagnostics and
 /// fires `onExit` if the process dies on its own.
-final class RealServerProcessHandle: ServerProcessHandle, @unchecked Sendable {
+nonisolated final class RealServerProcessHandle: ServerProcessHandle, @unchecked Sendable {
     private let process: Process
     private let stderrPipe: Pipe
     private let lock = NSLock()
@@ -39,7 +39,7 @@ final class RealServerProcessHandle: ServerProcessHandle, @unchecked Sendable {
 }
 
 /// Spawns `mlx_lm.server` via `Process`. Requires the App Sandbox to be OFF (Task 1).
-final class RealServerProcessLauncher: ServerProcessLauncher {
+nonisolated final class RealServerProcessLauncher: ServerProcessLauncher {
     func launch(_ config: ServerConfig) throws -> ServerProcessHandle {
         let process = Process()
         process.executableURL = config.venvBinURL

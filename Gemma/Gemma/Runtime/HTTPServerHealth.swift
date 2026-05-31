@@ -1,7 +1,7 @@
 import Foundation
 
 /// Real health client: probes `/v1/models` and runs a 1-token warm-up/keep-alive completion.
-final class HTTPServerHealth: ServerHealth, @unchecked Sendable {
+nonisolated final class HTTPServerHealth: ServerHealth, @unchecked Sendable {
     private let session: URLSession
     init(session: URLSession = .shared) { self.session = session }
 

@@ -13,7 +13,7 @@ enum ServerState: Equatable {
 }
 
 /// Where/how to run the server. Hardcoded defaults for M2a; a Settings UI is M2c.
-struct ServerConfig: Sendable {
+nonisolated struct ServerConfig: Sendable {
     var venvBinURL: URL
     var modelId: String
     var host: String
@@ -28,19 +28,19 @@ struct ServerConfig: Sendable {
 }
 
 /// A running server process we can terminate; notifies via `onExit` if it dies on its own.
-protocol ServerProcessHandle: AnyObject {
+nonisolated protocol ServerProcessHandle: AnyObject {
     func terminate()
     var onExit: (@Sendable () -> Void)? { get set }
     var stderrTail: String { get }
 }
 
 /// Spawns the server process. Real impl uses `Process`; tests use a fake.
-protocol ServerProcessLauncher {
+nonisolated protocol ServerProcessLauncher {
     func launch(_ config: ServerConfig) throws -> ServerProcessHandle
 }
 
 /// Probes server readiness and runs a minimal warm-up/keep-alive inference.
-protocol ServerHealth {
+nonisolated protocol ServerHealth {
     func probe(_ config: ServerConfig) async -> Bool
     func warm(_ config: ServerConfig) async throws
 }
@@ -107,7 +107,10 @@ final class ServerManager {
             generation += 1
             let gen = generation
             let h = try launcher.launch(config)
-            h.onExit = { [weak self] in Task { @MainActor in self?.handleUnexpectedExit(generation: gen) } }
+            h.onExit = { [weak self] in
+                guard let self else { return }
+                Task { @MainActor in self.handleUnexpectedExit(generation: gen) }
+            }
             handle = h
             owned = true
         } catch {

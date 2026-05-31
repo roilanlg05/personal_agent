@@ -84,3 +84,14 @@ When the user returns, the agent feels like it was *there* — it resumes what i
 ## 8. File structure
 **New:** tests `GemmaTests/FollowUpDetectionTests.swift` (or fold into `MemoryConsolidationEngineTests`), `GemmaTests/WakeContextTests.swift`, `GemmaTests/SchedulerResumeTests.swift` (or fold into `ConsolidationSchedulerTests`).
 **Modified:** `Memory/MemoryModels.swift` (+`followUp` kind), `Memory/MemoryStore.swift` (`v3-sleep-focus` migration + `SleepCycleState.focus` + `pendingFollowUps`), `Memory/MemoryConsolidationEngine.swift` (`detectFollowUps` phase, `.detect` in `SleepPhase`+order, set `focus` at cycle start), `Memory/ConsolidationScheduler.swift` (prompt-resume on pause when pending; `hasPendingCycle` seam), `Agent/Agent.swift` (`wakeContext` injected into system prompt), `Harness/HarnessModel.swift` (`buildWakeContext` + `lastTurnEndedAt` + pass to Agent), optionally `Harness/MemoryGraphView.swift` (`follow_up` color).
+
+## 9. Resultado M2b-3 (VERIFICADO contra el 26B real, 2026-05-31)
+
+Plan `…m2b-3-resume-followup.md` ejecutado (subagent-driven, doble review + fixes por unidad). Commits `cb5ea1e`…`8410267` en `main`.
+
+- **Parte A — retomar la reflexión, pronto + consciente:** `SleepCycleState.focus` persistido (migración `v3-sleep-focus`); el `ConsolidationScheduler` reanuda un ciclo pendiente en la **pausa corta (~15s)** (`hasPendingCycle`), no en el idle largo; `Agent` inyecta `wakeContext` en el system prompt; `HarnessModel.buildWakeContext` arma "(estabas reflexionando sobre <focus>)" — **gated al turno que interrumpe un ciclo activo** (fix de review: sin nag).
+- **Parte B — follow-up proactivo:** nueva fase **`detect`** (orden `nrem→detect→rem→reflect→curate→shy`) → nodos `follow_up{status:pending}`; kind `follow_up`; `MemoryStore.pendingFollowUps`; en el **primer turno / tras gap >180s** (`isWake`) se inyectan los pendientes (tasks/plans/follow_ups) en el contexto para que el agente los retome naturalmente.
+- **E2E real (26B):** (1) prompt de `detect` con una conversación de cabos sueltos → `{"call the dentist","hear about the trip to Japan"}` correcto. (2) Ciclo completo de 6 fases (`SleepConsolidationE2ETests`): **+7 entidades, +2 follow_ups** ("call the dentist","learn German" pending), +5 edges; `distinct kinds` incluye `follow_up`. (insights 0 esa corrida — reflect es estocástico; en M2b-2 dio 1.)
+- **Pendiente (humano):** check visual GUI — interrumpir un ciclo y ver que el agente menciona qué reflexionaba + reanuda ~15s; relanzar y ver follow-up proactivo; sin dar la lata a mitad de sesión.
+
+**M2b (la memoria "Sleep Consolidation") está COMPLETA:** captura episódica + save_memory estructurado + dedup semántico (M2b-1) → ciclo de sueño multi-fase con kinds extensibles, asociación, reflexión, curación, olvido (M2b-2) → retomar consciente + follow-up proactivo (M2b-3).

@@ -4,7 +4,7 @@ import XCTest
 /// M1 end-to-end verification against the REAL local mlx-lm server (Gemma 4 26B MoE).
 ///
 /// Drives the production stack — `ServerRuntime` → `Agent` (client-side tool loop) →
-/// real `ToolRegistry` (CurrentTimeTool + RememberTool + ForgetTool) → real `MemoryStore` +
+/// real `ToolRegistry` (CurrentTimeTool + SaveMemoryTool + ForgetTool) → real `MemoryStore` +
 /// `MemoryServices` — exactly as `HarnessModel.runAgentTurn`/`ensureMemory` wire it.
 ///
 /// Every case is GATED on the server being reachable so the suite stays green offline.
@@ -133,7 +133,7 @@ final class ServerE2ETests: XCTestCase {
             let consolidator = MemoryConsolidator(runtime: runtime, store: memStore, embedder: embedder)
             let registry = ToolRegistry()
             registry.register(CurrentTimeTool())
-            registry.register(RememberTool())
+            registry.register(SaveMemoryTool())
             registry.register(ForgetTool())
             return Agent(runtime: runtime, registry: registry,
                          memory: MemoryServices(retriever: retriever, consolidator: consolidator))
@@ -146,7 +146,7 @@ final class ServerE2ETests: XCTestCase {
         for try await event in agentA.run(prompt: "Me llamo Roilan y me gusta el sushi.", options: e2eOptions()) {
             switch event {
             case .toolCallFinished(let name, let result):
-                if name == RememberTool.name { rememberFired = true }
+                if name == SaveMemoryTool.name { rememberFired = true }
                 observe("🔧 E2E-OBSERVE: turnA toolCallFinished name=\(name) result=\(result)")
             case .toolCallStarted(let name, let args):
                 observe("🔧 E2E-OBSERVE: turnA toolCallStarted name=\(name) args=\(args)")

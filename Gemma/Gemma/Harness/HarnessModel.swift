@@ -67,7 +67,7 @@ public final class HarnessModel {
         let memory = ensureMemory()
         let registry = ToolRegistry()
         registry.register(CurrentTimeTool())
-        if memory != nil { registry.register(RememberTool()); registry.register(ForgetTool()) }
+        if memory != nil { registry.register(SaveMemoryTool()); registry.register(ForgetTool()) }
         let agent = Agent(runtime: runtime, registry: registry, memory: memory)
         var answer = ""
         do {

@@ -14,6 +14,8 @@ public final class HarnessModel {
     @ObservationIgnored private(set) var settings: GenerationSettings
     @ObservationIgnored private var memoryStore: MemoryStore?
     @ObservationIgnored private var memoryEmbedder: Embedder?
+    @ObservationIgnored private let threadId = UUID().uuidString
+    @ObservationIgnored private var turnIndex = 0
 
     /// Owns the local mlx-lm server process lifecycle (M2a).
     let serverManager = ServerManager()
@@ -57,8 +59,7 @@ public final class HarnessModel {
         MemoryToolbox.shared.store = store
         MemoryToolbox.shared.embedder = memoryEmbedder
         let retriever = MemoryRetriever(store: store, embedder: memoryEmbedder)
-        let consolidator = MemoryConsolidator(runtime: runtime, store: store, embedder: memoryEmbedder)
-        return MemoryServices(retriever: retriever, consolidator: consolidator)
+        return MemoryServices(retriever: retriever)
     }
 
     public func runAgentTurn(_ prompt: String) async {
@@ -81,5 +82,10 @@ public final class HarnessModel {
                 }
             }
         } catch { agentLog.append("[error: \(error)]") }
+        if let store = memoryStore {
+            EpisodeRecorder.record(store: store, threadId: threadId, turnIndex: turnIndex,
+                                   userText: prompt, assistantText: answer)
+            turnIndex += 1
+        }
     }
 }

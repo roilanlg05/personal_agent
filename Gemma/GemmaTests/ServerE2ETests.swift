@@ -36,7 +36,6 @@ final class ServerE2ETests: XCTestCase {
     }
 
     override func tearDown() {
-        MemoryToolbox.shared.consolidationTask = nil
         MemoryToolbox.shared.store = nil
         MemoryToolbox.shared.embedder = nil
         super.tearDown()
@@ -130,13 +129,12 @@ final class ServerE2ETests: XCTestCase {
 
         func makeAgent() -> Agent {
             let retriever = MemoryRetriever(store: memStore, embedder: embedder)
-            let consolidator = MemoryConsolidator(runtime: runtime, store: memStore, embedder: embedder)
             let registry = ToolRegistry()
             registry.register(CurrentTimeTool())
             registry.register(SaveMemoryTool())
             registry.register(ForgetTool())
             return Agent(runtime: runtime, registry: registry,
-                         memory: MemoryServices(retriever: retriever, consolidator: consolidator))
+                         memory: MemoryServices(retriever: retriever))
         }
 
         // --- Turn A: state a fact ---
@@ -160,9 +158,6 @@ final class ServerE2ETests: XCTestCase {
         }
         observe("⚠️ E2E-OBSERVE: turnA answer: \(turnAText)")
         observe("⚠️ E2E-OBSERVE: turnA remember tool fired=\(rememberFired)")
-
-        // Wait for the Agent's post-turn consolidation (a second generation) to finish.
-        await MemoryToolbox.shared.consolidationTask?.value
 
         // Deterministic store inspection.
         let nodesAfterA = try memStore.allNodes()

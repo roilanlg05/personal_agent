@@ -5,9 +5,6 @@ import XCTest
 @MainActor
 final class AgentMemoryTests: XCTestCase {
     override func tearDown() {
-        // Agent now tracks consolidation on the shared toolbox (RC3 serialization); reset it
-        // so it can't leak into other tests.
-        MemoryToolbox.shared.consolidationTask = nil
         MemoryToolbox.shared.store = nil
         MemoryToolbox.shared.embedder = nil
         super.tearDown()
@@ -33,10 +30,9 @@ final class AgentMemoryTests: XCTestCase {
                               confidence: .probable, mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil,
                               origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: nil))
         let retriever = MemoryRetriever(store: store, embedder: nil)
-        let consolidator = MemoryConsolidator(runtime: DummyRuntime(), store: store, embedder: nil)
         let rt = CapturingRuntime()
         let agent = Agent(runtime: rt, registry: ToolRegistry(),
-                          memory: MemoryServices(retriever: retriever, consolidator: consolidator))
+                          memory: MemoryServices(retriever: retriever))
         // Query lexically overlaps the stored memory so FTS recall works without an embedder.
         for try await _ in agent.run(prompt: "sushi", options: GenerationOptions()) {}
         XCTAssertTrue(rt.capturedSystemPrompt?.contains("sushi") ?? false,
@@ -48,19 +44,5 @@ final class AgentMemoryTests: XCTestCase {
         let agent = Agent(runtime: rt, registry: ToolRegistry())  // memory = nil
         for try await _ in agent.run(prompt: "hi", options: GenerationOptions()) {}
         XCTAssertEqual(rt.capturedSystemPrompt?.contains("What you remember"), false)
-    }
-
-    /// RC3: a memory turn schedules a consolidation task on the shared toolbox, so the next
-    /// turn can serialize against it (await it before driving the single engine session).
-    func testMemoryTurnSchedulesConsolidation() async throws {
-        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
-        let retriever = MemoryRetriever(store: store, embedder: nil)
-        let consolidator = MemoryConsolidator(runtime: DummyRuntime(), store: store, embedder: nil)
-        let agent = Agent(runtime: CapturingRuntime(), registry: ToolRegistry(),
-                          memory: MemoryServices(retriever: retriever, consolidator: consolidator))
-        MemoryToolbox.shared.consolidationTask = nil
-        for try await _ in agent.run(prompt: "hola", options: GenerationOptions()) {}
-        XCTAssertNotNil(MemoryToolbox.shared.consolidationTask, "a memory turn should schedule consolidation")
-        await MemoryToolbox.shared.consolidationTask?.value  // let it settle
     }
 }

@@ -12,7 +12,6 @@ public enum AgentEvent: Sendable {
 @MainActor
 struct MemoryServices {
     let retriever: MemoryRetriever
-    let consolidator: MemoryConsolidator
 }
 
 /// Orchestrates one agent turn over a tool-calling runtime. With memory: retrieves relevant
@@ -34,10 +33,10 @@ final class Agent {
         let base = """
         You are Gemma, a helpful on-device assistant. You can call tools to get real information. \
         When a tool is relevant (e.g. the user asks the time), call it instead of guessing. \
-        Use the remember tool to save durable facts the user shares. \
+        Use the save_memory tool to store durable facts the user states about themselves. \
+        Answer only what the user asked; do not list unrelated things you remember. \
         IMPORTANT: after any tool runs, ALWAYS reply to the user in a short, natural sentence — \
-        confirm what you did or answer their question (e.g. "It's 3:42 PM." or "Got it — I'll remember you like red."). \
-        Never end your turn with only a tool call; the user must always see a written reply.
+        confirm what you did or answer their question. Never end your turn with only a tool call.
         """
         return memoryBlock.isEmpty ? base : base + "\n\n" + memoryBlock
     }
@@ -47,12 +46,6 @@ final class Agent {
         let memory = self.memory
         return AsyncThrowingStream { continuation in
             let task = Task {
-                // RC3: the engine has ONE session. Wait for any prior post-turn consolidation
-                // (itself a generation) to finish before this turn drives the model — otherwise
-                // the two collide ("a session already exists" → corrupted chat). Awaiting here
-                // (after consolidation has written) also means retrieval below sees fresh memory.
-                await MemoryToolbox.shared.consolidationTask?.value
-
                 var memoryBlock = ""
                 if let memory, let nodes = try? memory.retriever.retrieve(query: prompt) {
                     memoryBlock = memory.retriever.injectionBlock(for: nodes)
@@ -132,16 +125,6 @@ final class Agent {
                         }
                     }
                     continuation.finish()
-                    // RC3b: consolidate from the USER's message only. Feeding the assistant's
-                    // replies back in (which often echo/ask "you like sushi?") caused the model
-                    // to re-extract those as new memories → duplicates and garbage labels.
-                    // Tracked on the shared toolbox so the NEXT turn serializes against it.
-                    if let memory {
-                        let userTurn = prompt
-                        MemoryToolbox.shared.consolidationTask = Task {
-                            await memory.consolidator.consolidate(user: userTurn, assistant: "")
-                        }
-                    }
                 } catch {
                     continuation.yield(.failed("\(error)"))
                     continuation.finish()

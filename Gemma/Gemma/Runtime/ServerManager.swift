@@ -131,7 +131,7 @@ final class ServerManager {
             handle = h
             owned = true
         } catch {
-            state = .failed("No pude lanzar el server (\(error)). Binario: \(config.venvBinURL.path)")
+            state = .failed("No pude lanzar el server (\(error)). Binario: \(config.pythonBinURL.path)")
             return
         }
 
@@ -156,8 +156,8 @@ final class ServerManager {
 
     /// Manual fallback command shown in the UI on failure.
     var manualCommand: String {
-        let dir = config.venvBinURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let argv = ([config.venvBinURL.path] + serverArguments(for: config)).joined(separator: " ")
+        let dir = config.launcherScriptURL.deletingLastPathComponent()   // …/spike-mlx
+        let argv = ([config.pythonBinURL.path] + launchArguments(for: config)).joined(separator: " ")
         return "cd \(dir.path) && \(argv)"
     }
 

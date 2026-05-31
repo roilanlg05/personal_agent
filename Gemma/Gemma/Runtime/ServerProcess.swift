@@ -82,8 +82,8 @@ nonisolated final class RealServerProcessLauncher: ServerProcessLauncher {
         // to launchd — notices the parent PID vanish and kills the server).
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
         process.arguments = ["-c", watchdogScript(
-            binPath: config.venvBinURL.path,
-            args: serverArguments(for: config),
+            binPath: config.pythonBinURL.path,
+            args: launchArguments(for: config),
             parentPID: ProcessInfo.processInfo.processIdentifier)]
         let stderrPipe = Pipe()
         process.standardError = stderrPipe

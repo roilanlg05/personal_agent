@@ -21,8 +21,8 @@ final class ServerManagerLiveTests: XCTestCase {
         let enabled = (env["GEMMA_LIVE_SERVER"] == "1") || (env["TEST_RUNNER_GEMMA_LIVE_SERVER"] == "1")
         try XCTSkipUnless(enabled, "set GEMMA_LIVE_SERVER=1 to run the live server test")
         try XCTSkipUnless(
-            FileManager.default.isExecutableFile(atPath: ServerConfig.default.venvBinURL.path),
-            "mlx_vlm.server not found")
+            FileManager.default.isExecutableFile(atPath: ServerConfig.default.pythonBinURL.path),
+            "venv python not found")
 
         let config = ServerConfig.default
         let health = HTTPServerHealth()

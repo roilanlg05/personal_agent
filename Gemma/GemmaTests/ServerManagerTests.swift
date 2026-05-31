@@ -187,7 +187,8 @@ final class ServerManagerTests: XCTestCase {
         let m = makeManager(launcher: launcher, health: health)
         let cmd = m.manualCommand
         XCTAssertTrue(cmd.contains("cd "), "expected a cd prefix, got: \(cmd)")
-        XCTAssertTrue(cmd.contains("--host"), "expected --host, got: \(cmd)")
+        XCTAssertTrue(cmd.contains("python3.12"), "expected the venv python, got: \(cmd)")
+        XCTAssertTrue(cmd.contains("serve_mlx_vlm.py"), "expected the wiring launcher, got: \(cmd)")
         XCTAssertTrue(cmd.contains("--model"), "expected --model, got: \(cmd)")
         XCTAssertTrue(cmd.contains("--port"), "expected --port, got: \(cmd)")
     }

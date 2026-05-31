@@ -36,7 +36,7 @@ final class ServerProcessTests: XCTestCase {
         let a = launchArguments(for: cfg(wired: 0, draft: true))
         XCTAssertEqual(a.first, "/x/spike-mlx/serve_mlx_vlm.py", "launcher script must be argv[0] for python")
         XCTAssertFalse(a.contains("--wired-limit-bytes"))
-        XCTAssertEqual(Array(a.suffix(10)),
+        XCTAssertEqual(Array(a.suffix(12)),
                        ["--model", "some/model", "--host", "127.0.0.1", "--port", "8080",
                         "--draft-model", "some/assistant", "--draft-kind", "mtp", "--draft-block-size", "3"])
     }

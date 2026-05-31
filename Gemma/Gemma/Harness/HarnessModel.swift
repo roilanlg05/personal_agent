@@ -112,6 +112,17 @@ public final class HarnessModel {
         // simply queues behind the turn's generations on the serial mlx-lm server and runs
         // once they finish (so it never competes with the turn's own answer). It is still
         // correctly cancelled at the START of the next turn, giving the user priority.
+        //
+        // Capture whether a consolidation was ACTIVELY running before we cancel it: only such a
+        // turn truly "interrupts" a cycle. We use this to gate the reflection-focus line below so
+        // it surfaces once (on the interrupting turn) rather than nagging on every subsequent
+        // pending-but-idle turn while the cycle merely waits to resume.
+        let wasConsolidating: Bool = {
+            switch consolidationScheduler?.state {
+            case .reflecting, .sleeping: return true
+            default: return false
+            }
+        }()
         consolidationScheduler?.noteUserActivity()
         let registry = ToolRegistry()
         registry.register(CurrentTimeTool())
@@ -120,7 +131,9 @@ public final class HarnessModel {
         }
         let now = Date().timeIntervalSince1970
         let isWake = (lastTurnEndedAt == 0) || (now - lastTurnEndedAt > Self.wakeGapSeconds)
-        let focus = ((try? memoryStore?.loadSleepCycle()) ?? nil)?.focus ?? ""
+        // Focus is gated to the turn that interrupted an active cycle (see wasConsolidating
+        // above): on a merely pending-but-idle cycle we pass "" so buildWakeContext omits the line.
+        let focus = wasConsolidating ? (((try? memoryStore?.loadSleepCycle()) ?? nil)?.focus ?? "") : ""
         let followUps = isWake ? (((try? memoryStore?.pendingFollowUps()) ?? nil)?.map { $0.body } ?? []) : []
         let wakeContext = Self.buildWakeContext(focus: focus, followUps: followUps, isWake: isWake)
         let agent = Agent(runtime: runtime, registry: registry, memory: memory, wakeContext: wakeContext)

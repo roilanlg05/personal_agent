@@ -131,3 +131,19 @@ Cancel mid-generation → interrupted phase didn't persist its advance → re-ru
 ## 9. File structure
 **New:** `Memory/MemoryConsolidationEngine.swift` (+ `SleepPhase`/`SleepCycleState`), `Memory/ConsolidationScheduler.swift`, `Memory/ReflectTool.swift`, `Memory/NodeAttributes.swift`; tests `GemmaTests/MemoryConsolidationEngineTests.swift`, `ConsolidationSchedulerTests.swift`, `NodeKindStringTests.swift`, `NodeAttributesTests.swift`, `ReflectToolTests.swift`.
 **Modified:** `Memory/MemoryModels.swift` (`kind: String`; `NodeKind` constants + task/plan/trait), `Memory/MemoryStore.swift` (`v2-sleep` migration, kind as String in queries, `loadSleepCycle`/`saveSleepCycle`/`clearSleepCycle`, edge-prune, unconsolidated/markConsolidated episode helpers), `Memory/MemoryStore+Dedup.swift` (kind String), `Memory/SaveMemoryTool.swift` (kind String), `Memory/EpisodeRecorder.swift` (extra JSON coexist with NodeAttributes), `Memory/MemoryRetriever.swift` (kind String), `Harness/HarnessModel.swift` (own scheduler, noteUserActivity, register reflect tool), `Harness/AgentChatView.swift` (banner + button), `Harness/MemoryGraphView.swift` (kind colors incl. unknown), `Agent/Agent.swift` (system prompt: mention reflect + structured kinds).
+
+## 10. Resultado M2b-2 (VERIFICADO contra el 26B real, 2026-05-31)
+
+Plan `…m2b-2-sleep-consolidation.md` ejecutado completo (subagent-driven, doble review spec+calidad por unidad; varios fixes en review). Commits `5424072`…`cc14fbc` en `main`.
+
+- **Taxonomía extensible:** `Node.kind` ahora String libre + vocabulario `NodeKind` (+`trait`/`task`/`plan`/`insight`); el modelo puede acuñar kinds nuevos (verbatim). `NodeAttributes` (status/horizon en `extra`).
+- **`MemoryConsolidationEngine`** (5 fases) + `runCycle` resumible (estado `sleep_cycle` persistido; retoma por fase) + `runLight` (reflexión despierta). `ConsolidationScheduler` (timers ocio ~180s / pausa ~15s, cede al usuario al instante, botón manual) + `reflect` tool agentic.
+- **Fixes en review:** dedup de insights (no acumula en re-run); la reflexión agentic corre post-turno (no se cancela al cerrar el turno); colores distintos para task/plan/trait/insight en el grafo.
+- **E2E real (`SleepConsolidationE2ETests`, gated):** sembrada una conversación (nombre, gustos, amigo, una tarea, un plan) → `runCycle` contra el 26B produjo:
+  - **NREM:** 7 nodos estructurados — `person` Roilan, `preference` sushi/fútbol, `place` panadería, **`task` "llamar al dentista" {status:pending}**, **`plan` "aprender alemán" {horizon:short}**.
+  - **REM:** 5 edges asociativos (Roilan→likes→sushi/fútbol, →locatedAt→panadería, →relatedTo→tarea/plan).
+  - **Reflect:** 1 insight fundado "has interests in sports and food" (2 fuentes) + sus edges.
+  - **Curate:** sin kinds no-estándar que folddear; episodios marcados consolidados; ciclo cerrado.
+- **Hallazgo del E2E (corregido):** la 1ª corrida dio 0 edges/0 insights — los prompts de associate/reflect eran demasiado conservadores sin contexto. Fix: dar contexto "todo es sobre un usuario" + ejemplo (`cc14fbc`); re-corrida → 5 edges + 1 insight. (Lección: los prompts de consolidación necesitan contexto de usuario + few-shot.)
+- **Pendiente (humano):** check visual GUI (`⌘R`): banner "🌙 consolidando" por fase, botón "Consolidar", grafo con task/plan/insight coloreados + edges; probar reflexión agentic + resume mid-ciclo.
+- **Siguiente:** M2b-3 = retomar conversaciones interrumpidas (detección de hilos abiertos + follow-up proactivo al despertar).

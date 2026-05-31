@@ -104,6 +104,8 @@ nonisolated final class MemoryConsolidationEngine {
         func resolve(_ label: String) -> Node? {
             let key = MemoryText.dedupKey(label)
             if let n = nodes.first(where: { MemoryText.dedupKey($0.label) == key }) { return n }
+            // 0.25 is intentionally looser than upsertMergingSemantic's 0.2 dedup default: linking
+            // an edge endpoint tolerates more drift than merging two nodes into one.
             if let emb = (try? embedder?.embed(label)) ?? nil,
                let hit = (try? store.nearest(to: emb, k: 1))?.first, hit.distance <= 0.25 {
                 return try? store.node(id: hit.id)
@@ -141,14 +143,22 @@ nonisolated final class MemoryConsolidationEngine {
         JSON:
         """
         guard let out = parse(await generate(prompt), InsightsOut.self) else { return }
+        // Label-only resolution by design: sources must be among the entities shown to the model
+        // (unlike `associate`, which also falls back to semantic nearest-neighbor).
         func resolve(_ label: String) -> Node? {
             let key = MemoryText.dedupKey(label)
             return nodes.first { MemoryText.dedupKey($0.label) == key }
         }
+        // Dedup: runLight runs reflect() frequently over stable memory; without this guard,
+        // each run would re-mint near-identical insight nodes with fresh UUIDs.
+        var existingInsights = Set(((try? store.allNodes()) ?? []).filter { $0.kind == NodeKind.insight.rawValue }.map { MemoryText.dedupKey($0.body) })
         var added = 0
         for ins in out.insights {
             let sources = ins.sourceEntities.compactMap(resolve)
             if Set(sources.map { $0.id }).count < 2 { continue }   // anti-fabrication
+            let key = MemoryText.dedupKey(ins.text)
+            if existingInsights.contains(key) { continue }         // already have this insight
+            existingInsights.insert(key)                            // collapse duplicates within this batch too
             let t = now()
             let conf = Confidence(rawValue: ins.confidence ?? "probable") ?? .probable
             let node = Node(id: UUID().uuidString, kind: NodeKind.insight.rawValue, label: String(ins.text.prefix(60)),
@@ -221,6 +231,9 @@ nonisolated final class MemoryConsolidationEngine {
                 state.phase = order[next]; try? store.saveSleepCycle(state)
             }
         }
+        // Non-atomic by design: if the process dies after .shy advances but before this mark,
+        // resume re-enters at .shy, re-runs the idempotent forget(), then marks — so episodes are
+        // never lost, only a redundant forget() is paid.
         try? store.markEpisodesConsolidated(ids: state.episodeIds)
         try? store.clearSleepCycle()
         onProgress?("done")

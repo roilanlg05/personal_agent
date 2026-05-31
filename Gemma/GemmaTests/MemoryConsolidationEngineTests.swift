@@ -71,6 +71,22 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(try store.allEdges().count, 2, "insight linked to ≥2 sources")
     }
 
+    func test_reflect_is_idempotent_no_duplicate_insights() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
+        let now = Date().timeIntervalSince1970
+        for (id,l) in [("a","sushi"),("b","ramen")] {
+            try store.upsert(Node(id: id, kind: "preference", label: l, body: l, layer: .daily, createdAt: now, updatedAt: now, lastSeenAt: now, salience: 3, decayRate: 0.001, confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil, origin: .explicit, serverId: nil, dirty: true, deleted: false, extra: nil))
+        }
+        // Same insight returned twice; second reflect() must find the existing node and skip it.
+        let same = #"{"insights":[{"text":"likes Japanese food","sourceEntities":["sushi","ramen"],"confidence":"probable"}]}"#
+        let rt = CannedRuntime([same, same])
+        let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: rt)
+        await engine.reflect()
+        await engine.reflect()
+        let insights = try store.allNodes().filter { $0.kind == NodeKind.insight.rawValue }
+        XCTAssertEqual(insights.count, 1, "re-run reflect() must not duplicate an existing insight")
+    }
+
     func test_curate_folds_synonym_kind() async throws {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
         let now = Date().timeIntervalSince1970

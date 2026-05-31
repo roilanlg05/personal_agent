@@ -2,7 +2,8 @@ import XCTest
 @testable import Gemma
 
 /// GATED live integration test for the REAL M2a server plumbing:
-/// `RealServerProcessLauncher` (spawns `mlx_vlm.server` via `Process`) +
+/// `RealServerProcessLauncher` (spawns the venv python on `serve_mlx_vlm.py`, which optionally
+/// wires memory then runs `mlx_vlm.server`, via `Process`) +
 /// `HTTPServerHealth` (probe `/v1/models`, warm with a 1-token completion) +
 /// `ServerManager.start()/stop()` driving them against the actual local mlx_vlm server.
 ///

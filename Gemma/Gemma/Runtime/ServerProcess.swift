@@ -9,6 +9,7 @@ func serverArguments(for config: ServerConfig) -> [String] {
 /// fires `onExit` if the process dies on its own.
 final class RealServerProcessHandle: ServerProcessHandle, @unchecked Sendable {
     private let process: Process
+    private let stderrPipe: Pipe
     private let lock = NSLock()
     private var _stderrTail = ""
     var onExit: (@Sendable () -> Void)?
@@ -18,6 +19,7 @@ final class RealServerProcessHandle: ServerProcessHandle, @unchecked Sendable {
     /// `stderrPipe` is the SAME pipe wired to `process.standardError` by the launcher.
     init(process: Process, stderrPipe: Pipe) {
         self.process = process
+        self.stderrPipe = stderrPipe
         stderrPipe.fileHandleForReading.readabilityHandler = { [weak self] fh in
             let data = fh.availableData
             guard !data.isEmpty, let s = String(data: data, encoding: .utf8), let self else { return }
@@ -31,6 +33,7 @@ final class RealServerProcessHandle: ServerProcessHandle, @unchecked Sendable {
     func terminate() {
         guard process.isRunning else { return }
         process.terminationHandler = nil   // expected shutdown — don't fire onExit
+        stderrPipe.fileHandleForReading.readabilityHandler = nil  // stop draining stderr
         process.terminate()                // SIGTERM
     }
 }
@@ -43,7 +46,7 @@ final class RealServerProcessLauncher: ServerProcessLauncher {
         process.arguments = serverArguments(for: config)
         let stderrPipe = Pipe()
         process.standardError = stderrPipe
-        process.standardOutput = Pipe()   // drain stdout so the pipe buffer never blocks the child
+        process.standardOutput = FileHandle.nullDevice   // discard stdout so its buffer can't block the child
         let handle = RealServerProcessHandle(process: process, stderrPipe: stderrPipe)
         try process.run()
         return handle

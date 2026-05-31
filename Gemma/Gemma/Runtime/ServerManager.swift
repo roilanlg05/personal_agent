@@ -60,6 +60,7 @@ final class ServerManager {
     @ObservationIgnored private var handle: ServerProcessHandle?
     @ObservationIgnored private var owned = false
     @ObservationIgnored private var keepAliveTask: Task<Void, Never>?
+    @ObservationIgnored private var generation = 0
 
     init(config: ServerConfig = .default,
          launcher: ServerProcessLauncher = RealServerProcessLauncher(),
@@ -79,6 +80,12 @@ final class ServerManager {
     func start() async {
         keepAliveTask?.cancel(); keepAliveTask = nil
 
+        // Retry hygiene: tear down any process WE own before re-probing, so a Retry can't
+        // re-attach to its own still-running orphan with owned=false (permanent port/RAM leak).
+        if owned { handle?.terminate() }
+        handle = nil
+        owned = false
+
         // Attach path: a server is already serving on the port → don't spawn.
         if await health.probe(config) {
             owned = false
@@ -89,8 +96,10 @@ final class ServerManager {
         // Spawn path.
         state = .starting
         do {
+            generation += 1
+            let gen = generation
             let h = try launcher.launch(config)
-            h.onExit = { [weak self] in Task { @MainActor in self?.handleUnexpectedExit() } }
+            h.onExit = { [weak self] in Task { @MainActor in self?.handleUnexpectedExit(generation: gen) } }
             handle = h
             owned = true
         } catch {
@@ -119,7 +128,8 @@ final class ServerManager {
 
     /// Manual fallback command shown in the UI on failure.
     var manualCommand: String {
-        "\(config.venvBinURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().path) && \(config.venvBinURL.path) --model \(config.modelId) --port \(config.port)"
+        let dir = config.venvBinURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        return "cd \(dir.path) && \(config.venvBinURL.path) --model \(config.modelId) --host \(config.host) --port \(config.port)"
     }
 
     // MARK: - internals
@@ -154,12 +164,15 @@ final class ServerManager {
         }
     }
 
-    private func handleUnexpectedExit() {
+    private func handleUnexpectedExit(generation: Int) {
+        // Ignore stale callbacks from a process superseded by a later start() (Retry).
+        guard generation == self.generation else { return }
         // Only meaningful if we still thought it was alive.
         switch state {
         case .ready, .loadingModel, .starting:
             keepAliveTask?.cancel(); keepAliveTask = nil
             handle = nil
+            owned = false
             state = .failed("El server se cerró inesperadamente.")
         default:
             break

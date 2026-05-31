@@ -15,11 +15,16 @@ final class FakeServerHandle: ServerProcessHandle, @unchecked Sendable {
 final class FakeLauncher: ServerProcessLauncher, @unchecked Sendable {
     var launchCount = 0
     var throwOnLaunch: Error?
-    let handle = FakeServerHandle()
+    /// A NEW handle is produced per successful launch and recorded here.
+    private(set) var handles: [FakeServerHandle] = []
+    /// Convenience: the most recently spawned handle.
+    var handle: FakeServerHandle { handles.last ?? FakeServerHandle() }
     func launch(_ config: ServerConfig) throws -> ServerProcessHandle {
         launchCount += 1
         if let e = throwOnLaunch { throw e }
-        return handle
+        let h = FakeServerHandle()
+        handles.append(h)
+        return h
     }
 }
 
@@ -30,6 +35,8 @@ final class FakeHealth: ServerHealth, @unchecked Sendable {
     var probeCount = 0
     var warmCount = 0
     var throwOnWarm: Error?
+    /// If set, `warm` throws only on the FIRST call, then succeeds (warm-up fails once, recovers).
+    var throwOnFirstWarm: Error?
     init(probeResults: [Bool]) { self.probeResults = probeResults }
     func probe(_ config: ServerConfig) async -> Bool {
         probeCount += 1
@@ -39,6 +46,7 @@ final class FakeHealth: ServerHealth, @unchecked Sendable {
     }
     func warm(_ config: ServerConfig) async throws {
         warmCount += 1
+        if warmCount == 1, let e = throwOnFirstWarm { throw e }
         if let e = throwOnWarm { throw e }
     }
 }
@@ -139,5 +147,35 @@ final class ServerManagerTests: XCTestCase {
         await Task.yield()
         try? await Task.sleep(for: .milliseconds(20))
         if case .failed = m.state {} else { XCTFail("expected .failed after unexpected exit, got \(m.state)") }
+    }
+
+    func test_retry_after_spawn_terminates_old_owned_process() async {
+        let launcher = FakeLauncher()
+        // First start(): probe false then true → spawn + comes up; warm fails once → .failed.
+        // Second start() (Retry): probe false then true → spawn again; warm now succeeds → .ready.
+        let health = FakeHealth(probeResults: [false, true, false, true])
+        health.throwOnFirstWarm = TestError.boom
+        let m = makeManager(launcher: launcher, health: health)
+
+        await m.start()
+        if case .failed = m.state {} else { XCTFail("expected .failed after warm-up failure, got \(m.state)") }
+        XCTAssertEqual(launcher.handles.count, 1, "first start() should have spawned one handle")
+        XCTAssertFalse(launcher.handles[0].terminated, "spawned child must still be alive after .failed (orphan)")
+
+        await m.start()   // Retry
+        XCTAssertEqual(m.state, .ready)
+        XCTAssertEqual(launcher.handles.count, 2, "Retry should spawn a fresh handle")
+        XCTAssertTrue(launcher.handles[0].terminated, "Retry must terminate the prior owned child (no orphan)")
+    }
+
+    func test_manualCommand_is_runnable() async {
+        let launcher = FakeLauncher()
+        let health = FakeHealth(probeResults: [true])
+        let m = makeManager(launcher: launcher, health: health)
+        let cmd = m.manualCommand
+        XCTAssertTrue(cmd.contains("cd "), "expected a cd prefix, got: \(cmd)")
+        XCTAssertTrue(cmd.contains("--host"), "expected --host, got: \(cmd)")
+        XCTAssertTrue(cmd.contains("--model"), "expected --model, got: \(cmd)")
+        XCTAssertTrue(cmd.contains("--port"), "expected --port, got: \(cmd)")
     }
 }

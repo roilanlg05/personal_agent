@@ -87,7 +87,14 @@ public final class HarnessModel {
         agentRunning = true; defer { agentRunning = false }
         agentLog.append("you: \(prompt)")
         let memory = ensureMemory()
-        // Cancel any in-flight consolidation and restart the idle/pause countdown.
+        // Note activity ONLY at turn start: this cancels any in-flight consolidation so the
+        // model is free for the turn, and re-arms the pause/idle timers (counted from turn
+        // start). We deliberately do NOT note activity at turn end — otherwise a light
+        // reflection the model requested mid-turn via the `reflect` tool would be cancelled
+        // the instant the turn finished. With no end-of-turn cancel, that requested reflection
+        // simply queues behind the turn's generations on the serial mlx-lm server and runs
+        // once they finish (so it never competes with the turn's own answer). It is still
+        // correctly cancelled at the START of the next turn, giving the user priority.
         consolidationScheduler?.noteUserActivity()
         let registry = ToolRegistry()
         registry.register(CurrentTimeTool())
@@ -112,7 +119,5 @@ public final class HarnessModel {
                                    userText: prompt, assistantText: answer)
             turnIndex += 1
         }
-        // Restart the idle/pause countdown from end-of-turn.
-        consolidationScheduler?.noteUserActivity()
     }
 }

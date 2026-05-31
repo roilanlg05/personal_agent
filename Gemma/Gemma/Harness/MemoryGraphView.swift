@@ -164,6 +164,10 @@ private struct MemoryNodeMarker: View {
         case NodeKind.fact.rawValue: return .orange
         case NodeKind.preference.rawValue: return .pink
         case NodeKind.topic.rawValue: return .purple
+        case NodeKind.trait.rawValue: return .mint
+        case NodeKind.task.rawValue: return .red
+        case NodeKind.plan.rawValue: return .brown
+        case NodeKind.insight.rawValue: return .yellow
         case NodeKind.day.rawValue: return .teal
         case NodeKind.episode.rawValue: return .indigo
         case NodeKind.conversation.rawValue: return .gray

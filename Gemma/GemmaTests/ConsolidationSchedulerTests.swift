@@ -28,6 +28,17 @@ final class ConsolidationSchedulerTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(20))
         XCTAssertEqual(spy.light, 0, "pause timer was reset by activity")
     }
+    func test_requested_reflection_runs_when_not_interrupted() async throws {
+        // The agentic `reflect` tool calls requestLightReflection() mid-turn. As long as no
+        // user activity is noted afterwards (turn-end no longer cancels), the requested
+        // reflection must actually run.
+        let spy = SpyRunner()
+        let s = ConsolidationScheduler(runner: spy, isReady: { true },
+                                       pauseInterval: .seconds(60), idleInterval: .seconds(60))
+        s.requestLightReflection()
+        try await Task.sleep(for: .milliseconds(40))   // no noteUserActivity() in between
+        XCTAssertGreaterThanOrEqual(spy.light, 1, "requested reflection should run when not interrupted")
+    }
     func test_not_ready_does_not_fire() async throws {
         let spy = SpyRunner()
         let s = ConsolidationScheduler(runner: spy, isReady: { false },

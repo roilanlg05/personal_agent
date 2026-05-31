@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import AppKit
 
 @Observable
 @MainActor
@@ -14,10 +15,25 @@ public final class HarnessModel {
     @ObservationIgnored private var memoryStore: MemoryStore?
     @ObservationIgnored private var memoryEmbedder: Embedder?
 
+    /// Owns the local mlx-lm server process lifecycle (M2a).
+    let serverManager = ServerManager()
+
     public init() {
         self.settings = settingsStore.load()
         self.runtime = ServerRuntime()
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
+                                               object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.serverManager.stop() }
+        }
     }
+
+    /// Launch/attach the server and start keeping it warm. Safe to call again (Retry).
+    public func startServer() {
+        Task { await serverManager.start() }
+    }
+
+    /// Terminate the owned server (called on app quit).
+    public func stopServer() { serverManager.stop() }
 
     func inspectorStore() -> MemoryStore? { memoryStore }
 

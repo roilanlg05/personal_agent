@@ -93,9 +93,11 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         let labels = nodes.prefix(60).map { "\($0.kind): \($0.label)" }.joined(separator: "\n")
         let relations = Relation.allCases.map { $0.rawValue }.joined(separator: ", ")
         let prompt = """
-        Given these memory entities, propose meaningful relationships between them. Output JSON only.
-        Use ONLY these relation types: \(relations). Only connect entities that are genuinely related; \
-        do not invent entities. Schema: {"edges":[{"from":"<entity label>","relation":"<one of the types>","to":"<entity label>"}]}
+        These memory entities are all facts about ONE person (the user). Propose meaningful relationships between them. Output JSON only.
+        The `person` node is usually the user; connect the user to their preferences (likes/dislikes), places they work or go (locatedAt/worksWith), people they know (knows/worksWith/family), and link genuinely related items (relatedTo). Don't invent entities not listed.
+        Use ONLY these relation types: \(relations).
+        Example: entities `person: Ana`, `preference: pizza`, `place: office` → {"edges":[{"from":"Ana","relation":"likes","to":"pizza"},{"from":"Ana","relation":"locatedAt","to":"office"}]}
+        Schema: {"edges":[{"from":"<entity label>","relation":"<one of the types>","to":"<entity label>"}]}
         Entities:
         \(labels)
         JSON:
@@ -134,10 +136,10 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         guard nodes.count >= 2 else { return }
         let labels = nodes.prefix(60).map { "\($0.kind): \($0.label)" }.joined(separator: "\n")
         let prompt = """
-        From these memories about the user, infer a few higher-level insights. Output JSON only.
-        Each insight MUST be grounded in at least TWO of the listed entities (cite their labels in \
-        sourceEntities). Do not speculate beyond the evidence. Schema: \
-        {"insights":[{"text":"...","sourceEntities":["label1","label2"],"confidence":"probable|maybe"}]}
+        These memories are all about ONE person (the user). Infer a few higher-level insights or patterns about them. Output JSON only.
+        Each insight MUST be grounded in at least TWO of the listed entities (cite their exact labels in sourceEntities). Look for themes (e.g. shared interests, lifestyle, goals). Do not speculate beyond the evidence.
+        Example: from `preference: sushi`, `preference: ramen` → {"insights":[{"text":"enjoys Japanese food","sourceEntities":["sushi","ramen"],"confidence":"probable"}]}
+        Schema: {"insights":[{"text":"...","sourceEntities":["label1","label2"],"confidence":"probable|maybe"}]}
         Memories:
         \(labels)
         JSON:

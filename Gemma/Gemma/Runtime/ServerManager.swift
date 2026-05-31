@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// Lifecycle state of the local mlx-lm server. `.ready` means the model has actually
+/// Lifecycle state of the local mlx_vlm server. `.ready` means the model has actually
 /// served a pre-warm inference (not merely that the port is open).
 enum ServerState: Equatable {
     case idle
@@ -18,13 +18,22 @@ nonisolated struct ServerConfig: Sendable {
     var modelId: String
     var host: String
     var port: Int
+    /// MTP speculative-decoding drafter (HF id or path). nil = no speculative decoding.
+    var draftModelId: String? = nil
+    /// Drafter family for mlx_vlm: "mtp" (Gemma 4 assistant) or "dflash". nil = omit flag.
+    var draftKind: String? = nil
+    /// Tokens drafted per verification round. nil = use the drafter's configured default.
+    var draftBlockSize: Int? = nil
     var baseURL: URL { URL(string: "http://\(host):\(port)")! }
 
     static let `default` = ServerConfig(
-        venvBinURL: URL(fileURLWithPath: "/Users/hashdown/Projects/personal_agent/spike-mlx/.venv/bin/mlx_lm.server"),
+        venvBinURL: URL(fileURLWithPath: "/Users/hashdown/Projects/personal_agent/spike-mlx/.venv-vlm/bin/mlx_vlm.server"),
         modelId: "unsloth/gemma-4-26b-a4b-it-UD-MLX-4bit",
         host: "127.0.0.1",
-        port: 8080)
+        port: 8080,
+        draftModelId: "guardiangate1775/gemma-4-26B-A4B-it-assistant-4bit",
+        draftKind: "mtp",
+        draftBlockSize: 3)
 }
 
 /// A running server process we can terminate; notifies via `onExit` if it dies on its own.
@@ -140,7 +149,8 @@ final class ServerManager {
     /// Manual fallback command shown in the UI on failure.
     var manualCommand: String {
         let dir = config.venvBinURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        return "cd \(dir.path) && \(config.venvBinURL.path) --model \(config.modelId) --host \(config.host) --port \(config.port)"
+        let argv = ([config.venvBinURL.path] + serverArguments(for: config)).joined(separator: " ")
+        return "cd \(dir.path) && \(argv)"
     }
 
     // MARK: - internals

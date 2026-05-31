@@ -1,8 +1,14 @@
 import Foundation
 
-/// The argv (after the executable) for `mlx_lm.server`. Pure → unit-testable.
+/// The argv (after the executable) for `mlx_vlm.server`. Pure → unit-testable.
 nonisolated func serverArguments(for config: ServerConfig) -> [String] {
-    ["--model", config.modelId, "--host", config.host, "--port", String(config.port)]
+    var args = ["--model", config.modelId, "--host", config.host, "--port", String(config.port)]
+    if let draft = config.draftModelId {
+        args += ["--draft-model", draft]
+        if let kind = config.draftKind { args += ["--draft-kind", kind] }
+        if let block = config.draftBlockSize { args += ["--draft-block-size", String(block)] }
+    }
+    return args
 }
 
 /// Single-quote a string for safe interpolation into a `/bin/sh` command.
@@ -24,7 +30,7 @@ nonisolated func watchdogScript(binPath: String, args: [String], parentPID: Int3
     """
 }
 
-/// Owns a spawned `mlx_lm.server` process. Captures a tail of stderr for diagnostics and
+/// Owns a spawned `mlx_vlm.server` process. Captures a tail of stderr for diagnostics and
 /// fires `onExit` if the process dies on its own.
 nonisolated final class RealServerProcessHandle: ServerProcessHandle, @unchecked Sendable {
     private let process: Process
@@ -57,7 +63,7 @@ nonisolated final class RealServerProcessHandle: ServerProcessHandle, @unchecked
     }
 }
 
-/// Spawns `mlx_lm.server` via `Process`. Requires the App Sandbox to be OFF (Task 1).
+/// Spawns `mlx_vlm.server` via `Process`. Requires the App Sandbox to be OFF (Task 1).
 nonisolated final class RealServerProcessLauncher: ServerProcessLauncher {
     func launch(_ config: ServerConfig) throws -> ServerProcessHandle {
         let process = Process()

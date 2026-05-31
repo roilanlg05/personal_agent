@@ -21,26 +21,59 @@ extension MemoryStore {
     @discardableResult
     func upsertMerging(_ candidate: Node) throws -> String {
         if let existing = try findDuplicate(kind: candidate.kind, label: candidate.label) {
-            var merged = existing
-            merged.salience = Decay.reinforce(current: existing.salience)
-            merged.mentionCount = existing.mentionCount + 1
-            merged.lastSeenAt = candidate.lastSeenAt
-            merged.updatedAt = candidate.updatedAt
-            if merged.body.isEmpty { merged.body = candidate.body }
-            if Decay.shouldPromote(mentionCount: merged.mentionCount,
-                                   origin: merged.origin,
-                                   permanent: merged.layer == .identity) {
-                merged.layer = .identity
-                merged.ttlExpiresAt = nil
-                merged.decayRate = Decay.defaultDecayRate(for: .identity)
-            }
-            merged.dirty = true
+            let merged = mergeReinforced(existing: existing, candidate: candidate)
             try upsert(merged)
             return merged.id
         } else {
             try upsert(candidate)
             return candidate.id
         }
+    }
+
+    /// Nearest same-kind, non-deleted node within `threshold` cosine distance, or nil.
+    func findSemanticDuplicate(kind: NodeKind, embedding: [Float], threshold: Double) throws -> Node? {
+        for hit in try nearest(to: embedding, k: 8) where hit.distance <= threshold {
+            if let n = try node(id: hit.id), !n.deleted, n.kind == kind { return n }
+        }
+        return nil
+    }
+
+    /// Upsert with SEMANTIC dedup (falls back to string dedup): merge into the nearest same-kind
+    /// node within `threshold`, else the canonical-label match, else insert. Reinforces via EMA.
+    @discardableResult
+    func upsertMergingSemantic(_ candidate: Node, embedding: [Float]?, embedder: Embedder?,
+                               threshold: Double = 0.2) throws -> String {
+        var existing: Node? = nil
+        if let embedding { existing = try findSemanticDuplicate(kind: candidate.kind, embedding: embedding, threshold: threshold) }
+        if existing == nil { existing = try findDuplicate(kind: candidate.kind, label: candidate.label) }
+
+        if let existing {
+            let merged = mergeReinforced(existing: existing, candidate: candidate)
+            try upsert(merged)
+            return merged.id
+        } else {
+            try upsert(candidate)
+            if let embedding { try setEmbedding(nodeId: candidate.id, embedding) }
+            return candidate.id
+        }
+    }
+
+    /// Shared merge: EMA-reinforce salience, bump mentionCount, refresh times, promote if due.
+    private func mergeReinforced(existing: Node, candidate: Node) -> Node {
+        var merged = existing
+        merged.salience = Decay.reinforceEMA(current: existing.salience, beta: Decay.beta(for: existing.layer))
+        merged.mentionCount = existing.mentionCount + 1
+        merged.lastSeenAt = candidate.lastSeenAt
+        merged.updatedAt = candidate.updatedAt
+        if merged.body.isEmpty { merged.body = candidate.body }
+        if Decay.shouldPromote(mentionCount: merged.mentionCount, origin: merged.origin,
+                               permanent: merged.layer == .identity) {
+            merged.layer = .identity
+            merged.ttlExpiresAt = nil
+            merged.decayRate = Decay.defaultDecayRate(for: .identity)
+        }
+        merged.dirty = true
+        return merged
     }
 
     /// Forgetting sweep: soft-delete nodes whose effective salience fell below the floor

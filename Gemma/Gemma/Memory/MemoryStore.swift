@@ -100,23 +100,13 @@ nonisolated final class MemoryStore {
         }
     }
 
-    /// Always-relevant "identity core": who the user is and their strongest facts, regardless
-    /// of the current query. Returns identity-layer nodes plus the highest-salience non-deleted
-    /// nodes (deduped), so meta-questions like "what do I like?" — which don't keyword/semantic
-    /// match any single entity — still see the user's name, preferences and key people.
+    /// Always-relevant "identity core": who the user is and their permanent identity-layer
+    /// facts, regardless of the current query. Identity-ONLY (no top-salience union) so the
+    /// injected core stays small — query-relevant nodes (from MemoryRetriever) carry the rest.
     func coreMemories(limit: Int = 6) throws -> [Node] {
         try dbQueue.read { db in
-            let identity = try Node.filter(Column("layer") == MemoryLayer.identity.rawValue && Column("deleted") == false)
-                .order(Column("salience").desc).fetchAll(db)
-            let topSalient = try Node.filter(Column("deleted") == false)
+            try Node.filter(Column("layer") == MemoryLayer.identity.rawValue && Column("deleted") == false)
                 .order(Column("salience").desc).limit(limit).fetchAll(db)
-            var seen = Set<String>()
-            var out: [Node] = []
-            for n in identity + topSalient where seen.insert(n.id).inserted {
-                out.append(n)
-                if out.count >= limit { break }
-            }
-            return out
         }
     }
     func edges(from id: String) throws -> [Edge] {

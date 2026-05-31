@@ -28,4 +28,26 @@ final class DecayTests: XCTestCase {
         XCTAssertTrue(Decay.shouldForget(layer: .live, effectiveSalience: 5, ttlExpiresAt: 999, now: now))
         XCTAssertFalse(Decay.shouldForget(layer: .daily, effectiveSalience: 5, ttlExpiresAt: nil, now: now))
     }
+
+    func test_beta_increases_with_layer_timescale() {
+        XCTAssertLessThan(Decay.beta(for: .live), Decay.beta(for: .daily))
+        XCTAssertLessThan(Decay.beta(for: .daily), Decay.beta(for: .identity))
+    }
+
+    func test_reinforceEMA_climbs_toward_cap_monotonically() {
+        var s = 0.0
+        var last = -1.0
+        for _ in 0..<20 {
+            let next = Decay.reinforceEMA(current: s, beta: 0.9)
+            XCTAssertGreaterThan(next, last)   // monotonic climb
+            XCTAssertLessThanOrEqual(next, 10.0) // never exceeds cap
+            last = next; s = next
+        }
+    }
+
+    func test_reinforceEMA_smaller_beta_climbs_faster() {
+        let fast = Decay.reinforceEMA(current: 0, beta: 0.5)  // live
+        let slow = Decay.reinforceEMA(current: 0, beta: 0.99) // identity
+        XCTAssertGreaterThan(fast, slow)
+    }
 }

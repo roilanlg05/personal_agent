@@ -13,6 +13,25 @@ enum Decay {
         min(cap, current + bump)
     }
 
+    /// EMA decay factor (β) per layer = memory timescale. Larger β = slower/longer memory
+    /// (effective horizon ≈ 1/(1−β)): live changes fast, identity is near-stable. This is the
+    /// Adam-moment analogy `m ← β·m + (1−β)·signal` applied to a node's salience.
+    static func beta(for layer: MemoryLayer) -> Double {
+        switch layer {
+        case .live: return 0.5        // horizon ~2
+        case .episodic: return 0.8    // ~5
+        case .daily: return 0.9       // ~10
+        case .identity: return 0.99   // ~100
+        }
+    }
+
+    /// Reinforcement on re-mention via EMA toward a full-strength signal (default = cap).
+    /// Moves salience a (1−β) fraction toward `signal` each mention: frequent mentions climb
+    /// toward `cap`, and a larger β makes the climb slower/steadier (more stable memory).
+    static func reinforceEMA(current: Double, signal: Double = 10, beta: Double, cap: Double = 10) -> Double {
+        min(cap, beta * current + (1 - beta) * signal)
+    }
+
     /// Whether a node should be promoted L2(daily) → L4(identity).
     static func shouldPromote(mentionCount: Int, origin: Origin, permanent: Bool, threshold: Int = 3) -> Bool {
         permanent || origin == .explicit || mentionCount >= threshold

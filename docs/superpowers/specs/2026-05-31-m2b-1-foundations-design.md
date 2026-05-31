@@ -98,3 +98,17 @@ Add (pure, unit-tested), without removing existing functions:
 **New:** `Memory/SaveMemoryTool.swift`, `Memory/EpisodeRecorder.swift`; tests `GemmaTests/SaveMemoryToolTests.swift`, `GemmaTests/EpisodeRecorderTests.swift`, additions to `DecayTests`/`MemoryStoreDedupTests`/`MemoryRetrieverTests`.
 **Modified:** `Memory/Decay.swift` (EMA), `Memory/MemoryStore+Dedup.swift` (semantic dedup), `Memory/MemoryRetriever.swift` (+ `MemoryStore.coreMemories()` → identity-only), `Agent/Agent.swift` (drop consolidator, record episode, prompt tweak), `Agent/ToolRegistry.swift` / `Harness/HarnessModel.swift` (register SaveMemoryTool), `Memory/MemoryToolbox.swift` if needed.
 **Removed:** `Memory/MemoryConsolidator.swift`, `Memory/RememberTool.swift` + their tests.
+
+## 10. Resultado M2b-1 (VERIFICADO 2026-05-31)
+
+Plan `docs/superpowers/plans/2026-05-31-m2b-1-foundations.md` ejecutado (subagent-driven, doble review spec+calidad por unidad; varios fixes en review). Commits `6080ada`…`23cfb13` en `main`.
+
+- **Decay EMA multi-escala:** `beta(for:)` (live .5/episodic .8/daily .9/identity .99) + `reinforceEMA` (`m←β·m+(1−β)·signal`); merge usa EMA.
+- **Dedup semántico:** `findSemanticDuplicate` (kind-aware, k=64) + `upsertMergingSemantic` (embedding nearest ≤0.2 → merge, else string, else insert; embed-on-merge; embedder fallback).
+- **Inyección por relevancia:** `coreMemories()` → identity-only (quita la unión top-salience que sobre-inyectaba); prompt "responde solo lo preguntado".
+- **`SaveMemoryTool`** (entity/detail/kind/permanent, síncrono, dedup semántico) reemplaza `RememberTool`. `ForgetTool` conservado.
+- **`EpisodeRecorder`:** persiste cada turno como 2 nodos `conversation`/`episodic` (threadId/role/turnIndex/status en `extra`) — substrato para el sueño (M2b-2). Cableado en `HarnessModel.runAgentTurn` (gated en memoria activa).
+- **`MemoryConsolidator` ELIMINADO** (captura pasiva ruidosa; vuelve, más inteligente, en el pase de sueño M2b-2).
+- **E2E real (26B, `ServerE2ETests`):** el modelo llamó **`save_memory`** con entidades canónicas ("Roilan","sushi"); **2 nodos, todos origin=explicit, CERO origin=extracted** (sin doble-captura); recall "Te gusta el sushi." Tests: ambos E2E pasan; suite completa verde.
+- **Pendiente (humano):** check visual GUI (`⌘R`): chat, episodios en el inspector (lista+grafo), recall en meta-pregunta, sin fabricación al preguntar, re-afirmar refuerza (mentionCount) sin duplicar.
+- **Siguiente:** M2b-2 = pase de consolidación "al dormir" (replay de episodios → extraer/fusionar → edges asociativos → promover → olvidar), per `docs/superpowers/specs/2026-05-31-sleep-consolidation-vision.md`.

@@ -28,7 +28,10 @@ public final class HarnessModel {
     }
 
     /// Launch/attach the server and start keeping it warm. Safe to call again (Retry).
+    /// No-op under XCTest: the unit-test host launches this app, and we must NOT spawn the
+    /// real 15GB mlx-lm server on every test run (it would load after the run and orphan).
     public func startServer() {
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         Task { await serverManager.start() }
     }
 

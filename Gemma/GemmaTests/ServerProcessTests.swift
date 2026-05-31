@@ -2,6 +2,9 @@ import XCTest
 @testable import Gemma
 
 final class ServerProcessTests: XCTestCase {
+    /// 16 GiB — the "keep model resident" wired limit (see spec §2).
+    private static let sixteenGiB: UInt64 = 17_179_869_184
+
     private func cfg(wired: UInt64 = 0, draft: Bool = false) -> ServerConfig {
         ServerConfig(pythonBinURL: URL(fileURLWithPath: "/x/.venv-vlm/bin/python3.12"),
                      launcherScriptURL: URL(fileURLWithPath: "/x/spike-mlx/serve_mlx_vlm.py"),
@@ -28,13 +31,13 @@ final class ServerProcessTests: XCTestCase {
     }
 
     func test_wiringArguments_setsFlagWhenWired() {
-        XCTAssertEqual(wiringArguments(for: cfg(wired: 17_179_869_184)),
+        XCTAssertEqual(wiringArguments(for: cfg(wired: Self.sixteenGiB)),
                        ["--wired-limit-bytes", "17179869184"])
     }
 
     func test_launchArguments_pageable_scriptFirst_noWiringFlag() {
         let a = launchArguments(for: cfg(wired: 0, draft: true))
-        XCTAssertEqual(a.first, "/x/spike-mlx/serve_mlx_vlm.py", "launcher script must be argv[0] for python")
+        XCTAssertEqual(a.first, "/x/spike-mlx/serve_mlx_vlm.py", "launcher script must be python's argv[1] (first arg after the interpreter)")
         XCTAssertFalse(a.contains("--wired-limit-bytes"))
         XCTAssertEqual(Array(a.suffix(12)),
                        ["--model", "some/model", "--host", "127.0.0.1", "--port", "8080",
@@ -42,7 +45,7 @@ final class ServerProcessTests: XCTestCase {
     }
 
     func test_launchArguments_wired_insertsFlagBetweenScriptAndServerArgs() {
-        let a = launchArguments(for: cfg(wired: 17_179_869_184))
+        let a = launchArguments(for: cfg(wired: Self.sixteenGiB))
         XCTAssertEqual(Array(a.prefix(3)),
                        ["/x/spike-mlx/serve_mlx_vlm.py", "--wired-limit-bytes", "17179869184"])
         XCTAssertEqual(a[3], "--model")

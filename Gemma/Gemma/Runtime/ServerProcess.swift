@@ -40,8 +40,8 @@ nonisolated func watchdogScript(binPath: String, args: [String], parentPID: Int3
     """
 }
 
-/// Owns a spawned `mlx_vlm.server` process. Captures a tail of stderr for diagnostics and
-/// fires `onExit` if the process dies on its own.
+/// Owns the spawned server process (python → `serve_mlx_vlm.py` → `mlx_vlm.server`). Captures a
+/// tail of stderr for diagnostics and fires `onExit` if the process dies on its own.
 nonisolated final class RealServerProcessHandle: ServerProcessHandle, @unchecked Sendable {
     private let process: Process
     private let stderrPipe: Pipe
@@ -73,7 +73,8 @@ nonisolated final class RealServerProcessHandle: ServerProcessHandle, @unchecked
     }
 }
 
-/// Spawns `mlx_vlm.server` via `Process`. Requires the App Sandbox to be OFF (Task 1).
+/// Spawns the server via `Process`: runs the venv python on `serve_mlx_vlm.py` (which optionally
+/// wires memory, then runs `mlx_vlm.server`). Requires the App Sandbox to be OFF.
 nonisolated final class RealServerProcessLauncher: ServerProcessLauncher {
     func launch(_ config: ServerConfig) throws -> ServerProcessHandle {
         let process = Process()

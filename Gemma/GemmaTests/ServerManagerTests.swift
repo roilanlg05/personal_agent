@@ -168,6 +168,19 @@ final class ServerManagerTests: XCTestCase {
         XCTAssertTrue(launcher.handles[0].terminated, "Retry must terminate the prior owned child (no orphan)")
     }
 
+    func test_concurrent_start_spawns_once() async {
+        let launcher = FakeLauncher()
+        let health = FakeHealth(probeResults: [false, true])
+        let m = ServerManager(config: .default, launcher: launcher, health: health,
+                              pollAttempts: 5, pollInterval: .milliseconds(1),
+                              keepAliveInterval: .seconds(3600))
+        async let a: Void = m.start()
+        async let b: Void = m.start()
+        _ = await (a, b)
+        XCTAssertEqual(m.state, .ready)
+        XCTAssertEqual(launcher.handles.count, 1, "re-entrant start() must spawn only once")
+    }
+
     func test_manualCommand_is_runnable() async {
         let launcher = FakeLauncher()
         let health = FakeHealth(probeResults: [true])

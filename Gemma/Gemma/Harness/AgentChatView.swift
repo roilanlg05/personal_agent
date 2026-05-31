@@ -20,7 +20,10 @@ struct AgentChatView: View {
         case .ready:
             Label("Listo", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
         case .stopped:
-            Label("Detenido", systemImage: "stop.circle").foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                Label("Detenido", systemImage: "stop.circle").foregroundStyle(.secondary)
+                Button("Reintentar") { model.startServer() }
+            }
         case .failed(let reason):
             VStack(alignment: .leading, spacing: 4) {
                 Label("Error del server", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.red)

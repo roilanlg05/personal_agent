@@ -61,6 +61,7 @@ final class ServerManager {
     @ObservationIgnored private var owned = false
     @ObservationIgnored private var keepAliveTask: Task<Void, Never>?
     @ObservationIgnored private var generation = 0
+    @ObservationIgnored private var isStarting = false
 
     init(config: ServerConfig = .default,
          launcher: ServerProcessLauncher = RealServerProcessLauncher(),
@@ -78,6 +79,13 @@ final class ServerManager {
 
     /// Idempotent-ish entry point; also used by the Retry button. Cancels any prior keep-alive.
     func start() async {
+        // Re-entrancy guard: set synchronously before the first suspension point so a concurrent
+        // second start() (same MainActor) entering while the first is suspended returns immediately —
+        // only ONE spawn/attach happens. Cleared on return so a later Retry still works.
+        guard !isStarting else { return }
+        isStarting = true
+        defer { isStarting = false }
+
         keepAliveTask?.cancel(); keepAliveTask = nil
 
         // Retry hygiene: tear down any process WE own before re-probing, so a Retry can't

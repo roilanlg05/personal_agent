@@ -23,7 +23,7 @@ public final class HarnessModel {
         self.runtime = ServerRuntime()
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.serverManager.stop() }
+            MainActor.assumeIsolated { self?.stopServer() }
         }
     }
 

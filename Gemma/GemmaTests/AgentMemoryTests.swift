@@ -25,7 +25,7 @@ final class AgentMemoryTests: XCTestCase {
     func testInjectsMemoryIntoSystemPrompt() async throws {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
         let now = Date().timeIntervalSince1970
-        try store.upsert(Node(id: "1", kind: .preference, label: "sushi", body: "likes sushi", layer: .daily,
+        try store.upsert(Node(id: "1", kind: NodeKind.preference.rawValue, label: "sushi", body: "likes sushi", layer: .daily,
                               createdAt: now, updatedAt: now, lastSeenAt: now, salience: 5, decayRate: 0.0001,
                               confidence: .probable, mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil,
                               origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: nil))

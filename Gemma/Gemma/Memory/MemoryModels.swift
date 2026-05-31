@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
 
-enum NodeKind: String, Codable, CaseIterable { case person, place, fact, preference, topic, day, episode, conversation }
+enum NodeKind: String, Codable, CaseIterable { case person, place, fact, preference, topic, trait, task, plan, insight, day, episode, conversation }
 enum MemoryLayer: String, Codable, CaseIterable { case live, daily, identity, episodic } // episodic reservado (S11)
 enum Confidence: String, Codable, CaseIterable { case sure, probable, maybe }
 enum Origin: String, Codable, CaseIterable { case explicit, extracted }
@@ -11,7 +11,7 @@ enum Relation: String, Codable, CaseIterable {
 
 struct Node: Codable, FetchableRecord, PersistableRecord, Identifiable, Equatable {
     var id: String
-    var kind: NodeKind
+    var kind: String
     var label: String
     var body: String
     var layer: MemoryLayer

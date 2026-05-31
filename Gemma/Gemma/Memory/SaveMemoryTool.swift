@@ -32,7 +32,7 @@ struct SaveMemoryTool: AgentTool {
             guard let store = MemoryToolbox.shared.store else { return "memory unavailable" }
             let now = Date().timeIntervalSince1970
             let layer: MemoryLayer = permanent ? .identity : .daily
-            let k = NodeKind(rawValue: kind) ?? .fact
+            let k = kind.isEmpty ? NodeKind.fact.rawValue : kind
             let body = (detail?.isEmpty == false) ? detail! : entity
             let node = Node(id: UUID().uuidString, kind: k, label: entity, body: body, layer: layer,
                             createdAt: now, updatedAt: now, lastSeenAt: now, salience: permanent ? 8 : 3,

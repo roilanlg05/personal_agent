@@ -163,7 +163,7 @@ final class ServerE2ETests: XCTestCase {
         let nodesAfterA = try memStore.allNodes()
         observe("⚠️ E2E-OBSERVE: nodes after turnA count=\(nodesAfterA.count)")
         for n in nodesAfterA {
-            observe("⚠️ E2E-OBSERVE: node kind=\(n.kind.rawValue) layer=\(n.layer.rawValue) origin=\(n.origin.rawValue) label=\"\(n.label)\" body=\"\(n.body)\"")
+            observe("⚠️ E2E-OBSERVE: node kind=\(n.kind) layer=\(n.layer.rawValue) origin=\(n.origin.rawValue) label=\"\(n.label)\" body=\"\(n.body)\"")
         }
         let sushiNode = nodesAfterA.first {
             $0.label.lowercased().contains("sushi") || $0.body.lowercased().contains("sushi")

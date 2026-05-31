@@ -7,10 +7,10 @@ extension MemoryStore {
     /// Find an existing non-deleted node to merge into, by (kind, canonical label). Uses
     /// MemoryText.dedupKey so "Sushi", "sushi" and "me gusta el sushi" all collapse together —
     /// the cause of the duplicate "Juan ×3 / sushi ×N" rows seen on device.
-    func findDuplicate(kind: NodeKind, label: String) throws -> Node? {
+    func findDuplicate(kind: String, label: String) throws -> Node? {
         let key = MemoryText.dedupKey(label)
         return try dbQueue.read { db in
-            try Node.filter(Column("kind") == kind.rawValue && Column("deleted") == false)
+            try Node.filter(Column("kind") == kind && Column("deleted") == false)
                 .fetchAll(db)
                 .first { MemoryText.dedupKey($0.label) == key }
         }
@@ -34,7 +34,7 @@ extension MemoryStore {
     /// Fetches a generous candidate set (k=64) and filters to `kind` AFTER, so a same-kind
     /// duplicate ranked beyond the global top-8 (because closer other-kind vectors crowd it out)
     /// isn't silently missed. `nearest` scans the whole table anyway, so a larger k is cheap.
-    func findSemanticDuplicate(kind: NodeKind, embedding: [Float], threshold: Double) throws -> Node? {
+    func findSemanticDuplicate(kind: String, embedding: [Float], threshold: Double) throws -> Node? {
         for hit in try nearest(to: embedding, k: 64) where hit.distance <= threshold {
             if let n = try node(id: hit.id), !n.deleted, n.kind == kind { return n }
         }

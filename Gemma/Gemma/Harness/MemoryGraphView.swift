@@ -85,9 +85,9 @@ struct MemoryGraphView: View {
     private var legend: some View {
         VStack(alignment: .leading, spacing: 2) {
             ForEach(NodeKind.allCases, id: \.self) { kind in
-                if nodes.contains(where: { $0.kind == kind }) {
+                if nodes.contains(where: { $0.kind == kind.rawValue }) {
                     HStack(spacing: 4) {
-                        Circle().fill(MemoryNodeMarker.color(for: kind)).frame(width: 8, height: 8)
+                        Circle().fill(MemoryNodeMarker.color(for: kind.rawValue)).frame(width: 8, height: 8)
                         Text(kind.rawValue).font(.caption2)
                     }
                 }
@@ -154,16 +154,17 @@ private struct MemoryNodeMarker: View {
     let node: Node
     let isSelected: Bool
 
-    static func color(for kind: NodeKind) -> Color {
+    static func color(for kind: String) -> Color {
         switch kind {
-        case .person: return .blue
-        case .place: return .green
-        case .fact: return .orange
-        case .preference: return .pink
-        case .topic: return .purple
-        case .day: return .teal
-        case .episode: return .indigo
-        case .conversation: return .gray
+        case NodeKind.person.rawValue: return .blue
+        case NodeKind.place.rawValue: return .green
+        case NodeKind.fact.rawValue: return .orange
+        case NodeKind.preference.rawValue: return .pink
+        case NodeKind.topic.rawValue: return .purple
+        case NodeKind.day.rawValue: return .teal
+        case NodeKind.episode.rawValue: return .indigo
+        case NodeKind.conversation.rawValue: return .gray
+        default: return .secondary
         }
     }
 
@@ -210,7 +211,7 @@ private struct MemoryGraphDetailPanel: View {
                 Text(node.body).font(.callout)
             }
             Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 4) {
-                detailRow("Kind", node.kind.rawValue)
+                detailRow("Kind", node.kind)
                 detailRow("Layer", node.layer.rawValue)
                 detailRow("Salience", String(format: "%.2f", node.salience))
                 detailRow("Mentions", "\(node.mentionCount)")

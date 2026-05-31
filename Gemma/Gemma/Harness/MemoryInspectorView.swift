@@ -9,7 +9,7 @@ struct MemoryInspectorView: View {
     var body: some View {
         List(nodes) { n in
             VStack(alignment: .leading, spacing: 2) {
-                Text("[\(n.kind.rawValue)/\(n.layer.rawValue)] \(n.label)")
+                Text("[\(n.kind)/\(n.layer.rawValue)] \(n.label)")
                     .font(.subheadline).bold()
                 if !n.body.isEmpty, n.body != n.label {
                     Text(n.body).font(.caption)

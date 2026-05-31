@@ -7,7 +7,7 @@ final class MemoryStoreTests: XCTestCase {
 
     private func sampleNode(id: String = UUID().uuidString, kind: NodeKind = .preference, label: String = "sushi") -> Node {
         let now = Date().timeIntervalSince1970
-        return Node(id: id, kind: kind, label: label, body: label, layer: .daily,
+        return Node(id: id, kind: kind.rawValue, label: label, body: label, layer: .daily,
                     createdAt: now, updatedAt: now, lastSeenAt: now, salience: 3,
                     decayRate: 0.001, confidence: .probable, mentionCount: 1, ttlExpiresAt: nil,
                     sourceRef: nil, origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: nil)

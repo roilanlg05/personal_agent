@@ -6,7 +6,7 @@ final class MemoryStoreVectorTests: XCTestCase {
     private func makeStore() throws -> MemoryStore { try MemoryStore(inMemory: true, embeddingDim: 4) }
     private func node(_ label: String) -> Node {
         let now = Date().timeIntervalSince1970
-        return Node(id: UUID().uuidString, kind: .preference, label: label, body: label, layer: .daily,
+        return Node(id: UUID().uuidString, kind: NodeKind.preference.rawValue, label: label, body: label, layer: .daily,
                     createdAt: now, updatedAt: now, lastSeenAt: now, salience: 3, decayRate: 0.001,
                     confidence: .probable, mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil,
                     origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: nil)

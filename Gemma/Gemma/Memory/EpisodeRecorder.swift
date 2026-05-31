@@ -31,7 +31,7 @@ enum EpisodeRecorder {
         let meta = Meta(threadId: threadId, role: role, turnIndex: turnIndex, status: "closed")
         let extra = (try? JSONEncoder().encode(meta)).flatMap { String(data: $0, encoding: .utf8) }
         let preview = String(trimmed.prefix(60))
-        let node = Node(id: UUID().uuidString, kind: .conversation, label: "\(role): \(preview)",
+        let node = Node(id: UUID().uuidString, kind: NodeKind.conversation.rawValue, label: "\(role): \(preview)",
                         body: trimmed, layer: .episodic, createdAt: now, updatedAt: now, lastSeenAt: now,
                         salience: 2, decayRate: Decay.defaultDecayRate(for: .episodic), confidence: .sure,
                         mentionCount: 1, ttlExpiresAt: nil, sourceRef: threadId, origin: .extracted,

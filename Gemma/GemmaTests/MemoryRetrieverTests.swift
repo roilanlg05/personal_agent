@@ -6,7 +6,7 @@ final class MemoryRetrieverTests: XCTestCase {
     private func store() throws -> MemoryStore { try MemoryStore(inMemory: true, embeddingDim: 4) }
     private func node(_ label: String, _ kind: NodeKind) -> Node {
         let now = Date().timeIntervalSince1970
-        return Node(id: UUID().uuidString, kind: kind, label: label, body: label, layer: .daily,
+        return Node(id: UUID().uuidString, kind: kind.rawValue, label: label, body: label, layer: .daily,
                     createdAt: now, updatedAt: now, lastSeenAt: now, salience: 5, decayRate: 0.0001,
                     confidence: .probable, mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil,
                     origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: nil)

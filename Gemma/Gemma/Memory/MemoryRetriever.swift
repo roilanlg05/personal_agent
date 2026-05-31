@@ -63,7 +63,7 @@ nonisolated final class MemoryRetriever {
     /// Render retrieved nodes as a compact injection block (empty string if none).
     func injectionBlock(for nodes: [Node]) -> String {
         guard !nodes.isEmpty else { return "" }
-        let lines = nodes.map { "- [\($0.kind.rawValue)] \($0.label): \($0.body.isEmpty ? $0.label : $0.body)" }
+        let lines = nodes.map { "- [\($0.kind)] \($0.label): \($0.body.isEmpty ? $0.label : $0.body)" }
         return "What you remember about the user (use if relevant):\n" + lines.joined(separator: "\n")
     }
 }

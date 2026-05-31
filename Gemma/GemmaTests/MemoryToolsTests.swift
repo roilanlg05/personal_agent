@@ -36,7 +36,7 @@ final class MemoryToolsTests: XCTestCase {
         MemoryToolbox.shared.embedder = FakeEmbedder(dimension: 4)
         _ = await SaveMemoryTool().run(argsJSON: #"{"entity":"Messi","kind":"preference"}"#)
         _ = await SaveMemoryTool().run(argsJSON: #"{"entity":"Messi","detail":"favorite player","kind":"preference"}"#)
-        let prefs = try store.allNodes().filter { $0.kind == .preference }
+        let prefs = try store.allNodes().filter { $0.kind == NodeKind.preference.rawValue }
         XCTAssertEqual(prefs.count, 1, "same entity collapses (string dedup at minimum)")
         XCTAssertEqual(prefs.first?.mentionCount, 2)
     }
@@ -47,7 +47,7 @@ final class MemoryToolsTests: XCTestCase {
         MemoryToolbox.shared.embedder = KeywordEmbedder()
         _ = await SaveMemoryTool().run(argsJSON: #"{"entity":"Messi","kind":"preference"}"#)
         _ = await SaveMemoryTool().run(argsJSON: #"{"entity":"Lionel Messi","kind":"preference"}"#) // different label, same keyword vector
-        let prefs = try store.allNodes().filter { $0.kind == .preference }
+        let prefs = try store.allNodes().filter { $0.kind == NodeKind.preference.rawValue }
         XCTAssertEqual(prefs.count, 1, "different phrasings with near embeddings collapse semantically")
         XCTAssertEqual(prefs.first?.mentionCount, 2)
     }
@@ -87,7 +87,7 @@ final class MemoryToolsTests: XCTestCase {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
         MemoryToolbox.shared.store = store
         let now = Date().timeIntervalSince1970
-        try store.upsert(Node(id: "x", kind: .fact, label: "sushi", body: "sushi", layer: .daily,
+        try store.upsert(Node(id: "x", kind: NodeKind.fact.rawValue, label: "sushi", body: "sushi", layer: .daily,
                               createdAt: now, updatedAt: now, lastSeenAt: now, salience: 3, decayRate: 0.001,
                               confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil,
                               origin: .explicit, serverId: nil, dirty: true, deleted: false, extra: nil))

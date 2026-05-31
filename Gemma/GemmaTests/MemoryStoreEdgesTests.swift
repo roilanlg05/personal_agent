@@ -7,7 +7,7 @@ final class MemoryStoreEdgesTests: XCTestCase {
 
     private func node(_ id: String) -> Node {
         let now = Date().timeIntervalSince1970
-        return Node(id: id, kind: .person, label: id, body: id, layer: .identity,
+        return Node(id: id, kind: NodeKind.person.rawValue, label: id, body: id, layer: .identity,
                     createdAt: now, updatedAt: now, lastSeenAt: now, salience: 1,
                     decayRate: 0.001, confidence: .sure, mentionCount: 1, ttlExpiresAt: nil,
                     sourceRef: nil, origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: nil)

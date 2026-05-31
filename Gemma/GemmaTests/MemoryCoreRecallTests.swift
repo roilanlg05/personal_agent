@@ -7,7 +7,7 @@ final class MemoryCoreRecallTests: XCTestCase {
     private func store() throws -> MemoryStore { try MemoryStore(inMemory: true, embeddingDim: 4) }
     private func node(_ label: String, _ kind: NodeKind, layer: MemoryLayer = .daily, salience: Double = 5) -> Node {
         let now = Date().timeIntervalSince1970
-        return Node(id: UUID().uuidString, kind: kind, label: label, body: "likes \(label)", layer: layer,
+        return Node(id: UUID().uuidString, kind: kind.rawValue, label: label, body: "likes \(label)", layer: layer,
                     createdAt: now, updatedAt: now, lastSeenAt: now, salience: salience, decayRate: 0.0001,
                     confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil,
                     origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: nil)
@@ -31,7 +31,7 @@ final class MemoryCoreRecallTests: XCTestCase {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
         let now = Date().timeIntervalSince1970
         func node(_ id: String, _ kind: NodeKind, _ label: String, _ layer: MemoryLayer, _ sal: Double) -> Node {
-            Node(id: id, kind: kind, label: label, body: label, layer: layer, createdAt: now, updatedAt: now,
+            Node(id: id, kind: kind.rawValue, label: label, body: label, layer: layer, createdAt: now, updatedAt: now,
                  lastSeenAt: now, salience: sal, decayRate: Decay.defaultDecayRate(for: layer), confidence: .sure,
                  mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil, origin: .explicit, serverId: nil,
                  dirty: true, deleted: false, extra: nil)

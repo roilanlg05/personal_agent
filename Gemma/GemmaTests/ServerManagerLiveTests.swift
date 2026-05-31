@@ -2,9 +2,9 @@ import XCTest
 @testable import Gemma
 
 /// GATED live integration test for the REAL M2a server plumbing:
-/// `RealServerProcessLauncher` (spawns `mlx_lm.server` via `Process`) +
+/// `RealServerProcessLauncher` (spawns `mlx_vlm.server` via `Process`) +
 /// `HTTPServerHealth` (probe `/v1/models`, warm with a 1-token completion) +
-/// `ServerManager.start()/stop()` driving them against the actual local mlx-lm server.
+/// `ServerManager.start()/stop()` driving them against the actual local mlx_vlm server.
 ///
 /// Skipped unless `GEMMA_LIVE_SERVER=1` AND the server binary exists. Run with:
 ///   GEMMA_LIVE_SERVER=1 xcodebuild test -scheme Gemma -project Gemma/Gemma.xcodeproj \
@@ -22,7 +22,7 @@ final class ServerManagerLiveTests: XCTestCase {
         try XCTSkipUnless(enabled, "set GEMMA_LIVE_SERVER=1 to run the live server test")
         try XCTSkipUnless(
             FileManager.default.isExecutableFile(atPath: ServerConfig.default.venvBinURL.path),
-            "mlx_lm.server not found")
+            "mlx_vlm.server not found")
 
         let config = ServerConfig.default
         let health = HTTPServerHealth()
@@ -41,7 +41,7 @@ final class ServerManagerLiveTests: XCTestCase {
 
         // --- start() → .ready against the REAL server ---
         let t0 = Date()
-        print("[live] calling start() — spawning real mlx_lm.server + loading model + pre-warm...")
+        print("[live] calling start() — spawning real mlx_vlm.server + loading model + pre-warm...")
         await m.start()
         let startElapsed = Date().timeIntervalSince(t0)
         print(String(format: "[live] start() returned after %.1fs, state=%@", startElapsed, String(describing: m.state)))

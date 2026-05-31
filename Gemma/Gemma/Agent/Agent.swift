@@ -23,11 +23,13 @@ final class Agent {
     private let runtime: ToolCallingRuntime
     private let registry: ToolRegistry
     private let memory: MemoryServices?
+    private let wakeContext: String
 
-    init(runtime: ToolCallingRuntime, registry: ToolRegistry, memory: MemoryServices? = nil) {
+    init(runtime: ToolCallingRuntime, registry: ToolRegistry, memory: MemoryServices? = nil, wakeContext: String = "") {
         self.runtime = runtime
         self.registry = registry
         self.memory = memory
+        self.wakeContext = wakeContext
     }
 
     private func systemPrompt(memoryBlock: String) -> String {
@@ -40,7 +42,9 @@ final class Agent {
         IMPORTANT: after any tool runs, ALWAYS reply to the user in a short, natural sentence — \
         confirm what you did or answer their question. Never end your turn with only a tool call.
         """
-        return memoryBlock.isEmpty ? base : base + "\n\n" + memoryBlock
+        var out = memoryBlock.isEmpty ? base : base + "\n\n" + memoryBlock
+        if !wakeContext.isEmpty { out += "\n\n" + wakeContext }
+        return out
     }
 
     func run(prompt: String, options: GenerationOptions) -> AsyncThrowingStream<AgentEvent, Error> {

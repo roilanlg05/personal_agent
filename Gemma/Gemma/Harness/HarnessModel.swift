@@ -13,6 +13,22 @@ public final class HarnessModel {
     @ObservationIgnored private let settingsStore = SettingsStore()
     @ObservationIgnored private(set) var settings: GenerationSettings
     @ObservationIgnored private var memoryStore: MemoryStore?
+    @ObservationIgnored private var lastTurnEndedAt: Double = 0
+    private static let wakeGapSeconds: Double = 180   // first turn or a gap > this = a "wake"
+
+    /// Build the per-turn "wake context" appended to the system prompt: what the agent was
+    /// reflecting on (if a cycle is pending) + pending follow-ups (only on a wake turn).
+    nonisolated static func buildWakeContext(focus: String, followUps: [String], isWake: Bool) -> String {
+        var parts: [String] = []
+        if !focus.isEmpty {
+            parts.append("(You were just reflecting on: \(focus). Mention it naturally only if it fits.)")
+        }
+        if isWake, !followUps.isEmpty {
+            let list = followUps.map { "- \($0)" }.joined(separator: "\n")
+            parts.append("Things the user left pending you can gently follow up on if it fits (don't force them):\n\(list)")
+        }
+        return parts.joined(separator: "\n\n")
+    }
     @ObservationIgnored private var memoryEmbedder: Embedder?
     @ObservationIgnored private let threadId = UUID().uuidString
     @ObservationIgnored private var turnIndex = 0
@@ -66,7 +82,8 @@ public final class HarnessModel {
         // Build the consolidation engine + scheduler ONCE, then reuse across turns.
         if consolidationScheduler == nil {
             let engine = MemoryConsolidationEngine(store: store, embedder: memoryEmbedder, runtime: runtime)
-            let sched = ConsolidationScheduler(runner: engine, isReady: { [weak self] in self?.serverManager.state == .ready })
+            let sched = ConsolidationScheduler(runner: engine, isReady: { [weak self] in self?.serverManager.state == .ready },
+                                               hasPendingCycle: { [weak self] in ((try? self?.memoryStore?.loadSleepCycle()) ?? nil) != nil })
             // Mirror short engine progress into the scheduler's summary so the
             // ".done" banner can show what changed.
             engine.onProgress = { [weak sched] mark in
@@ -101,7 +118,12 @@ public final class HarnessModel {
         if memory != nil {
             registry.register(SaveMemoryTool()); registry.register(ForgetTool()); registry.register(ReflectTool())
         }
-        let agent = Agent(runtime: runtime, registry: registry, memory: memory)
+        let now = Date().timeIntervalSince1970
+        let isWake = (lastTurnEndedAt == 0) || (now - lastTurnEndedAt > Self.wakeGapSeconds)
+        let focus = ((try? memoryStore?.loadSleepCycle()) ?? nil)?.focus ?? ""
+        let followUps = isWake ? (((try? memoryStore?.pendingFollowUps()) ?? nil)?.map { $0.body } ?? []) : []
+        let wakeContext = Self.buildWakeContext(focus: focus, followUps: followUps, isWake: isWake)
+        let agent = Agent(runtime: runtime, registry: registry, memory: memory, wakeContext: wakeContext)
         var answer = ""
         do {
             for try await event in agent.run(prompt: prompt, options: makeGenerationOptions()) {
@@ -119,5 +141,6 @@ public final class HarnessModel {
                                    userText: prompt, assistantText: answer)
             turnIndex += 1
         }
+        lastTurnEndedAt = Date().timeIntervalSince1970
     }
 }

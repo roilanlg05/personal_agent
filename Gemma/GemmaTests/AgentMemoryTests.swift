@@ -45,4 +45,12 @@ final class AgentMemoryTests: XCTestCase {
         for try await _ in agent.run(prompt: "hi", options: GenerationOptions()) {}
         XCTAssertEqual(rt.capturedSystemPrompt?.contains("What you remember"), false)
     }
+
+    func test_wakeContext_is_injected_into_system_prompt() async throws {
+        let rt = CapturingRuntime()
+        let agent = Agent(runtime: rt, registry: ToolRegistry(), memory: nil,
+                          wakeContext: "You were reflecting on: sushi.")
+        for try await _ in agent.run(prompt: "hi", options: GenerationOptions()) {}
+        XCTAssertTrue(rt.capturedSystemPrompt?.contains("You were reflecting on: sushi.") ?? false)
+    }
 }

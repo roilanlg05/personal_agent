@@ -16,6 +16,7 @@ final class ConsolidationScheduler {
 
     @ObservationIgnored private let runner: ConsolidationRunning
     @ObservationIgnored private let isReady: () -> Bool
+    @ObservationIgnored private let hasPendingCycle: () -> Bool
     @ObservationIgnored private let pauseInterval: Duration
     @ObservationIgnored private let idleInterval: Duration
     @ObservationIgnored private var pauseTask: Task<Void, Never>?
@@ -23,9 +24,9 @@ final class ConsolidationScheduler {
     @ObservationIgnored private var running: Task<Void, Never>?
     @ObservationIgnored private var cancelFlag = false
 
-    init(runner: ConsolidationRunning, isReady: @escaping () -> Bool,
+    init(runner: ConsolidationRunning, isReady: @escaping () -> Bool, hasPendingCycle: @escaping () -> Bool,
          pauseInterval: Duration = .seconds(15), idleInterval: Duration = .seconds(180)) {
-        self.runner = runner; self.isReady = isReady
+        self.runner = runner; self.isReady = isReady; self.hasPendingCycle = hasPendingCycle
         self.pauseInterval = pauseInterval; self.idleInterval = idleInterval
     }
 
@@ -45,7 +46,8 @@ final class ConsolidationScheduler {
         pauseTask = Task { [weak self, pauseInterval] in
             try? await Task.sleep(for: pauseInterval)
             guard let self, !Task.isCancelled else { return }
-            self.launch(light: true)
+            if self.hasPendingCycle() { self.launch(light: false) }  // resume the interrupted cycle promptly
+            else { self.launch(light: true) }                        // otherwise a light awake reflection
         }
         idleTask = Task { [weak self, idleInterval] in
             try? await Task.sleep(for: idleInterval)

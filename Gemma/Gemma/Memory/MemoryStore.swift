@@ -1,8 +1,8 @@
 import Foundation
 import GRDB
 
-enum SleepPhase: String, Codable, CaseIterable { case nrem, rem, reflect, curate, shy }
-struct SleepCycleState: Equatable { var phase: SleepPhase; var episodeIds: [String]; var startedAt: Double }
+enum SleepPhase: String, Codable, CaseIterable { case nrem, detect, rem, reflect, curate, shy }
+struct SleepCycleState: Equatable { var phase: SleepPhase; var episodeIds: [String]; var startedAt: Double; var focus: String = "" }
 
 nonisolated final class MemoryStore {
     let dbQueue: DatabaseQueue
@@ -91,6 +91,11 @@ nonisolated final class MemoryStore {
                 t.column("startedAt", .double).notNull()
             }
         }
+        m.registerMigration("v3-sleep-focus") { db in
+            try db.alter(table: "sleep_cycle") { t in
+                t.add(column: "focus", .text).notNull().defaults(to: "")
+            }
+        }
         return m
     }
 
@@ -148,17 +153,17 @@ nonisolated final class MemoryStore {
     // MARK: Sleep / consolidation
     func loadSleepCycle() throws -> SleepCycleState? {
         try dbQueue.read { db in
-            guard let row = try Row.fetchOne(db, sql: "SELECT phase, episodeIds, startedAt FROM sleep_cycle WHERE id=1") else { return nil }
+            guard let row = try Row.fetchOne(db, sql: "SELECT phase, episodeIds, startedAt, focus FROM sleep_cycle WHERE id=1") else { return nil }
             guard let phase = SleepPhase(rawValue: row["phase"]) else { return nil }
             let ids = (try? JSONDecoder().decode([String].self, from: Data((row["episodeIds"] as String).utf8))) ?? []
-            return SleepCycleState(phase: phase, episodeIds: ids, startedAt: row["startedAt"])
+            return SleepCycleState(phase: phase, episodeIds: ids, startedAt: row["startedAt"], focus: row["focus"] ?? "")
         }
     }
     func saveSleepCycle(_ s: SleepCycleState) throws {
         let ids = String(data: (try? JSONEncoder().encode(s.episodeIds)) ?? Data(), encoding: .utf8) ?? "[]"
         try dbQueue.write { db in
-            try db.execute(sql: "INSERT OR REPLACE INTO sleep_cycle(id, phase, episodeIds, startedAt) VALUES (1, ?, ?, ?)",
-                           arguments: [s.phase.rawValue, ids, s.startedAt])
+            try db.execute(sql: "INSERT OR REPLACE INTO sleep_cycle(id, phase, episodeIds, startedAt, focus) VALUES (1, ?, ?, ?, ?)",
+                           arguments: [s.phase.rawValue, ids, s.startedAt, s.focus])
         }
     }
     func clearSleepCycle() throws { try dbQueue.write { try $0.execute(sql: "DELETE FROM sleep_cycle WHERE id=1") } }
@@ -176,6 +181,15 @@ nonisolated final class MemoryStore {
             n.updatedAt = Date().timeIntervalSince1970; n.dirty = true
             try upsert(n)
         }
+    }
+    /// Pending actionable + conversational follow-ups (task/plan/follow_up nodes whose
+    /// NodeAttributes.status is "pending" or unset), most recent first, capped.
+    func pendingFollowUps(limit: Int = 5) throws -> [Node] {
+        let kinds: Set<String> = [NodeKind.task.rawValue, NodeKind.plan.rawValue, NodeKind.followUp.rawValue]
+        return try allNodes()
+            .filter { kinds.contains($0.kind) && (NodeAttributes.from($0.extra).status ?? "pending") == "pending" }
+            .sorted { $0.lastSeenAt > $1.lastSeenAt }
+            .prefix(limit).map { $0 }
     }
     func distinctKinds() throws -> [String] {
         try dbQueue.read { try String.fetchAll($0, sql: "SELECT DISTINCT kind FROM node WHERE deleted=0") }

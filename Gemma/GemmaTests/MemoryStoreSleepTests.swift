@@ -15,12 +15,35 @@ final class MemoryStoreSleepTests: XCTestCase {
     func test_sleep_cycle_round_trip_and_clear() throws {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
         XCTAssertNil(try store.loadSleepCycle())
-        try store.saveSleepCycle(SleepCycleState(phase: .rem, episodeIds: ["a","b"], startedAt: 123))
+        try store.saveSleepCycle(SleepCycleState(phase: .rem, episodeIds: ["a","b"], startedAt: 123, focus: ""))
         let s = try store.loadSleepCycle()
         XCTAssertEqual(s?.phase, .rem)
         XCTAssertEqual(s?.episodeIds, ["a","b"])
         try store.clearSleepCycle()
         XCTAssertNil(try store.loadSleepCycle())
+    }
+
+    func test_sleep_cycle_round_trips_focus() throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
+        try store.saveSleepCycle(SleepCycleState(phase: .nrem, episodeIds: ["e1"], startedAt: 1, focus: "sushi, fútbol"))
+        XCTAssertEqual(try store.loadSleepCycle()?.focus, "sushi, fútbol")
+    }
+
+    func test_pending_followups_returns_pending_tasks_and_followups() throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
+        let now = Date().timeIntervalSince1970
+        func n(_ id: String, _ kind: String, _ status: String?) -> Node {
+            var attrs = NodeAttributes(); attrs.status = status
+            return Node(id: id, kind: kind, label: id, body: id, layer: .daily, createdAt: now, updatedAt: now,
+                        lastSeenAt: now, salience: 3, decayRate: 0.001, confidence: .sure, mentionCount: 1,
+                        ttlExpiresAt: nil, sourceRef: nil, origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: attrs.toJSON())
+        }
+        try store.upsert(n("t1", NodeKind.task.rawValue, "pending"))
+        try store.upsert(n("t2", NodeKind.task.rawValue, "done"))
+        try store.upsert(n("f1", NodeKind.followUp.rawValue, "pending"))
+        try store.upsert(n("p1", NodeKind.preference.rawValue, nil))   // not a follow-up kind
+        let ids = Set(try store.pendingFollowUps().map { $0.id })
+        XCTAssertEqual(ids, ["t1", "f1"])   // pending task + pending follow_up; done task & preference excluded
     }
 
     func test_unconsolidated_episodes_and_mark() throws {

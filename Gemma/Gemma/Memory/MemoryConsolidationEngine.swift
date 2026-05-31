@@ -83,6 +83,42 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         onProgress?("+\(added) entities")
     }
 
+    // MARK: Detect — mine unresolved threads into follow_up nodes
+    private struct FollowUpsOut: Decodable { struct F: Decodable { let text: String; let sources: [String]? }; let followUps: [F] }
+
+    /// Detect unresolved intents / open conversational threads from the recent episodes,
+    /// storing them as pending `follow_up` nodes for proactive surfacing on wake.
+    func detectFollowUps(episodeTexts: [String]) async {
+        guard !episodeTexts.isEmpty else { return }
+        let convo = episodeTexts.joined(separator: "\n")
+        let prompt = """
+        This is a recent conversation with ONE user. List anything LEFT UNRESOLVED that's worth following up on later: tasks/intentions the user mentioned, open questions, or a topic/story they started but didn't finish. Output JSON only. Don't invent; only genuine loose ends.
+        Example: user said "tengo que llamar al dentista" and "te iba a contar de mi viaje pero…" → {"followUps":[{"text":"call the dentist","sources":[]},{"text":"hear about the user's trip","sources":[]}]}
+        Schema: {"followUps":[{"text":"<short follow-up>","sources":["<entity label>"]}]}
+        Conversation:
+        \(convo)
+        JSON:
+        """
+        guard let out = parse(await generate(prompt), FollowUpsOut.self) else { return }
+        var existing = Set(((try? store.allNodes()) ?? []).filter { $0.kind == NodeKind.followUp.rawValue }.map { MemoryText.dedupKey($0.body) })
+        var added = 0
+        for f in out.followUps {
+            let text = f.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let key = MemoryText.dedupKey(text)
+            if text.isEmpty || existing.contains(key) { continue }
+            existing.insert(key)
+            let t = now()
+            var attrs = NodeAttributes(); attrs.status = "pending"
+            let node = Node(id: UUID().uuidString, kind: NodeKind.followUp.rawValue, label: String(text.prefix(60)),
+                            body: text, layer: .daily, createdAt: t, updatedAt: t, lastSeenAt: t, salience: 3,
+                            decayRate: Decay.defaultDecayRate(for: .daily), confidence: .probable, mentionCount: 1,
+                            ttlExpiresAt: nil, sourceRef: nil, origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: attrs.toJSON())
+            try? store.upsert(node)
+            added += 1
+        }
+        onProgress?("+\(added) follow-ups")
+    }
+
     // MARK: REM — Associate
 
     private struct EdgesOut: Decodable { struct E: Decodable { let from: String; let relation: String; let to: String }; let edges: [E] }
@@ -212,10 +248,12 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         } else {
             let batch = ((try? store.unconsolidatedEpisodes()) ?? []).map { $0.id }
             guard !batch.isEmpty else { return }
-            state = SleepCycleState(phase: .nrem, episodeIds: batch, startedAt: now())
+            let texts0 = batch.compactMap { (try? store.node(id: $0))?.body }
+            let focus = String(texts0.joined(separator: " · ").prefix(100))
+            state = SleepCycleState(phase: .nrem, episodeIds: batch, startedAt: now(), focus: focus)
             try? store.saveSleepCycle(state)
         }
-        let order: [SleepPhase] = [.nrem, .rem, .reflect, .curate, .shy]
+        let order: [SleepPhase] = [.nrem, .detect, .rem, .reflect, .curate, .shy]
         guard let startIdx = order.firstIndex(of: state.phase) else { return }
         for phase in order[startIdx...] {
             if isCancelled() { return }   // leave persisted phase for resume
@@ -223,6 +261,8 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
             case .nrem:
                 let texts = state.episodeIds.compactMap { (try? store.node(id: $0))?.body }
                 await consolidate(episodeTexts: texts)
+            case .detect:
+                await detectFollowUps(episodeTexts: state.episodeIds.compactMap { (try? store.node(id: $0))?.body })
             case .rem: await associate()
             case .reflect: await reflect()
             case .curate: await curateKinds()

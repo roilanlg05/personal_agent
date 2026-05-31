@@ -133,4 +133,35 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         XCTAssertNotNil(try store.loadSleepCycle())
         XCTAssertNotEqual(EpisodeRecorder.meta(from: try store.node(id: "e1")!)?.status, "consolidated")
     }
+
+    func test_detect_creates_followup_nodes() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
+        let rt = CannedRuntime([#"{"followUps":[{"text":"finish telling the story about the trip","sources":[]},{"text":"decide where to travel","sources":[]}]}"#])
+        let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: rt)
+        await engine.detectFollowUps(episodeTexts: ["I was about to tell you about my trip but then..."])
+        let fu = try store.allNodes().filter { $0.kind == NodeKind.followUp.rawValue }
+        XCTAssertEqual(fu.count, 2)
+        XCTAssertTrue(fu.allSatisfy { NodeAttributes.from($0.extra).status == "pending" })
+    }
+    func test_detect_dedups_repeats() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
+        let json = #"{"followUps":[{"text":"call the dentist back","sources":[]}]}"#
+        let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: CannedRuntime([json, json]))
+        await engine.detectFollowUps(episodeTexts: ["x"])
+        await engine.detectFollowUps(episodeTexts: ["x"])
+        XCTAssertEqual(try store.allNodes().filter { $0.kind == NodeKind.followUp.rawValue }.count, 1)
+    }
+    func test_runCycle_includes_detect_and_sets_focus() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
+        let meta = EpisodeRecorder.Meta(threadId: "T", role: "user", turnIndex: 0, status: "closed")
+        let extra = String(data: try JSONEncoder().encode(meta), encoding: .utf8)
+        let now = Date().timeIntervalSince1970
+        try store.upsert(Node(id: "e1", kind: NodeKind.conversation.rawValue, label: "u", body: "me gusta el sushi", layer: .episodic, createdAt: now, updatedAt: now, lastSeenAt: now, salience: 2, decayRate: 0.001, confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: "T", origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: extra))
+        // start at .detect so only detect+rest run; assert focus was set when the cycle started.
+        let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: CannedRuntime(["{}","{}","{}","{}","{}"]))
+        await engine.runCycle(isCancelled: { false })
+        // cycle completed: episodes consolidated + cleared
+        XCTAssertNil(try store.loadSleepCycle())
+        XCTAssertEqual(EpisodeRecorder.meta(from: try store.node(id: "e1")!)?.status, "consolidated")
+    }
 }

@@ -67,7 +67,7 @@ nonisolated protocol ServerHealth {
 final class ServerManager {
     private(set) var state: ServerState = .idle
 
-    @ObservationIgnored private let config: ServerConfig
+    @ObservationIgnored private var config: ServerConfig
     @ObservationIgnored private let launcher: ServerProcessLauncher
     @ObservationIgnored private let health: ServerHealth
     @ObservationIgnored private let pollAttempts: Int
@@ -152,6 +152,15 @@ final class ServerManager {
         if owned { handle?.terminate() }
         handle = nil
         state = .stopped
+    }
+
+    /// Change the MLX wired-memory limit and restart the server so it takes effect.
+    /// No-op if the limit is unchanged (avoids a needless ~20s reload).
+    func setWiredLimit(_ bytes: UInt64) async {
+        guard bytes != config.wiredLimitBytes else { return }
+        config.wiredLimitBytes = bytes
+        stop()
+        await start()
     }
 
     /// Manual fallback command shown in the UI on failure.

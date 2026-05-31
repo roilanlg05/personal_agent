@@ -192,4 +192,28 @@ final class ServerManagerTests: XCTestCase {
         XCTAssertTrue(cmd.contains("--model"), "expected --model, got: \(cmd)")
         XCTAssertTrue(cmd.contains("--port"), "expected --port, got: \(cmd)")
     }
+
+    func test_setWiredLimit_change_restarts_with_new_limit() async {
+        let launcher = FakeLauncher()
+        // start: spawn→ready ; setWiredLimit: stop()+start() → probe false then true → spawn again
+        let health = FakeHealth(probeResults: [false, true, false, true])
+        let m = makeManager(launcher: launcher, health: health)
+        await m.start()
+        XCTAssertEqual(launcher.launchCount, 1)
+        await m.setWiredLimit(17_179_869_184)
+        XCTAssertEqual(m.state, .ready)
+        XCTAssertEqual(launcher.launchCount, 2, "changing the wired limit must restart (stop+start)")
+        XCTAssertTrue(launcher.handles[0].terminated, "old process must be terminated on restart")
+    }
+
+    func test_setWiredLimit_sameValue_isNoop() async {
+        let launcher = FakeLauncher()
+        let health = FakeHealth(probeResults: [false, true])
+        let m = makeManager(launcher: launcher, health: health)
+        await m.start()
+        XCTAssertEqual(launcher.launchCount, 1)
+        await m.setWiredLimit(0)   // already 0 (default)
+        XCTAssertEqual(launcher.launchCount, 1, "same value must NOT restart the server")
+        XCTAssertEqual(m.state, .ready)
+    }
 }

@@ -14,7 +14,10 @@ enum ServerState: Equatable {
 
 /// Where/how to run the server. Hardcoded defaults for M2a; a Settings UI is M2c.
 nonisolated struct ServerConfig: Sendable {
-    var venvBinURL: URL
+    /// The venv Python that runs the wiring launcher (.venv-vlm/bin/python3.12).
+    var pythonBinURL: URL
+    /// The wiring launcher script (spike-mlx/serve_mlx_vlm.py): sets mx.set_wired_limit then runs mlx_vlm.server.
+    var launcherScriptURL: URL
     var modelId: String
     var host: String
     var port: Int
@@ -24,16 +27,21 @@ nonisolated struct ServerConfig: Sendable {
     var draftKind: String? = nil
     /// Tokens drafted per verification round. nil = use the drafter's configured default.
     var draftBlockSize: Int? = nil
+    /// MLX wired-memory limit in bytes. 0 = pageable (mmap, may cold-start);
+    /// >0 = wire the model resident so macOS won't page it out (anti-cold-start). See spec §2.
+    var wiredLimitBytes: UInt64 = 0
     var baseURL: URL { URL(string: "http://\(host):\(port)")! }
 
     static let `default` = ServerConfig(
-        venvBinURL: URL(fileURLWithPath: "/Users/hashdown/Projects/personal_agent/spike-mlx/.venv-vlm/bin/mlx_vlm.server"),
+        pythonBinURL: URL(fileURLWithPath: "/Users/hashdown/Projects/personal_agent/spike-mlx/.venv-vlm/bin/python3.12"),
+        launcherScriptURL: URL(fileURLWithPath: "/Users/hashdown/Projects/personal_agent/spike-mlx/serve_mlx_vlm.py"),
         modelId: "unsloth/gemma-4-26b-a4b-it-UD-MLX-4bit",
         host: "127.0.0.1",
         port: 8080,
         draftModelId: "guardiangate1775/gemma-4-26B-A4B-it-assistant-4bit",
         draftKind: "mtp",
-        draftBlockSize: 3)
+        draftBlockSize: 3,
+        wiredLimitBytes: 0)
 }
 
 /// A running server process we can terminate; notifies via `onExit` if it dies on its own.

@@ -11,6 +11,16 @@ nonisolated func serverArguments(for config: ServerConfig) -> [String] {
     return args
 }
 
+/// The `--wired-limit-bytes` flag for the launcher, or empty when pageable. Pure → testable.
+nonisolated func wiringArguments(for config: ServerConfig) -> [String] {
+    config.wiredLimitBytes > 0 ? ["--wired-limit-bytes", String(config.wiredLimitBytes)] : []
+}
+
+/// Full argv for the venv python: the launcher script, optional wiring flag, then the mlx_vlm.server flags.
+nonisolated func launchArguments(for config: ServerConfig) -> [String] {
+    [config.launcherScriptURL.path] + wiringArguments(for: config) + serverArguments(for: config)
+}
+
 /// Single-quote a string for safe interpolation into a `/bin/sh` command.
 /// Wraps in `'...'` and escapes embedded single quotes as `'\''`.
 private func shQuote(_ s: String) -> String {

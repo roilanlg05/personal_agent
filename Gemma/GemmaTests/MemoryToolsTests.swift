@@ -1,6 +1,15 @@
 import XCTest
 @testable import Gemma
 
+/// Keyword-stub embedder: maps any "messi"-bearing text to the SAME vector so distinct labels
+/// ("Messi" vs "Lionel Messi", different dedupKeys) collide only via the semantic path.
+private final class KeywordEmbedder: Embedder {
+    let dimension = 4
+    func embed(_ text: String) throws -> [Float] {
+        text.lowercased().contains("messi") ? [1, 0, 0, 0] : [0, 0, 1, 0]
+    }
+}
+
 @MainActor
 final class MemoryToolsTests: XCTestCase {
     override func tearDown() {
@@ -30,6 +39,36 @@ final class MemoryToolsTests: XCTestCase {
         let prefs = try store.allNodes().filter { $0.kind == .preference }
         XCTAssertEqual(prefs.count, 1, "same entity collapses (string dedup at minimum)")
         XCTAssertEqual(prefs.first?.mentionCount, 2)
+    }
+
+    func test_saveMemory_semantic_dedup_merges_distinct_phrasings() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
+        MemoryToolbox.shared.store = store
+        MemoryToolbox.shared.embedder = KeywordEmbedder()
+        _ = await SaveMemoryTool().run(argsJSON: #"{"entity":"Messi","kind":"preference"}"#)
+        _ = await SaveMemoryTool().run(argsJSON: #"{"entity":"Lionel Messi","kind":"preference"}"#) // different label, same keyword vector
+        let prefs = try store.allNodes().filter { $0.kind == .preference }
+        XCTAssertEqual(prefs.count, 1, "different phrasings with near embeddings collapse semantically")
+        XCTAssertEqual(prefs.first?.mentionCount, 2)
+    }
+
+    func test_saveMemory_uses_detail_as_body() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
+        MemoryToolbox.shared.store = store
+        MemoryToolbox.shared.embedder = FakeEmbedder(dimension: 4)
+        _ = await SaveMemoryTool().run(argsJSON: #"{"entity":"sushi","detail":"loves it for dinner","kind":"preference"}"#)
+        let n = try store.allNodes().first
+        XCTAssertEqual(n?.label, "sushi")
+        XCTAssertEqual(n?.body, "loves it for dinner")
+    }
+
+    func test_saveMemory_body_falls_back_to_entity_when_no_detail() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
+        MemoryToolbox.shared.store = store
+        MemoryToolbox.shared.embedder = FakeEmbedder(dimension: 4)
+        _ = await SaveMemoryTool().run(argsJSON: #"{"entity":"sushi","kind":"preference"}"#)
+        let n = try store.allNodes().first
+        XCTAssertEqual(n?.body, "sushi", "body falls back to entity when detail omitted")
     }
 
     func test_saveMemory_no_store_is_safe() async {

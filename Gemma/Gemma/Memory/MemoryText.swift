@@ -2,8 +2,8 @@ import Foundation
 
 /// Single source of truth for memory label normalization. The small E4B often emits whole
 /// sentences ("me gusta el sushi") or fragments ("me gusta") as labels; this turns them into
-/// clean canonical entities for display and a stable key for dedup. Used by the consolidator,
-/// the remember tool, and MemoryStore's dedup so they all agree.
+/// clean canonical entities for display and a stable key for dedup. Used by SaveMemoryTool
+/// and MemoryStore's dedup so they all agree.
 enum MemoryText {
     private static let likePrefixes = [
         "me gustan ", "me gusta ", "le gusta ", "les gusta ",

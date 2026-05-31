@@ -81,10 +81,12 @@ public final class HarnessModel {
         MemoryToolbox.shared.embedder = memoryEmbedder
         // Build the consolidation engine + scheduler ONCE, then reuse across turns.
         if consolidationScheduler == nil {
-            // Consolidation is reasoning-heavy background work: give it a DEDICATED thinking-on
-            // runtime for quality. Interactive turns keep the shared thinking-off `runtime` (snappy).
-            let engine = MemoryConsolidationEngine(store: store, embedder: memoryEmbedder,
-                                                   runtime: ServerRuntime(enableThinking: true))
+            // Share the turn runtime: the engine now controls thinking per phase via a
+            // GenerationOptions override (reflect/associate think; extraction phases don't), so it
+            // no longer needs a dedicated thinking-on runtime. Safe to share — ServerRuntime is
+            // stateless; turns pass no override (→ thinking-off default), the engine passes explicit
+            // per-phase overrides.
+            let engine = MemoryConsolidationEngine(store: store, embedder: memoryEmbedder, runtime: runtime)
             let sched = ConsolidationScheduler(runner: engine, isReady: { [weak self] in self?.serverManager.state == .ready },
                                                hasPendingCycle: { [weak self] in ((try? self?.memoryStore?.loadSleepCycle()) ?? nil) != nil })
             // Mirror short engine progress into the scheduler's summary so the

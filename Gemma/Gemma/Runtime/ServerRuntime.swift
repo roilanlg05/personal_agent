@@ -52,7 +52,8 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                         "temperature": options.temperature,
                         "stream": false,
                         // Skip the model's hidden chain-of-thought (~48x faster; see `enableThinking`).
-                        "chat_template_kwargs": ["enable_thinking": enableThinking],
+                        // Per-request override wins; else fall back to the runtime's own default.
+                        "chat_template_kwargs": ["enable_thinking": options.enableThinking ?? enableThinking],
                     ]
                     if !tools.isEmpty {
                         body["tools"] = tools.map { type(of: $0).functionSpec }

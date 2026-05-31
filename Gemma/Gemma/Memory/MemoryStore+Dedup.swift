@@ -31,8 +31,11 @@ extension MemoryStore {
     }
 
     /// Nearest same-kind, non-deleted node within `threshold` cosine distance, or nil.
+    /// Fetches a generous candidate set (k=64) and filters to `kind` AFTER, so a same-kind
+    /// duplicate ranked beyond the global top-8 (because closer other-kind vectors crowd it out)
+    /// isn't silently missed. `nearest` scans the whole table anyway, so a larger k is cheap.
     func findSemanticDuplicate(kind: NodeKind, embedding: [Float], threshold: Double) throws -> Node? {
-        for hit in try nearest(to: embedding, k: 8) where hit.distance <= threshold {
+        for hit in try nearest(to: embedding, k: 64) where hit.distance <= threshold {
             if let n = try node(id: hit.id), !n.deleted, n.kind == kind { return n }
         }
         return nil
@@ -43,6 +46,11 @@ extension MemoryStore {
     @discardableResult
     func upsertMergingSemantic(_ candidate: Node, embedding: [Float]?, embedder: Embedder?,
                                threshold: Double = 0.2) throws -> String {
+        // Fix 2: accept either a precomputed embedding OR an embedder — if no embedding was
+        // passed but we have an embedder, compute one from the candidate label.
+        var embedding = embedding
+        if embedding == nil, let embedder { embedding = try? embedder.embed(candidate.label) }
+
         var existing: Node? = nil
         if let embedding { existing = try findSemanticDuplicate(kind: candidate.kind, embedding: embedding, threshold: threshold) }
         if existing == nil { existing = try findDuplicate(kind: candidate.kind, label: candidate.label) }
@@ -50,6 +58,10 @@ extension MemoryStore {
         if let existing {
             let merged = mergeReinforced(existing: existing, candidate: candidate)
             try upsert(merged)
+            // Fix 3: don't leave a merged node embedding-less. Re-setting a vector for the same
+            // cluster is harmless, so always store the embedding on merge when we have one —
+            // this lets future semantic dedup find a node first seen via string-only match.
+            if let embedding { try setEmbedding(nodeId: merged.id, embedding) }
             return merged.id
         } else {
             try upsert(candidate)

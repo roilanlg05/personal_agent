@@ -13,9 +13,10 @@ final class MemoryCoreRecallTests: XCTestCase {
                     origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: nil)
     }
 
-    func testMetaQuestionRecallsPreferencesWithoutEntityMatch() throws {
+    func testMetaQuestionRecallsIdentityPreferencesWithoutEntityMatch() throws {
         let s = try store()
-        // Core is now identity-ONLY, so the always-injected recall path uses identity-layer prefs.
+        // Validates always-on identity-core injection: identity-layer preferences are recalled for
+        // a meta-question that shares no keyword with any entity (no top-salience union involved).
         try s.upsert(node("sushi", .preference, layer: .identity, salience: 8))
         try s.upsert(node("Messi", .preference, layer: .identity, salience: 8))
         let r = MemoryRetriever(store: s, embedder: nil)   // no embedder → pure non-vector path

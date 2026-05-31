@@ -82,7 +82,7 @@ public final class HarnessModel {
                 }
             }
         } catch { agentLog.append("[error: \(error)]") }
-        if let store = memoryStore {
+        if memory != nil, let store = memoryStore {
             EpisodeRecorder.record(store: store, threadId: threadId, turnIndex: turnIndex,
                                    userText: prompt, assistantText: answer)
             turnIndex += 1

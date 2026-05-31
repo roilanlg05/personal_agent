@@ -14,9 +14,10 @@ struct MemoryServices {
     let retriever: MemoryRetriever
 }
 
-/// Orchestrates one agent turn over a tool-calling runtime. With memory: retrieves relevant
-/// memories and injects them into the system prompt (#18), then consolidates the finished
-/// exchange asynchronously. Without memory it behaves exactly as the S4 agent.
+/// Orchestrates one agent turn over a tool-calling runtime. With memory it retrieves relevant
+/// memories and injects them into the system prompt (#18); capture happens in-turn via the
+/// save_memory tool, and the caller records the conversation as episodes. Without memory it
+/// behaves exactly as the S4 agent.
 @MainActor
 final class Agent {
     private let runtime: ToolCallingRuntime

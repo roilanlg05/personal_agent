@@ -9,8 +9,8 @@ import XCTest
 ///
 /// Every case is GATED on the server being reachable so the suite stays green offline.
 /// Assertions are FIRM only on the deterministic pipeline (turn completes, non-empty text,
-/// no crash). Model-dependent behavior (does it call `remember`, does the consolidator extract
-/// "sushi", does recall surface it) is OBSERVED and printed as "⚠️ E2E-OBSERVE:" lines, not
+/// no crash). Model-dependent behavior (does it call `remember`, does recall surface
+/// "sushi") is OBSERVED and printed as "⚠️ E2E-OBSERVE:" lines, not
 /// enforced — the goal is to report real M1 behavior.
 @MainActor
 final class ServerE2ETests: XCTestCase {
@@ -171,7 +171,7 @@ final class ServerE2ETests: XCTestCase {
         if let sn = sushiNode {
             observe("⚠️ E2E-OBSERVE: sushi node PRESENT via origin=\(sn.origin.rawValue) label=\"\(sn.label)\"")
         } else {
-            observe("⚠️ E2E-OBSERVE: sushi node ABSENT — neither remember-tool nor consolidator saved it")
+            observe("⚠️ E2E-OBSERVE: sushi node ABSENT — save_memory was not called for it")
         }
 
         // --- Turn B: recall (new Agent, same store/toolbox) ---

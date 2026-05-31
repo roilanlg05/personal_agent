@@ -17,6 +17,11 @@ public final class HarnessModel {
     @ObservationIgnored private let threadId = UUID().uuidString
     @ObservationIgnored private var turnIndex = 0
 
+    /// Consolidation engine (phase ops) — built once, reused. Not observed.
+    @ObservationIgnored private var consolidationEngine: MemoryConsolidationEngine?
+    /// Scheduler driving awake/sleep consolidation — observed so the UI banner reacts.
+    private(set) var consolidationScheduler: ConsolidationScheduler?
+
     /// Owns the local mlx-lm server process lifecycle (M2a).
     let serverManager = ServerManager()
 
@@ -58,17 +63,37 @@ public final class HarnessModel {
         guard let store = memoryStore else { return nil }
         MemoryToolbox.shared.store = store
         MemoryToolbox.shared.embedder = memoryEmbedder
+        // Build the consolidation engine + scheduler ONCE, then reuse across turns.
+        if consolidationScheduler == nil {
+            let engine = MemoryConsolidationEngine(store: store, embedder: memoryEmbedder, runtime: runtime)
+            let sched = ConsolidationScheduler(runner: engine, isReady: { [weak self] in self?.serverManager.state == .ready })
+            // Mirror short engine progress into the scheduler's summary so the
+            // ".done" banner can show what changed.
+            engine.onProgress = { [weak sched] mark in
+                Task { @MainActor [weak sched] in sched?.lastSummary = mark }
+            }
+            MemoryToolbox.shared.reflectionRequest = { [weak sched] in sched?.requestLightReflection() }
+            self.consolidationEngine = engine
+            self.consolidationScheduler = sched
+        }
         let retriever = MemoryRetriever(store: store, embedder: memoryEmbedder)
         return MemoryServices(retriever: retriever)
     }
+
+    /// Manually kick off a full consolidation cycle (toolbar "Consolidar").
+    func consolidateNow() { consolidationScheduler?.consolidateNow() }
 
     public func runAgentTurn(_ prompt: String) async {
         agentRunning = true; defer { agentRunning = false }
         agentLog.append("you: \(prompt)")
         let memory = ensureMemory()
+        // Cancel any in-flight consolidation and restart the idle/pause countdown.
+        consolidationScheduler?.noteUserActivity()
         let registry = ToolRegistry()
         registry.register(CurrentTimeTool())
-        if memory != nil { registry.register(SaveMemoryTool()); registry.register(ForgetTool()) }
+        if memory != nil {
+            registry.register(SaveMemoryTool()); registry.register(ForgetTool()); registry.register(ReflectTool())
+        }
         let agent = Agent(runtime: runtime, registry: registry, memory: memory)
         var answer = ""
         do {
@@ -87,5 +112,7 @@ public final class HarnessModel {
                                    userText: prompt, assistantText: answer)
             turnIndex += 1
         }
+        // Restart the idle/pause countdown from end-of-turn.
+        consolidationScheduler?.noteUserActivity()
     }
 }

@@ -82,14 +82,17 @@ struct MemoryGraphView: View {
         }
     }
 
+    /// Distinct kinds actually present, sorted — includes model-minted/unknown kinds.
+    private var presentKinds: [String] {
+        Array(Set(nodes.map(\.kind))).sorted()
+    }
+
     private var legend: some View {
         VStack(alignment: .leading, spacing: 2) {
-            ForEach(NodeKind.allCases, id: \.self) { kind in
-                if nodes.contains(where: { $0.kind == kind.rawValue }) {
-                    HStack(spacing: 4) {
-                        Circle().fill(MemoryNodeMarker.color(for: kind.rawValue)).frame(width: 8, height: 8)
-                        Text(kind.rawValue).font(.caption2)
-                    }
+            ForEach(presentKinds, id: \.self) { kind in
+                HStack(spacing: 4) {
+                    Circle().fill(MemoryNodeMarker.color(for: kind)).frame(width: 8, height: 8)
+                    Text(kind).font(.caption2)
                 }
             }
         }

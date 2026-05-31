@@ -35,17 +35,43 @@ struct AgentChatView: View {
         }
     }
 
+    /// Consolidation status, shown only while reflecting/sleeping or briefly after.
+    /// `.done` lingers until the next user turn calls `noteUserActivity()` (which
+    /// resets state to `.idle`) — i.e. it auto-clears on the next interaction.
+    @ViewBuilder private var consolidationBanner: some View {
+        switch model.consolidationScheduler?.state {
+        case .reflecting:
+            Label("Reflexionando…", systemImage: "sparkles").font(.caption).foregroundStyle(.secondary)
+        case .sleeping(let phase):
+            Label("Consolidando — \(phase)…", systemImage: "moon.stars").font(.caption).foregroundStyle(.secondary)
+        case .done(let mark):
+            let summary = model.consolidationScheduler?.lastSummary ?? ""
+            Label("\(mark) memoria consolidada\(summary.isEmpty ? "" : " (\(summary))")",
+                  systemImage: "checkmark").font(.caption).foregroundStyle(.green)
+        default:
+            EmptyView()
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             serverBanner
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal).padding(.top, 8)
+            consolidationBanner
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
             transcript
             Divider()
             inputBar
         }
         .frame(minWidth: 560, minHeight: 420)
         .toolbar {
+            ToolbarItem {
+                Button { model.consolidateNow() } label: {
+                    Label("Consolidar", systemImage: "moon.zzz")
+                }
+            }
             ToolbarItem {
                 Button { model.showMemory = true } label: {
                     Label("Memory", systemImage: "brain")

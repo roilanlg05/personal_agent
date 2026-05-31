@@ -44,12 +44,11 @@ struct MemoryGraphView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
             .onTapGesture { selectedID = nil }
-            .onChange(of: geo.size) { _, newSize in
-                if canvasSize == .zero { canvasSize = newSize; recomputeLayout() }
+            .onChange(of: geo.size) { oldSize, newSize in
+                handleSizeChange(from: oldSize, to: newSize)
             }
             .onAppear {
-                if canvasSize == .zero { canvasSize = geo.size }
-                if positions.isEmpty { recomputeLayout() }
+                handleSizeChange(from: .zero, to: geo.size)
             }
         }
     }
@@ -102,14 +101,51 @@ struct MemoryGraphView: View {
         nodes = (try? store?.allNodes()) ?? []
         edges = (try? store?.allEdges()) ?? []
         if let sel = selectedID, !nodes.contains(where: { $0.id == sel }) { selectedID = nil }
-        recomputeLayout()
+        // Drop stale positions so the next layout pass starts fresh for the new node set.
+        positions = [:]
+        // Defer the full layout until a real canvas size is known (avoids a wasted
+        // pass against a fallback size). If size is already known, lay out now.
+        if canvasSize != .zero { recomputeLayout() }
+    }
+
+    /// Respond to the canvas size becoming known or changing.
+    /// - First real size: run one full force-directed layout at the correct size.
+    /// - Subsequent real size changes: rescale existing positions proportionally and
+    ///   re-clamp, preserving the relative arrangement and any manual drags (no resim).
+    private func handleSizeChange(from oldSize: CGSize, to newSize: CGSize) {
+        guard newSize.width > 0, newSize.height > 0 else { return }
+        let previous = canvasSize
+        canvasSize = newSize
+
+        if previous == .zero {
+            // First time we have a real size: lay out once (if not already laid out).
+            if positions.isEmpty { recomputeLayout() }
+        } else if newSize != previous {
+            // Real resize: rescale stored positions proportionally, keep drags.
+            rescalePositions(from: previous, to: newSize)
+        }
     }
 
     private func recomputeLayout() {
-        let size = canvasSize == .zero ? CGSize(width: 600, height: 400) : canvasSize
+        guard canvasSize != .zero else { return }
         let ids = nodes.map(\.id)
         let pairs = edges.map { ($0.srcId, $0.dstId) }
-        positions = ForceDirectedLayout.layout(nodeIDs: ids, edges: pairs, in: size)
+        positions = ForceDirectedLayout.layout(nodeIDs: ids, edges: pairs, in: canvasSize)
+    }
+
+    /// Scale every stored position from `oldSize` to `newSize` and clamp into the
+    /// new bounds (margin-inset), preserving relative arrangement and manual drags.
+    private func rescalePositions(from oldSize: CGSize, to newSize: CGSize) {
+        guard oldSize.width > 0, oldSize.height > 0 else { return }
+        let margin = ForceDirectedLayout.margin
+        let maxX = max(Double(newSize.width) - margin, margin)
+        let maxY = max(Double(newSize.height) - margin, margin)
+        for (id, p) in positions {
+            let x = Double(p.x) / Double(oldSize.width) * Double(newSize.width)
+            let y = Double(p.y) / Double(oldSize.height) * Double(newSize.height)
+            positions[id] = CGPoint(x: min(max(x, margin), maxX),
+                                    y: min(max(y, margin), maxY))
+        }
     }
 }
 

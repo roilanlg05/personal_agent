@@ -6,10 +6,14 @@ final class ForceDirectedLayoutTests: XCTestCase {
     private let size = CGSize(width: 400, height: 300)
 
     private func assertWithinBounds(_ positions: [String: CGPoint], _ size: CGSize) {
+        // The layout clamps into a margin-inset box, not the full 0...size box.
+        let margin = CGFloat(ForceDirectedLayout.margin)
+        let minX = margin, maxX = size.width - margin
+        let minY = margin, maxY = size.height - margin
         for (_, p) in positions {
             XCTAssertTrue(p.x.isFinite && p.y.isFinite, "position must be finite: \(p)")
-            XCTAssertTrue(p.x >= 0 && p.x <= size.width, "x out of bounds: \(p.x)")
-            XCTAssertTrue(p.y >= 0 && p.y <= size.height, "y out of bounds: \(p.y)")
+            XCTAssertTrue(p.x >= minX && p.x <= maxX, "x out of margin-inset bounds: \(p.x)")
+            XCTAssertTrue(p.y >= minY && p.y <= maxY, "y out of margin-inset bounds: \(p.y)")
         }
     }
 

@@ -12,8 +12,13 @@ struct GraphLayoutNode {
 /// layout. Nodes are seeded on a circle (by index) so the same input always
 /// produces the same output — making it reproducible and unit-testable.
 struct ForceDirectedLayout {
+    /// Margin (in points) kept between node positions and the canvas edges.
+    static let margin: Double = 8.0
+
     /// Lay out `nodeIDs` connected by `edges` within `size`.
     /// - Returns: a map of node id -> position, all finite and clamped into `size`.
+    /// - Note: O(n²) per iteration (all-pairs repulsion); intended for small graphs
+    ///   (≲ ~150 nodes). Larger graphs would need Barnes–Hut approximation or fewer iterations.
     static func layout(nodeIDs: [String],
                        edges: [(String, String)],
                        in size: CGSize,
@@ -105,7 +110,7 @@ struct ForceDirectedLayout {
                 y += (Double(center.y) - y) * 0.01
 
                 // Clamp into bounds with a small margin.
-                let margin = 8.0
+                let margin = Self.margin
                 x = min(max(x, margin), Double(width) - margin)
                 y = min(max(y, margin), Double(height) - margin)
 

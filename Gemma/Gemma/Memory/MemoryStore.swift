@@ -122,6 +122,9 @@ nonisolated final class MemoryStore {
     func edges(from id: String) throws -> [Edge] {
         try dbQueue.read { try Edge.filter(Column("srcId") == id && Column("deleted") == false).fetchAll($0) }
     }
+    func allEdges() throws -> [Edge] {
+        try dbQueue.read { try Edge.filter(Column("deleted") == false).fetchAll($0) }
+    }
     func softDelete(nodeId: String) throws {
         try dbQueue.write { db in
             try db.execute(sql: "UPDATE node SET deleted=1, dirty=1, updatedAt=? WHERE id=?",

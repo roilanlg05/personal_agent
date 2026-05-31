@@ -56,7 +56,7 @@ struct AgentChatView: View {
             NavigationStack {
                 Group {
                     if model.inspectorStore() != nil {
-                        MemoryInspectorView(store: model.inspectorStore())
+                        MemoryView(store: model.inspectorStore())
                     } else {
                         ContentUnavailableView("No memory store", systemImage: "brain",
                                                description: Text("Memory is disabled or not yet initialized. Send a message with memory enabled, then reopen."))

@@ -110,3 +110,15 @@ The **pre-warm doubles as the readiness gate**: `ready` means the model has actu
 ## 8. File structure
 **New:** `Runtime/ServerManager.swift` (ServerManager + ServerState + ServerConfig + ProcessLauncher protocol + real launcher + ServerProcessHandle), tests `GemmaTests/ServerManagerTests.swift`.
 **Modified:** `Harness/HarnessModel.swift` (own + start/stop ServerManager, expose state), `Harness/AgentChatView.swift` (status pill, gate Send, failure UI + Retry), `GemmaApp.swift` (stop on terminate), `Gemma/Gemma.entitlements` + `project.pbxproj` (remove app-sandbox).
+
+## 9. Resultado M2a (VERIFICADO 2026-05-31)
+
+Plan `docs/superpowers/plans/2026-05-30-m2a-server-lifecycle.md` ejecutado completo (subagent-driven, doble review spec+calidad por tarea). Commits en `main` `cb893b7`…`057b7b9`.
+
+- **Sandbox** quitado (entitlements vacíos) → la app puede lanzar `Process`.
+- **`ServerManager`** (`@MainActor @Observable`): attach-si-ya-corre / spawn-si-no → poll `/v1/models` → pre-warm (= gate de `.ready`) → keep-alive cada ~75s; `stop()` mata solo el proceso propio; observer `willTerminate`→stop. Deps inyectadas (launcher/health) → 12 unit tests con fakes (sin Python/red).
+- **Bugs reales encontrados+arreglados en review:** orphan-on-retry (mata el proceso propio antes de re-probar), generation-guard contra callbacks de exit rezagados, drain de stdout (evita colgar al hijo), `manualCommand` funcional, **guard de re-entrancia en `start()`** (un Retry durante el arranque ya no mata su propio proceso), y **guard de XCTest** (el host de tests ya no spawnea el server de 15GB → cero huérfanos tras la suite). Tipos de datos/IO marcados `nonisolated` → cero warnings de concurrencia.
+- **UI** (`AgentChatView`): status pill (Iniciando/Cargando modelo/Listo/Detenido/Error), Send bloqueado hasta `.ready`, fallo muestra razón + comando manual + Retry.
+- **E2E real verificado (`ServerManagerLiveTests`, gated `GEMMA_LIVE_SERVER=1`, vía `TEST_RUNNER_` prefix):** spawn real del `mlx_lm.server` → `.ready` en **~21s** (caché caliente) → probe confirma serving → `stop()` → proceso muerto, **sin huérfano**. Suite completa verde con los tests live/E2E en skip.
+- **Pendiente (humano):** check visual de la GUI (`⌘R` en Xcode) — el plumbing está verificado por el test live.
+- **Limitaciones conocidas (fuera de M2a):** un crash/SIGKILL de la app (no quit limpio) puede dejar huérfano el server (solo `willTerminate` lo limpia); `.task` envuelve un `Task` detached (benigno para app de una ventana). M2b = captura v2; M2c = Settings UI (host/port/modelo/intervalo keep-warm) + imagen NSImage.

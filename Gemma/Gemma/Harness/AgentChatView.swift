@@ -77,6 +77,10 @@ struct AgentChatView: View {
                     Label("Memory", systemImage: "brain")
                 }
             }
+            ToolbarItem {
+                // In-window shortcut to the Settings scene (also at ⌘, / Gemma → Settings…).
+                SettingsLink { Label("Settings", systemImage: "gear") }
+            }
         }
         .sheet(isPresented: $model.showMemory) {
             NavigationStack {

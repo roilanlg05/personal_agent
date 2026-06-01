@@ -69,4 +69,51 @@ final class ServerManagerLiveTests: XCTestCase {
         print(String(format: "[live] server down=%@ after %.1fs from stop()", down ? "true" : "false", stopElapsed))
         XCTAssertTrue(down, "stop() should terminate the owned process so the port goes down within ~5s")
     }
+
+    /// Regression for the "Mantener el modelo en memoria" bug: toggling resident ON restarts the
+    /// server with a wired limit. The restart must wait for the old (owned) server to go down before
+    /// spawning, or start() attaches to the dying server and leaves nothing once it exits.
+    /// This exercises the REAL stop→wait→spawn timing race with two real 15GB loads.
+    func test_live_setWiredLimit_restarts_into_wired_server() async throws {
+        let env = ProcessInfo.processInfo.environment
+        let enabled = (env["GEMMA_LIVE_SERVER"] == "1") || (env["TEST_RUNNER_GEMMA_LIVE_SERVER"] == "1")
+        try XCTSkipUnless(enabled, "set GEMMA_LIVE_SERVER=1 to run the live server test")
+        try XCTSkipUnless(
+            FileManager.default.isExecutableFile(atPath: ServerConfig.default.pythonBinURL.path),
+            "venv python not found")
+
+        var config = ServerConfig.default
+        config.wiredLimitBytes = 0   // start pageable, like the app default
+        let health = HTTPServerHealth()
+        let portFree = !(await health.probe(config))
+        try XCTSkipUnless(portFree,
+            "port \(config.port) already in use — can't exercise the self-spawn path")
+
+        let m = ServerManager(config: config)
+        print("[live] start() pageable…")
+        await m.start()
+        XCTAssertEqual(m.state, .ready, "pageable server should reach .ready; state=\(m.state)")
+
+        // Flip to resident: restart with the 16 GiB wired limit. The bug was: this attached to the
+        // dying pageable server and the model went away → next request failed to connect.
+        print("[live] setWiredLimit(16 GiB) — restarting into wired…")
+        let t0 = Date()
+        await m.setWiredLimit(HarnessModel.residentWiredLimitBytes)
+        print(String(format: "[live] restart returned after %.1fs, state=%@",
+                     Date().timeIntervalSince(t0), String(describing: m.state)))
+        XCTAssertEqual(m.state, .ready, "wired server should reach .ready after restart; state=\(m.state)")
+
+        // The key regression assertion: the server is ACTUALLY serving (not a dead corpse we attached to).
+        let serving = await HTTPServerHealth().probe(config)
+        XCTAssertTrue(serving, "after restart the wired server must actually be serving on the port")
+
+        m.stop()
+        XCTAssertEqual(m.state, .stopped)
+        var down = false
+        for _ in 0..<10 {
+            if !(await HTTPServerHealth().probe(config)) { down = true; break }
+            try? await Task.sleep(for: .milliseconds(500))
+        }
+        XCTAssertTrue(down, "stop() should terminate the owned wired server")
+    }
 }

@@ -195,14 +195,34 @@ final class ServerManagerTests: XCTestCase {
 
     func test_setWiredLimit_change_restarts_with_new_limit() async {
         let launcher = FakeLauncher()
-        // start: spawn→ready ; setWiredLimit: stop()+start() → probe false then true → spawn again
-        let health = FakeHealth(probeResults: [false, true, false, true])
+        // probes: start→ [#1 false=spawn, #2 true=up]; restart→ [#3 false=already-down (waitForDown returns),
+        //         #4 false=spawn path, #5 true=up].
+        let health = FakeHealth(probeResults: [false, true, false, false, true])
         let m = makeManager(launcher: launcher, health: health)
         await m.start()
         XCTAssertEqual(launcher.launchCount, 1)
         await m.setWiredLimit(17_179_869_184)
         XCTAssertEqual(m.state, .ready)
         XCTAssertEqual(launcher.launchCount, 2, "changing the wired limit must restart (stop+start)")
+        XCTAssertTrue(launcher.handles[0].terminated, "old process must be terminated on restart")
+    }
+
+    /// Regression for the restart race: stop() only SIGTERMs the old server and returns; if start()
+    /// probes while the old (owned) server is still shutting down (~40-250ms), it would wrongly ATTACH
+    /// to the dying server instead of spawning the new one — leaving NO server once the old one exits.
+    /// The fix waits for the owned server to go down before starting, so a fresh spawn always happens.
+    func test_setWiredLimit_waitsForOldServerDown_thenSpawns_notAttach() async {
+        let launcher = FakeLauncher()
+        // probes: start→ [#1 false=spawn, #2 true=up]; restart→ [#3 true=old server STILL lingering,
+        //         #4 false=now down (waitForDown returns), #5 false=spawn path, #6 true=up].
+        let health = FakeHealth(probeResults: [false, true, true, false, false, true])
+        let m = makeManager(launcher: launcher, health: health)
+        await m.start()
+        XCTAssertEqual(launcher.launchCount, 1)
+        await m.setWiredLimit(17_179_869_184)
+        XCTAssertEqual(m.state, .ready)
+        XCTAssertEqual(launcher.launchCount, 2,
+                       "restart must SPAWN the new (wired) server, not attach to the dying old one")
         XCTAssertTrue(launcher.handles[0].terminated, "old process must be terminated on restart")
     }
 

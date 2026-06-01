@@ -82,12 +82,13 @@ final class SleepConsolidationE2ETests: XCTestCase {
         let memStore = dim == 512 ? store : try MemoryStore(inMemory: true, embeddingDim: dim)
 
         // Match production: all consolidation phases run thinking-OFF (the runtime's default).
+        let ts = TranscriptStore(dbQueue: memStore.dbQueue)
         let runtime = ServerRuntime()
-        let engine = MemoryConsolidationEngine(store: memStore, embedder: embedder, runtime: runtime)
+        let engine = MemoryConsolidationEngine(store: memStore, embedder: embedder, runtime: runtime, transcriptStore: ts)
         engine.onProgress = { [weak self] msg in self?.observe("🔧 E2E-OBSERVE: progress: \(msg)") }
 
-        // --- Seed a short conversation as unconsolidated episodes (thread "T") ---
-        // Inline node upserts (EpisodeRecorder removed in M2d-1; TranscriptStore owns raw turns).
+        // --- Seed a short conversation into the TranscriptStore (thread "T") ---
+        // M2d-2: consolidation sources raw turns from the transcript, not graph nodes.
         let turns: [(user: String, assistant: String)] = [
             ("Me llamo Roilan y me gusta el sushi y el fútbol.",
              "¡Encantado, Roilan! Buena combinación."),
@@ -100,27 +101,12 @@ final class SleepConsolidationE2ETests: XCTestCase {
         ]
         let t0 = Date().timeIntervalSince1970
         for (i, turn) in turns.enumerated() {
-            for (role, text) in [("user", turn.user), ("assistant", turn.assistant)] {
-                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { continue }
-                let extra = #"{"threadId":"T","role":"\#(role)","turnIndex":\#(i),"status":"closed"}"#
-                let preview = String(trimmed.prefix(60))
-                let node = Node(id: UUID().uuidString,
-                                kind: NodeKind.conversation.rawValue,
-                                label: "\(role): \(preview)", body: trimmed,
-                                layer: .episodic,
-                                createdAt: t0 + Double(i), updatedAt: t0 + Double(i),
-                                lastSeenAt: t0 + Double(i),
-                                salience: 2, decayRate: 0.001, confidence: .sure,
-                                mentionCount: 1, ttlExpiresAt: nil, sourceRef: "T",
-                                origin: .extracted, serverId: nil, dirty: true, deleted: false,
-                                extra: extra)
-                try memStore.upsert(node)
-            }
+            try ts.append(threadId: "T", turnIndex: i, role: "user", text: turn.user, now: t0 + Double(i))
+            try ts.append(threadId: "T", turnIndex: i, role: "assistant", text: turn.assistant, now: t0 + Double(i) + 0.001)
         }
-        let seeded = try memStore.unconsolidatedEpisodes()
-        observe("⚠️ E2E-OBSERVE: seeded unconsolidated episodes count=\(seeded.count)")
-        XCTAssertGreaterThan(seeded.count, 0, "fixture should seed unconsolidated episode nodes")
+        let seeded = try ts.unconsolidated(limit: 100)
+        observe("⚠️ E2E-OBSERVE: seeded unconsolidated transcript turns count=\(seeded.count)")
+        XCTAssertGreaterThan(seeded.count, 0, "fixture should seed unconsolidated transcript turns")
 
         // --- Run a full resumable cycle against the real 26B ---
         observe("⚠️ E2E-OBSERVE: running full sleep cycle (NREM→REM→Reflect→Curate→SHY)...")
@@ -159,10 +145,10 @@ final class SleepConsolidationE2ETests: XCTestCase {
         observe("⚠️ E2E-OBSERVE: distinct kinds=\(kinds)")
         observe("⚠️ E2E-OBSERVE: non-standard kinds remaining after Curate=\(nonStandard)")
 
-        // (5) Cycle completion: episodes consolidated, sleep_cycle cleared.
-        let remainingEpisodes = try memStore.unconsolidatedEpisodes()
+        // (5) Cycle completion: transcript turns consolidated, sleep_cycle cleared.
+        let remainingEpisodes = try ts.unconsolidated(limit: 100)
         let cycle = try memStore.loadSleepCycle()
-        observe("⚠️ E2E-OBSERVE: remaining unconsolidated episodes=\(remainingEpisodes.count) sleepCycle=\(cycle == nil ? "nil" : "present")")
+        observe("⚠️ E2E-OBSERVE: remaining unconsolidated transcript turns=\(remainingEpisodes.count) sleepCycle=\(cycle == nil ? "nil" : "present")")
 
         // ====================== ASSERTIONS ======================
         // FIRM — deterministic pipeline only:

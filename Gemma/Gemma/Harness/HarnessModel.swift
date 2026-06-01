@@ -13,6 +13,7 @@ public final class HarnessModel {
     @ObservationIgnored private let settingsStore = SettingsStore()
     @ObservationIgnored private(set) var settings: GenerationSettings
     @ObservationIgnored private var memoryStore: MemoryStore?
+    @ObservationIgnored private var transcriptStore: TranscriptStore?
     @ObservationIgnored private var lastTurnEndedAt: Double = 0
     private static let wakeGapSeconds: Double = 180   // first turn or a gap > this = a "wake"
 
@@ -84,10 +85,11 @@ public final class HarnessModel {
 
     func inspectorStore() -> MemoryStore? { memoryStore }
 
-    private func makeGenerationOptions() -> GenerationOptions {
+    private func makeGenerationOptions(history: [ChatMessage] = []) -> GenerationOptions {
         GenerationOptions(maxTokens: settings.maxOutputTokens, temperature: settings.temperature,
                           topP: settings.topP, topK: settings.topK,
-                          systemPrompt: settings.systemPrompt.isEmpty ? nil : settings.systemPrompt)
+                          systemPrompt: settings.systemPrompt.isEmpty ? nil : settings.systemPrompt,
+                          history: history)
     }
 
     private func ensureMemory() -> MemoryServices? {
@@ -98,6 +100,7 @@ public final class HarnessModel {
             memoryStore = try? MemoryStore(url: try? MemoryStore.defaultURL(), embeddingDim: dim)
         }
         guard let store = memoryStore else { return nil }
+        if transcriptStore == nil { transcriptStore = TranscriptStore(dbQueue: store.dbQueue) }
         MemoryToolbox.shared.store = store
         MemoryToolbox.shared.embedder = memoryEmbedder
         // Build the consolidation engine + scheduler ONCE, then reuse across turns.
@@ -151,7 +154,7 @@ public final class HarnessModel {
         let registry = ToolRegistry()
         registry.register(CurrentTimeTool())
         if memory != nil {
-            registry.register(SaveMemoryTool()); registry.register(ForgetTool()); registry.register(ReflectTool())
+            registry.register(ForgetTool()); registry.register(ReflectTool())
         }
         let now = Date().timeIntervalSince1970
         let isWake = (lastTurnEndedAt == 0) || (now - lastTurnEndedAt > Self.wakeGapSeconds)
@@ -160,10 +163,17 @@ public final class HarnessModel {
         let focus = wasConsolidating ? (((try? memoryStore?.loadSleepCycle()) ?? nil)?.focus ?? "") : ""
         let followUps = isWake ? (((try? memoryStore?.pendingFollowUps()) ?? nil)?.map { $0.body } ?? []) : []
         let wakeContext = Self.buildWakeContext(focus: focus, followUps: followUps, isWake: isWake)
+        let history: [ChatMessage] = {
+            guard let ts = transcriptStore else { return [] }
+            let rows = (try? ts.recent(threadId: threadId,
+                                       maxTurns: ConversationWindow.defaultMaxTurns,
+                                       maxChars: ConversationWindow.defaultMaxChars)) ?? []
+            return ConversationWindow.messages(from: rows)
+        }()
         let agent = Agent(runtime: runtime, registry: registry, memory: memory, wakeContext: wakeContext)
         var answer = ""
         do {
-            for try await event in agent.run(prompt: prompt, options: makeGenerationOptions()) {
+            for try await event in agent.run(prompt: prompt, options: makeGenerationOptions(history: history)) {
                 switch event {
                 case .token(let t): answer += t
                 case .toolCallStarted(let n, _): agentLog.append("🔧 \(n)…")
@@ -173,9 +183,12 @@ public final class HarnessModel {
                 }
             }
         } catch { agentLog.append("[error: \(error)]") }
-        if memory != nil, let store = memoryStore {
-            EpisodeRecorder.record(store: store, threadId: threadId, turnIndex: turnIndex,
-                                   userText: prompt, assistantText: answer)
+        if let ts = transcriptStore {
+            let now = Date().timeIntervalSince1970
+            try? ts.append(threadId: threadId, turnIndex: turnIndex, role: "user", text: prompt, now: now)
+            if !answer.isEmpty {
+                try? ts.append(threadId: threadId, turnIndex: turnIndex, role: "assistant", text: answer, now: now)
+            }
             turnIndex += 1
         }
         lastTurnEndedAt = Date().timeIntervalSince1970

@@ -82,6 +82,13 @@ nonisolated final class TranscriptStore {
         }
     }
 
+    /// Newest-first turns across all threads — for the read-only Transcript inspector.
+    func allRecent(limit: Int) throws -> [TranscriptRow] {
+        try dbQueue.read { db in
+            try TranscriptRow.order(Column("createdAt").desc, Column("turnIndex").desc).limit(limit).fetchAll(db)
+        }
+    }
+
     func markConsolidated(ids: [String]) throws {
         guard !ids.isEmpty else { return }
         try dbQueue.write { db in

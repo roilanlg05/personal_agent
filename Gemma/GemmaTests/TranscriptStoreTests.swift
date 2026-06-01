@@ -69,4 +69,12 @@ final class TranscriptStoreTests: XCTestCase {
         XCTAssertEqual(rows.map { $0.text }, ["a", "b"], "rows(ids:) returns the rows oldest-first")
         XCTAssertEqual(try s.rows(ids: []).count, 0)
     }
+
+    func test_allRecent_returnsNewestFirst_acrossThreads() throws {
+        let s = try makeStore()
+        try s.append(threadId: "a", turnIndex: 0, role: "user", text: "one", now: 1)
+        try s.append(threadId: "b", turnIndex: 0, role: "user", text: "two", now: 2)
+        let rows = try s.allRecent(limit: 10)
+        XCTAssertEqual(rows.map { $0.text }, ["two", "one"], "newest first across all threads")
+    }
 }

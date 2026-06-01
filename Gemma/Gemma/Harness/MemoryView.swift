@@ -4,7 +4,7 @@ import SwiftUI
 struct MemoryView: View {
     let store: MemoryStore?
 
-    private enum Mode: String, CaseIterable { case lista = "Lista", grafo = "Grafo" }
+    private enum Mode: String, CaseIterable { case lista = "Lista", grafo = "Grafo", transcript = "Transcript" }
     @State private var mode: Mode = .grafo
 
     var body: some View {
@@ -19,6 +19,7 @@ struct MemoryView: View {
             switch mode {
             case .lista: MemoryInspectorView(store: store)
             case .grafo: MemoryGraphView(store: store)
+            case .transcript: TranscriptInspectorView(store: store)
             }
         }
     }

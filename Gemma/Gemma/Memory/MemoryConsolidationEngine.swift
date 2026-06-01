@@ -8,12 +8,15 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
     private let store: MemoryStore
     private let embedder: Embedder?
     private let runtime: ModelRuntime
+    private let transcriptStore: TranscriptStore
     private let now: () -> Double
     var onProgress: ((String) -> Void)?   // e.g. "+2 entities", "+1 edge"
 
     init(store: MemoryStore, embedder: Embedder?, runtime: ModelRuntime,
+         transcriptStore: TranscriptStore? = nil,
          now: @escaping () -> Double = { Date().timeIntervalSince1970 }) {
-        self.store = store; self.embedder = embedder; self.runtime = runtime; self.now = now
+        self.store = store; self.embedder = embedder; self.runtime = runtime
+        self.transcriptStore = transcriptStore ?? TranscriptStore(dbQueue: store.dbQueue); self.now = now
     }
 
     // MARK: shared
@@ -88,6 +91,57 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
             if (try? store.upsertMergingSemantic(node, embedding: emb, embedder: embedder)) != nil { added += 1 }
         }
         onProgress?("+\(added) entities")
+    }
+
+    // MARK: Transcript helper
+
+    private func episodeTexts(ids: [String]) -> [String] {
+        let rows = (try? transcriptStore.rows(ids: ids)) ?? []
+        return rows.map { "\($0.role == "assistant" ? "Gemma" : "User"): \($0.text)" }
+    }
+
+    // MARK: Summarize — distill segment into a structured summary node
+
+    private struct SummaryOut: Decodable {
+        let topic: String; let concepts: [String]
+        let intent: String?; let decisions: [String]?; let importance: Double?; let summary: String?
+    }
+
+    /// Distill one chat segment into a structured `summary` node ("the ruta"): topic + condensed
+    /// concepts, embedded on the concepts (not raw turns) for precise recall. Records threadId +
+    /// turnRange in `extra` for later drill-down (M2d-3).
+    func summarize(episodeTexts: [String], threadId: String, turnRange: ClosedRange<Int>) async {
+        guard !episodeTexts.isEmpty else { return }
+        let convo = episodeTexts.joined(separator: "\n")
+        let prompt = """
+        Summarize this conversation segment as STRUCTURED knowledge about ONE user. Output JSON only.
+        Give a short `topic` (2-5 words), the key `concepts` (short noun phrases), the user's `intent`, \
+        any `decisions` made, an `importance` 0..1, and a one-sentence `summary`. Don't invent.
+        Schema: {"topic":"...","concepts":["..."],"intent":"...","decisions":["..."],"importance":0.5,"summary":"..."}
+        Conversation:
+        \(convo)
+        JSON:
+        """
+        guard let out = parse(await generate(prompt, maxTokens: 512), SummaryOut.self) else { return }
+        let topic = MemoryText.cleanLabel(out.topic)
+        guard !topic.isEmpty, !MemoryText.isJunkLabel(topic) else { return }
+        let t = now()
+        let extra: [String: Any] = [
+            "concepts": out.concepts, "intent": out.intent ?? "", "decisions": out.decisions ?? [],
+            "importance": out.importance ?? 0.5, "threadId": threadId,
+            "turnRange": [turnRange.lowerBound, turnRange.upperBound],
+        ]
+        let extraJSON = (try? JSONSerialization.data(withJSONObject: extra)).flatMap { String(data: $0, encoding: .utf8) }
+        let body = (out.summary?.isEmpty == false) ? out.summary! : topic
+        let node = Node(id: UUID().uuidString, kind: NodeKind.summary.rawValue, label: topic, body: body,
+                        layer: .daily, createdAt: t, updatedAt: t, lastSeenAt: t, salience: 4,
+                        decayRate: Decay.defaultDecayRate(for: .daily), confidence: .probable, mentionCount: 1,
+                        ttlExpiresAt: nil, sourceRef: threadId, origin: .extracted, serverId: nil,
+                        dirty: true, deleted: false, extra: extraJSON)
+        let conceptText = ([topic] + out.concepts).joined(separator: " ")
+        let emb = (try? embedder?.embed(conceptText)) ?? nil
+        _ = try? store.upsertMergingSemantic(node, embedding: emb, embedder: embedder)
+        onProgress?("+1 summary")
     }
 
     // MARK: Detect — mine unresolved threads into follow_up nodes
@@ -265,20 +319,21 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         if let existing = (try? store.loadSleepCycle()) ?? nil {
             state = existing
         } else {
-            let batch = ((try? store.unconsolidatedEpisodes()) ?? []).map { $0.id }
+            let pending = ((try? transcriptStore.unconsolidated(limit: 200)) ?? [])
+            let batch = pending.map { $0.id }
             guard !batch.isEmpty else { return }
-            let texts0 = batch.compactMap { (try? store.node(id: $0))?.body }
+            let texts0 = episodeTexts(ids: batch)
             let focus = String(texts0.joined(separator: " · ").prefix(100))
             state = SleepCycleState(phase: .nrem, episodeIds: batch, startedAt: now(), focus: focus)
             try? store.saveSleepCycle(state)
         }
-        let order: [SleepPhase] = [.nrem, .detect, .rem, .reflect, .curate, .shy]
+        let order: [SleepPhase] = [.nrem, .summarize, .detect, .rem, .reflect, .curate, .shy]
         guard let startIdx = order.firstIndex(of: state.phase) else { return }
         for phase in order[startIdx...] {
             if isCancelled() { return }   // leave persisted phase for resume
             switch phase {
             case .nrem:
-                let texts = state.episodeIds.compactMap { (try? store.node(id: $0))?.body }
+                let texts = episodeTexts(ids: state.episodeIds)
                 await consolidate(episodeTexts: texts)
                 // Refine focus to the consolidated entities (semantic, reads naturally) now that
                 // NREM has minted nodes. The initial positional focus set at cycle start stays the
@@ -294,8 +349,14 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
                     state.focus = String(salient.joined(separator: ", ").prefix(100))
                     try? store.saveSleepCycle(state)
                 }
+            case .summarize:
+                let rows = (try? transcriptStore.rows(ids: state.episodeIds)) ?? []
+                let turns = rows.map { $0.turnIndex }
+                let range = (turns.min() ?? 0)...(turns.max() ?? 0)
+                let threadId = rows.first?.threadId ?? ""
+                await summarize(episodeTexts: episodeTexts(ids: state.episodeIds), threadId: threadId, turnRange: range)
             case .detect:
-                await detectFollowUps(episodeTexts: state.episodeIds.compactMap { (try? store.node(id: $0))?.body })
+                await detectFollowUps(episodeTexts: episodeTexts(ids: state.episodeIds))
             case .rem: await associate()
             case .reflect: await reflect()
             case .curate: await curateKinds()
@@ -309,7 +370,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         // Non-atomic by design: if the process dies after .shy advances but before this mark,
         // resume re-enters at .shy, re-runs the idempotent forget(), then marks — so episodes are
         // never lost, only a redundant forget() is paid.
-        try? store.markEpisodesConsolidated(ids: state.episodeIds)
+        try? transcriptStore.markConsolidated(ids: state.episodeIds)
         try? store.clearSleepCycle()
         onProgress?("done")
     }

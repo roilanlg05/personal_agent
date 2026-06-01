@@ -61,9 +61,12 @@ nonisolated final class MemoryRetriever {
     }
 
     /// Render retrieved nodes as a compact injection block (empty string if none).
+    /// Summaries (the "ruta") come first so the model gets the gist before individual facts.
     func injectionBlock(for nodes: [Node]) -> String {
         guard !nodes.isEmpty else { return "" }
-        let lines = nodes.map { "- [\($0.kind)] \($0.label): \($0.body.isEmpty ? $0.label : $0.body)" }
+        let summaries = nodes.filter { $0.kind == NodeKind.summary.rawValue }
+        let rest = nodes.filter { $0.kind != NodeKind.summary.rawValue }
+        let lines = (summaries + rest).map { "- [\($0.kind)] \($0.label): \($0.body.isEmpty ? $0.label : $0.body)" }
         return "What you remember about the user (use if relevant):\n" + lines.joined(separator: "\n")
     }
 }

@@ -61,6 +61,16 @@ nonisolated final class TranscriptStore {
         }
     }
 
+    /// Fetch specific rows by id, oldest-first. Used by consolidation to rebuild episode texts.
+    func rows(ids: [String]) throws -> [TranscriptRow] {
+        guard !ids.isEmpty else { return [] }
+        return try dbQueue.read { db in
+            try TranscriptRow.filter(ids.contains(Column("id")))
+                .order(Column("createdAt").asc, Column("role").asc)
+                .fetchAll(db)
+        }
+    }
+
     /// Turns not yet consolidated, oldest-first — consolidation input source (used in M2d-2).
     func unconsolidated(limit: Int) throws -> [TranscriptRow] {
         try dbQueue.read { db in

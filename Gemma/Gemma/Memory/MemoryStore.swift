@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
 
-enum SleepPhase: String, Codable, CaseIterable { case nrem, detect, rem, reflect, curate, shy }
+enum SleepPhase: String, Codable, CaseIterable { case nrem, summarize, detect, rem, reflect, curate, shy }
 struct SleepCycleState: Equatable { var phase: SleepPhase; var episodeIds: [String]; var startedAt: Double; var focus: String = "" }
 
 nonisolated final class MemoryStore {

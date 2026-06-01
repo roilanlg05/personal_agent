@@ -52,3 +52,25 @@ final class MemoryRetrieverTests: XCTestCase {
         XCTAssertEqual(got.first?.label, "sushi")
     }
 }
+
+// MARK: - M2d-2 Task 4: injection block lists summaries before other nodes
+
+final class MemoryRetrieverInjectionTests: XCTestCase {
+    private func node(_ kind: String, _ label: String, _ body: String) -> Node {
+        Node(id: UUID().uuidString, kind: kind, label: label, body: body, layer: .daily,
+             createdAt: 1, updatedAt: 1, lastSeenAt: 1, salience: 3, decayRate: 0.1, confidence: .sure,
+             mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil, origin: .extracted, serverId: nil,
+             dirty: true, deleted: false, extra: nil)
+    }
+
+    func test_injectionBlock_lists_summaries_before_facts() throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
+        let r = MemoryRetriever(store: store, embedder: nil)
+        let nodes = [node("preference", "sushi", "likes sushi"),
+                     node(NodeKind.summary.rawValue, "viaje a Japón", "Plan a trip to Japan")]
+        let block = r.injectionBlock(for: nodes)
+        let iSummary = try XCTUnwrap(block.range(of: "viaje a Japón"))
+        let iFact = try XCTUnwrap(block.range(of: "sushi"))
+        XCTAssertTrue(iSummary.lowerBound < iFact.lowerBound, "summary must appear before the plain fact")
+    }
+}

@@ -1,16 +1,16 @@
-# Graph Report - personal_agent  (2026-05-31)
+# Graph Report - personal_agent  (2026-06-01)
 
 ## Corpus Check
-- 119 files · ~121,657 words
+- 119 files · ~121,692 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1807 nodes · 2321 edges · 142 communities (106 shown, 36 thin omitted)
+- 1807 nodes · 2321 edges · 142 communities (107 shown, 35 thin omitted)
 - Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 270 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `72614679`
+- Built from commit: `894b5469`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -190,7 +190,7 @@
 - **Bench pipeline test trio (Runner+PromptSet+Report+Runtime)** — gemmatests_benchrunnertests_class, gemmatests_promptsettests_class, gemmatests_benchreporttests_class, gemmatests_dummyruntimetests_class [INFERRED 0.85]
 - **Model infra layered subsystem (Descriptor+Catalog+Capability+Downloader+InstalledModels)** — gemmatests_modeldescriptortests_class, gemmatests_modelcatalogtests_class, gemmatests_devicecapabilitytests_class, gemmatests_modeldownloadertests_class, gemmatests_installedmodelstests_class [INFERRED 0.95]
 
-## Communities (142 total, 36 thin omitted)
+## Communities (142 total, 35 thin omitted)
 
 ### Community 0 - "Bench & Runtime Layer"
 Cohesion: 0.13
@@ -375,6 +375,10 @@ Nodes (28): code:swift (func test_sleep_cycle_round_trips_focus() throws {), cod
 ### Community 53 - "Community 53"
 Cohesion: 0.13
 Nodes (14): 1. Problema (evidencia de device, corregida con feedback del usuario 2026-05-30), 2. Objetivo, 3.1 `save_memory` tool (reemplaza al consolidator), 3.2 Escritura diferida (`MemoryWriter`), 3.3 Anti-fabricación (prompt + reglas), 3.4 Contradicción / corrección, 3.5 Relevancia de inyección (recalibra RC6), 3.6 Qué se conserva / qué se elimina (+6 more)
+
+### Community 54 - "Community 54"
+Cohesion: 0.08
+Nodes (3): MemoryStoreSleepTests, MemoryStore, SleepCycleState
 
 ### Community 55 - "Community 55"
 Cohesion: 0.08
@@ -619,7 +623,7 @@ Nodes (5): SleepConsolidationE2ETests, Embedder, MemoryError, embedderUnavailabl
 ## Knowledge Gaps
 - **864 isolated node(s):** `SettingsKeys`, `nrem`, `detect`, `rem`, `reflect` (+859 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **36 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **35 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_

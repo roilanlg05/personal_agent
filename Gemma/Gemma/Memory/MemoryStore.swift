@@ -110,15 +110,7 @@ nonisolated final class MemoryStore {
             try db.create(indexOn: "transcript", columns: ["consolidated"])
         }
         m.registerMigration("v5-purge-conversation-nodes") { db in
-            let ids = try String.fetchAll(db, sql: "SELECT id FROM node WHERE kind IN ('conversation','episode')")
-            guard !ids.isEmpty else { return }
-            let ph = ids.map { _ in "?" }.joined(separator: ",")
-            let a = StatementArguments(ids)
-            try db.execute(sql: "DELETE FROM node WHERE id IN (\(ph))", arguments: a)
-            try db.execute(sql: "DELETE FROM node_fts WHERE node_id IN (\(ph))", arguments: a)
-            try db.execute(sql: "DELETE FROM node_embedding WHERE node_id IN (\(ph))", arguments: a)
-            try db.execute(sql: "DELETE FROM edge WHERE srcId IN (\(ph)) OR dstId IN (\(ph))",
-                           arguments: StatementArguments(ids + ids))
+            try MemoryStore.deleteConversationNodes(db)
         }
         return m
     }
@@ -231,21 +223,24 @@ nonisolated final class MemoryStore {
         try dbQueue.write { try $0.execute(sql: "UPDATE node SET kind=?, dirty=1, updatedAt=? WHERE kind=? AND deleted=0",
                                            arguments: [to, Date().timeIntervalSince1970, from]) }
     }
+    /// Delete `conversation`/`episode` nodes and their FTS rows, embeddings, and dangling edges.
+    /// Shared by `purgeConversationNodes()` and the `v5-purge-conversation-nodes` migration.
+    private static func deleteConversationNodes(_ db: Database) throws {
+        let ids = try String.fetchAll(db, sql: "SELECT id FROM node WHERE kind IN ('conversation','episode')")
+        guard !ids.isEmpty else { return }
+        let ph = ids.map { _ in "?" }.joined(separator: ",")
+        let a = StatementArguments(ids)
+        try db.execute(sql: "DELETE FROM node WHERE id IN (\(ph))", arguments: a)
+        try db.execute(sql: "DELETE FROM node_fts WHERE node_id IN (\(ph))", arguments: a)
+        try db.execute(sql: "DELETE FROM node_embedding WHERE node_id IN (\(ph))", arguments: a)
+        try db.execute(sql: "DELETE FROM edge WHERE srcId IN (\(ph)) OR dstId IN (\(ph))",
+                       arguments: StatementArguments(ids + ids))
+    }
+
     /// One-time cleanup (M2d-1): raw turns are no longer graph nodes. Delete legacy
-    /// `conversation`/`episode` nodes and their FTS rows, embeddings, and dangling edges.
+    /// `conversation`/`episode` nodes and their satellites. (Also run as migration v5.)
     func purgeConversationNodes() throws {
-        try dbQueue.write { db in
-            let kinds = [NodeKind.conversation.rawValue, NodeKind.episode.rawValue]
-            let ids = try String.fetchAll(db, sql: "SELECT id FROM node WHERE kind IN (?, ?)", arguments: StatementArguments(kinds))
-            guard !ids.isEmpty else { return }
-            let placeholders = ids.map { _ in "?" }.joined(separator: ",")
-            let args = StatementArguments(ids)
-            try db.execute(sql: "DELETE FROM node WHERE id IN (\(placeholders))", arguments: args)
-            try db.execute(sql: "DELETE FROM node_fts WHERE node_id IN (\(placeholders))", arguments: args)
-            try db.execute(sql: "DELETE FROM node_embedding WHERE node_id IN (\(placeholders))", arguments: args)
-            try db.execute(sql: "DELETE FROM edge WHERE srcId IN (\(placeholders)) OR dstId IN (\(placeholders))",
-                           arguments: StatementArguments(ids + ids))
-        }
+        try dbQueue.write { try Self.deleteConversationNodes($0) }
     }
 
     /// Soft-delete edges whose endpoints are deleted/missing.

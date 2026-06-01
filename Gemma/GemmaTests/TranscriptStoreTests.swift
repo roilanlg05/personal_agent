@@ -49,4 +49,13 @@ final class TranscriptStoreTests: XCTestCase {
         try s.markConsolidated(ids: pending.map { $0.id })
         XCTAssertEqual(try s.unconsolidated(limit: 100).count, 0)
     }
+
+    func test_recent_keeps_user_before_assistant_within_turn_even_on_equal_timestamps() throws {
+        let s = try makeStore()
+        // same turnIndex AND same createdAt for both rows of the turn
+        try s.append(threadId: "t", turnIndex: 0, role: "user", text: "q", now: 5)
+        try s.append(threadId: "t", turnIndex: 0, role: "assistant", text: "a", now: 5)
+        let rows = try s.recent(threadId: "t", maxTurns: 10, maxChars: 10_000)
+        XCTAssertEqual(rows.map { $0.role }, ["user", "assistant"], "user must precede assistant within a turn")
+    }
 }

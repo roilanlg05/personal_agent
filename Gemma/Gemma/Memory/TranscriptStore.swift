@@ -33,7 +33,10 @@ nonisolated final class TranscriptStore {
         let newestFirst: [TranscriptRow] = try dbQueue.read { db in
             try TranscriptRow
                 .filter(Column("threadId") == threadId)
-                .order(Column("createdAt").desc, Column("turnIndex").desc)
+                // role.asc as the final tiebreaker: in this newest-first fetch (later reversed to
+                // oldest-first) "assistant" (a<u) sorts before "user" within an equal-timestamp turn,
+                // so after reversed() the user precedes the assistant.
+                .order(Column("createdAt").desc, Column("turnIndex").desc, Column("role").asc)
                 .limit(maxTurns)
                 .fetchAll(db)
         }

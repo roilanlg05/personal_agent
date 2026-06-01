@@ -187,7 +187,9 @@ public final class HarnessModel {
             let now = Date().timeIntervalSince1970
             try? ts.append(threadId: threadId, turnIndex: turnIndex, role: "user", text: prompt, now: now)
             if !answer.isEmpty {
-                try? ts.append(threadId: threadId, turnIndex: turnIndex, role: "assistant", text: answer, now: now)
+                // +1ms so the assistant row always sorts strictly after its user turn (recent()
+                // orders by createdAt; equal timestamps would tie and fall back to undefined rowid order).
+                try? ts.append(threadId: threadId, turnIndex: turnIndex, role: "assistant", text: answer, now: now + 0.001)
             }
             turnIndex += 1
         }

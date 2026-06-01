@@ -87,7 +87,7 @@ final class SleepConsolidationE2ETests: XCTestCase {
         engine.onProgress = { [weak self] msg in self?.observe("🔧 E2E-OBSERVE: progress: \(msg)") }
 
         // --- Seed a short conversation as unconsolidated episodes (thread "T") ---
-        // EpisodeRecorder.record writes proper episodic `conversation` nodes (status "closed").
+        // Inline node upserts (EpisodeRecorder removed in M2d-1; TranscriptStore owns raw turns).
         let turns: [(user: String, assistant: String)] = [
             ("Me llamo Roilan y me gusta el sushi y el fútbol.",
              "¡Encantado, Roilan! Buena combinación."),
@@ -100,9 +100,23 @@ final class SleepConsolidationE2ETests: XCTestCase {
         ]
         let t0 = Date().timeIntervalSince1970
         for (i, turn) in turns.enumerated() {
-            EpisodeRecorder.record(store: memStore, threadId: "T", turnIndex: i,
-                                   userText: turn.user, assistantText: turn.assistant,
-                                   now: t0 + Double(i))
+            for (role, text) in [("user", turn.user), ("assistant", turn.assistant)] {
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { continue }
+                let extra = #"{"threadId":"T","role":"\#(role)","turnIndex":\#(i),"status":"closed"}"#
+                let preview = String(trimmed.prefix(60))
+                let node = Node(id: UUID().uuidString,
+                                kind: NodeKind.conversation.rawValue,
+                                label: "\(role): \(preview)", body: trimmed,
+                                layer: .episodic,
+                                createdAt: t0 + Double(i), updatedAt: t0 + Double(i),
+                                lastSeenAt: t0 + Double(i),
+                                salience: 2, decayRate: 0.001, confidence: .sure,
+                                mentionCount: 1, ttlExpiresAt: nil, sourceRef: "T",
+                                origin: .extracted, serverId: nil, dirty: true, deleted: false,
+                                extra: extra)
+                try memStore.upsert(node)
+            }
         }
         let seeded = try memStore.unconsolidatedEpisodes()
         observe("⚠️ E2E-OBSERVE: seeded unconsolidated episodes count=\(seeded.count)")

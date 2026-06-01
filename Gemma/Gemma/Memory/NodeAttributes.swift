@@ -2,8 +2,8 @@ import Foundation
 
 /// Optional structured attributes for a memory node, stored as JSON in `Node.extra`.
 /// `task` uses `status` (pending|done); `plan` uses `horizon` (short|long). Extensible:
-/// unknown keys are ignored. (Episode metadata uses its own `EpisodeRecorder.Meta` JSON; a
-/// node is either an episode or a structured fact, so the two never share one `extra`.)
+/// unknown keys are ignored. (Conversation/episode nodes carry their own status key in `extra`;
+/// a node is either an episode or a structured fact, so the two never share the same schema.)
 struct NodeAttributes: Codable {
     var status: String?     // task: "pending" | "done"
     var horizon: String?    // plan: "short" | "long"

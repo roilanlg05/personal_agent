@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Hosts the memory inspector with a List / Graph segmented toggle.
+/// Hosts the memory inspector with a List / Graph / Transcript segmented toggle.
 struct MemoryView: View {
     let store: MemoryStore?
 

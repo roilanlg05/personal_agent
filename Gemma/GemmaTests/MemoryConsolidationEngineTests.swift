@@ -180,6 +180,23 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         XCTAssertNotNil(try store.allNodes().first { $0.kind == "preference" && $0.label == "sushi" })
     }
 
+    func test_summarize_groups_by_thread_one_summary_per_session() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
+        let ts = TranscriptStore(dbQueue: store.dbQueue)
+        try ts.append(threadId: "A", turnIndex: 0, role: "user", text: "quiero ir a Japón", now: 1)
+        try ts.append(threadId: "B", turnIndex: 0, role: "user", text: "me gusta el ajedrez", now: 2)
+        let runtime = CannedRuntime([
+            #"{"entities":[]}"#,
+            #"{"topic":"viaje Japón","concepts":["Japón"],"summary":"viaje"}"#,
+            #"{"topic":"ajedrez","concepts":["ajedrez"],"summary":"hobby"}"#,
+            #"{"followUps":[]}"#, #"{"edges":[]}"#, #"{"insights":[]}"#, #"{"map":{}}"#
+        ])
+        let engine = MemoryConsolidationEngine(store: store, embedder: nil, runtime: runtime, transcriptStore: ts)
+        await engine.runCycle(isCancelled: { false })
+        let summaries = try store.allNodes().filter { $0.kind == NodeKind.summary.rawValue }
+        XCTAssertEqual(Set(summaries.map { $0.label }), ["viaje Japón", "ajedrez"], "one summary per thread")
+    }
+
     func test_summarize_writes_structured_summary_node() async throws {
         let store = try MemoryStore(inMemory: true, embeddingDim: 8)
         let ts = TranscriptStore(dbQueue: store.dbQueue)

@@ -38,10 +38,24 @@ public final class HarnessModel {
     /// Scheduler driving awake/sleep consolidation — observed so the UI banner reacts.
     private(set) var consolidationScheduler: ConsolidationScheduler?
 
-    /// Owns the local mlx-lm server process lifecycle (M2a).
-    let serverManager = ServerManager()
+    /// Owns the local mlx_vlm server process lifecycle (M2a). Built in init() so its initial
+    /// ServerConfig reflects the persisted "keep model resident" toggle (M2c-1).
+    let serverManager: ServerManager
+
+    /// MLX wired-memory limit when "keep model resident" is ON. 16 GiB — covers model+draft
+    /// (~15.3 GB) under the no-sudo cap (~17.76 GiB), leaving working-set for compute. See spec §2.
+    nonisolated static let residentWiredLimitBytes: UInt64 = 17_179_869_184
+
+    /// Pure mapping toggle → wired bytes. 0 = pageable.
+    nonisolated static func wiredLimitBytes(keepResident: Bool) -> UInt64 {
+        keepResident ? residentWiredLimitBytes : 0
+    }
 
     public init() {
+        var cfg = ServerConfig.default
+        cfg.wiredLimitBytes = Self.wiredLimitBytes(
+            keepResident: UserDefaults.standard.bool(forKey: SettingsKeys.keepModelResident))
+        self.serverManager = ServerManager(config: cfg)
         self.settings = settingsStore.load()
         self.runtime = ServerRuntime()
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
@@ -60,6 +74,13 @@ public final class HarnessModel {
 
     /// Terminate the owned server (called on app quit).
     public func stopServer() { serverManager.stop() }
+
+    /// Apply the "keep model resident" toggle: restart the server with/without a wired limit.
+    /// No-op under XCTest (same guard as startServer — must not spawn the 15GB server in tests).
+    public func applyKeepModelResident(_ on: Bool) {
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        Task { await serverManager.setWiredLimit(Self.wiredLimitBytes(keepResident: on)) }
+    }
 
     func inspectorStore() -> MemoryStore? { memoryStore }
 

@@ -2,37 +2,72 @@ import XCTest
 @testable import Gemma
 
 final class ServerProcessTests: XCTestCase {
+    /// 16 GiB — the "keep model resident" wired limit (see spec §2).
+    private static let sixteenGiB: UInt64 = 17_179_869_184
+
+    private func cfg(wired: UInt64 = 0, draft: Bool = false) -> ServerConfig {
+        ServerConfig(pythonBinURL: URL(fileURLWithPath: "/x/.venv-vlm/bin/python3.12"),
+                     launcherScriptURL: URL(fileURLWithPath: "/x/spike-mlx/serve_mlx_vlm.py"),
+                     modelId: "some/model", host: "127.0.0.1", port: 8080,
+                     draftModelId: draft ? "some/assistant" : nil,
+                     draftKind: draft ? "mtp" : nil,
+                     draftBlockSize: draft ? 3 : nil,
+                     wiredLimitBytes: wired)
+    }
+
     func test_serverArguments_baseShape_noDraft() {
-        let cfg = ServerConfig(venvBinURL: URL(fileURLWithPath: "/x/mlx_vlm.server"),
-                               modelId: "some/model", host: "127.0.0.1", port: 8080)
-        XCTAssertEqual(serverArguments(for: cfg),
+        XCTAssertEqual(serverArguments(for: cfg()),
                        ["--model", "some/model", "--host", "127.0.0.1", "--port", "8080"])
     }
 
     func test_serverArguments_appendsDraftFlags_whenConfigured() {
-        let cfg = ServerConfig(venvBinURL: URL(fileURLWithPath: "/x/mlx_vlm.server"),
-                               modelId: "some/model", host: "127.0.0.1", port: 8080,
-                               draftModelId: "some/assistant", draftKind: "mtp", draftBlockSize: 3)
-        XCTAssertEqual(serverArguments(for: cfg),
+        XCTAssertEqual(serverArguments(for: cfg(draft: true)),
                        ["--model", "some/model", "--host", "127.0.0.1", "--port", "8080",
                         "--draft-model", "some/assistant", "--draft-kind", "mtp", "--draft-block-size", "3"])
     }
 
-    func test_default_config_targets_mlx_vlm_server_with_mtp_draft() {
+    func test_wiringArguments_emptyWhenPageable() {
+        XCTAssertEqual(wiringArguments(for: cfg(wired: 0)), [])
+    }
+
+    func test_wiringArguments_setsFlagWhenWired() {
+        XCTAssertEqual(wiringArguments(for: cfg(wired: Self.sixteenGiB)),
+                       ["--wired-limit-bytes", "17179869184"])
+    }
+
+    func test_launchArguments_pageable_scriptFirst_noWiringFlag() {
+        let a = launchArguments(for: cfg(wired: 0, draft: true))
+        XCTAssertEqual(a.first, "/x/spike-mlx/serve_mlx_vlm.py", "launcher script must be python's argv[1] (first arg after the interpreter)")
+        XCTAssertFalse(a.contains("--wired-limit-bytes"))
+        XCTAssertEqual(Array(a.suffix(12)),
+                       ["--model", "some/model", "--host", "127.0.0.1", "--port", "8080",
+                        "--draft-model", "some/assistant", "--draft-kind", "mtp", "--draft-block-size", "3"])
+    }
+
+    func test_launchArguments_wired_insertsFlagBetweenScriptAndServerArgs() {
+        let a = launchArguments(for: cfg(wired: Self.sixteenGiB))
+        XCTAssertEqual(Array(a.prefix(3)),
+                       ["/x/spike-mlx/serve_mlx_vlm.py", "--wired-limit-bytes", "17179869184"])
+        XCTAssertEqual(a[3], "--model")
+    }
+
+    func test_default_config_targets_launcher_and_python_pageable() {
         let c = ServerConfig.default
-        XCTAssertTrue(c.venvBinURL.path.hasSuffix("mlx_vlm.server"), "default must launch mlx_vlm.server, got \(c.venvBinURL.path)")
+        XCTAssertTrue(c.pythonBinURL.path.hasSuffix("python3.12"), "default must run the venv python, got \(c.pythonBinURL.path)")
+        XCTAssertTrue(c.launcherScriptURL.path.hasSuffix("serve_mlx_vlm.py"), "default must use the wiring launcher, got \(c.launcherScriptURL.path)")
+        XCTAssertEqual(c.wiredLimitBytes, 0, "default must be pageable (toggle off)")
         XCTAssertEqual(c.draftKind, "mtp")
         XCTAssertNotNil(c.draftModelId)
         XCTAssertEqual(c.draftBlockSize, 3)
     }
 
     func test_watchdogScript_contains_guardrails() {
-        let cfg = ServerConfig(venvBinURL: URL(fileURLWithPath: "/x/mlx_vlm.server"),
-                               modelId: "some/model", host: "127.0.0.1", port: 8080)
-        let script = watchdogScript(binPath: cfg.venvBinURL.path,
-                                    args: serverArguments(for: cfg),
+        let c = cfg()
+        let script = watchdogScript(binPath: c.pythonBinURL.path,
+                                    args: launchArguments(for: c),
                                     parentPID: 4242)
-        XCTAssertTrue(script.contains("/x/mlx_vlm.server"), "missing bin path:\n\(script)")
+        XCTAssertTrue(script.contains("/x/.venv-vlm/bin/python3.12"), "missing python path:\n\(script)")
+        XCTAssertTrue(script.contains("serve_mlx_vlm.py"), "missing launcher:\n\(script)")
         XCTAssertTrue(script.contains("some/model"), "missing model id:\n\(script)")
         XCTAssertTrue(script.contains("trap"), "missing trap:\n\(script)")
         XCTAssertTrue(script.contains("kill -0 4242"), "missing parent-pid guard:\n\(script)")

@@ -11,6 +11,16 @@ nonisolated func serverArguments(for config: ServerConfig) -> [String] {
     return args
 }
 
+/// The `--wired-limit-bytes` flag for the launcher, or empty when pageable. Pure → testable.
+nonisolated func wiringArguments(for config: ServerConfig) -> [String] {
+    config.wiredLimitBytes > 0 ? ["--wired-limit-bytes", String(config.wiredLimitBytes)] : []
+}
+
+/// Full argv for the venv python: the launcher script, optional wiring flag, then the mlx_vlm.server flags.
+nonisolated func launchArguments(for config: ServerConfig) -> [String] {
+    [config.launcherScriptURL.path] + wiringArguments(for: config) + serverArguments(for: config)
+}
+
 /// Single-quote a string for safe interpolation into a `/bin/sh` command.
 /// Wraps in `'...'` and escapes embedded single quotes as `'\''`.
 private func shQuote(_ s: String) -> String {
@@ -30,8 +40,8 @@ nonisolated func watchdogScript(binPath: String, args: [String], parentPID: Int3
     """
 }
 
-/// Owns a spawned `mlx_vlm.server` process. Captures a tail of stderr for diagnostics and
-/// fires `onExit` if the process dies on its own.
+/// Owns the spawned server process (python → `serve_mlx_vlm.py` → `mlx_vlm.server`). Captures a
+/// tail of stderr for diagnostics and fires `onExit` if the process dies on its own.
 nonisolated final class RealServerProcessHandle: ServerProcessHandle, @unchecked Sendable {
     private let process: Process
     private let stderrPipe: Pipe
@@ -63,7 +73,8 @@ nonisolated final class RealServerProcessHandle: ServerProcessHandle, @unchecked
     }
 }
 
-/// Spawns `mlx_vlm.server` via `Process`. Requires the App Sandbox to be OFF (Task 1).
+/// Spawns the server via `Process`: runs the venv python on `serve_mlx_vlm.py` (which optionally
+/// wires memory, then runs `mlx_vlm.server`). Requires the App Sandbox to be OFF.
 nonisolated final class RealServerProcessLauncher: ServerProcessLauncher {
     func launch(_ config: ServerConfig) throws -> ServerProcessHandle {
         let process = Process()
@@ -72,8 +83,8 @@ nonisolated final class RealServerProcessLauncher: ServerProcessLauncher {
         // to launchd — notices the parent PID vanish and kills the server).
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
         process.arguments = ["-c", watchdogScript(
-            binPath: config.venvBinURL.path,
-            args: serverArguments(for: config),
+            binPath: config.pythonBinURL.path,
+            args: launchArguments(for: config),
             parentPID: ProcessInfo.processInfo.processIdentifier)]
         let stderrPipe = Pipe()
         process.standardError = stderrPipe

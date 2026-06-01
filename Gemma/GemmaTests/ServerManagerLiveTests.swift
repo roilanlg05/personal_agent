@@ -2,7 +2,8 @@ import XCTest
 @testable import Gemma
 
 /// GATED live integration test for the REAL M2a server plumbing:
-/// `RealServerProcessLauncher` (spawns `mlx_vlm.server` via `Process`) +
+/// `RealServerProcessLauncher` (spawns the venv python on `serve_mlx_vlm.py`, which optionally
+/// wires memory then runs `mlx_vlm.server`, via `Process`) +
 /// `HTTPServerHealth` (probe `/v1/models`, warm with a 1-token completion) +
 /// `ServerManager.start()/stop()` driving them against the actual local mlx_vlm server.
 ///
@@ -21,8 +22,8 @@ final class ServerManagerLiveTests: XCTestCase {
         let enabled = (env["GEMMA_LIVE_SERVER"] == "1") || (env["TEST_RUNNER_GEMMA_LIVE_SERVER"] == "1")
         try XCTSkipUnless(enabled, "set GEMMA_LIVE_SERVER=1 to run the live server test")
         try XCTSkipUnless(
-            FileManager.default.isExecutableFile(atPath: ServerConfig.default.venvBinURL.path),
-            "mlx_vlm.server not found")
+            FileManager.default.isExecutableFile(atPath: ServerConfig.default.pythonBinURL.path),
+            "venv python not found")
 
         let config = ServerConfig.default
         let health = HTTPServerHealth()

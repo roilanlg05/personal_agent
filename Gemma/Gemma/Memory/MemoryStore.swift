@@ -96,6 +96,22 @@ nonisolated final class MemoryStore {
                 t.add(column: "focus", .text).notNull().defaults(to: "")
             }
         }
+        m.registerMigration("v4-transcript") { db in
+            try db.create(table: "transcript") { t in
+                t.primaryKey("id", .text)
+                t.column("threadId", .text).notNull()
+                t.column("turnIndex", .integer).notNull()
+                t.column("role", .text).notNull()
+                t.column("text", .text).notNull()
+                t.column("createdAt", .double).notNull()
+                t.column("consolidated", .boolean).notNull().defaults(to: false)
+            }
+            try db.create(indexOn: "transcript", columns: ["threadId", "createdAt"])
+            try db.create(indexOn: "transcript", columns: ["consolidated"])
+        }
+        m.registerMigration("v5-purge-conversation-nodes") { db in
+            try MemoryStore.deleteConversationNodes(db)
+        }
         return m
     }
 
@@ -168,19 +184,28 @@ nonisolated final class MemoryStore {
     }
     func clearSleepCycle() throws { try dbQueue.write { try $0.execute(sql: "DELETE FROM sleep_cycle WHERE id=1") } }
 
-    /// Episodic conversation nodes not yet consolidated (per EpisodeRecorder.Meta.status).
+    /// Episodic conversation nodes not yet consolidated (status field in extra JSON != "consolidated").
     func unconsolidatedEpisodes() throws -> [Node] {
         try allNodes().filter { $0.kind == NodeKind.conversation.rawValue
-            && (EpisodeRecorder.meta(from: $0)?.status ?? "closed") != "consolidated" }
+            && (episodeStatus(from: $0) ?? "closed") != "consolidated" }
     }
     func markEpisodesConsolidated(ids: [String]) throws {
         for id in ids {
-            guard var n = try node(id: id), var meta = EpisodeRecorder.meta(from: n) else { continue }
-            meta.status = "consolidated"
-            n.extra = (try? JSONEncoder().encode(meta)).flatMap { String(data: $0, encoding: .utf8) }
+            guard var n = try node(id: id) else { continue }
+            // Patch or add the status field in the extra JSON blob.
+            var dict = (n.extra.flatMap { $0.data(using: .utf8) }
+                .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }) ?? [:]
+            dict["status"] = "consolidated"
+            n.extra = (try? JSONSerialization.data(withJSONObject: dict)).flatMap { String(data: $0, encoding: .utf8) }
             n.updatedAt = Date().timeIntervalSince1970; n.dirty = true
             try upsert(n)
         }
+    }
+    /// Reads the `status` string from a conversation node's extra JSON (replaces EpisodeRecorder.meta).
+    private func episodeStatus(from node: Node) -> String? {
+        guard let s = node.extra, let d = s.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { return nil }
+        return obj["status"] as? String
     }
     /// Pending actionable + conversational follow-ups (task/plan/follow_up nodes whose
     /// NodeAttributes.status is "pending" or unset), most recent first, capped.
@@ -198,6 +223,26 @@ nonisolated final class MemoryStore {
         try dbQueue.write { try $0.execute(sql: "UPDATE node SET kind=?, dirty=1, updatedAt=? WHERE kind=? AND deleted=0",
                                            arguments: [to, Date().timeIntervalSince1970, from]) }
     }
+    /// Delete `conversation`/`episode` nodes and their FTS rows, embeddings, and dangling edges.
+    /// Shared by `purgeConversationNodes()` and the `v5-purge-conversation-nodes` migration.
+    private static func deleteConversationNodes(_ db: Database) throws {
+        let ids = try String.fetchAll(db, sql: "SELECT id FROM node WHERE kind IN ('conversation','episode')")
+        guard !ids.isEmpty else { return }
+        let ph = ids.map { _ in "?" }.joined(separator: ",")
+        let a = StatementArguments(ids)
+        try db.execute(sql: "DELETE FROM node WHERE id IN (\(ph))", arguments: a)
+        try db.execute(sql: "DELETE FROM node_fts WHERE node_id IN (\(ph))", arguments: a)
+        try db.execute(sql: "DELETE FROM node_embedding WHERE node_id IN (\(ph))", arguments: a)
+        try db.execute(sql: "DELETE FROM edge WHERE srcId IN (\(ph)) OR dstId IN (\(ph))",
+                       arguments: StatementArguments(ids + ids))
+    }
+
+    /// One-time cleanup (M2d-1): raw turns are no longer graph nodes. Delete legacy
+    /// `conversation`/`episode` nodes and their satellites. (Also run as migration v5.)
+    func purgeConversationNodes() throws {
+        try dbQueue.write { try Self.deleteConversationNodes($0) }
+    }
+
     /// Soft-delete edges whose endpoints are deleted/missing.
     func pruneDanglingEdges() throws {
         let live = Set(try allNodes().map { $0.id })

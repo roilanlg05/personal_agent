@@ -290,7 +290,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L7",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine",
-      "community": 129,
+      "community": 87,
       "norm_label": "memoryconsolidationengine"
     },
     {
@@ -299,7 +299,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L14",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_init",
-      "community": 129,
+      "community": 87,
       "norm_label": ".init()"
     },
     {
@@ -308,7 +308,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L29",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_generate",
-      "community": 129,
+      "community": 87,
       "norm_label": ".generate()"
     },
     {
@@ -317,7 +317,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L41",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_extractjson",
-      "community": 129,
+      "community": 87,
       "norm_label": ".extractjson()"
     },
     {
@@ -326,7 +326,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L45",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_parse",
-      "community": 129,
+      "community": 87,
       "norm_label": ".parse()"
     },
     {
@@ -371,7 +371,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L59",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_consolidate",
-      "community": 129,
+      "community": 87,
       "norm_label": ".consolidate()"
     },
     {
@@ -398,7 +398,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L98",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_detectfollowups",
-      "community": 129,
+      "community": 87,
       "norm_label": ".detectfollowups()"
     },
     {
@@ -416,7 +416,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L145",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_associate",
-      "community": 129,
+      "community": 87,
       "norm_label": ".associate()"
     },
     {
@@ -443,7 +443,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L189",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_reflect",
-      "community": 129,
+      "community": 87,
       "norm_label": ".reflect()"
     },
     {
@@ -461,7 +461,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L238",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_curatekinds",
-      "community": 129,
+      "community": 87,
       "norm_label": ".curatekinds()"
     },
     {
@@ -470,7 +470,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L256",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_forget",
-      "community": 129,
+      "community": 87,
       "norm_label": ".forget()"
     },
     {
@@ -479,7 +479,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L262",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_runcycle",
-      "community": 129,
+      "community": 87,
       "norm_label": ".runcycle()"
     },
     {
@@ -488,7 +488,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L318",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_runlight",
-      "community": 129,
+      "community": 87,
       "norm_label": ".runlight()"
     },
     {
@@ -605,7 +605,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryStore.swift",
       "source_location": "L1",
       "id": "gemma_gemma_memory_memorystore_swift",
-      "community": 54,
+      "community": 138,
       "norm_label": "memorystore.swift"
     },
     {
@@ -686,7 +686,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryStore.swift",
       "source_location": "L5",
       "id": "memory_memorystore_sleepcyclestate",
-      "community": 54,
+      "community": 138,
       "norm_label": "sleepcyclestate"
     },
     {
@@ -803,7 +803,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryStore.swift",
       "source_location": "L154",
       "id": "memory_memorystore_memorystore_loadsleepcycle",
-      "community": 54,
+      "community": 138,
       "norm_label": ".loadsleepcycle()"
     },
     {
@@ -956,7 +956,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryModels.swift",
       "source_location": "L4",
       "id": "memory_memorymodels_nodekind_task",
-      "community": 125,
+      "community": 10,
       "norm_label": "task"
     },
     {
@@ -1316,7 +1316,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L1",
       "id": "gemma_gemma_memory_embedder_swift",
-      "community": 142,
+      "community": 87,
       "norm_label": "embedder.swift"
     },
     {
@@ -1325,7 +1325,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L7",
       "id": "memory_embedder_embedder",
-      "community": 142,
+      "community": 87,
       "norm_label": "embedder"
     },
     {
@@ -1334,7 +1334,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L12",
       "id": "memory_embedder_memoryerror",
-      "community": 142,
+      "community": 87,
       "norm_label": "memoryerror"
     },
     {
@@ -1343,7 +1343,7 @@
       "source_file": "",
       "source_location": "",
       "id": "error",
-      "community": 128,
+      "community": 87,
       "norm_label": "error"
     },
     {
@@ -1352,7 +1352,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L12",
       "id": "memory_embedder_memoryerror_embedderunavailable",
-      "community": 142,
+      "community": 87,
       "norm_label": "embedderunavailable"
     },
     {
@@ -1361,7 +1361,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L17",
       "id": "memory_embedder_nlcontextualembedder",
-      "community": 142,
+      "community": 87,
       "norm_label": "nlcontextualembedder"
     },
     {
@@ -1370,7 +1370,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L21",
       "id": "memory_embedder_nlcontextualembedder_init",
-      "community": 142,
+      "community": 87,
       "norm_label": ".init()"
     },
     {
@@ -1379,7 +1379,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L28",
       "id": "memory_embedder_nlcontextualembedder_embed",
-      "community": 142,
+      "community": 87,
       "norm_label": ".embed()"
     },
     {
@@ -1415,7 +1415,7 @@
       "source_file": "Gemma/Gemma/Memory/NodeAttributes.swift",
       "source_location": "L1",
       "id": "gemma_gemma_memory_nodeattributes_swift",
-      "community": 124,
+      "community": 87,
       "norm_label": "nodeattributes.swift"
     },
     {
@@ -1424,7 +1424,7 @@
       "source_file": "Gemma/Gemma/Memory/NodeAttributes.swift",
       "source_location": "L7",
       "id": "memory_nodeattributes_nodeattributes",
-      "community": 124,
+      "community": 87,
       "norm_label": "nodeattributes"
     },
     {
@@ -1433,7 +1433,7 @@
       "source_file": "Gemma/Gemma/Memory/NodeAttributes.swift",
       "source_location": "L11",
       "id": "memory_nodeattributes_nodeattributes_tojson",
-      "community": 124,
+      "community": 87,
       "norm_label": ".tojson()"
     },
     {
@@ -1442,7 +1442,7 @@
       "source_file": "Gemma/Gemma/Memory/NodeAttributes.swift",
       "source_location": "L15",
       "id": "memory_nodeattributes_nodeattributes_from",
-      "community": 124,
+      "community": 87,
       "norm_label": ".from()"
     },
     {
@@ -1505,7 +1505,7 @@
       "source_file": "",
       "source_location": "",
       "id": "anyobject",
-      "community": 125,
+      "community": 120,
       "norm_label": "anyobject"
     },
     {
@@ -1703,7 +1703,7 @@
       "source_file": "Gemma/Gemma/Memory/ForgetTool.swift",
       "source_location": "L1",
       "id": "gemma_gemma_memory_forgettool_swift",
-      "community": 130,
+      "community": 107,
       "norm_label": "forgettool.swift"
     },
     {
@@ -1712,7 +1712,7 @@
       "source_file": "Gemma/Gemma/Memory/ForgetTool.swift",
       "source_location": "L4",
       "id": "memory_forgettool_forgettool",
-      "community": 130,
+      "community": 107,
       "norm_label": "forgettool"
     },
     {
@@ -1721,7 +1721,7 @@
       "source_file": "Gemma/Gemma/Memory/ForgetTool.swift",
       "source_location": "L11",
       "id": "memory_forgettool_forgettool_run",
-      "community": 130,
+      "community": 107,
       "norm_label": ".run()"
     },
     {
@@ -1748,7 +1748,7 @@
       "source_file": "Gemma/Gemma/Memory/SaveMemoryTool.swift",
       "source_location": "L21",
       "id": "memory_savememorytool_savememorytool_run",
-      "community": 92,
+      "community": 130,
       "norm_label": ".run()"
     },
     {
@@ -2243,7 +2243,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerRuntime.swift",
       "source_location": "L34",
       "id": "runtime_serverruntime_serverruntime_generate",
-      "community": 125,
+      "community": 10,
       "norm_label": ".generate()"
     },
     {
@@ -2342,7 +2342,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L108",
       "id": "runtime_modelruntime_generationresult",
-      "community": 125,
+      "community": 56,
       "norm_label": "generationresult"
     },
     {
@@ -2351,7 +2351,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L112",
       "id": "runtime_modelruntime_generationresult_init",
-      "community": 125,
+      "community": 56,
       "norm_label": ".init()"
     },
     {
@@ -2574,7 +2574,7 @@
       "label": ".init()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
-      "source_location": "L83",
+      "source_location": "L85",
       "id": "runtime_servermanager_servermanager_init",
       "community": 115,
       "norm_label": ".init()"
@@ -2583,7 +2583,7 @@
       "label": ".start()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
-      "source_location": "L98",
+      "source_location": "L102",
       "id": "runtime_servermanager_servermanager_start",
       "community": 115,
       "norm_label": ".start()"
@@ -2592,7 +2592,7 @@
       "label": ".stop()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
-      "source_location": "L150",
+      "source_location": "L154",
       "id": "runtime_servermanager_servermanager_stop",
       "community": 115,
       "norm_label": ".stop()"
@@ -2601,16 +2601,34 @@
       "label": ".setWiredLimit()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
-      "source_location": "L159",
+      "source_location": "L163",
       "id": "runtime_servermanager_servermanager_setwiredlimit",
       "community": 115,
       "norm_label": ".setwiredlimit()"
     },
     {
+      "label": ".restart()",
+      "file_type": "code",
+      "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
+      "source_location": "L176",
+      "id": "runtime_servermanager_servermanager_restart",
+      "community": 115,
+      "norm_label": ".restart()"
+    },
+    {
+      "label": ".waitForServerDown()",
+      "file_type": "code",
+      "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
+      "source_location": "L184",
+      "id": "runtime_servermanager_servermanager_waitforserverdown",
+      "community": 115,
+      "norm_label": ".waitforserverdown()"
+    },
+    {
       "label": ".warmToReady()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
-      "source_location": "L175",
+      "source_location": "L200",
       "id": "runtime_servermanager_servermanager_warmtoready",
       "community": 115,
       "norm_label": ".warmtoready()"
@@ -2619,7 +2637,7 @@
       "label": ".startKeepAlive()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
-      "source_location": "L186",
+      "source_location": "L211",
       "id": "runtime_servermanager_servermanager_startkeepalive",
       "community": 115,
       "norm_label": ".startkeepalive()"
@@ -2628,7 +2646,7 @@
       "label": ".handleUnexpectedExit()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
-      "source_location": "L205",
+      "source_location": "L230",
       "id": "runtime_servermanager_servermanager_handleunexpectedexit",
       "community": 115,
       "norm_label": ".handleunexpectedexit()"
@@ -2747,7 +2765,7 @@
       "source_file": "Gemma/Gemma/Runtime/ToolCallingRuntime.swift",
       "source_location": "L22",
       "id": "runtime_toolcallingruntime_toolcallingruntime",
-      "community": 125,
+      "community": 120,
       "norm_label": "toolcallingruntime"
     },
     {
@@ -2810,7 +2828,7 @@
       "source_file": "Gemma/Gemma/Runtime/DummyRuntime.swift",
       "source_location": "L9",
       "id": "runtime_dummyruntime_dummyruntime_generate",
-      "community": 0,
+      "community": 56,
       "norm_label": ".generate()"
     },
     {
@@ -2927,7 +2945,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L3",
       "id": "agent_agent_agentevent",
-      "community": 141,
+      "community": 132,
       "norm_label": "agentevent"
     },
     {
@@ -2936,7 +2954,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L4",
       "id": "agent_agent_agentevent_token",
-      "community": 141,
+      "community": 132,
       "norm_label": "token"
     },
     {
@@ -2945,7 +2963,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L5",
       "id": "agent_agent_agentevent_toolcallstarted",
-      "community": 141,
+      "community": 132,
       "norm_label": "toolcallstarted"
     },
     {
@@ -2954,7 +2972,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L6",
       "id": "agent_agent_agentevent_toolcallfinished",
-      "community": 141,
+      "community": 132,
       "norm_label": "toolcallfinished"
     },
     {
@@ -2963,7 +2981,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L7",
       "id": "agent_agent_agentevent_completed",
-      "community": 141,
+      "community": 132,
       "norm_label": "completed"
     },
     {
@@ -2972,7 +2990,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L8",
       "id": "agent_agent_agentevent_failed",
-      "community": 141,
+      "community": 132,
       "norm_label": "failed"
     },
     {
@@ -2990,7 +3008,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L21",
       "id": "agent_agent_agent",
-      "community": 125,
+      "community": 132,
       "norm_label": "agent"
     },
     {
@@ -2999,7 +3017,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L28",
       "id": "agent_agent_agent_init",
-      "community": 125,
+      "community": 132,
       "norm_label": ".init()"
     },
     {
@@ -3008,7 +3026,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L35",
       "id": "agent_agent_agent_systemprompt",
-      "community": 125,
+      "community": 132,
       "norm_label": ".systemprompt()"
     },
     {
@@ -3017,7 +3035,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L50",
       "id": "agent_agent_agent_run",
-      "community": 125,
+      "community": 132,
       "norm_label": ".run()"
     },
     {
@@ -3026,7 +3044,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L1",
       "id": "gemma_gemma_agent_toolregistry_swift",
-      "community": 132,
+      "community": 105,
       "norm_label": "toolregistry.swift"
     },
     {
@@ -3035,7 +3053,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L5",
       "id": "agent_toolregistry_toolregistry",
-      "community": 132,
+      "community": 105,
       "norm_label": "toolregistry"
     },
     {
@@ -3044,7 +3062,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L8",
       "id": "agent_toolregistry_toolregistry_init",
-      "community": 132,
+      "community": 105,
       "norm_label": ".init()"
     },
     {
@@ -3053,7 +3071,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L12",
       "id": "agent_toolregistry_toolregistry_deinit",
-      "community": 132,
+      "community": 105,
       "norm_label": ".deinit()"
     },
     {
@@ -3062,7 +3080,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L13",
       "id": "agent_toolregistry_toolregistry_register",
-      "community": 132,
+      "community": 105,
       "norm_label": ".register()"
     },
     {
@@ -3071,7 +3089,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L14",
       "id": "agent_toolregistry_toolregistry_tool",
-      "community": 132,
+      "community": 105,
       "norm_label": ".tool()"
     },
     {
@@ -3080,7 +3098,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L16",
       "id": "agent_toolregistry_toolregistry_withdefaults",
-      "community": 132,
+      "community": 105,
       "norm_label": ".withdefaults()"
     },
     {
@@ -3089,7 +3107,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L1",
       "id": "gemma_gemma_agent_agenttool_swift",
-      "community": 117,
+      "community": 107,
       "norm_label": "agenttool.swift"
     },
     {
@@ -3098,7 +3116,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L4",
       "id": "agent_agenttool_agenttoolparam",
-      "community": 117,
+      "community": 107,
       "norm_label": "agenttoolparam"
     },
     {
@@ -3107,7 +3125,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L5",
       "id": "agent_agenttool_paramtype",
-      "community": 84,
+      "community": 107,
       "norm_label": "paramtype"
     },
     {
@@ -3125,7 +3143,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L5",
       "id": "agent_agenttool_paramtype_integer",
-      "community": 84,
+      "community": 107,
       "norm_label": "integer"
     },
     {
@@ -3134,7 +3152,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L5",
       "id": "agent_agenttool_paramtype_number",
-      "community": 84,
+      "community": 107,
       "norm_label": "number"
     },
     {
@@ -3143,7 +3161,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L5",
       "id": "agent_agenttool_paramtype_boolean",
-      "community": 84,
+      "community": 107,
       "norm_label": "boolean"
     },
     {
@@ -3152,7 +3170,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L11",
       "id": "agent_agenttool_agenttoolparam_init",
-      "community": 117,
+      "community": 107,
       "norm_label": ".init()"
     },
     {
@@ -3161,7 +3179,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L23",
       "id": "agent_agenttool_agenttool",
-      "community": 117,
+      "community": 107,
       "norm_label": "agenttool"
     },
     {
@@ -3359,7 +3377,7 @@
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L70",
       "id": "harness_harnessmodel_harnessmodel_startserver",
-      "community": 125,
+      "community": 10,
       "norm_label": ".startserver()"
     },
     {
@@ -3404,7 +3422,7 @@
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L93",
       "id": "harness_harnessmodel_harnessmodel_ensurememory",
-      "community": 142,
+      "community": 10,
       "norm_label": ".ensurememory()"
     },
     {
@@ -3701,7 +3719,7 @@
       "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_sleepconsolidatione2etests_swift",
-      "community": 142,
+      "community": 87,
       "norm_label": "sleepconsolidatione2etests.swift"
     },
     {
@@ -3710,7 +3728,7 @@
       "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
       "source_location": "L23",
       "id": "gemmatests_sleepconsolidatione2etests_sleepconsolidatione2etests",
-      "community": 142,
+      "community": 87,
       "norm_label": "sleepconsolidatione2etests"
     },
     {
@@ -3719,7 +3737,7 @@
       "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
       "source_location": "L32",
       "id": "gemmatests_sleepconsolidatione2etests_sleepconsolidatione2etests_observe",
-      "community": 142,
+      "community": 87,
       "norm_label": ".observe()"
     },
     {
@@ -3728,7 +3746,7 @@
       "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
       "source_location": "L46",
       "id": "gemmatests_sleepconsolidatione2etests_sleepconsolidatione2etests_isserverup",
-      "community": 142,
+      "community": 87,
       "norm_label": ".isserverup()"
     },
     {
@@ -3737,7 +3755,7 @@
       "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
       "source_location": "L59",
       "id": "gemmatests_sleepconsolidatione2etests_sleepconsolidatione2etests_test_e2e_full_sleep_cycle",
-      "community": 142,
+      "community": 87,
       "norm_label": ".test_e2e_full_sleep_cycle()"
     },
     {
@@ -3809,7 +3827,7 @@
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L14",
       "id": "gemmatests_memoryconsolidationenginetests_cannedruntime_generate",
-      "community": 125,
+      "community": 56,
       "norm_label": ".generate()"
     },
     {
@@ -3899,7 +3917,7 @@
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L109",
       "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_resumes_from_persisted_phase",
-      "community": 54,
+      "community": 138,
       "norm_label": ".test_runcycle_resumes_from_persisted_phase()"
     },
     {
@@ -4493,7 +4511,7 @@
       "source_file": "Gemma/GemmaTests/ToolRegistryTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_toolregistrytests_swift",
-      "community": 107,
+      "community": 105,
       "norm_label": "toolregistrytests.swift"
     },
     {
@@ -4502,7 +4520,7 @@
       "source_file": "Gemma/GemmaTests/ToolRegistryTests.swift",
       "source_location": "L4",
       "id": "gemmatests_toolregistrytests_toolregistrytests",
-      "community": 107,
+      "community": 105,
       "norm_label": "toolregistrytests"
     },
     {
@@ -4511,7 +4529,7 @@
       "source_file": "Gemma/GemmaTests/ToolRegistryTests.swift",
       "source_location": "L6",
       "id": "gemmatests_toolregistrytests_toolregistrytests_test_empty_bydefault",
-      "community": 107,
+      "community": 105,
       "norm_label": ".test_empty_bydefault()"
     },
     {
@@ -4520,7 +4538,7 @@
       "source_file": "Gemma/GemmaTests/ToolRegistryTests.swift",
       "source_location": "L9",
       "id": "gemmatests_toolregistrytests_toolregistrytests_test_register_addstool",
-      "community": 107,
+      "community": 105,
       "norm_label": ".test_register_addstool()"
     },
     {
@@ -4529,7 +4547,7 @@
       "source_file": "Gemma/GemmaTests/ToolRegistryTests.swift",
       "source_location": "L15",
       "id": "gemmatests_toolregistrytests_toolregistrytests_test_registerdefaults_includescurrenttime",
-      "community": 107,
+      "community": 105,
       "norm_label": ".test_registerdefaults_includescurrenttime()"
     },
     {
@@ -4808,7 +4826,7 @@
       "source_file": "Gemma/GemmaTests/MemoryToolsTests.swift",
       "source_location": "L86",
       "id": "gemmatests_memorytoolstests_memorytoolstests_test_forget_soft_deletes",
-      "community": 130,
+      "community": 107,
       "norm_label": ".test_forget_soft_deletes()"
     },
     {
@@ -5289,6 +5307,15 @@
       "norm_label": ".test_live_spawn_ready_then_stop()"
     },
     {
+      "label": ".test_live_setWiredLimit_restarts_into_wired_server()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/ServerManagerLiveTests.swift",
+      "source_location": "L77",
+      "id": "gemmatests_servermanagerlivetests_servermanagerlivetests_test_live_setwiredlimit_restarts_into_wired_server",
+      "community": 115,
+      "norm_label": ".test_live_setwiredlimit_restarts_into_wired_server()"
+    },
+    {
       "label": "MemoryStoreEdgesTests.swift",
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/MemoryStoreEdgesTests.swift",
@@ -5402,7 +5429,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_agenttests_swift",
-      "community": 125,
+      "community": 75,
       "norm_label": "agenttests.swift"
     },
     {
@@ -5411,7 +5438,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L4",
       "id": "gemmatests_agenttests_agenttests",
-      "community": 125,
+      "community": 75,
       "norm_label": "agenttests"
     },
     {
@@ -5420,7 +5447,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L7",
       "id": "gemmatests_agenttests_stubruntime",
-      "community": 125,
+      "community": 75,
       "norm_label": "stubruntime"
     },
     {
@@ -5429,7 +5456,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L8",
       "id": "gemmatests_agenttests_stubruntime_generate",
-      "community": 125,
+      "community": 75,
       "norm_label": ".generate()"
     },
     {
@@ -5438,7 +5465,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L20",
       "id": "gemmatests_agenttests_agenttests_test_run_relayseventsasagentevents",
-      "community": 125,
+      "community": 75,
       "norm_label": ".test_run_relayseventsasagentevents()"
     },
     {
@@ -5447,7 +5474,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L40",
       "id": "gemmatests_agenttests_agenttests_test_run_executestoolandfinishes",
-      "community": 125,
+      "community": 75,
       "norm_label": ".test_run_executestoolandfinishes()"
     },
     {
@@ -5456,7 +5483,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L80",
       "id": "gemmatests_agenttests_agenttests_test_run_executestoolevenwhenmodelalsoreturnstext",
-      "community": 125,
+      "community": 75,
       "norm_label": ".test_run_executestoolevenwhenmodelalsoreturnstext()"
     },
     {
@@ -5591,7 +5618,7 @@
       "source_file": "Gemma/GemmaTests/EpisodeRecorderTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_episoderecordertests_swift",
-      "community": 105,
+      "community": 54,
       "norm_label": "episoderecordertests.swift"
     },
     {
@@ -5600,7 +5627,7 @@
       "source_file": "Gemma/GemmaTests/EpisodeRecorderTests.swift",
       "source_location": "L4",
       "id": "gemmatests_episoderecordertests_episoderecordertests",
-      "community": 105,
+      "community": 54,
       "norm_label": "episoderecordertests"
     },
     {
@@ -5609,7 +5636,7 @@
       "source_file": "Gemma/GemmaTests/EpisodeRecorderTests.swift",
       "source_location": "L5",
       "id": "gemmatests_episoderecordertests_episoderecordertests_test_record_writes_user_and_assistant_conversation_nodes",
-      "community": 105,
+      "community": 54,
       "norm_label": ".test_record_writes_user_and_assistant_conversation_nodes()"
     },
     {
@@ -5618,7 +5645,7 @@
       "source_file": "Gemma/GemmaTests/EpisodeRecorderTests.swift",
       "source_location": "L20",
       "id": "gemmatests_episoderecordertests_episoderecordertests_test_record_skips_empty_assistant_text",
-      "community": 105,
+      "community": 54,
       "norm_label": ".test_record_skips_empty_assistant_text()"
     },
     {
@@ -5627,7 +5654,7 @@
       "source_file": "Gemma/GemmaTests/EpisodeRecorderTests.swift",
       "source_location": "L28",
       "id": "gemmatests_episoderecordertests_episoderecordertests_test_episodes_do_not_count_as_facts",
-      "community": 105,
+      "community": 54,
       "norm_label": ".test_episodes_do_not_count_as_facts()"
     },
     {
@@ -5798,7 +5825,7 @@
       "source_file": "Gemma/GemmaTests/MemoryStoreSleepTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_memorystoresleeptests_swift",
-      "community": 54,
+      "community": 138,
       "norm_label": "memorystoresleeptests.swift"
     },
     {
@@ -5807,7 +5834,7 @@
       "source_file": "Gemma/GemmaTests/MemoryStoreSleepTests.swift",
       "source_location": "L4",
       "id": "gemmatests_memorystoresleeptests_memorystoresleeptests",
-      "community": 54,
+      "community": 138,
       "norm_label": "memorystoresleeptests"
     },
     {
@@ -5816,7 +5843,7 @@
       "source_file": "Gemma/GemmaTests/MemoryStoreSleepTests.swift",
       "source_location": "L5",
       "id": "gemmatests_memorystoresleeptests_memorystoresleeptests_ep",
-      "community": 54,
+      "community": 138,
       "norm_label": ".ep()"
     },
     {
@@ -5825,7 +5852,7 @@
       "source_file": "Gemma/GemmaTests/MemoryStoreSleepTests.swift",
       "source_location": "L15",
       "id": "gemmatests_memorystoresleeptests_memorystoresleeptests_test_sleep_cycle_round_trip_and_clear",
-      "community": 54,
+      "community": 138,
       "norm_label": ".test_sleep_cycle_round_trip_and_clear()"
     },
     {
@@ -5834,7 +5861,7 @@
       "source_file": "Gemma/GemmaTests/MemoryStoreSleepTests.swift",
       "source_location": "L26",
       "id": "gemmatests_memorystoresleeptests_memorystoresleeptests_test_sleep_cycle_round_trips_focus",
-      "community": 54,
+      "community": 138,
       "norm_label": ".test_sleep_cycle_round_trips_focus()"
     },
     {
@@ -5843,7 +5870,7 @@
       "source_file": "Gemma/GemmaTests/MemoryStoreSleepTests.swift",
       "source_location": "L32",
       "id": "gemmatests_memorystoresleeptests_memorystoresleeptests_test_pending_followups_returns_pending_tasks_and_followups",
-      "community": 54,
+      "community": 138,
       "norm_label": ".test_pending_followups_returns_pending_tasks_and_followups()"
     },
     {
@@ -5852,7 +5879,7 @@
       "source_file": "Gemma/GemmaTests/MemoryStoreSleepTests.swift",
       "source_location": "L49",
       "id": "gemmatests_memorystoresleeptests_memorystoresleeptests_test_unconsolidated_episodes_and_mark",
-      "community": 54,
+      "community": 138,
       "norm_label": ".test_unconsolidated_episodes_and_mark()"
     },
     {
@@ -5861,7 +5888,7 @@
       "source_file": "Gemma/GemmaTests/MemoryStoreSleepTests.swift",
       "source_location": "L58",
       "id": "gemmatests_memorystoresleeptests_memorystoresleeptests_test_distinct_kinds_and_reassign",
-      "community": 54,
+      "community": 138,
       "norm_label": ".test_distinct_kinds_and_reassign()"
     },
     {
@@ -5870,7 +5897,7 @@
       "source_file": "Gemma/GemmaTests/MemoryStoreSleepTests.swift",
       "source_location": "L73",
       "id": "gemmatests_memorystoresleeptests_memorystoresleeptests_test_prune_dangling_edges",
-      "community": 54,
+      "community": 138,
       "norm_label": ".test_prune_dangling_edges()"
     },
     {
@@ -5879,7 +5906,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_currenttimetooltests_swift",
-      "community": 70,
+      "community": 107,
       "norm_label": "currenttimetooltests.swift"
     },
     {
@@ -5888,7 +5915,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L4",
       "id": "gemmatests_currenttimetooltests_currenttimetooltests",
-      "community": 70,
+      "community": 107,
       "norm_label": "currenttimetooltests"
     },
     {
@@ -5897,7 +5924,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L5",
       "id": "gemmatests_currenttimetooltests_currenttimetooltests_test_metadata",
-      "community": 70,
+      "community": 107,
       "norm_label": ".test_metadata()"
     },
     {
@@ -5906,7 +5933,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L9",
       "id": "gemmatests_currenttimetooltests_currenttimetooltests_test_run_returnsnonemptytimestring",
-      "community": 70,
+      "community": 107,
       "norm_label": ".test_run_returnsnonemptytimestring()"
     },
     {
@@ -5915,7 +5942,7 @@
       "source_file": "Gemma/GemmaTests/NodeKindStringTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_nodekindstringtests_swift",
-      "community": 137,
+      "community": 70,
       "norm_label": "nodekindstringtests.swift"
     },
     {
@@ -5924,7 +5951,7 @@
       "source_file": "Gemma/GemmaTests/NodeKindStringTests.swift",
       "source_location": "L4",
       "id": "gemmatests_nodekindstringtests_nodekindstringtests",
-      "community": 137,
+      "community": 70,
       "norm_label": "nodekindstringtests"
     },
     {
@@ -5933,7 +5960,7 @@
       "source_file": "Gemma/GemmaTests/NodeKindStringTests.swift",
       "source_location": "L5",
       "id": "gemmatests_nodekindstringtests_nodekindstringtests_test_node_stores_arbitrary_kind_string_verbatim",
-      "community": 137,
+      "community": 70,
       "norm_label": ".test_node_stores_arbitrary_kind_string_verbatim()"
     },
     {
@@ -5942,7 +5969,7 @@
       "source_file": "Gemma/GemmaTests/NodeKindStringTests.swift",
       "source_location": "L15",
       "id": "gemmatests_nodekindstringtests_nodekindstringtests_test_nodekind_constants_available",
-      "community": 137,
+      "community": 70,
       "norm_label": ".test_nodekind_constants_available()"
     },
     {
@@ -6041,7 +6068,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L54",
       "id": "gemmatests_servermanagertests_testerror",
-      "community": 128,
+      "community": 87,
       "norm_label": "testerror"
     },
     {
@@ -6050,7 +6077,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L54",
       "id": "gemmatests_servermanagertests_testerror_boom",
-      "community": 128,
+      "community": 87,
       "norm_label": "boom"
     },
     {
@@ -6180,10 +6207,19 @@
       "norm_label": ".test_setwiredlimit_change_restarts_with_new_limit()"
     },
     {
+      "label": ".test_setWiredLimit_waitsForOldServerDown_thenSpawns_notAttach()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
+      "source_location": "L214",
+      "id": "gemmatests_servermanagertests_servermanagertests_test_setwiredlimit_waitsforoldserverdown_thenspawns_notattach",
+      "community": 115,
+      "norm_label": ".test_setwiredlimit_waitsforoldserverdown_thenspawns_notattach()"
+    },
+    {
       "label": ".test_setWiredLimit_sameValue_isNoop()",
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
-      "source_location": "L209",
+      "source_location": "L229",
       "id": "gemmatests_servermanagertests_servermanagertests_test_setwiredlimit_samevalue_isnoop",
       "community": 115,
       "norm_label": ".test_setwiredlimit_samevalue_isnoop()"
@@ -6194,7 +6230,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_agenttooltests_swift",
-      "community": 117,
+      "community": 125,
       "norm_label": "agenttooltests.swift"
     },
     {
@@ -6203,7 +6239,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L4",
       "id": "gemmatests_agenttooltests_agenttooltests",
-      "community": 117,
+      "community": 125,
       "norm_label": "agenttooltests"
     },
     {
@@ -6212,7 +6248,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L5",
       "id": "gemmatests_agenttooltests_echotool",
-      "community": 117,
+      "community": 125,
       "norm_label": "echotool"
     },
     {
@@ -6221,7 +6257,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L11",
       "id": "gemmatests_agenttooltests_echotool_run",
-      "community": 117,
+      "community": 125,
       "norm_label": ".run()"
     },
     {
@@ -6230,7 +6266,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L17",
       "id": "gemmatests_agenttooltests_agenttooltests_testjsonschema",
-      "community": 117,
+      "community": 125,
       "norm_label": ".testjsonschema()"
     },
     {
@@ -6239,7 +6275,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L25",
       "id": "gemmatests_agenttooltests_agenttooltests_testrunparsesargs",
-      "community": 117,
+      "community": 125,
       "norm_label": ".testrunparsesargs()"
     },
     {
@@ -14869,7 +14905,7 @@
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/MemoryToolsTests.swift",
       "source_location": "L23",
-      "community": 130,
+      "community": 107,
       "norm_label": ".testforgetsoftdeletes()",
       "id": "gemmatests_memorytoolstests_memorytoolstests_testforgetsoftdeletes"
     },
@@ -14941,7 +14977,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L75",
-      "community": 125,
+      "community": 56,
       "norm_label": ".generate()",
       "id": "harness_harnessmodel_dummyruntime2_generate"
     },
@@ -14977,7 +15013,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/ForgetTool.swift",
       "source_location": "L12",
-      "community": 130,
+      "community": 107,
       "norm_label": ".init()",
       "id": "memory_forgettool_forgettool_init"
     },
@@ -15013,7 +15049,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/DummyRuntime.swift",
       "source_location": "L95",
-      "community": 0,
+      "community": 56,
       "norm_label": ".setlastmetrics()",
       "id": "runtime_dummyruntime_dummyruntime_setlastmetrics"
     },
@@ -21642,6 +21678,17 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "Gemma/GemmaTests/ServerManagerLiveTests.swift",
+      "source_location": "L87",
+      "weight": 1.0,
+      "source": "gemmatests_servermanagerlivetests_servermanagerlivetests_test_live_setwiredlimit_restarts_into_wired_server",
+      "target": "runtime_httpserverhealth_httpserverhealth"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/ServerManagerLiveTests.swift",
       "source_location": "L28",
       "weight": 1.0,
       "source": "gemmatests_servermanagerlivetests_servermanagerlivetests_test_live_spawn_ready_then_stop",
@@ -23004,6 +23051,17 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "Gemma/GemmaTests/ServerManagerLiveTests.swift",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "gemmatests_servermanagerlivetests_servermanagerlivetests_test_live_setwiredlimit_restarts_into_wired_server",
+      "target": "runtime_servermanager_servermanager"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/ServerManagerLiveTests.swift",
       "source_location": "L40",
       "weight": 1.0,
       "source": "gemmatests_servermanagerlivetests_servermanagerlivetests_test_live_spawn_ready_then_stop",
@@ -23088,6 +23146,16 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
+      "source_location": "L176",
+      "weight": 1.0,
+      "source": "runtime_servermanager_servermanager",
+      "target": "runtime_servermanager_servermanager_restart",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L159",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -23128,11 +23196,32 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
+      "source_location": "L184",
+      "weight": 1.0,
+      "source": "runtime_servermanager_servermanager",
+      "target": "runtime_servermanager_servermanager_waitforserverdown",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L127",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "runtime_servermanager_servermanager",
       "target": "runtime_servermanager_servermanager_warmtoready"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
+      "source_location": "L180",
+      "weight": 1.0,
+      "source": "runtime_servermanager_servermanager_restart",
+      "target": "runtime_servermanager_servermanager_start",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -23172,11 +23261,44 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
+      "source_location": "L178",
+      "weight": 1.0,
+      "source": "runtime_servermanager_servermanager_restart",
+      "target": "runtime_servermanager_servermanager_stop",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L162",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "runtime_servermanager_servermanager_setwiredlimit",
       "target": "runtime_servermanager_servermanager_stop"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
+      "source_location": "L166",
+      "weight": 1.0,
+      "source": "runtime_servermanager_servermanager_setwiredlimit",
+      "target": "runtime_servermanager_servermanager_restart",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
+      "source_location": "L179",
+      "weight": 1.0,
+      "source": "runtime_servermanager_servermanager_restart",
+      "target": "runtime_servermanager_servermanager_waitforserverdown",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -28003,6 +28125,16 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/GemmaTests/ServerManagerLiveTests.swift",
+      "source_location": "L77",
+      "weight": 1.0,
+      "source": "gemmatests_servermanagerlivetests_servermanagerlivetests",
+      "target": "gemmatests_servermanagerlivetests_servermanagerlivetests_test_live_setwiredlimit_restarts_into_wired_server",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerManagerLiveTests.swift",
       "source_location": "L18",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -29209,6 +29341,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
+      "source_location": "L215",
+      "weight": 1.0,
+      "source": "gemmatests_servermanagertests_servermanagertests_test_setwiredlimit_waitsforoldserverdown_thenspawns_notattach",
+      "target": "gemmatests_servermanagertests_fakelauncher",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L67",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -29382,6 +29525,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
+      "source_location": "L218",
+      "weight": 1.0,
+      "source": "gemmatests_servermanagertests_servermanagertests_test_setwiredlimit_waitsforoldserverdown_thenspawns_notattach",
+      "target": "gemmatests_servermanagertests_fakehealth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L68",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -29535,6 +29689,16 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
+      "source_location": "L214",
+      "weight": 1.0,
+      "source": "gemmatests_servermanagertests_servermanagertests",
+      "target": "gemmatests_servermanagertests_servermanagertests_test_setwiredlimit_waitsforoldserverdown_thenspawns_notattach",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L66",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -29647,6 +29811,17 @@
       "confidence_score": 1.0,
       "source": "gemmatests_servermanagertests_servermanagertests_test_setwiredlimit_samevalue_isnoop",
       "target": "gemmatests_servermanagertests_servermanagertests_makemanager"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
+      "source_location": "L219",
+      "weight": 1.0,
+      "source": "gemmatests_servermanagertests_servermanagertests_test_setwiredlimit_waitsforoldserverdown_thenspawns_notattach",
+      "target": "gemmatests_servermanagertests_servermanagertests_makemanager",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -40288,5 +40463,5 @@
       "source_file": "docs/superpowers/plans/2026-05-28-s1-model-infra.md"
     }
   ],
-  "built_at_commit": "894b546910f145a9f04fa9be4a730da78f2630e8"
+  "built_at_commit": "0dee4087e9da50adbee519555153f620613bcda2"
 }

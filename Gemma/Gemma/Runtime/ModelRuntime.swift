@@ -1,5 +1,13 @@
 import Foundation
 
+/// One message in a chat history sent to the model (short-term context, M2d-1).
+public struct ChatMessage: Sendable, Equatable {
+    public enum Role: String, Sendable, Codable { case system, user, assistant }
+    public var role: Role
+    public var content: String
+    public init(role: Role, content: String) { self.role = role; self.content = content }
+}
+
 // MARK: - Value types
 
 public struct RuntimeMetrics: Sendable, Codable, Equatable {
@@ -87,6 +95,9 @@ public struct GenerationOptions: Sendable {
     /// Optional system prompt applied when the conversation is (re)created for this
     /// generation. nil = no system message.
     public var systemPrompt: String?
+    /// Prior conversation turns (short-term context) prepended to the request, oldest first.
+    /// Empty = single-shot (legacy behavior).
+    public var history: [ChatMessage]
 
     public init(
         maxTokens: Int = 4000,
@@ -94,7 +105,8 @@ public struct GenerationOptions: Sendable {
         topP: Double = 0.95,
         topK: Int = 64,
         useSpeculativeDecoding: Bool = false,
-        systemPrompt: String? = nil
+        systemPrompt: String? = nil,
+        history: [ChatMessage] = []
     ) {
         self.maxTokens = maxTokens
         self.temperature = temperature
@@ -102,6 +114,7 @@ public struct GenerationOptions: Sendable {
         self.topK = topK
         self.useSpeculativeDecoding = useSpeculativeDecoding
         self.systemPrompt = systemPrompt
+        self.history = history
     }
 }
 

@@ -15,9 +15,10 @@ struct MemoryServices {
 }
 
 /// Orchestrates one agent turn over a tool-calling runtime. With memory it retrieves relevant
-/// memories and injects them into the system prompt (#18); capture happens in-turn via the
-/// save_memory tool, and the caller records the conversation as episodes. Without memory it
-/// behaves exactly as the S4 agent.
+/// memories and injects them into the system prompt; the live turn does NOT write memory
+/// (no save_memory) — capture is deferred to background consolidation, and the caller appends
+/// the turn to the TranscriptStore (short-term context). Without memory it behaves exactly as
+/// the S4 agent.
 @MainActor
 final class Agent {
     private let runtime: ToolCallingRuntime
@@ -36,8 +37,6 @@ final class Agent {
         let base = """
         You are Gemma, a helpful on-device assistant. You can call tools to get real information. \
         When a tool is relevant (e.g. the user asks the time), call it instead of guessing. \
-        Use the save_memory tool to store durable facts the user states about themselves. \
-        Save people, places, preferences, personality traits, tasks (things to do), and plans as memories with save_memory. You may call reflect to connect what you've learned. \
         Answer only what the user asked; do not list unrelated things you remember. \
         IMPORTANT: after any tool runs, ALWAYS reply to the user in a short, natural sentence — \
         confirm what you did or answer their question. Never end your turn with only a tool call.

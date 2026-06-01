@@ -109,8 +109,7 @@ final class MemoryConsolidationEngineTests: XCTestCase {
     func test_runCycle_resumes_from_persisted_phase() async throws {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
         // one unconsolidated episode
-        let meta = EpisodeRecorder.Meta(threadId: "T", role: "user", turnIndex: 0, status: "closed")
-        let extra = String(data: try JSONEncoder().encode(meta), encoding: .utf8)
+        let extra = #"{"threadId":"T","role":"user","turnIndex":0,"status":"closed"}"#
         let now = Date().timeIntervalSince1970
         try store.upsert(Node(id: "e1", kind: NodeKind.conversation.rawValue, label: "user: hi", body: "me gusta el sushi", layer: .episodic, createdAt: now, updatedAt: now, lastSeenAt: now, salience: 2, decayRate: 0.001, confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: "T", origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: extra))
         // pretend we already finished NREM+REM+Reflect+Curate; resume should run only SHY then finish.
@@ -118,20 +117,23 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: CannedRuntime([]))
         await engine.runCycle(isCancelled: { false })
         XCTAssertNil(try store.loadSleepCycle(), "cycle cleared after completion")
-        XCTAssertEqual(EpisodeRecorder.meta(from: try store.node(id: "e1")!)?.status, "consolidated")
+        let e1extra = try store.node(id: "e1")?.extra
+        let e1status = e1extra.flatMap { $0.data(using: .utf8) }.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }.flatMap { $0["status"] as? String }
+        XCTAssertEqual(e1status, "consolidated")
     }
 
     func test_runCycle_cancel_persists_phase_for_resume() async throws {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
-        let meta = EpisodeRecorder.Meta(threadId: "T", role: "user", turnIndex: 0, status: "closed")
-        let extra = String(data: try JSONEncoder().encode(meta), encoding: .utf8)
+        let extra = #"{"threadId":"T","role":"user","turnIndex":0,"status":"closed"}"#
         let now = Date().timeIntervalSince1970
         try store.upsert(Node(id: "e1", kind: NodeKind.conversation.rawValue, label: "u", body: "hi", layer: .episodic, createdAt: now, updatedAt: now, lastSeenAt: now, salience: 2, decayRate: 0.001, confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: "T", origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: extra))
         let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: CannedRuntime(["{}","{}","{}","{}"]))
         await engine.runCycle(isCancelled: { true })   // cancels immediately
         // a cycle was started (phase persisted) and NOT cleared
         XCTAssertNotNil(try store.loadSleepCycle())
-        XCTAssertNotEqual(EpisodeRecorder.meta(from: try store.node(id: "e1")!)?.status, "consolidated")
+        let e1extra = try store.node(id: "e1")?.extra
+        let e1status = e1extra.flatMap { $0.data(using: .utf8) }.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }.flatMap { $0["status"] as? String }
+        XCTAssertNotEqual(e1status, "consolidated")
     }
 
     func test_detect_creates_followup_nodes() async throws {
@@ -166,8 +168,7 @@ final class MemoryConsolidationEngineTests: XCTestCase {
     }
     func test_runCycle_includes_detect_and_sets_focus() async throws {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
-        let meta = EpisodeRecorder.Meta(threadId: "T", role: "user", turnIndex: 0, status: "closed")
-        let extra = String(data: try JSONEncoder().encode(meta), encoding: .utf8)
+        let extra = #"{"threadId":"T","role":"user","turnIndex":0,"status":"closed"}"#
         let now = Date().timeIntervalSince1970
         try store.upsert(Node(id: "e1", kind: NodeKind.conversation.rawValue, label: "u", body: "me gusta el sushi", layer: .episodic, createdAt: now, updatedAt: now, lastSeenAt: now, salience: 2, decayRate: 0.001, confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: "T", origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: extra))
         // start at .detect so only detect+rest run; assert focus was set when the cycle started.
@@ -175,6 +176,8 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         await engine.runCycle(isCancelled: { false })
         // cycle completed: episodes consolidated + cleared
         XCTAssertNil(try store.loadSleepCycle())
-        XCTAssertEqual(EpisodeRecorder.meta(from: try store.node(id: "e1")!)?.status, "consolidated")
+        let e1extra = try store.node(id: "e1")?.extra
+        let e1status = e1extra.flatMap { $0.data(using: .utf8) }.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }.flatMap { $0["status"] as? String }
+        XCTAssertEqual(e1status, "consolidated")
     }
 }

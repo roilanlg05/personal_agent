@@ -415,8 +415,8 @@
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/ServerManager.swift": {
-    "mtime": 1780304886.0971885,
-    "ast_hash": "77f9458792715a8c65f26c3563436fcd",
+    "mtime": 1780306471.1278028,
+    "ast_hash": "97009e34a6ddf8c6fd7359b5681d5961",
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/Gemma/Runtime/ServerProcess.swift": {
@@ -430,8 +430,8 @@
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/ServerManagerTests.swift": {
-    "mtime": 1780304886.0980518,
-    "ast_hash": "8fea469bc18f1c269cbfa00646810e87",
+    "mtime": 1780306400.8503304,
+    "ast_hash": "afe01f6255ff064752fd6a56fd026092",
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/docs/superpowers/plans/2026-05-30-m2a-server-lifecycle.md": {
@@ -465,8 +465,8 @@
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/ServerManagerLiveTests.swift": {
-    "mtime": 1780304886.097905,
-    "ast_hash": "0176e72df5f7cf5d689bc32c74185178",
+    "mtime": 1780306561.6513598,
+    "ast_hash": "e785e8519ae25da70d96c453147a44e6",
     "semantic_hash": ""
   },
   "/Users/hashdown/Projects/personal_agent/Gemma/GemmaTests/MemoryStoreEdgesTests.swift": {

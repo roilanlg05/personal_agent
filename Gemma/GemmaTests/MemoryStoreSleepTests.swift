@@ -4,8 +4,7 @@ import XCTest
 final class MemoryStoreSleepTests: XCTestCase {
     private func ep(_ id: String, _ threadId: String, _ status: String) -> Node {
         let now = Date().timeIntervalSince1970
-        let meta = EpisodeRecorder.Meta(threadId: threadId, role: "user", turnIndex: 0, status: status)
-        let extra = (try? JSONEncoder().encode(meta)).flatMap { String(data: $0, encoding: .utf8) }
+        let extra = #"{"threadId":"\#(threadId)","role":"user","turnIndex":0,"status":"\#(status)"}"#
         return Node(id: id, kind: NodeKind.conversation.rawValue, label: "user: hi", body: "hi", layer: .episodic,
                     createdAt: now, updatedAt: now, lastSeenAt: now, salience: 2, decayRate: 0.001,
                     confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: threadId,

@@ -108,32 +108,23 @@ final class MemoryConsolidationEngineTests: XCTestCase {
 
     func test_runCycle_resumes_from_persisted_phase() async throws {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
-        // one unconsolidated episode
-        let extra = #"{"threadId":"T","role":"user","turnIndex":0,"status":"closed"}"#
-        let now = Date().timeIntervalSince1970
-        try store.upsert(Node(id: "e1", kind: NodeKind.conversation.rawValue, label: "user: hi", body: "me gusta el sushi", layer: .episodic, createdAt: now, updatedAt: now, lastSeenAt: now, salience: 2, decayRate: 0.001, confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: "T", origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: extra))
-        // pretend we already finished NREM+REM+Reflect+Curate; resume should run only SHY then finish.
-        try store.saveSleepCycle(SleepCycleState(phase: .shy, episodeIds: ["e1"], startedAt: now))
-        let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: CannedRuntime([]))
+        let ts = TranscriptStore(dbQueue: store.dbQueue)
+        // pretend we already finished up to .shy; resume should run only SHY then finish.
+        try store.saveSleepCycle(SleepCycleState(phase: .shy, episodeIds: [], startedAt: Date().timeIntervalSince1970))
+        let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: CannedRuntime([]), transcriptStore: ts)
         await engine.runCycle(isCancelled: { false })
         XCTAssertNil(try store.loadSleepCycle(), "cycle cleared after completion")
-        let e1extra = try store.node(id: "e1")?.extra
-        let e1status = e1extra.flatMap { $0.data(using: .utf8) }.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }.flatMap { $0["status"] as? String }
-        XCTAssertEqual(e1status, "consolidated")
     }
 
     func test_runCycle_cancel_persists_phase_for_resume() async throws {
         let store = try MemoryStore(inMemory: true, embeddingDim: 4)
-        let extra = #"{"threadId":"T","role":"user","turnIndex":0,"status":"closed"}"#
-        let now = Date().timeIntervalSince1970
-        try store.upsert(Node(id: "e1", kind: NodeKind.conversation.rawValue, label: "u", body: "hi", layer: .episodic, createdAt: now, updatedAt: now, lastSeenAt: now, salience: 2, decayRate: 0.001, confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: "T", origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: extra))
-        let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: CannedRuntime(["{}","{}","{}","{}"]))
+        let ts = TranscriptStore(dbQueue: store.dbQueue)
+        try ts.append(threadId: "T", turnIndex: 0, role: "user", text: "hi", now: Date().timeIntervalSince1970)
+        let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: CannedRuntime(["{}","{}","{}","{}"]), transcriptStore: ts)
         await engine.runCycle(isCancelled: { true })   // cancels immediately
         // a cycle was started (phase persisted) and NOT cleared
         XCTAssertNotNil(try store.loadSleepCycle())
-        let e1extra = try store.node(id: "e1")?.extra
-        let e1status = e1extra.flatMap { $0.data(using: .utf8) }.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }.flatMap { $0["status"] as? String }
-        XCTAssertNotEqual(e1status, "consolidated")
+        XCTAssertEqual(try ts.unconsolidated(limit: 100).count, 1, "not yet consolidated when cancelled")
     }
 
     func test_detect_creates_followup_nodes() async throws {
@@ -166,18 +157,37 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         XCTAssertTrue(edges.contains { $0.srcId == fu?.id && $0.dstId == "juan" && $0.relation == .relatedTo },
                       "follow_up linked to its source entity Juan")
     }
-    func test_runCycle_includes_detect_and_sets_focus() async throws {
-        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
-        let extra = #"{"threadId":"T","role":"user","turnIndex":0,"status":"closed"}"#
-        let now = Date().timeIntervalSince1970
-        try store.upsert(Node(id: "e1", kind: NodeKind.conversation.rawValue, label: "u", body: "me gusta el sushi", layer: .episodic, createdAt: now, updatedAt: now, lastSeenAt: now, salience: 2, decayRate: 0.001, confidence: .sure, mentionCount: 1, ttlExpiresAt: nil, sourceRef: "T", origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: extra))
-        // start at .detect so only detect+rest run; assert focus was set when the cycle started.
-        let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: CannedRuntime(["{}","{}","{}","{}","{}"]))
+    func test_runCycle_consumes_transcript_and_marks_consolidated() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
+        let ts = TranscriptStore(dbQueue: store.dbQueue)
+        try ts.append(threadId: "t", turnIndex: 0, role: "user", text: "me llamo Roilan y me gusta el sushi", now: 1)
+        try ts.append(threadId: "t", turnIndex: 0, role: "assistant", text: "¡Genial!", now: 2)
+        // phase order: nrem, summarize, detect, rem, reflect, curate (shy needs no model)
+        let runtime = CannedRuntime([
+            #"{"entities":[{"entity":"sushi","kind":"preference","detail":"likes it"}]}"#,
+            #"{"topic":"presentación","concepts":["nombre Roilan","gusto sushi"],"intent":"","decisions":[],"importance":0.5,"summary":"El usuario se presenta."}"#,
+            #"{"followUps":[]}"#, #"{"edges":[]}"#, #"{"insights":[]}"#, #"{"map":{}}"#
+        ])
+        let engine = MemoryConsolidationEngine(store: store, embedder: nil, runtime: runtime, transcriptStore: ts)
         await engine.runCycle(isCancelled: { false })
-        // cycle completed: episodes consolidated + cleared
-        XCTAssertNil(try store.loadSleepCycle())
-        let e1extra = try store.node(id: "e1")?.extra
-        let e1status = e1extra.flatMap { $0.data(using: .utf8) }.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }.flatMap { $0["status"] as? String }
-        XCTAssertEqual(e1status, "consolidated")
+        XCTAssertEqual(try ts.unconsolidated(limit: 100).count, 0, "consumed transcript turns must be marked consolidated")
+        XCTAssertNotNil(try store.allNodes().first { $0.kind == "preference" && $0.label == "sushi" })
+    }
+
+    func test_summarize_writes_structured_summary_node() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
+        let ts = TranscriptStore(dbQueue: store.dbQueue)
+        let runtime = CannedRuntime([
+            #"{"topic":"viaje a Japón","concepts":["Tokio","sushi","abril"],"intent":"planear un viaje","decisions":["ir en abril"],"importance":0.8,"summary":"El usuario planea un viaje a Japón en abril."}"#
+        ])
+        let engine = MemoryConsolidationEngine(store: store, embedder: nil, runtime: runtime, transcriptStore: ts)
+        await engine.summarize(episodeTexts: ["User: quiero ir a Japón en abril"], threadId: "t", turnRange: 0...3)
+        let summary = try XCTUnwrap(try store.allNodes().first { $0.kind == NodeKind.summary.rawValue })
+        XCTAssertEqual(summary.label, "viaje a Japón")
+        let extra = try XCTUnwrap(summary.extra?.data(using: .utf8))
+        let obj = try XCTUnwrap(JSONSerialization.jsonObject(with: extra) as? [String: Any])
+        XCTAssertEqual(obj["concepts"] as? [String], ["Tokio", "sushi", "abril"])
+        XCTAssertEqual(obj["threadId"] as? String, "t")
+        XCTAssertEqual((obj["turnRange"] as? [Int]), [0, 3])
     }
 }

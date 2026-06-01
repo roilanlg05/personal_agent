@@ -108,7 +108,8 @@ public final class HarnessModel {
             // Share the turn runtime: all consolidation phases run thinking-OFF (the runtime's
             // default), same as turns, so there is nothing to override. Safe to share —
             // ServerRuntime is stateless.
-            let engine = MemoryConsolidationEngine(store: store, embedder: memoryEmbedder, runtime: runtime)
+            let engine = MemoryConsolidationEngine(store: store, embedder: memoryEmbedder, runtime: runtime,
+                                                   transcriptStore: transcriptStore ?? TranscriptStore(dbQueue: store.dbQueue))
             let sched = ConsolidationScheduler(runner: engine, isReady: { [weak self] in self?.serverManager.state == .ready },
                                                hasPendingCycle: { [weak self] in ((try? self?.memoryStore?.loadSleepCycle()) ?? nil) != nil })
             // Mirror short engine progress into the scheduler's summary so the

@@ -8,6 +8,7 @@ final class MemoryToolbox {
     static let shared = MemoryToolbox()
     var store: MemoryStore?
     var embedder: Embedder?
+    var transcriptStore: TranscriptStore?
     var reflectionRequest: (() -> Void)?
 
     private init() {}

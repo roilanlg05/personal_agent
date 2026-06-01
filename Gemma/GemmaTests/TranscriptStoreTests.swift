@@ -58,4 +58,15 @@ final class TranscriptStoreTests: XCTestCase {
         let rows = try s.recent(threadId: "t", maxTurns: 10, maxChars: 10_000)
         XCTAssertEqual(rows.map { $0.role }, ["user", "assistant"], "user must precede assistant within a turn")
     }
+
+    func test_rows_byIds_returnsMatching_orderedOldestFirst() throws {
+        let s = try makeStore()
+        try s.append(threadId: "t", turnIndex: 0, role: "user", text: "a", now: 1)
+        try s.append(threadId: "t", turnIndex: 0, role: "assistant", text: "b", now: 2)
+        let all = try s.unconsolidated(limit: 100)
+        let ids = all.map { $0.id }
+        let rows = try s.rows(ids: ids)
+        XCTAssertEqual(rows.map { $0.text }, ["a", "b"], "rows(ids:) returns the rows oldest-first")
+        XCTAssertEqual(try s.rows(ids: []).count, 0)
+    }
 }

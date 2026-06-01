@@ -107,13 +107,19 @@ final class MemoryConsolidationEngineTests: XCTestCase {
     }
 
     func test_runCycle_resumes_from_persisted_phase() async throws {
-        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
+        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
         let ts = TranscriptStore(dbQueue: store.dbQueue)
-        // pretend we already finished up to .shy; resume should run only SHY then finish.
-        try store.saveSleepCycle(SleepCycleState(phase: .shy, episodeIds: [], startedAt: Date().timeIntervalSince1970))
-        let engine = MemoryConsolidationEngine(store: store, embedder: FakeEmbedder(dimension: 4), runtime: CannedRuntime([]), transcriptStore: ts)
+        try ts.append(threadId: "T", turnIndex: 0, role: "user", text: "me gusta el sushi", now: 1)
+        let id = try ts.unconsolidated(limit: 1)[0].id
+        try store.saveSleepCycle(SleepCycleState(phase: .shy, episodeIds: [id], startedAt: 1))
+        var progress: [String] = []
+        let engine = MemoryConsolidationEngine(store: store, embedder: nil, runtime: CannedRuntime([]), transcriptStore: ts)
+        engine.onProgress = { progress.append($0) }
         await engine.runCycle(isCancelled: { false })
-        XCTAssertNil(try store.loadSleepCycle(), "cycle cleared after completion")
+        XCTAssertNil(try store.loadSleepCycle(), "cycle cleared after completing from .shy")
+        XCTAssertEqual(try ts.unconsolidated(limit: 100).count, 0, ".shy still marks episodes consolidated")
+        XCTAssertFalse(progress.contains { $0.contains("entities") || $0.contains("summary") },
+                       "resuming from .shy must SKIP nrem/summarize")
     }
 
     func test_runCycle_cancel_persists_phase_for_resume() async throws {

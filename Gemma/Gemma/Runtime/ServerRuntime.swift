@@ -43,6 +43,9 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                     if let sys = options.systemPrompt, !sys.isEmpty {
                         messages.append(["role": "system", "content": sys])
                     }
+                    for m in options.history {
+                        messages.append(["role": m.role.rawValue, "content": m.content])
+                    }
                     messages.append(["role": "user", "content": prompt])
 
                     var body: [String: Any] = [

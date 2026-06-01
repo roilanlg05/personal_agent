@@ -73,6 +73,8 @@ final class ServerManager {
     @ObservationIgnored private let pollAttempts: Int
     @ObservationIgnored private let pollInterval: Duration
     @ObservationIgnored let keepAliveInterval: Duration
+    /// Max probes (spaced by `pollInterval`) to wait for an owned server to go down on restart.
+    @ObservationIgnored private let downPollAttempts: Int
 
     @ObservationIgnored private var handle: ServerProcessHandle?
     @ObservationIgnored private var owned = false
@@ -85,13 +87,15 @@ final class ServerManager {
          health: ServerHealth = HTTPServerHealth(),
          pollAttempts: Int = 180,
          pollInterval: Duration = .seconds(1),
-         keepAliveInterval: Duration = .seconds(75)) {
+         keepAliveInterval: Duration = .seconds(75),
+         downPollAttempts: Int = 25) {
         self.config = config
         self.launcher = launcher
         self.health = health
         self.pollAttempts = pollAttempts
         self.pollInterval = pollInterval
         self.keepAliveInterval = keepAliveInterval
+        self.downPollAttempts = downPollAttempts
     }
 
     /// Idempotent-ish entry point; also used by the Retry button. Cancels any prior keep-alive.
@@ -159,8 +163,29 @@ final class ServerManager {
     func setWiredLimit(_ bytes: UInt64) async {
         guard bytes != config.wiredLimitBytes else { return }
         config.wiredLimitBytes = bytes
+        await restart()
+    }
+
+    /// Stop the owned server, WAIT for it to actually go down, then start fresh.
+    /// The wait matters: stop() only sends SIGTERM and returns immediately, but the old server
+    /// keeps answering for ~40-250ms. Without waiting, start()'s probe would attach to the dying
+    /// server (owned=false) instead of spawning the new one — and once it exits there'd be no
+    /// server at all. Waiting also frees the port so the new server can bind it.
+    /// If we didn't own the server (attached to an external one), skip the wait — stop() left it
+    /// running and start() will just re-attach.
+    private func restart() async {
+        let wasOwned = owned
         stop()
+        if wasOwned { await waitForServerDown() }
         await start()
+    }
+
+    /// Poll until the server stops answering on the port (bounded by `downPollAttempts`).
+    private func waitForServerDown() async {
+        for _ in 0..<downPollAttempts {
+            if !(await health.probe(config)) { return }
+            try? await Task.sleep(for: pollInterval)
+        }
     }
 
     /// Manual fallback command shown in the UI on failure.

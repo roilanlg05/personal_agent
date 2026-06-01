@@ -96,6 +96,19 @@ nonisolated final class MemoryStore {
                 t.add(column: "focus", .text).notNull().defaults(to: "")
             }
         }
+        m.registerMigration("v4-transcript") { db in
+            try db.create(table: "transcript") { t in
+                t.primaryKey("id", .text)
+                t.column("threadId", .text).notNull()
+                t.column("turnIndex", .integer).notNull()
+                t.column("role", .text).notNull()
+                t.column("text", .text).notNull()
+                t.column("createdAt", .double).notNull()
+                t.column("consolidated", .boolean).notNull().defaults(to: false)
+            }
+            try db.create(indexOn: "transcript", columns: ["threadId", "createdAt"])
+            try db.create(indexOn: "transcript", columns: ["consolidated"])
+        }
         return m
     }
 

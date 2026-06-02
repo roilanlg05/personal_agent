@@ -5,6 +5,8 @@ import SwiftUI
 struct SettingsView: View {
     let model: HarnessModel
     @AppStorage(SettingsKeys.keepModelResident) private var keepResident = false
+    @AppStorage("memoryBaseURL") private var memoryBaseURL: String = "http://localhost:8081"
+    @AppStorage("memoryBearerToken") private var memoryBearerToken: String = ""
 
     var body: some View {
         Form {
@@ -17,6 +19,19 @@ struct SettingsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
+            Section("Memory Service") {
+                TextField("Base URL", text: $memoryBaseURL)
+                    .textFieldStyle(.roundedBorder)
+                    .help("URL del servicio de memoria. Si lo movés al i3, cambia esto a la Tailscale IP.")
+                SecureField("Bearer token", text: $memoryBearerToken)
+                    .textFieldStyle(.roundedBorder)
+                    .help("Mismo valor que MEMORY_BEARER_TOKEN en el .env del docker-compose.")
+                Text("La app reconecta al cambiar estos valores. Default: http://localhost:8081.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .onChange(of: memoryBaseURL) { _, _ in model.ensureMemory() }
+            .onChange(of: memoryBearerToken) { _, _ in model.ensureMemory() }
         }
         .formStyle(.grouped)
         .frame(width: 420)

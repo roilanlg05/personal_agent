@@ -24,11 +24,11 @@ struct SaveMemoryTool: AgentTool {
         let detail = (obj["detail"] as? String).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         let kindRaw = (obj["kind"] as? String) ?? "fact"
         let permanent = (obj["permanent"] as? Bool) ?? false
-        let entity = MemoryText.cleanLabel(rawEntity)
-        guard !entity.isEmpty, !MemoryText.isJunkLabel(entity) else { return "nothing to save" }
+        let entity = Self.cleanLabel(rawEntity)
+        guard !entity.isEmpty, !Self.isJunkLabel(entity) else { return "nothing to save" }
 
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: entity) }
-        let kind = kindRaw.isEmpty ? NodeKind.fact.rawValue : kindRaw
+        let kind = kindRaw.isEmpty ? "fact" : kindRaw
         let body = (detail?.isEmpty == false) ? detail! : entity
         // Pass permanence as an `extra` JSON hint so the service can decide identity vs daily layer.
         let extra: String? = permanent ? #"{"permanent":true}"# : nil
@@ -41,5 +41,42 @@ struct SaveMemoryTool: AgentTool {
         }()
         await MainActor.run { ToolActivityRelay.shared.finished(name: Self.name, result: result) }
         return result
+    }
+
+    // Light client-side guard so the tool short-circuits before the HTTP roundtrip when the
+    // model emits a sentence/filler instead of a canonical entity. The service does its own
+    // canonicalization, but this avoids burning a network call on obvious junk.
+    private static let likePrefixes = [
+        "me gustan ", "me gusta ", "le gusta ", "les gusta ",
+        "i like ", "i love ", "likes ", "i prefer ", "my "
+    ]
+    private static let articlePrefixes = ["el ", "la ", "los ", "las ", "the ", "un ", "una ", "unos ", "unas "]
+
+    static func cleanLabel(_ raw: String) -> String {
+        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        s = s.split(whereSeparator: { $0 == " " || $0 == "\t" || $0 == "\n" }).joined(separator: " ")
+        s = s.trimmingCharacters(in: CharacterSet(charactersIn: "\"'.,;:!¡¿?()[]"))
+        var changed = true
+        while changed {
+            changed = false
+            let lower = s.lowercased()
+            for p in likePrefixes + articlePrefixes where lower.hasPrefix(p) {
+                s = String(s.dropFirst(p.count)).trimmingCharacters(in: .whitespaces)
+                changed = true
+                break
+            }
+        }
+        return s
+    }
+
+    static func isJunkLabel(_ raw: String) -> Bool {
+        let k = cleanLabel(raw).lowercased()
+        if k.isEmpty { return true }
+        let junk: Set<String> = [
+            "me gusta", "me gustan", "le gusta", "i like", "like", "likes", "gusta",
+            "preferences", "preferencias", "preference", "stuff", "things", "cosas",
+            "it", "that", "this", "eso", "esto", "user", "usuario"
+        ]
+        return junk.contains(k)
     }
 }

@@ -52,9 +52,14 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
 
     // MARK: NREM — Consolidate
 
+    private func todayString() -> String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd (EEEE)"
+        return f.string(from: Date(timeIntervalSince1970: now()))
+    }
+
     private struct EntitiesOut: Decodable {
         struct E: Decodable { let entity: String; let kind: String?; let detail: String?; let permanent: Bool?
-            struct Attr: Decodable { let status: String?; let horizon: String? }
+            struct Attr: Decodable { let status: String?; let horizon: String?; let date: String? }
             let attributes: Attr? }
         let entities: [E]
     }
@@ -63,12 +68,13 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         guard !episodeTexts.isEmpty else { return }
         let convo = episodeTexts.joined(separator: "\n")
         let prompt = """
+        Today is \(todayString()). Resolve any relative date (today/tomorrow/a weekday) to an absolute date and put it in attributes.date as "yyyy-MM-dd".
         Extract durable facts the USER stated about themselves from this conversation. Output JSON only.
         Use a short canonical `entity` (a noun/name, not a sentence). The "entity" MUST be a short canonical noun/name (1-3 words), NEVER a sentence (e.g. "Roilan", not "the user's name is Roilan"). Choose a `kind`: person, place, \
         preference, fact, trait (personality), task (something to do — set attributes.status "pending"), \
         plan (an intention — set attributes.horizon "short" or "long"), or another short lowercase kind if \
         none fit. Put context in `detail`. Never invent; only what the user actually stated.
-        Schema: {"entities":[{"entity":"...","kind":"...","detail":"...","permanent":false,"attributes":{"status":"pending|done","horizon":"short|long"}}]}
+        Schema: {"entities":[{"entity":"...","kind":"...","detail":"...","permanent":false,"attributes":{"status":"pending|done","horizon":"short|long","date":"yyyy-MM-dd"}}]}
         Conversation:
         \(convo)
         JSON:
@@ -84,9 +90,11 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
             if MemoryText.isJunkLabel(label) { continue }
             let kind = rawKind
             let layer: MemoryLayer = (e.permanent ?? false) ? .identity : .daily
-            var attrs = NodeAttributes(); attrs.status = e.attributes?.status; attrs.horizon = e.attributes?.horizon
+            var attrs = NodeAttributes(); attrs.status = e.attributes?.status; attrs.horizon = e.attributes?.horizon; attrs.date = e.attributes?.date
             let t = now()
-            let node = Node(id: UUID().uuidString, kind: kind, label: label, body: e.detail ?? label, layer: layer,
+            let baseBody = e.detail ?? label
+            let body = (attrs.date != nil) ? baseBody + " (fecha: \(attrs.date!))" : baseBody
+            let node = Node(id: UUID().uuidString, kind: kind, label: label, body: body, layer: layer,
                             createdAt: t, updatedAt: t, lastSeenAt: t, salience: (e.permanent ?? false) ? 8 : 3,
                             decayRate: Decay.defaultDecayRate(for: layer), confidence: .probable, mentionCount: 1,
                             ttlExpiresAt: nil, sourceRef: nil, origin: .extracted, serverId: nil,
@@ -118,7 +126,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         guard !episodeTexts.isEmpty else { return }
         let convo = episodeTexts.joined(separator: "\n")
         let prompt = """
-        Summarize this conversation segment as STRUCTURED knowledge about ONE user. Output JSON only.
+        Today is \(todayString()). Summarize this conversation segment as STRUCTURED knowledge about ONE user. Output JSON only.
         Give a short `topic` (2-5 words), the key `concepts` (short noun phrases), the user's `intent`, \
         any `decisions` made, an `importance` 0..1, and a one-sentence `summary`. Don't invent. \
         Answer in the SAME language as the conversation.

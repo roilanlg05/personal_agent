@@ -34,8 +34,10 @@ final class Agent {
     }
 
     private func systemPrompt(memoryBlock: String) -> String {
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd (EEEE)"
+        let today = df.string(from: Date())
         let base = """
-        You are Gemma, a helpful on-device assistant. You can call tools to get real information. \
+        You are Gemma, a helpful on-device assistant. Today is \(today). You can call tools to get real information. \
         When a tool is relevant (e.g. the user asks the time), call it instead of guessing. \
         Answer only what the user asked; do not list unrelated things you remember. \
         IMPORTANT: after any tool runs, ALWAYS reply to the user in a short, natural sentence — \

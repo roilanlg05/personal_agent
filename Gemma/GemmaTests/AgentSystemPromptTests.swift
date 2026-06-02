@@ -23,4 +23,12 @@ final class AgentSystemPromptTests: XCTestCase {
         XCTAssertTrue(rt.capturedSystem.contains("Answer only what the user asked"),
                       "the answer-only guidance stays")
     }
+
+    func test_system_prompt_includes_todays_date() async throws {
+        let rt = CapturingRuntime()
+        let agent = Agent(runtime: rt, registry: ToolRegistry(), memory: nil)
+        for try await _ in agent.run(prompt: "hi", options: GenerationOptions()) {}
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        XCTAssertTrue(rt.capturedSystem.contains(df.string(from: Date())), "system prompt must state today's date")
+    }
 }

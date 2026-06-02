@@ -240,4 +240,18 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         await engine.summarizeRecent()   // 2nd call must NOT re-summarize thread S (only 1 canned response exists)
         XCTAssertEqual(try store.allNodes().filter { $0.kind == NodeKind.summary.rawValue }.count, 1)
     }
+
+    func test_consolidate_stores_absolute_date_for_a_task() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
+        let ts = TranscriptStore(dbQueue: store.dbQueue)
+        try ts.append(threadId: "T", turnIndex: 0, role: "user", text: "mañana reunión con Carlos", now: 1)
+        let runtime = CannedRuntime([
+            #"{"entities":[{"entity":"reunión con Carlos","kind":"task","detail":"meeting","attributes":{"status":"pending","date":"2026-06-02"}}]}"#
+        ])
+        let engine = MemoryConsolidationEngine(store: store, embedder: nil, runtime: runtime, transcriptStore: ts)
+        await engine.consolidate(episodeTexts: ["User: mañana reunión con Carlos"])
+        let task = try XCTUnwrap(try store.allNodes().first { $0.kind == NodeKind.task.rawValue })
+        XCTAssertEqual(NodeAttributes.from(task.extra).date, "2026-06-02")
+        XCTAssertTrue(task.body.contains("2026-06-02"), "absolute date folded into body")
+    }
 }

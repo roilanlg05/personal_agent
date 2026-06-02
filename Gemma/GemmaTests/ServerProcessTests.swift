@@ -5,15 +5,14 @@ final class ServerProcessTests: XCTestCase {
     /// 16 GiB — the "keep model resident" wired limit (see spec §2).
     private static let sixteenGiB: UInt64 = 17_179_869_184
 
-    private func cfg(wired: UInt64 = 0, draft: Bool = false, apc: String? = nil) -> ServerConfig {
+    private func cfg(wired: UInt64 = 0, draft: Bool = false) -> ServerConfig {
         ServerConfig(pythonBinURL: URL(fileURLWithPath: "/x/.venv-vlm/bin/python3.12"),
                      launcherScriptURL: URL(fileURLWithPath: "/x/spike-mlx/serve_mlx_vlm.py"),
                      modelId: "some/model", host: "127.0.0.1", port: 8080,
                      draftModelId: draft ? "some/assistant" : nil,
                      draftKind: draft ? "mtp" : nil,
                      draftBlockSize: draft ? 3 : nil,
-                     wiredLimitBytes: wired,
-                     apcDiskPath: apc)
+                     wiredLimitBytes: wired)
     }
 
     func test_serverArguments_baseShape_noDraft() {
@@ -60,32 +59,6 @@ final class ServerProcessTests: XCTestCase {
         XCTAssertEqual(c.draftKind, "mtp")
         XCTAssertNotNil(c.draftModelId)
         XCTAssertEqual(c.draftBlockSize, 3)
-    }
-
-    func test_apcArguments_emptyWhenNil() {
-        XCTAssertEqual(apcArguments(for: cfg(apc: nil)), [])
-    }
-
-    func test_apcArguments_emptyWhenBlank() {
-        XCTAssertEqual(apcArguments(for: cfg(apc: "")), [])
-    }
-
-    func test_apcArguments_setsFlagWhenPathGiven() {
-        XCTAssertEqual(apcArguments(for: cfg(apc: "/tmp/apc")),
-                       ["--apc-disk-path", "/tmp/apc"])
-    }
-
-    func test_launchArguments_apcFlagSitsBeforeServerArgs() {
-        let a = launchArguments(for: cfg(wired: Self.sixteenGiB, apc: "/tmp/apc"))
-        XCTAssertEqual(Array(a.prefix(5)),
-                       ["/x/spike-mlx/serve_mlx_vlm.py", "--wired-limit-bytes", "17179869184",
-                        "--apc-disk-path", "/tmp/apc"])
-        XCTAssertEqual(a[5], "--model")
-    }
-
-    func test_default_config_has_apc_disk_path() {
-        XCTAssertTrue(ServerConfig.default.apcDiskPath?.hasSuffix("Library/Caches/Gemma/apc") ?? false,
-                      "default must enable APC at the caches path, got \(ServerConfig.default.apcDiskPath ?? "nil")")
     }
 
     func test_watchdogScript_contains_guardrails() {

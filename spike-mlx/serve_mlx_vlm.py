@@ -41,51 +41,8 @@ def _extract_wired_limit(argv):
     return wired, out
 
 
-def _extract_apc_disk_path(argv):
-    """Pull --apc-disk-path PATH (or --apc-disk-path=PATH) out of argv.
-
-    Returns (path_or_None, remaining_argv). Leaves every other flag intact so
-    mlx_vlm.server's own parser sees exactly what it expects.
-    """
-    out = []
-    path = None
-    i = 0
-    while i < len(argv):
-        a = argv[i]
-        if a == "--apc-disk-path":
-            path = argv[i + 1]
-            i += 2
-            continue
-        if a.startswith("--apc-disk-path="):
-            path = a.split("=", 1)[1]
-            i += 1
-            continue
-        out.append(a)
-        i += 1
-    return path, out
-
-
-def _apply_apc_env(disk_path):
-    """Turn on Automatic Prefix Caching for mlx_vlm.server (read by apc.from_env).
-
-    sha256 hashing makes block hashes stable across processes so the SSD tier
-    can be reused after a server restart (the default 'fast' hash is only
-    deterministic within one process). APC_NUM_BLOCKS bounds the in-memory
-    block pool (~16k tokens at the default 16-token block size).
-    """
-    import os
-    from pathlib import Path
-    Path(disk_path).expanduser().mkdir(parents=True, exist_ok=True)
-    os.environ["APC_ENABLED"] = "1"
-    os.environ["APC_HASH"] = "sha256"
-    os.environ["APC_DISK_PATH"] = disk_path
-    os.environ.setdefault("APC_DISK_MAX_GB", "2")
-    os.environ.setdefault("APC_NUM_BLOCKS", "1024")
-
-
 def main():
     wired, rest = _extract_wired_limit(sys.argv[1:])
-    apc_path, rest = _extract_apc_disk_path(rest)
     if wired > 0:
         import mlx.core as mx
         prev = mx.set_wired_limit(wired)
@@ -96,17 +53,6 @@ def main():
         )
     else:
         print("[serve_mlx_vlm] no wiring (pageable)", flush=True)
-
-    if apc_path:
-        _apply_apc_env(apc_path)
-        import os
-        print(
-            f"[serve_mlx_vlm] APC enabled (disk={apc_path}, hash=sha256, "
-            f"num_blocks={os.environ['APC_NUM_BLOCKS']})",
-            flush=True,
-        )
-    else:
-        print("[serve_mlx_vlm] APC disabled", flush=True)
 
     from mlx_vlm.server import main as server_main
     sys.argv = ["mlx_vlm.server"] + rest

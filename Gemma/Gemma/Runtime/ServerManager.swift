@@ -30,10 +30,6 @@ nonisolated struct ServerConfig: Sendable {
     /// MLX wired-memory limit in bytes. 0 = pageable (mmap, may cold-start);
     /// >0 = wire the model resident so macOS won't page it out (anti-cold-start). See spec §2.
     var wiredLimitBytes: UInt64 = 0
-    /// When non-nil/non-empty, the launcher turns on Automatic Prefix Caching with an SSD tier
-    /// at this path (cold-start TTFT win — the stable system-prompt prefix is restored from disk).
-    /// nil = APC off.
-    var apcDiskPath: String? = nil
     var baseURL: URL { URL(string: "http://\(host):\(port)")! }
 
     static let `default` = ServerConfig(
@@ -45,8 +41,7 @@ nonisolated struct ServerConfig: Sendable {
         draftModelId: "guardiangate1775/gemma-4-26B-A4B-it-assistant-4bit",
         draftKind: "mtp",
         draftBlockSize: 3,
-        wiredLimitBytes: 0,
-        apcDiskPath: NSHomeDirectory() + "/Library/Caches/Gemma/apc")
+        wiredLimitBytes: 0)
 }
 
 /// A running server process we can terminate; notifies via `onExit` if it dies on its own.

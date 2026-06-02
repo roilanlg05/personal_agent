@@ -4,8 +4,6 @@ vendor/
 *.png
 .claude/
 images/
-# MLX spike (venv + downloaded weights, not for git) — but keep the source scripts
+# MLX spike (venv + downloaded weights, not for git) — but keep the launcher script
 spike-mlx/*
 !spike-mlx/serve_mlx_vlm.py
-!spike-mlx/test_serve_mlx_vlm.py
-!spike-mlx/apc_check.py

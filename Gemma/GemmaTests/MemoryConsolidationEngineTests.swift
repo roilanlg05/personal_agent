@@ -213,4 +213,31 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         XCTAssertEqual(obj["threadId"] as? String, "t")
         XCTAssertEqual((obj["turnRange"] as? [Int]), [0, 3])
     }
+
+    func test_summarizeRecent_creates_summary_without_marking_consolidated() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
+        let ts = TranscriptStore(dbQueue: store.dbQueue)
+        try ts.append(threadId: "S", turnIndex: 0, role: "user", text: "tengo astigmatismo leve", now: 1)
+        try ts.append(threadId: "S", turnIndex: 0, role: "assistant", text: "anotado", now: 2)
+        let runtime = CannedRuntime([
+            #"{"topic":"astigmatismo","concepts":["ojos","vista","astigmatismo"],"summary":"El usuario tiene astigmatismo leve."}"#
+        ])
+        let engine = MemoryConsolidationEngine(store: store, embedder: nil, runtime: runtime, transcriptStore: ts)
+        await engine.summarizeRecent()
+        let summary = try XCTUnwrap(try store.allNodes().first { $0.kind == NodeKind.summary.rawValue })
+        XCTAssertEqual(summary.label, "astigmatismo")
+        XCTAssertTrue(summary.body.localizedCaseInsensitiveContains("ojos"), "concepts folded into body for FTS recall")
+        XCTAssertEqual(try ts.unconsolidated(limit: 100).count, 2, "summarizeRecent must NOT mark turns consolidated")
+    }
+
+    func test_summarizeRecent_skips_threads_already_summarized() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
+        let ts = TranscriptStore(dbQueue: store.dbQueue)
+        try ts.append(threadId: "S", turnIndex: 0, role: "user", text: "hola", now: 1)
+        let runtime = CannedRuntime([#"{"topic":"saludo","concepts":["hola"],"summary":"saludo"}"#])
+        let engine = MemoryConsolidationEngine(store: store, embedder: nil, runtime: runtime, transcriptStore: ts)
+        await engine.summarizeRecent()
+        await engine.summarizeRecent()   // 2nd call must NOT re-summarize thread S (only 1 canned response exists)
+        XCTAssertEqual(try store.allNodes().filter { $0.kind == NodeKind.summary.rawValue }.count, 1)
+    }
 }

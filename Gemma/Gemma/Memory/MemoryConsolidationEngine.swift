@@ -116,7 +116,8 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         let prompt = """
         Summarize this conversation segment as STRUCTURED knowledge about ONE user. Output JSON only.
         Give a short `topic` (2-5 words), the key `concepts` (short noun phrases), the user's `intent`, \
-        any `decisions` made, an `importance` 0..1, and a one-sentence `summary`. Don't invent.
+        any `decisions` made, an `importance` 0..1, and a one-sentence `summary`. Don't invent. \
+        Answer in the SAME language as the conversation.
         Schema: {"topic":"...","concepts":["..."],"intent":"...","decisions":["..."],"importance":0.5,"summary":"..."}
         Conversation:
         \(convo)
@@ -132,7 +133,8 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
             "turnRange": [turnRange.lowerBound, turnRange.upperBound],
         ]
         let extraJSON = (try? JSONSerialization.data(withJSONObject: extra)).flatMap { String(data: $0, encoding: .utf8) }
-        let body = (out.summary?.isEmpty == false) ? out.summary! : topic
+        let prose = (out.summary?.isEmpty == false) ? out.summary! : topic
+        let body = out.concepts.isEmpty ? prose : prose + " · " + out.concepts.joined(separator: ", ")
         let node = Node(id: UUID().uuidString, kind: NodeKind.summary.rawValue, label: topic, body: body,
                         layer: .daily, createdAt: t, updatedAt: t, lastSeenAt: t, salience: 4,
                         decayRate: Decay.defaultDecayRate(for: .daily), confidence: .probable, mentionCount: 1,
@@ -142,6 +144,26 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         let emb = (try? embedder?.embed(conceptText)) ?? nil
         _ = try? store.upsertMergingSemantic(node, embedding: emb, embedder: embedder)
         onProgress?("+1 summary")
+    }
+
+    /// Light, immediate summarization of the current unconsolidated conversation(s) so each session
+    /// has its structured `summary` node promptly (cross-session recall before the full sleep cycle).
+    /// Does NOT mark turns consolidated — the full cycle still extracts entities/edges later.
+    /// Skips a thread that already has a summary (avoids re-summarizing on every pause).
+    func summarizeRecent() async {
+        let rows = ((try? transcriptStore.unconsolidated(limit: 200)) ?? [])
+        guard !rows.isEmpty else { return }
+        let alreadySummarized = Set(((try? store.allNodes()) ?? [])
+            .filter { $0.kind == NodeKind.summary.rawValue }
+            .compactMap { $0.sourceRef })
+        let groups = Dictionary(grouping: rows, by: { $0.threadId })
+            .sorted { ($0.value.map(\.createdAt).min() ?? 0) < ($1.value.map(\.createdAt).min() ?? 0) }
+        for (threadId, tRows) in groups where !alreadySummarized.contains(threadId) {
+            let turns = tRows.map { $0.turnIndex }
+            let range = (turns.min() ?? 0)...(turns.max() ?? 0)
+            let texts = tRows.map { "\($0.role == "assistant" ? "Gemma" : "User"): \($0.text)" }
+            await summarize(episodeTexts: texts, threadId: threadId, turnRange: range)
+        }
     }
 
     // MARK: Detect — mine unresolved threads into follow_up nodes
@@ -381,8 +403,11 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         onProgress?("done")
     }
 
-    /// Awake light reflection: associate + reflect over current memory, no replay/curate/forget.
+    /// Awake light reflection: summarize the current session promptly, then associate + reflect
+    /// over current memory, no replay/curate/forget.
     func runLight(isCancelled: @escaping () -> Bool) async {
+        if isCancelled() { return }
+        await summarizeRecent()
         if isCancelled() { return }
         await associate()
         if isCancelled() { return }

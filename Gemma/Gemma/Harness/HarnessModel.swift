@@ -8,6 +8,7 @@ public final class HarnessModel {
     public var agentLog: [String] = []
     public var agentRunning: Bool = false
     public var showMemory: Bool = false
+    var hasProactive: Bool = false
 
     @ObservationIgnored private var runtime: ModelRuntime & ToolCallingRuntime
     @ObservationIgnored private let settingsStore = SettingsStore()
@@ -130,7 +131,31 @@ public final class HarnessModel {
     /// Manually kick off a full consolidation cycle (toolbar "Consolidar").
     func consolidateNow() { consolidationScheduler?.consolidateNow() }
 
+    /// Compose agent-initiated chat lines from pending clarifications + due reminders. Empty when
+    /// there's nothing to say (the agent never speaks for chit-chat).
+    nonisolated static func proactiveMessages(clarifications: [String], dueReminders: [String]) -> [String] {
+        var out: [String] = []
+        for r in dueReminders { out.append("gemma: ⏰ Recordatorio: \(r)") }
+        for c in clarifications { out.append("gemma: ❓ \(c)") }
+        return out
+    }
+
+    /// Post the agent's pending clarifications + due reminders into the chat. No-op if none, and
+    /// no-op while a turn is running so it never interrupts the user mid-answer.
+    func surfaceProactive() {
+        guard !agentRunning, let store = memoryStore else { return }
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        let today = df.string(from: Date())
+        let clar = ((try? store.pendingClarifications()) ?? []).map { $0.body }
+        let due = ((try? store.dueReminders(today: today)) ?? []).map { $0.body }
+        let msgs = Self.proactiveMessages(clarifications: clar, dueReminders: due)
+        guard !msgs.isEmpty else { return }
+        agentLog.append(contentsOf: msgs)
+        hasProactive = true
+    }
+
     public func runAgentTurn(_ prompt: String) async {
+        surfaceProactive()
         agentRunning = true; defer { agentRunning = false }
         agentLog.append("you: \(prompt)")
         let memory = ensureMemory()

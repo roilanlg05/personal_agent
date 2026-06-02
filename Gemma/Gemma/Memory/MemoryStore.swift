@@ -224,6 +224,16 @@ nonisolated final class MemoryStore {
         return rows.filter { NodeAttributes.from($0.extra).status != "done" }
     }
 
+    /// Pending tasks/plans whose absolute date (extra.date, yyyy-MM-dd) is today or past.
+    func dueReminders(today: String) throws -> [Node] {
+        let kinds: Set<String> = [NodeKind.task.rawValue, NodeKind.plan.rawValue]
+        return try allNodes().filter {
+            kinds.contains($0.kind)
+            && NodeAttributes.from($0.extra).status != "done"
+            && (NodeAttributes.from($0.extra).date.map { $0 <= today } ?? false)
+        }
+    }
+
     func distinctKinds() throws -> [String] {
         try dbQueue.read { try String.fetchAll($0, sql: "SELECT DISTINCT kind FROM node WHERE deleted=0") }
     }

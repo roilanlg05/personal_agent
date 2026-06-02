@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
 
-enum SleepPhase: String, Codable, CaseIterable { case nrem, summarize, detect, rem, reflect, curate, shy }
+enum SleepPhase: String, Codable, CaseIterable { case nrem, summarize, detect, rem, reflect, clarify, curate, shy }
 struct SleepCycleState: Equatable { var phase: SleepPhase; var episodeIds: [String]; var startedAt: Double; var focus: String = "" }
 
 nonisolated final class MemoryStore {
@@ -216,6 +216,14 @@ nonisolated final class MemoryStore {
             .sorted { $0.lastSeenAt > $1.lastSeenAt }
             .prefix(limit).map { $0 }
     }
+    func pendingClarifications(limit: Int = 5) throws -> [Node] {
+        let rows: [Node] = try dbQueue.read { db in
+            try Node.filter(Column("kind") == NodeKind.clarification.rawValue && Column("deleted") == false)
+                .order(Column("createdAt").desc).limit(limit).fetchAll(db)
+        }
+        return rows.filter { NodeAttributes.from($0.extra).status != "done" }
+    }
+
     func distinctKinds() throws -> [String] {
         try dbQueue.read { try String.fetchAll($0, sql: "SELECT DISTINCT kind FROM node WHERE deleted=0") }
     }

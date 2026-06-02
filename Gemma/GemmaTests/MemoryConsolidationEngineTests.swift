@@ -168,11 +168,11 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         let ts = TranscriptStore(dbQueue: store.dbQueue)
         try ts.append(threadId: "t", turnIndex: 0, role: "user", text: "me llamo Roilan y me gusta el sushi", now: 1)
         try ts.append(threadId: "t", turnIndex: 0, role: "assistant", text: "¡Genial!", now: 2)
-        // phase order: nrem, summarize, detect, rem, reflect, curate (shy needs no model)
+        // phase order: nrem, summarize, detect, rem, reflect, clarify, curate (shy needs no model)
         let runtime = CannedRuntime([
             #"{"entities":[{"entity":"sushi","kind":"preference","detail":"likes it"}]}"#,
             #"{"topic":"presentación","concepts":["nombre Roilan","gusto sushi"],"intent":"","decisions":[],"importance":0.5,"summary":"El usuario se presenta."}"#,
-            #"{"followUps":[]}"#, #"{"edges":[]}"#, #"{"insights":[]}"#, #"{"map":{}}"#
+            #"{"followUps":[]}"#, #"{"edges":[]}"#, #"{"insights":[]}"#, #"{"questions":[]}"#, #"{"map":{}}"#
         ])
         let engine = MemoryConsolidationEngine(store: store, embedder: nil, runtime: runtime, transcriptStore: ts)
         await engine.runCycle(isCancelled: { false })
@@ -189,7 +189,7 @@ final class MemoryConsolidationEngineTests: XCTestCase {
             #"{"entities":[]}"#,
             #"{"topic":"viaje Japón","concepts":["Japón"],"summary":"viaje"}"#,
             #"{"topic":"ajedrez","concepts":["ajedrez"],"summary":"hobby"}"#,
-            #"{"followUps":[]}"#, #"{"edges":[]}"#, #"{"insights":[]}"#, #"{"map":{}}"#
+            #"{"followUps":[]}"#, #"{"edges":[]}"#, #"{"insights":[]}"#, #"{"questions":[]}"#, #"{"map":{}}"#
         ])
         let engine = MemoryConsolidationEngine(store: store, embedder: nil, runtime: runtime, transcriptStore: ts)
         await engine.runCycle(isCancelled: { false })
@@ -266,5 +266,25 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         await engine.consolidate(episodeTexts: ["User: x"])
         let tasks = try store.allNodes().filter { $0.kind == NodeKind.task.rawValue }
         XCTAssertEqual(tasks.count, 2, "two distinct meetings (different dates) must NOT collapse into one")
+    }
+
+    func test_clarify_emits_clarification_node_when_unsure() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
+        let ts = TranscriptStore(dbQueue: store.dbQueue)
+        func task(_ id: String, _ label: String, _ detail: String) -> Node {
+            Node(id: id, kind: NodeKind.task.rawValue, label: label, body: detail, layer: .daily, createdAt: 1, updatedAt: 1,
+                 lastSeenAt: 1, salience: 3, decayRate: 0.1, confidence: .probable, mentionCount: 1, ttlExpiresAt: nil,
+                 sourceRef: nil, origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: nil)
+        }
+        try store.upsert(task("t1", "reunión con Carlos", "mañana"))
+        try store.upsert(task("t2", "reunión con Carlos", "miércoles"))
+        let runtime = CannedRuntime([
+            #"{"questions":["¿La reunión con Carlos del miércoles es la misma que la de mañana o son dos distintas?"]}"#
+        ])
+        let engine = MemoryConsolidationEngine(store: store, embedder: nil, runtime: runtime, transcriptStore: ts)
+        await engine.clarify()
+        let q = try XCTUnwrap(try store.allNodes().first { $0.kind == NodeKind.clarification.rawValue })
+        XCTAssertTrue(q.body.contains("Carlos"))
+        XCTAssertEqual(NodeAttributes.from(q.extra).status, "pending")
     }
 }

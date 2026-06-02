@@ -331,6 +331,45 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         onProgress?("+\(added) insights")
     }
 
+    // MARK: Clarify — ask the user when consolidation is genuinely unsure about event identity
+    private struct ClarifyOut: Decodable { let questions: [String] }
+
+    /// During reflection/sleep: if consolidation is unsure whether two memories are the same
+    /// (a task rephrased/extended vs a genuinely new one), ask the USER instead of guessing.
+    /// Emits pending `clarification` nodes (surfaced proactively in chat — Task 5). Never invents.
+    func clarify() async {
+        let events = ((try? store.allNodes()) ?? [])
+            .filter { $0.kind == NodeKind.task.rawValue || $0.kind == NodeKind.plan.rawValue }
+        guard events.count >= 2 else { return }
+        let list = events.map { "- [\($0.kind)] \($0.label): \($0.body)" }.joined(separator: "\n")
+        let prompt = """
+        Today is \(todayString()). These are the user's tasks/plans. ONLY if two of them might be the SAME thing
+        described twice (a rephrase/extension) and you are genuinely UNSURE, write a short question to ask the user
+        to disambiguate. If everything is clearly distinct, return an empty list. Output JSON only. Never invent.
+        Schema: {"questions":["<short question>"]}
+        Items:
+        \(list)
+        JSON:
+        """
+        guard let out = parse(await generate(prompt, maxTokens: 256), ClarifyOut.self) else { return }
+        let existing = Set(((try? store.allNodes()) ?? [])
+            .filter { $0.kind == NodeKind.clarification.rawValue }.map { MemoryText.dedupKey($0.body) })
+        var added = 0
+        for q in out.questions {
+            let text = q.trimmingCharacters(in: .whitespacesAndNewlines)
+            if text.isEmpty || existing.contains(MemoryText.dedupKey(text)) { continue }
+            var attrs = NodeAttributes(); attrs.status = "pending"
+            let t = now()
+            let node = Node(id: UUID().uuidString, kind: NodeKind.clarification.rawValue, label: String(text.prefix(60)),
+                            body: text, layer: .daily, createdAt: t, updatedAt: t, lastSeenAt: t, salience: 4,
+                            decayRate: Decay.defaultDecayRate(for: .daily), confidence: .probable, mentionCount: 1,
+                            ttlExpiresAt: nil, sourceRef: nil, origin: .extracted, serverId: nil, dirty: true, deleted: false,
+                            extra: attrs.toJSON())
+            try? store.upsert(node); added += 1
+        }
+        if added > 0 { onProgress?("+\(added) question\(added == 1 ? "" : "s")") }
+    }
+
     // MARK: Curate — fold synonym kinds into a canonical vocabulary
     private struct KindMapOut: Decodable { let map: [String: String] }
 
@@ -372,7 +411,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
             state = SleepCycleState(phase: .nrem, episodeIds: batch, startedAt: now(), focus: focus)
             try? store.saveSleepCycle(state)
         }
-        let order: [SleepPhase] = [.nrem, .summarize, .detect, .rem, .reflect, .curate, .shy]
+        let order: [SleepPhase] = [.nrem, .summarize, .detect, .rem, .reflect, .clarify, .curate, .shy]
         guard let startIdx = order.firstIndex(of: state.phase) else { return }
         for phase in order[startIdx...] {
             if isCancelled() { return }   // leave persisted phase for resume
@@ -410,6 +449,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
                 await detectFollowUps(episodeTexts: episodeTexts(ids: state.episodeIds))
             case .rem: await associate()
             case .reflect: await reflect()
+            case .clarify: await clarify()
             case .curate: await curateKinds()
             case .shy: await forget()
             }
@@ -435,5 +475,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         await associate()
         if isCancelled() { return }
         await reflect()
+        if isCancelled() { return }
+        await clarify()
     }
 }

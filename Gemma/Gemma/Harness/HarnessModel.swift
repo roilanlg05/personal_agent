@@ -112,7 +112,8 @@ public final class HarnessModel {
             let engine = MemoryConsolidationEngine(store: store, embedder: memoryEmbedder, runtime: runtime,
                                                    transcriptStore: transcriptStore ?? TranscriptStore(dbQueue: store.dbQueue))
             let sched = ConsolidationScheduler(runner: engine, isReady: { [weak self] in self?.serverManager.state == .ready },
-                                               hasPendingCycle: { [weak self] in ((try? self?.memoryStore?.loadSleepCycle()) ?? nil) != nil })
+                                               hasPendingCycle: { [weak self] in ((try? self?.memoryStore?.loadSleepCycle()) ?? nil) != nil },
+                                               isUserBusy: { [weak self] in self?.agentRunning ?? false })
             // Mirror short engine progress into the scheduler's summary so the
             // ".done" banner can show what changed.
             engine.onProgress = { [weak sched] mark in
@@ -133,14 +134,11 @@ public final class HarnessModel {
         agentRunning = true; defer { agentRunning = false }
         agentLog.append("you: \(prompt)")
         let memory = ensureMemory()
-        // Note activity ONLY at turn start: this cancels any in-flight consolidation so the
-        // model is free for the turn, and re-arms the pause/idle timers (counted from turn
-        // start). We deliberately do NOT note activity at turn end — otherwise a light
-        // reflection the model requested mid-turn via the `reflect` tool would be cancelled
-        // the instant the turn finished. With no end-of-turn cancel, that requested reflection
-        // simply queues behind the turn's generations on the serial mlx-lm server and runs
-        // once they finish (so it never competes with the turn's own answer). It is still
-        // correctly cancelled at the START of the next turn, giving the user priority.
+        // noteUserActivity() at turn START: cancels any in-flight consolidation so the model is
+        // free for this turn. It does NOT arm timers — timers are armed at turn END via
+        // noteTurnEnded() so consolidation never starts while agentRunning==true. A light
+        // reflection requested mid-turn by the `reflect` tool is still gated by isUserBusy()
+        // inside launch() and will only run once the turn finishes and noteTurnEnded() fires.
         //
         // Capture whether a consolidation was ACTIVELY running before we cancel it: only such a
         // turn truly "interrupts" a cycle. We use this to gate the reflection-focus line below so
@@ -203,5 +201,6 @@ public final class HarnessModel {
             turnIndex += 1
         }
         lastTurnEndedAt = Date().timeIntervalSince1970
+        consolidationScheduler?.noteTurnEnded()
     }
 }

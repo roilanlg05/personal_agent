@@ -6,7 +6,7 @@ import GRDB
 /// scale (thousands of vectors). When sqlite-vec is integrated, swap `node_embedding` for a
 /// vec0 virtual table and `nearest` for a MATCH query — this interface stays the same.
 extension MemoryStore {
-    func setEmbedding(nodeId: String, _ vector: [Float]) throws {
+    public func setEmbedding(nodeId: String, _ vector: [Float]) throws {
         precondition(vector.count == embeddingDim, "embedding dim mismatch")
         try dbQueue.write { db in
             try db.execute(sql: "INSERT OR REPLACE INTO node_embedding(node_id, embedding) VALUES (?, ?)",
@@ -15,7 +15,7 @@ extension MemoryStore {
     }
 
     /// KNN via cosine similarity. `distance` = 1 - cosine; returns ascending distance.
-    func nearest(to vector: [Float], k: Int) throws -> [(id: String, distance: Double)] {
+    public func nearest(to vector: [Float], k: Int) throws -> [(id: String, distance: Double)] {
         let rows: [(String, [Float])] = try dbQueue.read { db in
             try Row.fetchAll(db, sql: "SELECT node_id, embedding FROM node_embedding")
                 .map { ($0["node_id"] as String, Self.blobToFloats($0["embedding"] as Data)) }
@@ -34,7 +34,7 @@ extension MemoryStore {
             .map { $0 }
     }
 
-    static func blobToFloats(_ data: Data) -> [Float] {
+    public static func blobToFloats(_ data: Data) -> [Float] {
         data.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
     }
 }

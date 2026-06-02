@@ -7,7 +7,7 @@ extension MemoryStore {
     /// Find an existing non-deleted node to merge into, by (kind, canonical label). Uses
     /// MemoryText.dedupKey so "Sushi", "sushi" and "me gusta el sushi" all collapse together —
     /// the cause of the duplicate "Juan ×3 / sushi ×N" rows seen on device.
-    func findDuplicate(kind: String, label: String) throws -> Node? {
+    public func findDuplicate(kind: String, label: String) throws -> Node? {
         let key = MemoryText.dedupKey(label)
         return try dbQueue.read { db in
             try Node.filter(Column("kind") == kind && Column("deleted") == false)
@@ -19,7 +19,7 @@ extension MemoryStore {
     /// Upsert with dedup: if a duplicate exists, reinforce it (bump salience, mentionCount++,
     /// maybe promote to identity); else insert the candidate. Returns the resulting node id.
     @discardableResult
-    func upsertMerging(_ candidate: Node) throws -> String {
+    public func upsertMerging(_ candidate: Node) throws -> String {
         if let existing = try findDuplicate(kind: candidate.kind, label: candidate.label) {
             let merged = mergeReinforced(existing: existing, candidate: candidate)
             try upsert(merged)
@@ -34,7 +34,7 @@ extension MemoryStore {
     /// Fetches a generous candidate set (k=64) and filters to `kind` AFTER, so a same-kind
     /// duplicate ranked beyond the global top-8 (because closer other-kind vectors crowd it out)
     /// isn't silently missed. `nearest` scans the whole table anyway, so a larger k is cheap.
-    func findSemanticDuplicate(kind: String, embedding: [Float], threshold: Double) throws -> Node? {
+    public func findSemanticDuplicate(kind: String, embedding: [Float], threshold: Double) throws -> Node? {
         for hit in try nearest(to: embedding, k: 64) where hit.distance <= threshold {
             if let n = try node(id: hit.id), !n.deleted, n.kind == kind { return n }
         }
@@ -44,8 +44,8 @@ extension MemoryStore {
     /// Upsert with SEMANTIC dedup (falls back to string dedup): merge into the nearest same-kind
     /// node within `threshold`, else the canonical-label match, else insert. Reinforces via EMA.
     @discardableResult
-    func upsertMergingSemantic(_ candidate: Node, embedding: [Float]?, embedder: Embedder?,
-                               threshold: Double = 0.2) throws -> String {
+    public func upsertMergingSemantic(_ candidate: Node, embedding: [Float]?, embedder: Embedder?,
+                                      threshold: Double = 0.2) throws -> String {
         // Fix 2: accept either a precomputed embedding OR an embedder — if no embedding was
         // passed but we have an embedder, compute one from the candidate label.
         var embedding = embedding
@@ -96,7 +96,7 @@ extension MemoryStore {
 
     /// Forgetting sweep: soft-delete nodes whose effective salience fell below the floor
     /// or whose TTL expired (identity is never forgotten).
-    func sweep(now: Double = Date().timeIntervalSince1970) throws {
+    public func sweep(now: Double = Date().timeIntervalSince1970) throws {
         for n in try allNodes() {
             let eff = Decay.effectiveSalience(base: n.salience, decayRate: n.decayRate,
                                               elapsedSeconds: now - n.lastSeenAt)

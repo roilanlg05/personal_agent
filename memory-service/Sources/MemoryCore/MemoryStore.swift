@@ -1,14 +1,22 @@
 import Foundation
 import GRDB
 
-enum SleepPhase: String, Codable, CaseIterable { case nrem, summarize, detect, rem, reflect, clarify, curate, shy }
-struct SleepCycleState: Equatable { var phase: SleepPhase; var episodeIds: [String]; var startedAt: Double; var focus: String = "" }
+public enum SleepPhase: String, Codable, CaseIterable, Sendable { case nrem, summarize, detect, rem, reflect, clarify, curate, shy }
+public struct SleepCycleState: Equatable, Sendable {
+    public var phase: SleepPhase
+    public var episodeIds: [String]
+    public var startedAt: Double
+    public var focus: String = ""
+    public init(phase: SleepPhase, episodeIds: [String], startedAt: Double, focus: String = "") {
+        self.phase = phase; self.episodeIds = episodeIds; self.startedAt = startedAt; self.focus = focus
+    }
+}
 
-nonisolated final class MemoryStore {
-    let dbQueue: DatabaseQueue
-    let embeddingDim: Int
+public nonisolated final class MemoryStore {
+    public let dbQueue: DatabaseQueue
+    public let embeddingDim: Int
 
-    init(url: URL? = nil, inMemory: Bool = false, embeddingDim: Int) throws {
+    public init(url: URL? = nil, inMemory: Bool = false, embeddingDim: Int) throws {
         // (sqlite-vec deferred — see Phase 0 decision. Embeddings live in a regular
         //  `node_embedding(node_id, embedding BLOB)` table; nearest() does cosine in Swift.)
         self.embeddingDim = embeddingDim
@@ -20,7 +28,20 @@ nonisolated final class MemoryStore {
         try migrator.migrate(dbQueue)
     }
 
-    static func defaultURL() throws -> URL {
+    /// Convenience initializer for the HTTP service: takes a file path string (or ":memory:")
+    /// and creates the parent directory if needed. Used by handlers in Task 7+.
+    public convenience init(path: String, embeddingDim: Int = 1024) throws {
+        if path == ":memory:" {
+            try self.init(inMemory: true, embeddingDim: embeddingDim)
+        } else {
+            let url = URL(fileURLWithPath: path)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            try self.init(url: url, inMemory: false, embeddingDim: embeddingDim)
+        }
+    }
+
+    public static func defaultURL() throws -> URL {
         let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         let dir = base.appendingPathComponent("Memory", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -116,7 +137,7 @@ nonisolated final class MemoryStore {
     }
 
     // MARK: CRUD
-    func upsert(_ node: Node) throws {
+    public func upsert(_ node: Node) throws {
         try dbQueue.write { db in
             try node.save(db)
             try db.execute(sql: "DELETE FROM node_fts WHERE node_id = ?", arguments: [node.id])
@@ -124,37 +145,67 @@ nonisolated final class MemoryStore {
                            arguments: [node.id, node.label, node.body])
         }
     }
-    func upsert(_ edge: Edge) throws { try dbQueue.write { try edge.save($0) } }
-    func node(id: String) throws -> Node? { try dbQueue.read { try Node.fetchOne($0, key: id) } }
-    func allNodes(includeDeleted: Bool = false) throws -> [Node] {
+    public func upsert(_ edge: Edge) throws { try dbQueue.write { try edge.save($0) } }
+    public func node(id: String) throws -> Node? { try dbQueue.read { try Node.fetchOne($0, key: id) } }
+    public func allNodes(includeDeleted: Bool = false) throws -> [Node] {
         try dbQueue.read { db in
             includeDeleted ? try Node.fetchAll(db) : try Node.filter(Column("deleted") == false).fetchAll(db)
+        }
+    }
+
+    /// Total live node count — used by `/healthz` and tests.
+    public func nodeCount() throws -> Int {
+        try dbQueue.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM node WHERE deleted = 0") ?? 0
+        }
+    }
+
+    /// Most recent persisted sleep_cycle start (epoch seconds), or nil if no cycle has run yet.
+    public func latestSleepCycle() throws -> Double? {
+        try dbQueue.read { db in
+            try Double.fetchOne(db, sql: "SELECT startedAt FROM sleep_cycle WHERE id=1")
         }
     }
 
     /// Always-relevant "identity core": who the user is and their permanent identity-layer
     /// facts, regardless of the current query. Identity-ONLY (no top-salience union) so the
     /// injected core stays small — query-relevant nodes (from MemoryRetriever) carry the rest.
-    func coreMemories(limit: Int = 6) throws -> [Node] {
+    public func coreMemories(limit: Int = 6) throws -> [Node] {
         try dbQueue.read { db in
             try Node.filter(Column("layer") == MemoryLayer.identity.rawValue && Column("deleted") == false)
                 .order(Column("salience").desc).limit(limit).fetchAll(db)
         }
     }
-    func edges(from id: String) throws -> [Edge] {
+    public func edges(from id: String) throws -> [Edge] {
         try dbQueue.read { try Edge.filter(Column("srcId") == id && Column("deleted") == false).fetchAll($0) }
     }
-    func allEdges() throws -> [Edge] {
+    public func allEdges() throws -> [Edge] {
         try dbQueue.read { try Edge.filter(Column("deleted") == false).fetchAll($0) }
     }
-    func softDelete(nodeId: String) throws {
+
+    /// Soft-delete every node whose id matches (handler `/memory/forget` by-id).
+    public func forgetById(_ id: String) throws {
+        try softDelete(nodeId: id)
+    }
+
+    /// Soft-delete every non-deleted node with the given label (case/whitespace canonicalized).
+    /// Returns the number of nodes affected.
+    @discardableResult
+    public func forgetByLabel(_ label: String) throws -> Int {
+        let key = MemoryText.dedupKey(label)
+        let matches = try allNodes().filter { MemoryText.dedupKey($0.label) == key }
+        for n in matches { try softDelete(nodeId: n.id) }
+        return matches.count
+    }
+
+    public func softDelete(nodeId: String) throws {
         try dbQueue.write { db in
             try db.execute(sql: "UPDATE node SET deleted=1, dirty=1, updatedAt=? WHERE id=?",
                            arguments: [Date().timeIntervalSince1970, nodeId])
             try db.execute(sql: "DELETE FROM node_fts WHERE node_id=?", arguments: [nodeId])
         }
     }
-    func searchFTS(query: String, limit: Int) throws -> [Node] {
+    public func searchFTS(query: String, limit: Int) throws -> [Node] {
         try dbQueue.read { db in
             let pattern = FTS5Pattern(matchingAnyTokenIn: query)
             guard let p = pattern else { return [] }
@@ -164,10 +215,10 @@ nonisolated final class MemoryStore {
         }
     }
 
-    static func floatsToBlob(_ v: [Float]) -> Data { v.withUnsafeBytes { Data($0) } }
+    public static func floatsToBlob(_ v: [Float]) -> Data { v.withUnsafeBytes { Data($0) } }
 
     // MARK: Sleep / consolidation
-    func loadSleepCycle() throws -> SleepCycleState? {
+    public func loadSleepCycle() throws -> SleepCycleState? {
         try dbQueue.read { db in
             guard let row = try Row.fetchOne(db, sql: "SELECT phase, episodeIds, startedAt, focus FROM sleep_cycle WHERE id=1") else { return nil }
             guard let phase = SleepPhase(rawValue: row["phase"]) else { return nil }
@@ -175,21 +226,21 @@ nonisolated final class MemoryStore {
             return SleepCycleState(phase: phase, episodeIds: ids, startedAt: row["startedAt"], focus: row["focus"] ?? "")
         }
     }
-    func saveSleepCycle(_ s: SleepCycleState) throws {
+    public func saveSleepCycle(_ s: SleepCycleState) throws {
         let ids = String(data: (try? JSONEncoder().encode(s.episodeIds)) ?? Data(), encoding: .utf8) ?? "[]"
         try dbQueue.write { db in
             try db.execute(sql: "INSERT OR REPLACE INTO sleep_cycle(id, phase, episodeIds, startedAt, focus) VALUES (1, ?, ?, ?, ?)",
                            arguments: [s.phase.rawValue, ids, s.startedAt, s.focus])
         }
     }
-    func clearSleepCycle() throws { try dbQueue.write { try $0.execute(sql: "DELETE FROM sleep_cycle WHERE id=1") } }
+    public func clearSleepCycle() throws { try dbQueue.write { try $0.execute(sql: "DELETE FROM sleep_cycle WHERE id=1") } }
 
     /// Episodic conversation nodes not yet consolidated (status field in extra JSON != "consolidated").
-    func unconsolidatedEpisodes() throws -> [Node] {
+    public func unconsolidatedEpisodes() throws -> [Node] {
         try allNodes().filter { $0.kind == NodeKind.conversation.rawValue
             && (episodeStatus(from: $0) ?? "closed") != "consolidated" }
     }
-    func markEpisodesConsolidated(ids: [String]) throws {
+    public func markEpisodesConsolidated(ids: [String]) throws {
         for id in ids {
             guard var n = try node(id: id) else { continue }
             // Patch or add the status field in the extra JSON blob.
@@ -209,14 +260,14 @@ nonisolated final class MemoryStore {
     }
     /// Pending actionable + conversational follow-ups (task/plan/follow_up nodes whose
     /// NodeAttributes.status is "pending" or unset), most recent first, capped.
-    func pendingFollowUps(limit: Int = 5) throws -> [Node] {
+    public func pendingFollowUps(limit: Int = 5) throws -> [Node] {
         let kinds: Set<String> = [NodeKind.task.rawValue, NodeKind.plan.rawValue, NodeKind.followUp.rawValue]
         return try allNodes()
             .filter { kinds.contains($0.kind) && (NodeAttributes.from($0.extra).status ?? "pending") == "pending" }
             .sorted { $0.lastSeenAt > $1.lastSeenAt }
             .prefix(limit).map { $0 }
     }
-    func pendingClarifications(limit: Int = 5) throws -> [Node] {
+    public func pendingClarifications(limit: Int = 5) throws -> [Node] {
         let rows: [Node] = try dbQueue.read { db in
             try Node.filter(Column("kind") == NodeKind.clarification.rawValue && Column("deleted") == false)
                 .order(Column("createdAt").desc).limit(limit).fetchAll(db)
@@ -225,7 +276,7 @@ nonisolated final class MemoryStore {
     }
 
     /// Pending tasks/plans whose absolute date (extra.date, yyyy-MM-dd) is today or past.
-    func dueReminders(today: String) throws -> [Node] {
+    public func dueReminders(today: String) throws -> [Node] {
         let kinds: Set<String> = [NodeKind.task.rawValue, NodeKind.plan.rawValue]
         return try allNodes().filter {
             kinds.contains($0.kind)
@@ -234,10 +285,10 @@ nonisolated final class MemoryStore {
         }
     }
 
-    func distinctKinds() throws -> [String] {
+    public func distinctKinds() throws -> [String] {
         try dbQueue.read { try String.fetchAll($0, sql: "SELECT DISTINCT kind FROM node WHERE deleted=0") }
     }
-    func reassignKind(from: String, to: String) throws {
+    public func reassignKind(from: String, to: String) throws {
         try dbQueue.write { try $0.execute(sql: "UPDATE node SET kind=?, dirty=1, updatedAt=? WHERE kind=? AND deleted=0",
                                            arguments: [to, Date().timeIntervalSince1970, from]) }
     }
@@ -257,12 +308,12 @@ nonisolated final class MemoryStore {
 
     /// One-time cleanup (M2d-1): raw turns are no longer graph nodes. Delete legacy
     /// `conversation`/`episode` nodes and their satellites. (Also run as migration v5.)
-    func purgeConversationNodes() throws {
+    public func purgeConversationNodes() throws {
         try dbQueue.write { try Self.deleteConversationNodes($0) }
     }
 
     /// Soft-delete edges whose endpoints are deleted/missing.
-    func pruneDanglingEdges() throws {
+    public func pruneDanglingEdges() throws {
         let live = Set(try allNodes().map { $0.id })
         for e in try allEdges() where !(live.contains(e.srcId) && live.contains(e.dstId)) {
             try dbQueue.write { try $0.execute(sql: "UPDATE edge SET deleted=1, dirty=1, updatedAt=? WHERE id=?",

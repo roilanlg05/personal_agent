@@ -33,4 +33,24 @@ final class MemoryStoreTests: XCTestCase {
         try store.upsert(sampleNode(label: "sushi restaurant downtown"))
         XCTAssertEqual(try store.searchFTS(query: "sushi", limit: 5).count, 1)
     }
+
+    func testInitWithMemoryPath() throws {
+        // ":memory:" path uses the in-memory init under the hood.
+        let store = try MemoryStore(path: ":memory:", embeddingDim: 4)
+        let n = sampleNode()
+        try store.upsert(n)
+        XCTAssertEqual(try store.node(id: n.id)?.label, "sushi")
+        XCTAssertEqual(try store.nodeCount(), 1)
+    }
+
+    func testInitWithFilePath() throws {
+        let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent("memcore-test-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+        let dbPath = tmpDir.appendingPathComponent("memory.sqlite").path
+        let store = try MemoryStore(path: dbPath, embeddingDim: 4)
+        try store.upsert(sampleNode(label: "filebacked"))
+        XCTAssertEqual(try store.nodeCount(), 1)
+        // Parent directory was created.
+        XCTAssertTrue(FileManager.default.fileExists(atPath: tmpDir.path))
+    }
 }

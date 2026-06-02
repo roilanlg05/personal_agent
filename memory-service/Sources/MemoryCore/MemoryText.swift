@@ -4,7 +4,7 @@ import Foundation
 /// sentences ("me gusta el sushi") or fragments ("me gusta") as labels; this turns them into
 /// clean canonical entities for display and a stable key for dedup. Used by SaveMemoryTool
 /// and MemoryStore's dedup so they all agree.
-enum MemoryText {
+public enum MemoryText {
     private static let likePrefixes = [
         "me gustan ", "me gusta ", "le gusta ", "les gusta ",
         "i like ", "i love ", "likes ", "i prefer ", "my "
@@ -13,7 +13,7 @@ enum MemoryText {
 
     /// Display label: trimmed, whitespace-collapsed, surrounding punctuation removed, and
     /// leading "I like"/article fillers stripped — but ORIGINAL CASE preserved ("Juan", "Messi").
-    static func cleanLabel(_ raw: String) -> String {
+    public static func cleanLabel(_ raw: String) -> String {
         var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         s = s.split(whereSeparator: { $0 == " " || $0 == "\t" || $0 == "\n" }).joined(separator: " ")
         s = s.trimmingCharacters(in: CharacterSet(charactersIn: "\"'.,;:!¡¿?()[]"))
@@ -31,12 +31,12 @@ enum MemoryText {
     }
 
     /// Case-insensitive dedup key derived from the clean label.
-    static func dedupKey(_ raw: String) -> String { cleanLabel(raw).lowercased() }
+    public static func dedupKey(_ raw: String) -> String { cleanLabel(raw).lowercased() }
 
     /// Reduce an entity label to a canonical short form: strip common "the user's name is …"
     /// sentence prefixes (EN/ES) and cap to a short head so person/place/preference labels stay
     /// dedupable (the model sometimes returns whole sentences as a label).
-    static func canonicalEntityLabel(_ raw: String) -> String {
+    public static func canonicalEntityLabel(_ raw: String) -> String {
         var s = cleanLabel(raw)
         let prefixes = ["the user's name is ", "user's name is ", "the user is ", "user is ",
                         "el usuario se llama ", "usuario se llama ", "el usuario es ", "usuario es ",
@@ -52,7 +52,7 @@ enum MemoryText {
     }
 
     /// Fillers / non-facts that should never be stored as a memory on their own.
-    static func isJunkLabel(_ raw: String) -> Bool {
+    public static func isJunkLabel(_ raw: String) -> Bool {
         let k = dedupKey(raw)
         if k.isEmpty { return true }
         let junk: Set<String> = [

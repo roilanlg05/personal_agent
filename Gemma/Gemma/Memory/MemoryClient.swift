@@ -35,9 +35,27 @@ final class MemoryClient {
     }
     struct ListedNodes: Decodable, Sendable { let nodes: [Node]; let total: Int }
     struct TranscriptRows: Decodable, Sendable { let rows: [TranscriptRow] }
+    struct GraphSnapshot: Decodable, Sendable { let nodes: [Node]; let edges: [Edge] }
 
     struct Node: Decodable, Sendable, Identifiable {
-        let id: String; let kind: String; let label: String; let body: String; let extra: String?
+        let id: String
+        let kind: String
+        let label: String
+        let body: String
+        let extra: String?
+        // The service returns the full GRDB row; these are decoded when present (graph view
+        // needs them for sizing/coloring), absent otherwise (recall path uses only label/body).
+        let layer: String?
+        let salience: Double?
+        let mentionCount: Int?
+        let confidence: String?
+    }
+    struct Edge: Decodable, Sendable, Identifiable {
+        let id: String
+        let srcId: String
+        let dstId: String
+        let relation: String
+        let weight: Double
     }
     struct TranscriptRow: Decodable, Sendable, Identifiable {
         let id: String; let threadId: String; let role: String; let text: String
@@ -119,6 +137,10 @@ final class MemoryClient {
     func transcriptRecent(limit: Int = 200) async throws -> [TranscriptRow] {
         let r: TranscriptRows = try await get("/v1/transcript/recent?limit=\(limit)")
         return r.rows
+    }
+    /// Newest `nodeLimit` live nodes + every live edge between them. Backs the Grafo tab.
+    func graph(nodeLimit: Int = 300) async throws -> GraphSnapshot {
+        try await get("/v1/graph?nodeLimit=\(nodeLimit)")
     }
 
     // MARK: HTTP helpers

@@ -5,6 +5,8 @@ import SwiftUI
 struct AgentChatView: View {
     @Bindable var model: HarnessModel
     @State private var input: String = ""
+    @State private var consolidationState: MemoryClient.StateSnapshot?
+    @State private var consolidationPollTask: Task<Void, Never>?
 
     private var serverReady: Bool {
         if case .ready = model.serverManager.state { return true }
@@ -35,12 +37,37 @@ struct AgentChatView: View {
         }
     }
 
-    /// Consolidation status banner. In M3a the scheduler lives inside the Memory Service
-    /// (Docker) — the harness no longer drives it. A future follow-up can poll
-    /// `MemoryClient.state()` here to surface progress; for now the banner is silent.
-    /// TODO(m3a-follow-up): poll `client.state()` and render lastCycle.status / isRunning.
+    /// Consolidation status banner. Polls `MemoryClient.state()` every 2s while the view is
+    /// alive: when `isRunning == true` we show "Reflexionando…"; on the trailing edge of a
+    /// cycle (was running, now not) we briefly surface "Memoria consolidada" plus the new
+    /// total node count so the user knows something landed. Hidden otherwise.
     @ViewBuilder private var consolidationBanner: some View {
-        EmptyView()
+        if let s = consolidationState, s.isRunning {
+            Label("Reflexionando…", systemImage: "brain.head.profile")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.vertical, 4)
+        } else if let s = consolidationState, let last = s.lastCycle, last.endedAt != nil,
+                  (Date().timeIntervalSince1970 - (last.endedAt ?? 0)) < 30 {
+            Label("Memoria consolidada · \(s.nodeCount) nodos",
+                  systemImage: "checkmark.seal")
+                .font(.caption)
+                .foregroundStyle(.green)
+                .padding(.vertical, 4)
+                .transition(.opacity)
+        }
+    }
+
+    private func startConsolidationPoll() {
+        consolidationPollTask?.cancel()
+        consolidationPollTask = Task { @MainActor in
+            while !Task.isCancelled {
+                if let client = model.memory {
+                    consolidationState = try? await client.state()
+                }
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
     }
 
     var body: some View {
@@ -56,6 +83,9 @@ struct AgentChatView: View {
             inputBar
         }
         .frame(minWidth: 560, minHeight: 420)
+        .task { startConsolidationPoll() }
+        .onDisappear { consolidationPollTask?.cancel() }
+        .animation(.easeInOut(duration: 0.25), value: consolidationState?.isRunning)
         .toolbar {
             ToolbarItem {
                 Button { model.consolidateNow() } label: {

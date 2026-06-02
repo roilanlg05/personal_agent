@@ -144,11 +144,30 @@ public func buildApp(services: Services, port: Int) async throws -> some Applica
             body: ResponseBody(byteBuffer: .init(string: #"{"status":"ok"}"#))
         )
     }
+    // Public: readiness probe — pings the embedder to confirm the sidecar (and DB-bound
+    // dependencies) are actually serving. Returns 503 if the embedder throws.
+    router.get("/readyz") { [services] _, _ -> Response in
+        do {
+            _ = try services.embedder.embed("readyz")
+            return Response(
+                status: .ok,
+                headers: [.contentType: "application/json"],
+                body: ResponseBody(byteBuffer: .init(string: #"{"status":"ready"}"#))
+            )
+        } catch {
+            return Response(
+                status: .serviceUnavailable,
+                headers: [.contentType: "application/json"],
+                body: ResponseBody(byteBuffer: .init(string: #"{"status":"embedder_unavailable"}"#))
+            )
+        }
+    }
     // Protected: anything under /v1 requires Bearer auth
     let v1 = router.group("/v1").add(middleware: BearerMiddleware(token: services.bearerToken))
     TranscriptHandlers(services: services).register(on: v1)
     MemoryHandlers(services: services).register(on: v1)
     ConsolidationHandlers(services: services).register(on: v1)
+    InspectorHandlers(services: services).register(on: v1)
     v1.get("/echo") { _, _ -> Response in
         return Response(
             status: .ok,

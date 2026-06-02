@@ -32,3 +32,32 @@ This is the decisive result for the user's actual problem (cold-start TTFT). The
 - **Switching cost is high** (rewrite ServerRuntime/process mgmt, re-validate MTP) for no speed/memory gain → **stay on MLX.**
 - **The TTFT fix is the same on both backends:** stable system-prompt prefix + `mlx_lm.server` prompt-cache + keep-warm → cold ~3.6–5s → ~0.15–0.3s warm. Implement on MLX.
 - Keep the fork build as a documented fallback if we ever need GBNF grammars or a GGUF-only model.
+
+## llama.cpp 100%-optimized on Mac (clean re-bench, 2026-06-02)
+
+Full Metal (`-ngl 99 -ngld 99`), MTP, turbo3 KV, flash-attn, jinja, `-c 16384/4096`, cache_prompt. Ground truth = server `eval` t/s.
+
+**Decode is MTP-draft-acceptance-bound (prompt-dependent), not a config issue:**
+
+| Prompt regime | draft acceptance | llama.cpp decode | MLX decode (matched) |
+|---|---|---|---|
+| short/factual | ~90% | **24–27 t/s** | **~29 t/s** |
+| long/creative (220 tok) | 57–76% | **17–19 t/s** | **~21 t/s** |
+
+**Ruled out as causes of the slowdown:**
+- turbo3 sparse-V (`TURBO_SPARSE_V=0` → identical ~17–19 t/s long).
+- context size (`-c 4096` vs `16384` → no meaningful diff for short seqs).
+- draft quant: **Q8_0 draft is WORSE** (11.8–15 t/s, same 60–76% acceptance) — bigger draft costs more compute per round without raising acceptance. **Q4_K_M draft is optimal.**
+- memory: top hog is llama-server itself (~10.4GB RSS + GPU buffers); other apps ~1GB total. Pressure is the 16GB model on 24GB, not background apps.
+
+**Verdict:** MLX is ~10–20% faster on matched prompts and wins at every regime (best-case 29 vs 27, typical-creative 21 vs 18). No llama.cpp config recovers the gap — Apple's MLX Metal kernels beat llama.cpp's Metal backend on this M4. The "~27 t/s" seen earlier was a high-acceptance short run, reproducible but not the sustained creative-decode rate.
+
+**Only reason to choose llama.cpp on the Mac:** GGUF-only models (e.g. the `Gemma4-26B-A4B-Uncensored-HauhauCS-Balanced` variant). For those, best path = convert to MLX 4-bit to keep MLX speed + the existing MTP draft.
+
+## RESOLUTION — cold-start fix shipped (2026-06-02)
+
+The real cold-start cost is **Metal-kernel JIT on the first real generation (~31s)**, not prefill and not backend. Evidence (MLX, MTP, fresh server): 1st request 31.1s, 2nd 0.84s. The app's startup warm-up was a 1-token, system-less ping that only compiled a subset of kernels.
+
+**Fix (branch `feat/mlx-ttft-apc`):** `HTTPServerHealth.warm()` now sends a *representative* warm-up — system message + `max_tokens:16` — so the multi-token + MTP decode kernels JIT at startup (behind the app's existing "warming" state). Measured: user's first real message **31s → 0.83s**, full MTP decode (~29 t/s) retained.
+
+**APC was reverted** (incompatible with MTP — Metal GPU timeout; disk tier slower than recompute for small prefixes). The stable-system-prefix change (recall→user-tail) was kept as good hygiene. Net result: cold-start fixed, MLX + MTP retained, no backend switch.

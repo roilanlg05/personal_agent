@@ -16,3 +16,4 @@ embedder/.venv/
 memory-service/.build/
 memory-service/.swiftpm/
 docker-data/
+.env

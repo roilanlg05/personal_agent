@@ -27,13 +27,41 @@ public struct AppConfig: Sendable {
     }
 }
 
+struct BearerMiddleware: RouterMiddleware {
+    typealias Context = BasicRequestContext
+    let token: String
+
+    func handle(
+        _ request: Request,
+        context: Context,
+        next: (Request, Context) async throws -> Response
+    ) async throws -> Response {
+        guard let header = request.headers[.authorization],
+              header == "Bearer \(token)"
+        else {
+            return Response(status: .unauthorized)
+        }
+        return try await next(request, context)
+    }
+}
+
 public func buildApp(config: AppConfig) async throws -> some ApplicationProtocol {
     let router = Router()
+    // Public: health check
     router.get("/healthz") { _, _ -> Response in
         return Response(
             status: .ok,
             headers: [.contentType: "application/json"],
             body: ResponseBody(byteBuffer: .init(string: #"{"status":"ok"}"#))
+        )
+    }
+    // Protected: anything under /v1 requires Bearer auth
+    let v1 = router.group("/v1").add(middleware: BearerMiddleware(token: config.bearerToken))
+    v1.get("/echo") { _, _ -> Response in
+        return Response(
+            status: .ok,
+            headers: [.contentType: "application/json"],
+            body: ResponseBody(byteBuffer: .init(string: #"{"ok":true}"#))
         )
     }
     return Application(

@@ -99,8 +99,19 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
                             decayRate: Decay.defaultDecayRate(for: layer), confidence: .probable, mentionCount: 1,
                             ttlExpiresAt: nil, sourceRef: nil, origin: .extracted, serverId: nil,
                             dirty: true, deleted: false, extra: attrs.toJSON())
+            let eventKinds: Set<String> = [NodeKind.task.rawValue, NodeKind.plan.rawValue]
             let emb = (try? embedder?.embed(label)) ?? nil
-            if (try? store.upsertMergingSemantic(node, embedding: emb, embedder: embedder)) != nil { added += 1 }
+            if eventKinds.contains(kind) {
+                // Events are distinct occurrences — never auto-merge (would lose a meeting).
+                // Ambiguous same-vs-different is resolved by clarify() asking the user (Task 3).
+                do {
+                    try store.upsert(node)
+                    if let emb { try store.setEmbedding(nodeId: node.id, emb) }
+                    added += 1
+                } catch {}
+            } else if (try? store.upsertMergingSemantic(node, embedding: emb, embedder: embedder)) != nil {
+                added += 1
+            }
         }
         onProgress?("+\(added) entities")
     }

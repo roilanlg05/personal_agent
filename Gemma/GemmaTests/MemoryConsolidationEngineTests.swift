@@ -254,4 +254,17 @@ final class MemoryConsolidationEngineTests: XCTestCase {
         XCTAssertEqual(NodeAttributes.from(task.extra).date, "2026-06-02")
         XCTAssertTrue(task.body.contains("2026-06-02"), "absolute date folded into body")
     }
+
+    func test_distinct_tasks_are_not_merged() async throws {
+        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
+        let ts = TranscriptStore(dbQueue: store.dbQueue)
+        try ts.append(threadId: "T", turnIndex: 0, role: "user", text: "x", now: 1)
+        let runtime = CannedRuntime([
+            #"{"entities":[{"entity":"reunión con Carlos","kind":"task","detail":"mañana","attributes":{"status":"pending","date":"2026-06-02"}},{"entity":"reunión con Carlos","kind":"task","detail":"miércoles","attributes":{"status":"pending","date":"2026-06-04"}}]}"#
+        ])
+        let engine = MemoryConsolidationEngine(store: store, embedder: nil, runtime: runtime, transcriptStore: ts)
+        await engine.consolidate(episodeTexts: ["User: x"])
+        let tasks = try store.allNodes().filter { $0.kind == NodeKind.task.rawValue }
+        XCTAssertEqual(tasks.count, 2, "two distinct meetings (different dates) must NOT collapse into one")
+    }
 }

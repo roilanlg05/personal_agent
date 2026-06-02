@@ -14,6 +14,11 @@ public final class ConsolidationScheduler {
     public enum State: Equatable, Sendable { case idle, reflecting, sleeping(String), done(String) }
     public private(set) var state: State = .idle
     public var lastSummary: String = ""
+    /// True iff a consolidation cycle (light or full) is currently in flight. Surfaced via
+    /// `/v1/consolidation/state` so the macOS client can disable user input while busy.
+    public var isRunning: Bool { running != nil }
+    /// Tracks the most recent `armTurnEnd(threadId:)` invocation for diagnostics.
+    public private(set) var lastTurnEndThread: String?
 
     private let runner: ConsolidationRunning
     private let isReady: () -> Bool
@@ -51,6 +56,25 @@ public final class ConsolidationScheduler {
 
     public func consolidateNow() { launch(light: false) }
     public func requestLightReflection() { launch(light: true) }
+
+    /// HTTP-facing alias for `noteTurnEnded()`: records the thread and arms the pause/idle timers
+    /// that drive light/full consolidation. Mirrors the macOS-side semantics so server callers
+    /// (the new `/v1/consolidation/turn-end` endpoint) can drive the scheduler the same way.
+    public func armTurnEnd(threadId: String) {
+        lastTurnEndThread = threadId
+        noteTurnEnded()
+    }
+
+    /// Ad-hoc manual reflection trigger (used by `POST /v1/consolidation/reflect`). Launches the
+    /// awake-light pass if nothing is running and returns a synthetic cycle id (timestamp-based)
+    /// so callers can correlate the request with the response. Returns nil when the scheduler is
+    /// not ready or already running.
+    public func runReflectAdHoc() -> String? {
+        guard isReady(), running == nil, !isUserBusy() else { return nil }
+        let cycleId = "reflect-\(Int(Date().timeIntervalSince1970 * 1000))"
+        launch(light: true)
+        return cycleId
+    }
 
     private func scheduleTimers() {
         pauseTask = Task { [weak self, pauseInterval] in

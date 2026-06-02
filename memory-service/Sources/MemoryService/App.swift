@@ -50,25 +50,62 @@ public final class Services: @unchecked Sendable {
     public let embedder: any Embedder
     public let retriever: MemoryRetriever
     public let bearerToken: String
+    public let modelClient: any ModelTextClient
+    public let engine: MemoryConsolidationEngine
+    public let scheduler: ConsolidationScheduler
 
+    @MainActor
     public init(config: AppConfig) throws {
         let store = try MemoryStore(path: config.dbPath, embeddingDim: 1024)
         self.store = store
-        self.transcript = TranscriptStore(dbQueue: store.dbQueue)
+        let transcript = TranscriptStore(dbQueue: store.dbQueue)
+        self.transcript = transcript
         let embedder = RemoteEmbedder(baseURL: URL(string: config.embedderURL)!)
         self.embedder = embedder
         self.retriever = MemoryRetriever(store: store, embedder: embedder)
         self.bearerToken = config.bearerToken
+        let modelClient = RemoteModelClient(baseURL: URL(string: config.modelURL)!)
+        self.modelClient = modelClient
+        let engine = MemoryConsolidationEngine(store: store, embedder: embedder,
+                                               runtime: modelClient, transcriptStore: transcript)
+        self.engine = engine
+        // `isReady` is always true (the server only spins up after dependencies exist);
+        // `hasPendingCycle` peeks at the persisted sleep_cycle so a server restart resumes.
+        self.scheduler = ConsolidationScheduler(
+            runner: engine,
+            isReady: { true },
+            hasPendingCycle: { (try? store.loadSleepCycle()) != nil }
+        )
     }
 
-    /// Test-only injection point.
-    public init(store: MemoryStore, transcript: TranscriptStore, embedder: any Embedder, bearerToken: String) {
+    /// Test-only injection point. `modelClient` defaults to a NoOp so older tests (Task 7/8)
+    /// that only pass `store/transcript/embedder/bearerToken` keep compiling.
+    @MainActor
+    public init(store: MemoryStore, transcript: TranscriptStore, embedder: any Embedder,
+                bearerToken: String,
+                modelClient: any ModelTextClient = DefaultNoOpModelClient()) {
         self.store = store
         self.transcript = transcript
         self.embedder = embedder
         self.retriever = MemoryRetriever(store: store, embedder: embedder)
         self.bearerToken = bearerToken
+        self.modelClient = modelClient
+        let engine = MemoryConsolidationEngine(store: store, embedder: embedder,
+                                               runtime: modelClient, transcriptStore: transcript)
+        self.engine = engine
+        self.scheduler = ConsolidationScheduler(
+            runner: engine,
+            isReady: { true },
+            hasPendingCycle: { (try? store.loadSleepCycle()) != nil }
+        )
     }
+}
+
+/// Default model client used when callers don't provide one (test convenience). Replies with `{}`
+/// — empty JSON parses to "no entities/edges" in the consolidation engine, a no-op cycle.
+public struct DefaultNoOpModelClient: ModelTextClient {
+    public init() {}
+    public func generate(prompt: String, options: ModelTextOptions) async throws -> String { "{}" }
 }
 
 struct BearerMiddleware: RouterMiddleware {
@@ -91,7 +128,7 @@ struct BearerMiddleware: RouterMiddleware {
 
 /// Production entrypoint used by `main.swift`. Builds a `Services` from the env-derived config.
 public func buildApp(config: AppConfig) async throws -> some ApplicationProtocol {
-    let services = try Services(config: config)
+    let services = try await MainActor.run { try Services(config: config) }
     return try await buildApp(services: services, port: config.port)
 }
 
@@ -111,6 +148,7 @@ public func buildApp(services: Services, port: Int) async throws -> some Applica
     let v1 = router.group("/v1").add(middleware: BearerMiddleware(token: services.bearerToken))
     TranscriptHandlers(services: services).register(on: v1)
     MemoryHandlers(services: services).register(on: v1)
+    ConsolidationHandlers(services: services).register(on: v1)
     v1.get("/echo") { _, _ -> Response in
         return Response(
             status: .ok,

@@ -11,8 +11,8 @@ final class MemoryEndpointsTests: XCTestCase {
     private func makeApp() async throws -> some ApplicationProtocol {
         let store = try MemoryStore(path: ":memory:", embeddingDim: 8)
         let ts = TranscriptStore(dbQueue: store.dbQueue)
-        let services = Services(store: store, transcript: ts, embedder: FakeEmbedder(dimension: 8),
-                                bearerToken: "test-token")
+        let services = await Services(store: store, transcript: ts, embedder: FakeEmbedder(dimension: 8),
+                                       bearerToken: "test-token")
         return try await buildApp(services: services, port: 0)
     }
 

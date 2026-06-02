@@ -11,7 +11,10 @@ final class GenerationSettingsTests: XCTestCase {
         XCTAssertEqual(s.temperature, 1.0, accuracy: 0.0001)
         XCTAssertEqual(s.topP, 0.95, accuracy: 0.0001)
         XCTAssertEqual(s.topK, 64)
-        XCTAssertEqual(s.maxOutputTokens, 256)
+        // Raised from 256 → 2048: 256 truncated long chat replies mid-sentence (no Settings UI
+        // ever persists this, so the default is the effective cap).
+        XCTAssertEqual(s.maxOutputTokens, 2048)
+        XCTAssertGreaterThanOrEqual(s.maxOutputTokens, 1024, "must be high enough for full replies")
     }
 
     func test_codable_roundTrip() throws {

@@ -21,7 +21,7 @@ public struct GenerationSettings: Codable, Equatable, Sendable {
         temperature: Double = 1.0,
         topP: Double = 0.95,
         topK: Int = 64,
-        maxOutputTokens: Int = 256
+        maxOutputTokens: Int = 2048
     ) {
         self.backend = backend
         self.contextLength = contextLength

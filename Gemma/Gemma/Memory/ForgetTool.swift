@@ -1,6 +1,6 @@
 import Foundation
 
-/// Forgets previously remembered facts matching a query.
+/// Forgets previously remembered facts matching a query. Delegates to the Memory Service.
 struct ForgetTool: AgentTool {
     static let name = "forget"
     static let description = "Forget previously remembered facts that match the given keywords."
@@ -13,14 +13,13 @@ struct ForgetTool: AgentTool {
         let query = ((obj["query"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return "nothing to forget" }
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: query) }
-        let result: String = await MainActor.run {
-            guard let store = MemoryToolbox.shared.store else { return "memory unavailable" }
+        let result: String = await {
+            guard let mem = await MemoryToolbox.shared.memory else { return "memory unavailable" }
             do {
-                let matches = try store.searchFTS(query: query, limit: 20)
-                for m in matches { try store.softDelete(nodeId: m.id) }
-                return "Forgot \(matches.count) item(s)."
+                let removed = try await mem.forget(label: query, id: nil)
+                return "Forgot \(removed) item(s)."
             } catch { return "memory error: \(error)" }
-        }
+        }()
         await MainActor.run { ToolActivityRelay.shared.finished(name: Self.name, result: result) }
         return result
     }

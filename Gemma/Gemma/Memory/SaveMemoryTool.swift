@@ -1,8 +1,8 @@
 import Foundation
 
 /// Saves a durable fact the user stated about themselves. Structured (canonical `entity` +
-/// optional `detail`) so the model gives a clean anchor; writes synchronously with semantic
-/// dedup. Replaces the free-phrase RememberTool.
+/// optional `detail`) so the model gives a clean anchor; writes through the Memory Service
+/// (HTTP). Replaces the free-phrase RememberTool.
 struct SaveMemoryTool: AgentTool {
     static let name = "save_memory"
     static let description = """
@@ -22,30 +22,23 @@ struct SaveMemoryTool: AgentTool {
         let obj = (try? JSONSerialization.jsonObject(with: Data(argsJSON.utf8))) as? [String: Any] ?? [:]
         let rawEntity = ((obj["entity"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let detail = (obj["detail"] as? String).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        let kind = (obj["kind"] as? String) ?? "fact"
+        let kindRaw = (obj["kind"] as? String) ?? "fact"
         let permanent = (obj["permanent"] as? Bool) ?? false
         let entity = MemoryText.cleanLabel(rawEntity)
         guard !entity.isEmpty, !MemoryText.isJunkLabel(entity) else { return "nothing to save" }
 
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: entity) }
-        let result: String = await MainActor.run {
-            guard let store = MemoryToolbox.shared.store else { return "memory unavailable" }
-            let now = Date().timeIntervalSince1970
-            let layer: MemoryLayer = permanent ? .identity : .daily
-            let k = kind.isEmpty ? NodeKind.fact.rawValue : kind
-            let body = (detail?.isEmpty == false) ? detail! : entity
-            let node = Node(id: UUID().uuidString, kind: k, label: entity, body: body, layer: layer,
-                            createdAt: now, updatedAt: now, lastSeenAt: now, salience: permanent ? 8 : 3,
-                            decayRate: Decay.defaultDecayRate(for: layer), confidence: .sure, mentionCount: 1,
-                            ttlExpiresAt: nil, sourceRef: nil, origin: .explicit, serverId: nil,
-                            dirty: true, deleted: false, extra: nil)
-            let embedder = MemoryToolbox.shared.embedder
-            let embedding = (try? embedder?.embed(entity)) ?? nil
+        let kind = kindRaw.isEmpty ? NodeKind.fact.rawValue : kindRaw
+        let body = (detail?.isEmpty == false) ? detail! : entity
+        // Pass permanence as an `extra` JSON hint so the service can decide identity vs daily layer.
+        let extra: String? = permanent ? #"{"permanent":true}"# : nil
+        let result: String = await {
+            guard let mem = await MemoryToolbox.shared.memory else { return "memory unavailable" }
             do {
-                _ = try store.upsertMergingSemantic(node, embedding: embedding, embedder: embedder)
-                return "Saved: \(entity)"
+                let r = try await mem.save(kind: kind, label: entity, body: body, extra: extra, sourceRef: nil)
+                return r.mergedInto != nil ? "Saved: \(entity)" : "Saved: \(entity)"
             } catch { return "memory error: \(error)" }
-        }
+        }()
         await MainActor.run { ToolActivityRelay.shared.finished(name: Self.name, result: result) }
         return result
     }

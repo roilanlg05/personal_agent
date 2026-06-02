@@ -6,6 +6,7 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .executable(name: "memory-service", targets: ["MemoryService"]),
+        .library(name: "MemoryCore", targets: ["MemoryCore"]),
     ],
     dependencies: [
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.4.0"),
@@ -14,14 +15,23 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
     ],
     targets: [
+        .target(
+            name: "MemoryCore",
+            dependencies: [
+                .product(name: "GRDB", package: "GRDB.swift"),
+                .product(name: "Logging", package: "swift-log"),
+            ]),
         .executableTarget(
             name: "MemoryService",
             dependencies: [
+                "MemoryCore",
                 .product(name: "Hummingbird", package: "hummingbird"),
-                .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "Logging", package: "swift-log"),
             ]),
+        .testTarget(
+            name: "MemoryCoreTests",
+            dependencies: ["MemoryCore"]),
         .testTarget(
             name: "MemoryServiceTests",
             dependencies: [

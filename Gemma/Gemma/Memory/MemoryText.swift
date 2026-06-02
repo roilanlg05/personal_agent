@@ -33,6 +33,24 @@ enum MemoryText {
     /// Case-insensitive dedup key derived from the clean label.
     static func dedupKey(_ raw: String) -> String { cleanLabel(raw).lowercased() }
 
+    /// Reduce an entity label to a canonical short form: strip common "the user's name is …"
+    /// sentence prefixes (EN/ES) and cap to a short head so person/place/preference labels stay
+    /// dedupable (the model sometimes returns whole sentences as a label).
+    static func canonicalEntityLabel(_ raw: String) -> String {
+        var s = cleanLabel(raw)
+        let prefixes = ["the user's name is ", "user's name is ", "the user is ", "user is ",
+                        "el usuario se llama ", "usuario se llama ", "el usuario es ", "usuario es ",
+                        "su nombre es ", "mi nombre es ",
+                        "the user's ", "user's "]
+        let lower = s.lowercased()
+        for p in prefixes where lower.hasPrefix(p) {
+            s = String(s.dropFirst(p.count)); break
+        }
+        let words = s.split(separator: " ")
+        if words.count > 4 { s = words.prefix(4).joined(separator: " ") }
+        return s.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Fillers / non-facts that should never be stored as a memory on their own.
     static func isJunkLabel(_ raw: String) -> Bool {
         let k = dedupKey(raw)

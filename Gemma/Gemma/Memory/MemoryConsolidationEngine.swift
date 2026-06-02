@@ -64,7 +64,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         let convo = episodeTexts.joined(separator: "\n")
         let prompt = """
         Extract durable facts the USER stated about themselves from this conversation. Output JSON only.
-        Use a short canonical `entity` (a noun/name, not a sentence). Choose a `kind`: person, place, \
+        Use a short canonical `entity` (a noun/name, not a sentence). The "entity" MUST be a short canonical noun/name (1-3 words), NEVER a sentence (e.g. "Roilan", not "the user's name is Roilan"). Choose a `kind`: person, place, \
         preference, fact, trait (personality), task (something to do — set attributes.status "pending"), \
         plan (an intention — set attributes.horizon "short" or "long"), or another short lowercase kind if \
         none fit. Put context in `detail`. Never invent; only what the user actually stated.
@@ -76,9 +76,13 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         guard let out = parse(await generate(prompt, maxTokens: 512), EntitiesOut.self) else { return }
         var added = 0
         for e in out.entities {
-            let label = MemoryText.cleanLabel(e.entity)
+            let rawKind = (e.kind?.isEmpty == false) ? e.kind! : NodeKind.fact.rawValue
+            let entityKinds: Set<String> = [NodeKind.person.rawValue, NodeKind.place.rawValue,
+                                            NodeKind.preference.rawValue, NodeKind.fact.rawValue]
+            let label = entityKinds.contains(rawKind) ? MemoryText.canonicalEntityLabel(e.entity)
+                                                      : MemoryText.cleanLabel(e.entity)
             if MemoryText.isJunkLabel(label) { continue }
-            let kind = (e.kind?.isEmpty == false) ? e.kind! : NodeKind.fact.rawValue
+            let kind = rawKind
             let layer: MemoryLayer = (e.permanent ?? false) ? .identity : .daily
             var attrs = NodeAttributes(); attrs.status = e.attributes?.status; attrs.horizon = e.attributes?.horizon
             let t = now()

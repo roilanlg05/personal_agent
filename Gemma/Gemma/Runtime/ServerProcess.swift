@@ -16,9 +16,15 @@ nonisolated func wiringArguments(for config: ServerConfig) -> [String] {
     config.wiredLimitBytes > 0 ? ["--wired-limit-bytes", String(config.wiredLimitBytes)] : []
 }
 
-/// Full argv for the venv python: the launcher script, optional wiring flag, then the mlx_vlm.server flags.
+/// The `--apc-disk-path` flag for the launcher (turns on prefix caching), or empty when unset. Pure → testable.
+nonisolated func apcArguments(for config: ServerConfig) -> [String] {
+    if let p = config.apcDiskPath, !p.isEmpty { return ["--apc-disk-path", p] }
+    return []
+}
+
+/// Full argv for the venv python: the launcher script, optional wiring flag, optional APC flag, then the mlx_vlm.server flags.
 nonisolated func launchArguments(for config: ServerConfig) -> [String] {
-    [config.launcherScriptURL.path] + wiringArguments(for: config) + serverArguments(for: config)
+    [config.launcherScriptURL.path] + wiringArguments(for: config) + apcArguments(for: config) + serverArguments(for: config)
 }
 
 /// Single-quote a string for safe interpolation into a `/bin/sh` command.

@@ -46,6 +46,28 @@ final class ServerRuntimeStreamingTests: XCTestCase {
         XCTAssertEqual(completedText, "Hola mundo", "final text is the concatenation of the deltas")
     }
 
+    final class StallStub: URLProtocol {
+        override class func canInit(with request: URLRequest) -> Bool { true }
+        override class func canonicalRequest(for r: URLRequest) -> URLRequest { r }
+        override func startLoading() {
+            let resp = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil,
+                                       headerFields: ["Content-Type": "text/event-stream"])!
+            client?.urlProtocol(self, didReceive: resp, cacheStoragePolicy: .notAllowed)
+            // never deliver data / never finish → exercises the inactivity timeout
+        }
+        override func stopLoading() {}
+    }
+
+    func test_generation_times_out_when_server_stalls() async {
+        let cfg = URLSessionConfiguration.ephemeral
+        cfg.protocolClasses = [StallStub.self]
+        let rt = ServerRuntime(session: URLSession(configuration: cfg), generationTimeout: .seconds(1))
+        var threw = false
+        do { for try await _ in await rt.generate(prompt: "hi", tools: [], options: GenerationOptions()) {} }
+        catch { threw = true }
+        XCTAssertTrue(threw, "a stalled server must surface as a thrown error, not hang forever")
+    }
+
     func test_streaming_accumulates_tool_call_deltas() async throws {
         SSEStub.body = """
         data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"name":"get_current_time","arguments":""}}]}}]}

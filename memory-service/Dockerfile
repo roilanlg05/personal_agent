@@ -1,4 +1,4 @@
-FROM swift:5.10-jammy AS build
+FROM swift:6.0-jammy AS build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libsqlite3-dev \
  && rm -rf /var/lib/apt/lists/*
@@ -8,7 +8,7 @@ COPY Sources Sources
 COPY Tests Tests
 RUN swift build -c release --static-swift-stdlib --product memory-service
 
-FROM swift:5.10-jammy-slim AS runtime
+FROM swift:6.0-jammy-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libsqlite3-0 ca-certificates \
  && rm -rf /var/lib/apt/lists/*

@@ -12,7 +12,7 @@ public struct SleepCycleState: Equatable, Sendable {
     }
 }
 
-public nonisolated final class MemoryStore: @unchecked Sendable {
+public final class MemoryStore: @unchecked Sendable {
     public let dbQueue: DatabaseQueue
     public let embeddingDim: Int
 

@@ -11,7 +11,7 @@ public protocol Embedder: Sendable {
 public enum MemoryError: Error { case embedderUnavailable }
 
 /// Deterministic fake for unit tests (no model assets, no network).
-public nonisolated final class FakeEmbedder: Embedder, @unchecked Sendable {
+public final class FakeEmbedder: Embedder, @unchecked Sendable {
     public let dimension: Int
     public init(dimension: Int = 4) { self.dimension = dimension }
     public func embed(_ text: String) throws -> [Float] {

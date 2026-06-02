@@ -4,7 +4,7 @@ import Foundation
 /// Phases are independent units (testable with a fake runtime). The resumable cycle driver
 /// (`runCycle`) and the awake-light path (`runLight`) compose these phases. A persisted
 /// `sleep_cycle` lets a cycle resume from where it was interrupted.
-public nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
+public final class MemoryConsolidationEngine: ConsolidationRunning, @unchecked Sendable {
     private let store: MemoryStore
     private let embedder: Embedder?
     private let runtime: any ModelTextClient

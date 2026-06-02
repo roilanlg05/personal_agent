@@ -22,7 +22,7 @@ public struct TranscriptRow: Codable, FetchableRecord, PersistableRecord, Equata
 
 /// Persists raw chat turns. Reuses the MemoryStore `DatabaseQueue` (one DB file) but never
 /// touches `node`. Replaces `EpisodeRecorder` (which wrote graph nodes per turn).
-public nonisolated final class TranscriptStore {
+public nonisolated final class TranscriptStore: @unchecked Sendable {
     private let dbQueue: DatabaseQueue
     public init(dbQueue: DatabaseQueue) { self.dbQueue = dbQueue }
 

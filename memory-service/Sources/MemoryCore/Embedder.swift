@@ -3,7 +3,7 @@ import Foundation
 /// Produces a fixed-dim sentence embedding. In the Docker memory-service the production
 /// implementation is `RemoteEmbedder` (HTTP call to the BGE-M3 sidecar — added in Task 6).
 /// `FakeEmbedder` here keeps unit tests deterministic and dependency-free.
-public protocol Embedder {
+public protocol Embedder: Sendable {
     var dimension: Int { get }
     func embed(_ text: String) throws -> [Float]
 }
@@ -11,7 +11,7 @@ public protocol Embedder {
 public enum MemoryError: Error { case embedderUnavailable }
 
 /// Deterministic fake for unit tests (no model assets, no network).
-public nonisolated final class FakeEmbedder: Embedder {
+public nonisolated final class FakeEmbedder: Embedder, @unchecked Sendable {
     public let dimension: Int
     public init(dimension: Int = 4) { self.dimension = dimension }
     public func embed(_ text: String) throws -> [Float] {

@@ -1,29 +1,73 @@
 import Foundation
 import Hummingbird
 import Logging
+import MemoryCore
 
 public struct AppConfig: Sendable {
     public var bearerToken: String
     public var dbPath: String
     public var embedderURL: String
     public var modelURL: String
+    public var port: Int
+
+    public init(bearerToken: String, dbPath: String, embedderURL: String, modelURL: String, port: Int = 8081) {
+        self.bearerToken = bearerToken
+        self.dbPath = dbPath
+        self.embedderURL = embedderURL
+        self.modelURL = modelURL
+        self.port = port
+    }
 
     public static func testDefaults() -> AppConfig {
         AppConfig(bearerToken: "test-token", dbPath: ":memory:",
                   embedderURL: "http://embedder:8000",
-                  modelURL: "http://host.docker.internal:8080")
+                  modelURL: "http://host.docker.internal:8080",
+                  port: 0)
     }
 
     public static func fromEnvironment() -> AppConfig {
-        guard let token = ProcessInfo.processInfo.environment["MEMORY_BEARER_TOKEN"] else {
+        let env = ProcessInfo.processInfo.environment
+        guard let token = env["MEMORY_BEARER_TOKEN"] else {
             fatalError("MEMORY_BEARER_TOKEN must be set")
         }
         return AppConfig(
             bearerToken: token,
-            dbPath: ProcessInfo.processInfo.environment["MEMORY_DB_PATH"] ?? "/data/memory.sqlite",
-            embedderURL: ProcessInfo.processInfo.environment["EMBEDDER_URL"] ?? "http://embedder:8000",
-            modelURL: ProcessInfo.processInfo.environment["MODEL_URL"] ?? "http://host.docker.internal:8080"
+            dbPath: env["MEMORY_DB_PATH"] ?? "/data/memory.sqlite",
+            embedderURL: env["EMBEDDER_URL"] ?? "http://embedder:8000",
+            modelURL: env["MODEL_URL"] ?? "http://host.docker.internal:8080",
+            port: Int(env["MEMORY_PORT"] ?? "8081") ?? 8081
         )
+    }
+}
+
+/// Process-wide service container — store/transcript/embedder/retriever + bearer token.
+/// `@unchecked Sendable`: GRDB `DatabaseQueue` is thread-safe and the stored protocol/class
+/// dependencies are also thread-safe (see notes on `MemoryStore`, `TranscriptStore`,
+/// `MemoryRetriever`, `RemoteEmbedder`).
+public final class Services: @unchecked Sendable {
+    public let store: MemoryStore
+    public let transcript: TranscriptStore
+    public let embedder: any Embedder
+    public let retriever: MemoryRetriever
+    public let bearerToken: String
+
+    public init(config: AppConfig) throws {
+        let store = try MemoryStore(path: config.dbPath, embeddingDim: 1024)
+        self.store = store
+        self.transcript = TranscriptStore(dbQueue: store.dbQueue)
+        let embedder = RemoteEmbedder(baseURL: URL(string: config.embedderURL)!)
+        self.embedder = embedder
+        self.retriever = MemoryRetriever(store: store, embedder: embedder)
+        self.bearerToken = config.bearerToken
+    }
+
+    /// Test-only injection point.
+    public init(store: MemoryStore, transcript: TranscriptStore, embedder: any Embedder, bearerToken: String) {
+        self.store = store
+        self.transcript = transcript
+        self.embedder = embedder
+        self.retriever = MemoryRetriever(store: store, embedder: embedder)
+        self.bearerToken = bearerToken
     }
 }
 
@@ -45,7 +89,15 @@ struct BearerMiddleware: RouterMiddleware {
     }
 }
 
+/// Production entrypoint used by `main.swift`. Builds a `Services` from the env-derived config.
 public func buildApp(config: AppConfig) async throws -> some ApplicationProtocol {
+    let services = try Services(config: config)
+    return try await buildApp(services: services, port: config.port)
+}
+
+/// Builder accepting a pre-constructed `Services` — used by tests and indirectly by the
+/// production path above.
+public func buildApp(services: Services, port: Int) async throws -> some ApplicationProtocol {
     let router = Router()
     // Public: health check
     router.get("/healthz") { _, _ -> Response in
@@ -56,7 +108,8 @@ public func buildApp(config: AppConfig) async throws -> some ApplicationProtocol
         )
     }
     // Protected: anything under /v1 requires Bearer auth
-    let v1 = router.group("/v1").add(middleware: BearerMiddleware(token: config.bearerToken))
+    let v1 = router.group("/v1").add(middleware: BearerMiddleware(token: services.bearerToken))
+    TranscriptHandlers(services: services).register(on: v1)
     v1.get("/echo") { _, _ -> Response in
         return Response(
             status: .ok,
@@ -66,7 +119,7 @@ public func buildApp(config: AppConfig) async throws -> some ApplicationProtocol
     }
     return Application(
         router: router,
-        configuration: ApplicationConfiguration(address: .hostname("0.0.0.0", port: 8081)),
+        configuration: ApplicationConfiguration(address: .hostname("0.0.0.0", port: port)),
         logger: Logger(label: "memory-service")
     )
 }

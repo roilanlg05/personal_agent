@@ -1,6 +1,6 @@
 import Foundation
 
-/// Real health client: probes `/v1/models` and runs a 1-token warm-up/keep-alive completion.
+/// Real health client: probes `/v1/models` and runs a representative warm-up/keep-alive completion that exercises the multi-token + MTP decode path.
 nonisolated final class HTTPServerHealth: ServerHealth, @unchecked Sendable {
     private let session: URLSession
     init(session: URLSession = .shared) { self.session = session }
@@ -17,10 +17,16 @@ nonisolated final class HTTPServerHealth: ServerHealth, @unchecked Sendable {
     }
 
     func warm(_ config: ServerConfig) async throws {
+        // Representative warm-up: a system message + a multi-token generation so the FIRST real
+        // turn doesn't pay Metal-kernel JIT (incl. the MTP speculative-decode path). A 1-token,
+        // system-less ping only compiles a subset and leaves the first real turn ~31s slow.
         let body: [String: Any] = [
             "model": config.modelId,
-            "messages": [["role": "user", "content": "."]],
-            "max_tokens": 1,
+            "messages": [
+                ["role": "system", "content": "You are Gemma, a helpful on-device assistant."],
+                ["role": "user", "content": "Say hello in one short sentence."],
+            ],
+            "max_tokens": 16,
             "stream": false,
             "chat_template_kwargs": ["enable_thinking": false],
         ]

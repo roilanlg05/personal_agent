@@ -15,10 +15,11 @@ struct MemoryServices {
 }
 
 /// Orchestrates one agent turn over a tool-calling runtime. With memory it retrieves relevant
-/// memories and injects them into the system prompt; the live turn does NOT write memory
-/// (no save_memory) — capture is deferred to background consolidation, and the caller appends
-/// the turn to the TranscriptStore (short-term context). Without memory it behaves exactly as
-/// the S4 agent.
+/// memories and injects them (with wakeContext) at the tail of the user message, keeping the
+/// system prompt byte-stable so the server's prefix cache (APC) stays warm. The live turn does
+/// NOT write memory (no save_memory) — capture is deferred to background consolidation, and the
+/// caller appends the turn to the TranscriptStore (short-term context). Without memory it behaves
+/// exactly as the S4 agent.
 @MainActor
 final class Agent {
     private let runtime: ToolCallingRuntime

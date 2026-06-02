@@ -15,15 +15,18 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
     /// its hidden chain-of-thought. Measured ~48x latency win (43s -> 0.9s for "hola") with an
     /// identical answer; tool-calling and memory recall still work. Toggle to true to re-enable.
     let enableThinking: Bool
+    let generationTimeout: Duration
 
     init(baseURL: URL = URL(string: "http://localhost:8080")!,
          model: String = "unsloth/gemma-4-26b-a4b-it-UD-MLX-4bit",
          session: URLSession = .shared,
-         enableThinking: Bool = false) {
+         enableThinking: Bool = false,
+         generationTimeout: Duration = .seconds(120)) {
         self.baseURL = baseURL
         self.model = model
         self.session = session
         self.enableThinking = enableThinking
+        self.generationTimeout = generationTimeout
     }
 
     func isLoaded() async -> Bool { true }
@@ -66,6 +69,7 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     req.setValue("text/event-stream", forHTTPHeaderField: "Accept")
                     req.httpBody = try JSONSerialization.data(withJSONObject: body)
+                    req.timeoutInterval = Double(generationTimeout.components.seconds)
 
                     let (bytes, response) = try await session.bytes(for: req)
                     if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {

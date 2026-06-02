@@ -64,7 +64,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         let convo = episodeTexts.joined(separator: "\n")
         let prompt = """
         Extract durable facts the USER stated about themselves from this conversation. Output JSON only.
-        Use a short canonical `entity` (a noun/name, not a sentence). Choose a `kind`: person, place, \
+        Use a short canonical `entity` (a noun/name, not a sentence). The "entity" MUST be a short canonical noun/name (1-3 words), NEVER a sentence (e.g. "Roilan", not "the user's name is Roilan"). Choose a `kind`: person, place, \
         preference, fact, trait (personality), task (something to do — set attributes.status "pending"), \
         plan (an intention — set attributes.horizon "short" or "long"), or another short lowercase kind if \
         none fit. Put context in `detail`. Never invent; only what the user actually stated.
@@ -76,9 +76,13 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         guard let out = parse(await generate(prompt, maxTokens: 512), EntitiesOut.self) else { return }
         var added = 0
         for e in out.entities {
-            let label = MemoryText.cleanLabel(e.entity)
+            let rawKind = (e.kind?.isEmpty == false) ? e.kind! : NodeKind.fact.rawValue
+            let entityKinds: Set<String> = [NodeKind.person.rawValue, NodeKind.place.rawValue,
+                                            NodeKind.preference.rawValue, NodeKind.fact.rawValue]
+            let label = entityKinds.contains(rawKind) ? MemoryText.canonicalEntityLabel(e.entity)
+                                                      : MemoryText.cleanLabel(e.entity)
             if MemoryText.isJunkLabel(label) { continue }
-            let kind = (e.kind?.isEmpty == false) ? e.kind! : NodeKind.fact.rawValue
+            let kind = rawKind
             let layer: MemoryLayer = (e.permanent ?? false) ? .identity : .daily
             var attrs = NodeAttributes(); attrs.status = e.attributes?.status; attrs.horizon = e.attributes?.horizon
             let t = now()
@@ -116,7 +120,8 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         let prompt = """
         Summarize this conversation segment as STRUCTURED knowledge about ONE user. Output JSON only.
         Give a short `topic` (2-5 words), the key `concepts` (short noun phrases), the user's `intent`, \
-        any `decisions` made, an `importance` 0..1, and a one-sentence `summary`. Don't invent.
+        any `decisions` made, an `importance` 0..1, and a one-sentence `summary`. Don't invent. \
+        Answer in the SAME language as the conversation.
         Schema: {"topic":"...","concepts":["..."],"intent":"...","decisions":["..."],"importance":0.5,"summary":"..."}
         Conversation:
         \(convo)
@@ -132,7 +137,8 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
             "turnRange": [turnRange.lowerBound, turnRange.upperBound],
         ]
         let extraJSON = (try? JSONSerialization.data(withJSONObject: extra)).flatMap { String(data: $0, encoding: .utf8) }
-        let body = (out.summary?.isEmpty == false) ? out.summary! : topic
+        let prose = (out.summary?.isEmpty == false) ? out.summary! : topic
+        let body = out.concepts.isEmpty ? prose : prose + " · " + out.concepts.joined(separator: ", ")
         let node = Node(id: UUID().uuidString, kind: NodeKind.summary.rawValue, label: topic, body: body,
                         layer: .daily, createdAt: t, updatedAt: t, lastSeenAt: t, salience: 4,
                         decayRate: Decay.defaultDecayRate(for: .daily), confidence: .probable, mentionCount: 1,
@@ -142,6 +148,26 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         let emb = (try? embedder?.embed(conceptText)) ?? nil
         _ = try? store.upsertMergingSemantic(node, embedding: emb, embedder: embedder)
         onProgress?("+1 summary")
+    }
+
+    /// Light, immediate summarization of the current unconsolidated conversation(s) so each session
+    /// has its structured `summary` node promptly (cross-session recall before the full sleep cycle).
+    /// Does NOT mark turns consolidated — the full cycle still extracts entities/edges later.
+    /// Skips a thread that already has a summary (avoids re-summarizing on every pause).
+    func summarizeRecent() async {
+        let rows = ((try? transcriptStore.unconsolidated(limit: 200)) ?? [])
+        guard !rows.isEmpty else { return }
+        let alreadySummarized = Set(((try? store.allNodes()) ?? [])
+            .filter { $0.kind == NodeKind.summary.rawValue }
+            .compactMap { $0.sourceRef })
+        let groups = Dictionary(grouping: rows, by: { $0.threadId })
+            .sorted { ($0.value.map(\.createdAt).min() ?? 0) < ($1.value.map(\.createdAt).min() ?? 0) }
+        for (threadId, tRows) in groups where !alreadySummarized.contains(threadId) {
+            let turns = tRows.map { $0.turnIndex }
+            let range = (turns.min() ?? 0)...(turns.max() ?? 0)
+            let texts = tRows.map { "\($0.role == "assistant" ? "Gemma" : "User"): \($0.text)" }
+            await summarize(episodeTexts: texts, threadId: threadId, turnRange: range)
+        }
     }
 
     // MARK: Detect — mine unresolved threads into follow_up nodes
@@ -381,8 +407,11 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         onProgress?("done")
     }
 
-    /// Awake light reflection: associate + reflect over current memory, no replay/curate/forget.
+    /// Awake light reflection: summarize the current session promptly, then associate + reflect
+    /// over current memory, no replay/curate/forget.
     func runLight(isCancelled: @escaping () -> Bool) async {
+        if isCancelled() { return }
+        await summarizeRecent()
         if isCancelled() { return }
         await associate()
         if isCancelled() { return }

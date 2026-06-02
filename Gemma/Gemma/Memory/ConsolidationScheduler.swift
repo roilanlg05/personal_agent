@@ -17,6 +17,7 @@ final class ConsolidationScheduler {
     @ObservationIgnored private let runner: ConsolidationRunning
     @ObservationIgnored private let isReady: () -> Bool
     @ObservationIgnored private let hasPendingCycle: () -> Bool
+    @ObservationIgnored private let isUserBusy: () -> Bool
     @ObservationIgnored private let pauseInterval: Duration
     @ObservationIgnored private let idleInterval: Duration
     @ObservationIgnored private var pauseTask: Task<Void, Never>?
@@ -25,17 +26,25 @@ final class ConsolidationScheduler {
     @ObservationIgnored private var cancelFlag = false
 
     init(runner: ConsolidationRunning, isReady: @escaping () -> Bool, hasPendingCycle: @escaping () -> Bool,
+         isUserBusy: @escaping () -> Bool = { false },
          pauseInterval: Duration = .seconds(15), idleInterval: Duration = .seconds(180)) {
         self.runner = runner; self.isReady = isReady; self.hasPendingCycle = hasPendingCycle
+        self.isUserBusy = isUserBusy
         self.pauseInterval = pauseInterval; self.idleInterval = idleInterval
     }
 
-    /// Called at the START of every user turn: cancel any running consolidation + reset timers.
+    /// Called at the START of every user turn: cancel any running consolidation. Does NOT arm
+    /// timers — timers are armed at turn end via noteTurnEnded().
     func noteUserActivity() {
         cancelFlag = true
         running?.cancel(); running = nil
         pauseTask?.cancel(); idleTask?.cancel()
         state = .idle
+    }
+
+    /// Called at the END of every user turn: arms the pause/idle countdown timers.
+    func noteTurnEnded() {
+        pauseTask?.cancel(); idleTask?.cancel()
         scheduleTimers()
     }
 
@@ -57,7 +66,7 @@ final class ConsolidationScheduler {
     }
 
     private func launch(light: Bool) {
-        guard isReady(), running == nil else { return }
+        guard isReady(), running == nil, !isUserBusy() else { return }
         cancelFlag = false
         let isCancelled: () -> Bool = { [weak self] in self?.cancelFlag ?? true }
         state = light ? .reflecting : .sleeping("nrem")

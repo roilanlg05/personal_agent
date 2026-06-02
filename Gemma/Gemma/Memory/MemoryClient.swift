@@ -11,6 +11,19 @@ final class MemoryClient {
     struct RecallBundle: Decodable, Sendable {
         let core: [RecallNode]; let recall: [RecallNode]
         static let empty = RecallBundle(core: [], recall: [])
+
+        /// Render this bundle as a compact injection block (empty string if both lists are empty).
+        /// Summaries come first so the model gets the gist before individual facts. Mirrors the
+        /// previous in-process `MemoryRetriever.injectionBlock` shape so prompt formatting stays
+        /// byte-identical across the M3a refactor (preserves existing snapshot tests).
+        func injectionBlock() -> String {
+            let merged = recall + core.filter { c in !recall.contains(where: { $0.label == c.label && $0.kind == c.kind }) }
+            guard !merged.isEmpty else { return "" }
+            let summaries = merged.filter { $0.kind == "summary" }
+            let rest = merged.filter { $0.kind != "summary" }
+            let lines = (summaries + rest).map { "- [\($0.kind)] \($0.label): \($0.body.isEmpty ? $0.label : $0.body)" }
+            return "What you remember about the user (use if relevant):\n" + lines.joined(separator: "\n")
+        }
     }
     struct SaveResult: Decodable, Sendable { let id: String; let mergedInto: String? }
     struct WindowTurn: Decodable, Sendable { let role: String; let text: String }

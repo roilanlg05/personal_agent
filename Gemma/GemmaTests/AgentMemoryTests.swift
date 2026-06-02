@@ -1,15 +1,13 @@
 import XCTest
 @testable import Gemma
 
-/// Phase 5 Task 5.1 — the Agent injects retrieved memories into the system prompt (#18).
+/// Phase 5 Task 5.1 — the Agent injects recallTail + wakeContext into the USER prompt tail
+/// (never the system prompt — that's load-bearing for APC). The agent is memory-agnostic now;
+/// recall fetching itself lives in HarnessModel (HTTP to the Memory Service), so this suite
+/// only verifies the agent's injection contract: given a non-empty recallTail, it must ride
+/// the user prompt and never the system prompt.
 @MainActor
 final class AgentMemoryTests: XCTestCase {
-    override func tearDown() {
-        MemoryToolbox.shared.store = nil
-        MemoryToolbox.shared.embedder = nil
-        super.tearDown()
-    }
-
     /// Captures the system prompt AND the user prompt the runtime receives, then completes.
     final class CapturingRuntime: ToolCallingRuntime {
         var capturedSystemPrompt: String?
@@ -24,35 +22,29 @@ final class AgentMemoryTests: XCTestCase {
         }
     }
 
-    func testInjectsMemoryIntoUserPromptTail() async throws {
-        let store = try MemoryStore(inMemory: true, embeddingDim: 4)
-        let now = Date().timeIntervalSince1970
-        try store.upsert(Node(id: "1", kind: NodeKind.preference.rawValue, label: "sushi", body: "likes sushi", layer: .daily,
-                              createdAt: now, updatedAt: now, lastSeenAt: now, salience: 5, decayRate: 0.0001,
-                              confidence: .probable, mentionCount: 1, ttlExpiresAt: nil, sourceRef: nil,
-                              origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: nil))
-        let retriever = MemoryRetriever(store: store, embedder: nil)
+    func testInjectsRecallTailIntoUserPrompt() async throws {
         let rt = CapturingRuntime()
-        let agent = Agent(runtime: rt, registry: ToolRegistry(),
-                          memory: MemoryServices(retriever: retriever))
+        let tail = "What you remember about the user (use if relevant):\n- [preference] sushi: likes sushi"
+        let agent = Agent(runtime: rt, registry: ToolRegistry(), recallTail: tail)
         for try await _ in agent.run(prompt: "sushi", options: GenerationOptions()) {}
         XCTAssertTrue(rt.capturedUserPrompt?.contains("sushi") ?? false,
                       "recall must be prepended to the user prompt; got: \(rt.capturedUserPrompt ?? "nil")")
+        XCTAssertTrue(rt.capturedUserPrompt?.contains("What you remember") ?? false)
         XCTAssertEqual(rt.capturedSystemPrompt?.contains("What you remember"), false,
                        "recall must NOT be in the system prompt (it would bust the prefix cache)")
         XCTAssertTrue(rt.capturedUserPrompt?.hasSuffix("sushi") ?? false)
     }
 
-    func testNoMemoryIsPlainSystemPrompt() async throws {
+    func testNoRecallIsPlainSystemPrompt() async throws {
         let rt = CapturingRuntime()
-        let agent = Agent(runtime: rt, registry: ToolRegistry())  // memory = nil
+        let agent = Agent(runtime: rt, registry: ToolRegistry())  // recallTail = ""
         for try await _ in agent.run(prompt: "hi", options: GenerationOptions()) {}
         XCTAssertEqual(rt.capturedSystemPrompt?.contains("What you remember"), false)
     }
 
     func test_wakeContext_rides_user_prompt_tail() async throws {
         let rt = CapturingRuntime()
-        let agent = Agent(runtime: rt, registry: ToolRegistry(), memory: nil,
+        let agent = Agent(runtime: rt, registry: ToolRegistry(),
                           wakeContext: "You were reflecting on: sushi.")
         for try await _ in agent.run(prompt: "hi", options: GenerationOptions()) {}
         XCTAssertTrue(rt.capturedUserPrompt?.contains("You were reflecting on: sushi.") ?? false,
@@ -61,9 +53,9 @@ final class AgentMemoryTests: XCTestCase {
                        "wakeContext must NOT be in the system prompt")
     }
 
-    func test_noMemory_noWake_leaves_user_prompt_unchanged() async throws {
+    func test_noRecall_noWake_leaves_user_prompt_unchanged() async throws {
         let rt = CapturingRuntime()
-        let agent = Agent(runtime: rt, registry: ToolRegistry())  // memory = nil, wakeContext = ""
+        let agent = Agent(runtime: rt, registry: ToolRegistry())  // recallTail = "", wakeContext = ""
         for try await _ in agent.run(prompt: "hola", options: GenerationOptions()) {}
         XCTAssertEqual(rt.capturedUserPrompt, "hola")
     }

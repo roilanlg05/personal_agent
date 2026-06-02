@@ -35,22 +35,12 @@ struct AgentChatView: View {
         }
     }
 
-    /// Consolidation status, shown only while reflecting/sleeping or briefly after.
-    /// `.done` lingers until the next user turn calls `noteUserActivity()` (which
-    /// resets state to `.idle`) — i.e. it auto-clears on the next interaction.
+    /// Consolidation status banner. In M3a the scheduler lives inside the Memory Service
+    /// (Docker) — the harness no longer drives it. A future follow-up can poll
+    /// `MemoryClient.state()` here to surface progress; for now the banner is silent.
+    /// TODO(m3a-follow-up): poll `client.state()` and render lastCycle.status / isRunning.
     @ViewBuilder private var consolidationBanner: some View {
-        switch model.consolidationScheduler?.state {
-        case .reflecting:
-            Label("Reflexionando…", systemImage: "sparkles").font(.caption).foregroundStyle(.secondary)
-        case .sleeping(let phase):
-            Label("Consolidando — \(phase)…", systemImage: "moon.stars").font(.caption).foregroundStyle(.secondary)
-        case .done(let mark):
-            let summary = model.consolidationScheduler?.lastSummary ?? ""
-            Label("\(mark) memoria consolidada\(summary.isEmpty ? "" : " (\(summary))")",
-                  systemImage: "checkmark").font(.caption).foregroundStyle(.green)
-        default:
-            EmptyView()
-        }
+        EmptyView()
     }
 
     var body: some View {
@@ -85,10 +75,10 @@ struct AgentChatView: View {
         .sheet(isPresented: $model.showMemory) {
             NavigationStack {
                 Group {
-                    if model.inspectorStore() != nil {
-                        MemoryView(store: model.inspectorStore())
+                    if let client = model.memoryClient() {
+                        MemoryView(client: client)
                     } else {
-                        ContentUnavailableView("No memory store", systemImage: "brain",
+                        ContentUnavailableView("No memory client", systemImage: "brain",
                                                description: Text("Memory is disabled or not yet initialized. Send a message with memory enabled, then reopen."))
                     }
                 }
@@ -96,6 +86,7 @@ struct AgentChatView: View {
                 .toolbar { Button("Done") { model.showMemory = false } }
             }
         }
+        .task { model.ensureMemory() }
     }
 
     private var transcript: some View {

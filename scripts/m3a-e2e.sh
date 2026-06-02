@@ -3,12 +3,13 @@
 # Usage: scripts/m3a-e2e.sh
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+STACK="$ROOT/gemma-memory"
+cd "$STACK"
 
 if [ ! -f .env ]; then
-  echo ".env missing — copying from .env.example" >&2
+  echo ".env missing in $STACK — copying from .env.example" >&2
   cp .env.example .env
-  echo "EDIT .env to set MEMORY_BEARER_TOKEN, then re-run." >&2
+  echo "EDIT $STACK/.env to set MEMORY_BEARER_TOKEN, then re-run." >&2
   exit 1
 fi
 
@@ -22,9 +23,11 @@ done
 curl -fsS http://localhost:8081/healthz || { docker compose logs memory; exit 1; }
 
 TOKEN=$(grep '^MEMORY_BEARER_TOKEN=' .env | cut -d= -f2-)
+cd "$ROOT"
 GEMMA_LIVE_DOCKER=1 \
 MEMORY_BEARER_TOKEN="$TOKEN" \
 xcodebuild test -scheme Gemma -project Gemma/Gemma.xcodeproj -destination 'platform=macOS' \
   -only-testing:GemmaTests/MemoryServiceLiveTests 2>&1 | tail -40
 
+cd "$STACK"
 docker compose down

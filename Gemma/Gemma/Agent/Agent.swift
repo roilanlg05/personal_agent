@@ -33,10 +33,15 @@ final class Agent {
         self.wakeContext = wakeContext
     }
 
-    private func systemPrompt(memoryBlock: String) -> String {
+    private func systemPrompt() -> String {
         let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd (EEEE)"
         let today = df.string(from: Date())
-        let base = """
+        // Static instructions only — kept byte-stable across turns so the mlx_vlm.server APC
+        // prefix cache reuses its KV (cold start restored from the SSD tier). Per-turn recall and
+        // wakeContext are NOT here; they ride the tail of the user message (see run()).
+        // The date is intentionally kept in the prefix: stable within a day (≤1 cache rebuild/day)
+        // and preserves temporal grounding.
+        return """
         You are Gemma, a helpful on-device assistant. Today is \(today). You can call tools to get real information. \
         When a tool is relevant (e.g. the user asks the time), call it instead of guessing. \
         Answer only what the user asked; do not list unrelated things you remember. \
@@ -45,9 +50,6 @@ final class Agent {
         IMPORTANT: after any tool runs, ALWAYS reply to the user in a short, natural sentence — \
         confirm what you did or answer their question. Never end your turn with only a tool call.
         """
-        var out = memoryBlock.isEmpty ? base : base + "\n\n" + memoryBlock
-        if !wakeContext.isEmpty { out += "\n\n" + wakeContext }
-        return out
     }
 
     func run(prompt: String, options: GenerationOptions) -> AsyncThrowingStream<AgentEvent, Error> {
@@ -55,12 +57,18 @@ final class Agent {
         let memory = self.memory
         return AsyncThrowingStream { continuation in
             let task = Task {
-                var memoryBlock = ""
+                // Recall + wakeContext ride the TAIL of the user message so the system prefix
+                // stays byte-identical across turns → APC prefix-cache hit (disk on cold start,
+                // memory when warm). See docs/superpowers/specs/2026-06-02-mlx-ttft-quickwin-design.md.
+                var recallTail = ""
                 if let memory, let nodes = try? memory.retriever.retrieve(query: prompt) {
-                    memoryBlock = memory.retriever.injectionBlock(for: nodes)
+                    recallTail = memory.retriever.injectionBlock(for: nodes)
+                }
+                if !wakeContext.isEmpty {
+                    recallTail = recallTail.isEmpty ? wakeContext : recallTail + "\n\n" + wakeContext
                 }
                 var opts = options
-                opts.systemPrompt = systemPrompt(memoryBlock: memoryBlock)
+                opts.systemPrompt = systemPrompt()
 
                 do {
                     // Client-side tool loop. ServerRuntime stops to request a tool (emits
@@ -72,7 +80,8 @@ final class Agent {
                     // That requires a message-history runtime API; the prompt-augmentation here keeps
                     // the `generate(prompt:tools:options:)` signature unchanged for M1.
                     let maxIterations = 5
-                    var currentPrompt = prompt
+                    // Iteration 0 carries the recall tail; tool-loop iterations reuse their own prompt.
+                    var currentPrompt = recallTail.isEmpty ? prompt : recallTail + "\n\n" + prompt
                     loop: for iteration in 0..<maxIterations {
                         let stream = await runtime.generate(prompt: currentPrompt, tools: tools, options: opts)
                         // Tokens, started-events and any runtime-emitted finished-events are relayed

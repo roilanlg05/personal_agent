@@ -31,4 +31,12 @@ final class AgentSystemPromptTests: XCTestCase {
         let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
         XCTAssertTrue(rt.capturedSystem.contains(df.string(from: Date())), "system prompt must state today's date")
     }
+
+    func test_system_prompt_asks_to_mention_all_matching_memories() async throws {
+        let rt = CapturingRuntime()
+        let agent = Agent(runtime: rt, registry: ToolRegistry(), memory: nil)
+        for try await _ in agent.run(prompt: "hi", options: GenerationOptions()) {}
+        XCTAssertTrue(rt.capturedSystem.localizedCaseInsensitiveContains("all of them"),
+                      "prompt should tell the model to mention all matching memories, not only the newest")
+    }
 }

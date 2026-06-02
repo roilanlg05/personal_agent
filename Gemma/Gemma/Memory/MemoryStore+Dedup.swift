@@ -84,6 +84,12 @@ extension MemoryStore {
             merged.ttlExpiresAt = nil
             merged.decayRate = Decay.defaultDecayRate(for: .identity)
         }
+        // Summaries: adopt the latest segment's reference so expand_context drill-down points at
+        // the most recent conversation behind the topic (extra holds threadId/turnRange/concepts).
+        // Scoped to summary kind — entity `extra` (NodeAttributes) must keep the existing value.
+        if merged.kind == NodeKind.summary.rawValue, let e = candidate.extra, !e.isEmpty {
+            merged.extra = e
+        }
         merged.dirty = true
         return merged
     }

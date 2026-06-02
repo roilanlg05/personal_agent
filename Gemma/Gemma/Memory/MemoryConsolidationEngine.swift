@@ -351,10 +351,16 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
                 }
             case .summarize:
                 let rows = (try? transcriptStore.rows(ids: state.episodeIds)) ?? []
-                let turns = rows.map { $0.turnIndex }
-                let range = (turns.min() ?? 0)...(turns.max() ?? 0)
-                let threadId = rows.first?.threadId ?? ""
-                await summarize(episodeTexts: episodeTexts(ids: state.episodeIds), threadId: threadId, turnRange: range)
+                // One summary per session (threadId). user+assistant of a turn share a turnIndex
+                // by design, so a single-turn group yields turnRange i...i.
+                let groups = Dictionary(grouping: rows, by: { $0.threadId })
+                    .sorted { ($0.value.map(\.createdAt).min() ?? 0) < ($1.value.map(\.createdAt).min() ?? 0) }
+                for (threadId, tRows) in groups {
+                    let turns = tRows.map { $0.turnIndex }
+                    let range = (turns.min() ?? 0)...(turns.max() ?? 0)
+                    let texts = tRows.map { "\($0.role == "assistant" ? "Gemma" : "User"): \($0.text)" }
+                    await summarize(episodeTexts: texts, threadId: threadId, turnRange: range)
+                }
             case .detect:
                 await detectFollowUps(episodeTexts: episodeTexts(ids: state.episodeIds))
             case .rem: await associate()

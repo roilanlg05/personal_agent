@@ -103,6 +103,7 @@ public final class HarnessModel {
         if transcriptStore == nil { transcriptStore = TranscriptStore(dbQueue: store.dbQueue) }
         MemoryToolbox.shared.store = store
         MemoryToolbox.shared.embedder = memoryEmbedder
+        MemoryToolbox.shared.transcriptStore = transcriptStore
         // Build the consolidation engine + scheduler ONCE, then reuse across turns.
         if consolidationScheduler == nil {
             // Share the turn runtime: all consolidation phases run thinking-OFF (the runtime's
@@ -155,7 +156,7 @@ public final class HarnessModel {
         let registry = ToolRegistry()
         registry.register(CurrentTimeTool())
         if memory != nil {
-            registry.register(ForgetTool()); registry.register(ReflectTool())
+            registry.register(ForgetTool()); registry.register(ReflectTool()); registry.register(ExpandContextTool())
         }
         let now = Date().timeIntervalSince1970
         let isWake = (lastTurnEndedAt == 0) || (now - lastTurnEndedAt > Self.wakeGapSeconds)

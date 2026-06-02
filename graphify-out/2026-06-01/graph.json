@@ -164,7 +164,7 @@
       "source_file": "",
       "source_location": "",
       "id": "sendable",
-      "community": 115,
+      "community": 142,
       "norm_label": "sendable"
     },
     {
@@ -290,50 +290,50 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L7",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine",
-      "community": 87,
+      "community": 125,
       "norm_label": "memoryconsolidationengine"
     },
     {
       "label": ".init()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L14",
+      "source_location": "L15",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_init",
-      "community": 87,
+      "community": 135,
       "norm_label": ".init()"
     },
     {
       "label": ".generate()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L29",
+      "source_location": "L32",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_generate",
-      "community": 87,
+      "community": 125,
       "norm_label": ".generate()"
     },
     {
       "label": ".extractJSON()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L41",
+      "source_location": "L44",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_extractjson",
-      "community": 87,
+      "community": 125,
       "norm_label": ".extractjson()"
     },
     {
       "label": ".parse()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L45",
+      "source_location": "L48",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_parse",
-      "community": 87,
+      "community": 125,
       "norm_label": ".parse()"
     },
     {
       "label": "EntitiesOut",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L52",
+      "source_location": "L55",
       "id": "memory_memoryconsolidationengine_entitiesout",
       "community": 119,
       "norm_label": "entitiesout"
@@ -351,7 +351,7 @@
       "label": "E",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L53",
+      "source_location": "L56",
       "id": "memory_memoryconsolidationengine_e",
       "community": 119,
       "norm_label": "e"
@@ -360,7 +360,7 @@
       "label": "Attr",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L54",
+      "source_location": "L57",
       "id": "memory_memoryconsolidationengine_attr",
       "community": 119,
       "norm_label": "attr"
@@ -369,16 +369,43 @@
       "label": ".consolidate()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L59",
+      "source_location": "L62",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_consolidate",
-      "community": 87,
+      "community": 125,
       "norm_label": ".consolidate()"
+    },
+    {
+      "label": ".episodeTexts()",
+      "file_type": "code",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L98",
+      "id": "memory_memoryconsolidationengine_memoryconsolidationengine_episodetexts",
+      "community": 125,
+      "norm_label": ".episodetexts()"
+    },
+    {
+      "label": "SummaryOut",
+      "file_type": "code",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L105",
+      "id": "memory_memoryconsolidationengine_summaryout",
+      "community": 119,
+      "norm_label": "summaryout"
+    },
+    {
+      "label": ".summarize()",
+      "file_type": "code",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L113",
+      "id": "memory_memoryconsolidationengine_memoryconsolidationengine_summarize",
+      "community": 125,
+      "norm_label": ".summarize()"
     },
     {
       "label": "FollowUpsOut",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L94",
+      "source_location": "L148",
       "id": "memory_memoryconsolidationengine_followupsout",
       "community": 119,
       "norm_label": "followupsout"
@@ -387,7 +414,7 @@
       "label": "F",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L94",
+      "source_location": "L148",
       "id": "memory_memoryconsolidationengine_f",
       "community": 119,
       "norm_label": "f"
@@ -396,16 +423,16 @@
       "label": ".detectFollowUps()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L98",
+      "source_location": "L152",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_detectfollowups",
-      "community": 87,
+      "community": 125,
       "norm_label": ".detectfollowups()"
     },
     {
       "label": "EdgesOut",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L143",
+      "source_location": "L197",
       "id": "memory_memoryconsolidationengine_edgesout",
       "community": 119,
       "norm_label": "edgesout"
@@ -414,16 +441,16 @@
       "label": ".associate()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L145",
+      "source_location": "L199",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_associate",
-      "community": 87,
+      "community": 125,
       "norm_label": ".associate()"
     },
     {
       "label": "InsightsOut",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L187",
+      "source_location": "L241",
       "id": "memory_memoryconsolidationengine_insightsout",
       "community": 119,
       "norm_label": "insightsout"
@@ -432,7 +459,7 @@
       "label": "I",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L187",
+      "source_location": "L241",
       "id": "memory_memoryconsolidationengine_i",
       "community": 119,
       "norm_label": "i"
@@ -441,16 +468,16 @@
       "label": ".reflect()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L189",
+      "source_location": "L243",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_reflect",
-      "community": 87,
+      "community": 125,
       "norm_label": ".reflect()"
     },
     {
       "label": "KindMapOut",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L236",
+      "source_location": "L290",
       "id": "memory_memoryconsolidationengine_kindmapout",
       "community": 119,
       "norm_label": "kindmapout"
@@ -459,36 +486,36 @@
       "label": ".curateKinds()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L238",
+      "source_location": "L292",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_curatekinds",
-      "community": 87,
+      "community": 125,
       "norm_label": ".curatekinds()"
     },
     {
       "label": ".forget()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L256",
+      "source_location": "L310",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_forget",
-      "community": 87,
+      "community": 125,
       "norm_label": ".forget()"
     },
     {
       "label": ".runCycle()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L262",
+      "source_location": "L316",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_runcycle",
-      "community": 87,
+      "community": 125,
       "norm_label": ".runcycle()"
     },
     {
       "label": ".runLight()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L318",
+      "source_location": "L379",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_runlight",
-      "community": 87,
+      "community": 125,
       "norm_label": ".runlight()"
     },
     {
@@ -605,7 +632,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L1",
       "id": "gemma_gemma_memory_transcriptstore_swift",
-      "community": 141,
+      "community": 135,
       "norm_label": "transcriptstore.swift"
     },
     {
@@ -641,7 +668,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L19",
       "id": "memory_transcriptstore_transcriptstore",
-      "community": 141,
+      "community": 135,
       "norm_label": "transcriptstore"
     },
     {
@@ -650,7 +677,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L21",
       "id": "memory_transcriptstore_transcriptstore_init",
-      "community": 141,
+      "community": 135,
       "norm_label": ".init()"
     },
     {
@@ -659,7 +686,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L23",
       "id": "memory_transcriptstore_transcriptstore_append",
-      "community": 141,
+      "community": 135,
       "norm_label": ".append()"
     },
     {
@@ -668,7 +695,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L32",
       "id": "memory_transcriptstore_transcriptstore_recent",
-      "community": 141,
+      "community": 135,
       "norm_label": ".recent()"
     },
     {
@@ -677,25 +704,34 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L54",
       "id": "memory_transcriptstore_transcriptstore_range",
-      "community": 141,
+      "community": 135,
       "norm_label": ".range()"
+    },
+    {
+      "label": ".rows()",
+      "file_type": "code",
+      "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
+      "source_location": "L65",
+      "id": "memory_transcriptstore_transcriptstore_rows",
+      "community": 135,
+      "norm_label": ".rows()"
     },
     {
       "label": ".unconsolidated()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
-      "source_location": "L65",
+      "source_location": "L75",
       "id": "memory_transcriptstore_transcriptstore_unconsolidated",
-      "community": 141,
+      "community": 135,
       "norm_label": ".unconsolidated()"
     },
     {
       "label": ".markConsolidated()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
-      "source_location": "L75",
+      "source_location": "L85",
       "id": "memory_transcriptstore_transcriptstore_markconsolidated",
-      "community": 141,
+      "community": 135,
       "norm_label": ".markconsolidated()"
     },
     {
@@ -733,6 +769,15 @@
       "id": "memory_memorystore_sleepphase_nrem",
       "community": 143,
       "norm_label": "nrem"
+    },
+    {
+      "label": "summarize",
+      "file_type": "code",
+      "source_file": "Gemma/Gemma/Memory/MemoryStore.swift",
+      "source_location": "L4",
+      "id": "memory_memorystore_sleepphase_summarize",
+      "community": 143,
+      "norm_label": "summarize"
     },
     {
       "label": "detect",
@@ -1082,7 +1127,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryModels.swift",
       "source_location": "L4",
       "id": "memory_memorymodels_nodekind_task",
-      "community": 127,
+      "community": 10,
       "norm_label": "task"
     },
     {
@@ -1093,6 +1138,15 @@
       "id": "memory_memorymodels_nodekind_plan",
       "community": 92,
       "norm_label": "plan"
+    },
+    {
+      "label": "summary",
+      "file_type": "code",
+      "source_file": "Gemma/Gemma/Memory/MemoryModels.swift",
+      "source_location": "L4",
+      "id": "memory_memorymodels_nodekind_summary",
+      "community": 92,
+      "norm_label": "summary"
     },
     {
       "label": "insight",
@@ -1424,7 +1478,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L1",
       "id": "gemma_gemma_memory_embedder_swift",
-      "community": 87,
+      "community": 144,
       "norm_label": "embedder.swift"
     },
     {
@@ -1433,7 +1487,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L7",
       "id": "memory_embedder_embedder",
-      "community": 87,
+      "community": 144,
       "norm_label": "embedder"
     },
     {
@@ -1442,7 +1496,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L12",
       "id": "memory_embedder_memoryerror",
-      "community": 87,
+      "community": 144,
       "norm_label": "memoryerror"
     },
     {
@@ -1451,7 +1505,7 @@
       "source_file": "",
       "source_location": "",
       "id": "error",
-      "community": 87,
+      "community": 115,
       "norm_label": "error"
     },
     {
@@ -1460,7 +1514,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L12",
       "id": "memory_embedder_memoryerror_embedderunavailable",
-      "community": 87,
+      "community": 144,
       "norm_label": "embedderunavailable"
     },
     {
@@ -1469,7 +1523,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L17",
       "id": "memory_embedder_nlcontextualembedder",
-      "community": 87,
+      "community": 144,
       "norm_label": "nlcontextualembedder"
     },
     {
@@ -1478,7 +1532,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L21",
       "id": "memory_embedder_nlcontextualembedder_init",
-      "community": 87,
+      "community": 144,
       "norm_label": ".init()"
     },
     {
@@ -1487,7 +1541,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L28",
       "id": "memory_embedder_nlcontextualembedder_embed",
-      "community": 87,
+      "community": 144,
       "norm_label": ".embed()"
     },
     {
@@ -1523,7 +1577,7 @@
       "source_file": "Gemma/Gemma/Memory/NodeAttributes.swift",
       "source_location": "L1",
       "id": "gemma_gemma_memory_nodeattributes_swift",
-      "community": 87,
+      "community": 124,
       "norm_label": "nodeattributes.swift"
     },
     {
@@ -1532,7 +1586,7 @@
       "source_file": "Gemma/Gemma/Memory/NodeAttributes.swift",
       "source_location": "L7",
       "id": "memory_nodeattributes_nodeattributes",
-      "community": 87,
+      "community": 124,
       "norm_label": "nodeattributes"
     },
     {
@@ -1541,7 +1595,7 @@
       "source_file": "Gemma/Gemma/Memory/NodeAttributes.swift",
       "source_location": "L11",
       "id": "memory_nodeattributes_nodeattributes_tojson",
-      "community": 87,
+      "community": 124,
       "norm_label": ".tojson()"
     },
     {
@@ -1550,7 +1604,7 @@
       "source_file": "Gemma/Gemma/Memory/NodeAttributes.swift",
       "source_location": "L15",
       "id": "memory_nodeattributes_nodeattributes_from",
-      "community": 87,
+      "community": 124,
       "norm_label": ".from()"
     },
     {
@@ -1856,7 +1910,7 @@
       "source_file": "Gemma/Gemma/Memory/SaveMemoryTool.swift",
       "source_location": "L21",
       "id": "memory_savememorytool_savememorytool_run",
-      "community": 130,
+      "community": 92,
       "norm_label": ".run()"
     },
     {
@@ -1926,7 +1980,7 @@
       "label": ".injectionBlock()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryRetriever.swift",
-      "source_location": "L64",
+      "source_location": "L65",
       "id": "memory_memoryretriever_memoryretriever_injectionblock",
       "community": 51,
       "norm_label": ".injectionblock()"
@@ -1964,7 +2018,7 @@
       "source_file": "Gemma/Gemma/Memory/ReflectTool.swift",
       "source_location": "L1",
       "id": "gemma_gemma_memory_reflecttool_swift",
-      "community": 117,
+      "community": 107,
       "norm_label": "reflecttool.swift"
     },
     {
@@ -1973,7 +2027,7 @@
       "source_file": "Gemma/Gemma/Memory/ReflectTool.swift",
       "source_location": "L5",
       "id": "memory_reflecttool_reflecttool",
-      "community": 117,
+      "community": 107,
       "norm_label": "reflecttool"
     },
     {
@@ -1982,7 +2036,7 @@
       "source_file": "Gemma/Gemma/Memory/ReflectTool.swift",
       "source_location": "L9",
       "id": "memory_reflecttool_reflecttool_run",
-      "community": 117,
+      "community": 107,
       "norm_label": ".run()"
     },
     {
@@ -2207,7 +2261,7 @@
       "source_file": "Gemma/Gemma/Runtime/RuntimeFactory.swift",
       "source_location": "L1",
       "id": "gemma_gemma_runtime_runtimefactory_swift",
-      "community": 10,
+      "community": 0,
       "norm_label": "runtimefactory.swift"
     },
     {
@@ -2243,7 +2297,7 @@
       "source_file": "Gemma/Gemma/Runtime/RuntimeFactory.swift",
       "source_location": "L15",
       "id": "runtime_runtimefactory_runtimefactory",
-      "community": 10,
+      "community": 0,
       "norm_label": "runtimefactory"
     },
     {
@@ -2252,7 +2306,7 @@
       "source_file": "Gemma/Gemma/Runtime/RuntimeFactory.swift",
       "source_location": "L17",
       "id": "runtime_runtimefactory_runtimefactory_make",
-      "community": 10,
+      "community": 0,
       "norm_label": ".make()"
     },
     {
@@ -2324,7 +2378,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerRuntime.swift",
       "source_location": "L34",
       "id": "runtime_serverruntime_serverruntime_generate",
-      "community": 127,
+      "community": 10,
       "norm_label": ".generate()"
     },
     {
@@ -2333,7 +2387,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L1",
       "id": "gemma_gemma_runtime_modelruntime_swift",
-      "community": 128,
+      "community": 142,
       "norm_label": "modelruntime.swift"
     },
     {
@@ -2414,7 +2468,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L42",
       "id": "runtime_modelruntime_computebackend",
-      "community": 128,
+      "community": 98,
       "norm_label": "computebackend"
     },
     {
@@ -2423,7 +2477,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L43",
       "id": "runtime_modelruntime_computebackend_cpu",
-      "community": 128,
+      "community": 98,
       "norm_label": "cpu"
     },
     {
@@ -2432,7 +2486,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L44",
       "id": "runtime_modelruntime_computebackend_gpu",
-      "community": 128,
+      "community": 98,
       "norm_label": "gpu"
     },
     {
@@ -2477,7 +2531,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L121",
       "id": "runtime_modelruntime_generationresult",
-      "community": 140,
+      "community": 56,
       "norm_label": "generationresult"
     },
     {
@@ -2486,7 +2540,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L125",
       "id": "runtime_modelruntime_generationresult_init",
-      "community": 140,
+      "community": 56,
       "norm_label": ".init()"
     },
     {
@@ -2495,7 +2549,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L131",
       "id": "runtime_modelruntime_runtimeerror",
-      "community": 128,
+      "community": 142,
       "norm_label": "runtimeerror"
     },
     {
@@ -2504,7 +2558,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L132",
       "id": "runtime_modelruntime_runtimeerror_modelnotfound",
-      "community": 128,
+      "community": 142,
       "norm_label": "modelnotfound"
     },
     {
@@ -2513,7 +2567,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L133",
       "id": "runtime_modelruntime_runtimeerror_loadfailed",
-      "community": 128,
+      "community": 142,
       "norm_label": "loadfailed"
     },
     {
@@ -2522,7 +2576,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L134",
       "id": "runtime_modelruntime_runtimeerror_notloaded",
-      "community": 128,
+      "community": 142,
       "norm_label": "notloaded"
     },
     {
@@ -2531,7 +2585,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L135",
       "id": "runtime_modelruntime_runtimeerror_generationfailed",
-      "community": 128,
+      "community": 142,
       "norm_label": "generationfailed"
     },
     {
@@ -2540,7 +2594,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L140",
       "id": "runtime_modelruntime_generationevent",
-      "community": 115,
+      "community": 142,
       "norm_label": "generationevent"
     },
     {
@@ -2549,7 +2603,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L142",
       "id": "runtime_modelruntime_generationevent_token",
-      "community": 115,
+      "community": 142,
       "norm_label": "token"
     },
     {
@@ -2558,7 +2612,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L144",
       "id": "runtime_modelruntime_generationevent_toolcallstarted",
-      "community": 115,
+      "community": 142,
       "norm_label": "toolcallstarted"
     },
     {
@@ -2567,7 +2621,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L146",
       "id": "runtime_modelruntime_generationevent_toolcallfinished",
-      "community": 115,
+      "community": 142,
       "norm_label": "toolcallfinished"
     },
     {
@@ -2576,7 +2630,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L148",
       "id": "runtime_modelruntime_generationevent_completed",
-      "community": 115,
+      "community": 142,
       "norm_label": "completed"
     },
     {
@@ -2585,7 +2639,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L153",
       "id": "runtime_modelruntime_modelruntime",
-      "community": 10,
+      "community": 0,
       "norm_label": "modelruntime"
     },
     {
@@ -2594,7 +2648,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L1",
       "id": "gemma_gemma_runtime_servermanager_swift",
-      "community": 115,
+      "community": 137,
       "norm_label": "servermanager.swift"
     },
     {
@@ -2603,7 +2657,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L6",
       "id": "runtime_servermanager_serverstate",
-      "community": 115,
+      "community": 137,
       "norm_label": "serverstate"
     },
     {
@@ -2612,7 +2666,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L7",
       "id": "runtime_servermanager_serverstate_idle",
-      "community": 115,
+      "community": 137,
       "norm_label": "idle"
     },
     {
@@ -2621,7 +2675,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L8",
       "id": "runtime_servermanager_serverstate_starting",
-      "community": 115,
+      "community": 137,
       "norm_label": "starting"
     },
     {
@@ -2630,7 +2684,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L9",
       "id": "runtime_servermanager_serverstate_loadingmodel",
-      "community": 115,
+      "community": 137,
       "norm_label": "loadingmodel"
     },
     {
@@ -2639,7 +2693,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L10",
       "id": "runtime_servermanager_serverstate_ready",
-      "community": 115,
+      "community": 137,
       "norm_label": "ready"
     },
     {
@@ -2648,7 +2702,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L11",
       "id": "runtime_servermanager_serverstate_stopped",
-      "community": 115,
+      "community": 137,
       "norm_label": "stopped"
     },
     {
@@ -2657,7 +2711,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L12",
       "id": "runtime_servermanager_serverstate_failed",
-      "community": 115,
+      "community": 137,
       "norm_label": "failed"
     },
     {
@@ -2675,7 +2729,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L48",
       "id": "runtime_servermanager_serverprocesshandle",
-      "community": 115,
+      "community": 137,
       "norm_label": "serverprocesshandle"
     },
     {
@@ -2684,7 +2738,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L55",
       "id": "runtime_servermanager_serverprocesslauncher",
-      "community": 115,
+      "community": 137,
       "norm_label": "serverprocesslauncher"
     },
     {
@@ -2693,7 +2747,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L60",
       "id": "runtime_servermanager_serverhealth",
-      "community": 115,
+      "community": 137,
       "norm_label": "serverhealth"
     },
     {
@@ -2963,7 +3017,7 @@
       "source_file": "Gemma/Gemma/Runtime/DummyRuntime.swift",
       "source_location": "L9",
       "id": "runtime_dummyruntime_dummyruntime_generate",
-      "community": 0,
+      "community": 56,
       "norm_label": ".generate()"
     },
     {
@@ -3026,7 +3080,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerProcess.swift",
       "source_location": "L45",
       "id": "runtime_serverprocess_realserverprocesshandle",
-      "community": 115,
+      "community": 137,
       "norm_label": "realserverprocesshandle"
     },
     {
@@ -3035,7 +3089,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerProcess.swift",
       "source_location": "L55",
       "id": "runtime_serverprocess_realserverprocesshandle_init",
-      "community": 115,
+      "community": 137,
       "norm_label": ".init()"
     },
     {
@@ -3044,7 +3098,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerProcess.swift",
       "source_location": "L68",
       "id": "runtime_serverprocess_realserverprocesshandle_terminate",
-      "community": 115,
+      "community": 137,
       "norm_label": ".terminate()"
     },
     {
@@ -3080,7 +3134,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L3",
       "id": "agent_agent_agentevent",
-      "community": 132,
+      "community": 142,
       "norm_label": "agentevent"
     },
     {
@@ -3089,7 +3143,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L4",
       "id": "agent_agent_agentevent_token",
-      "community": 132,
+      "community": 142,
       "norm_label": "token"
     },
     {
@@ -3098,7 +3152,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L5",
       "id": "agent_agent_agentevent_toolcallstarted",
-      "community": 132,
+      "community": 142,
       "norm_label": "toolcallstarted"
     },
     {
@@ -3107,7 +3161,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L6",
       "id": "agent_agent_agentevent_toolcallfinished",
-      "community": 132,
+      "community": 142,
       "norm_label": "toolcallfinished"
     },
     {
@@ -3116,7 +3170,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L7",
       "id": "agent_agent_agentevent_completed",
-      "community": 132,
+      "community": 142,
       "norm_label": "completed"
     },
     {
@@ -3125,7 +3179,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L8",
       "id": "agent_agent_agentevent_failed",
-      "community": 132,
+      "community": 142,
       "norm_label": "failed"
     },
     {
@@ -3179,7 +3233,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L1",
       "id": "gemma_gemma_agent_toolregistry_swift",
-      "community": 105,
+      "community": 132,
       "norm_label": "toolregistry.swift"
     },
     {
@@ -3188,7 +3242,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L5",
       "id": "agent_toolregistry_toolregistry",
-      "community": 105,
+      "community": 132,
       "norm_label": "toolregistry"
     },
     {
@@ -3197,7 +3251,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L8",
       "id": "agent_toolregistry_toolregistry_init",
-      "community": 105,
+      "community": 132,
       "norm_label": ".init()"
     },
     {
@@ -3206,7 +3260,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L12",
       "id": "agent_toolregistry_toolregistry_deinit",
-      "community": 105,
+      "community": 132,
       "norm_label": ".deinit()"
     },
     {
@@ -3215,7 +3269,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L13",
       "id": "agent_toolregistry_toolregistry_register",
-      "community": 105,
+      "community": 132,
       "norm_label": ".register()"
     },
     {
@@ -3224,7 +3278,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L14",
       "id": "agent_toolregistry_toolregistry_tool",
-      "community": 105,
+      "community": 132,
       "norm_label": ".tool()"
     },
     {
@@ -3233,7 +3287,7 @@
       "source_file": "Gemma/Gemma/Agent/ToolRegistry.swift",
       "source_location": "L16",
       "id": "agent_toolregistry_toolregistry_withdefaults",
-      "community": 105,
+      "community": 132,
       "norm_label": ".withdefaults()"
     },
     {
@@ -3260,7 +3314,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L5",
       "id": "agent_agenttool_paramtype",
-      "community": 84,
+      "community": 128,
       "norm_label": "paramtype"
     },
     {
@@ -3269,7 +3323,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L5",
       "id": "agent_agenttool_paramtype_string",
-      "community": 84,
+      "community": 128,
       "norm_label": "string"
     },
     {
@@ -3278,7 +3332,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L5",
       "id": "agent_agenttool_paramtype_integer",
-      "community": 84,
+      "community": 128,
       "norm_label": "integer"
     },
     {
@@ -3287,7 +3341,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L5",
       "id": "agent_agenttool_paramtype_number",
-      "community": 84,
+      "community": 128,
       "norm_label": "number"
     },
     {
@@ -3296,7 +3350,7 @@
       "source_file": "Gemma/Gemma/Agent/AgentTool.swift",
       "source_location": "L5",
       "id": "agent_agenttool_paramtype_boolean",
-      "community": 84,
+      "community": 128,
       "norm_label": "boolean"
     },
     {
@@ -3323,7 +3377,7 @@
       "source_file": "Gemma/Gemma/Agent/CurrentTimeTool.swift",
       "source_location": "L1",
       "id": "gemma_gemma_agent_currenttimetool_swift",
-      "community": 107,
+      "community": 105,
       "norm_label": "currenttimetool.swift"
     },
     {
@@ -3332,7 +3386,7 @@
       "source_file": "Gemma/Gemma/Agent/CurrentTimeTool.swift",
       "source_location": "L4",
       "id": "agent_currenttimetool_currenttimetool",
-      "community": 107,
+      "community": 105,
       "norm_label": "currenttimetool"
     },
     {
@@ -3341,7 +3395,7 @@
       "source_file": "Gemma/Gemma/Agent/CurrentTimeTool.swift",
       "source_location": "L9",
       "id": "agent_currenttimetool_currenttimetool_run",
-      "community": 107,
+      "community": 105,
       "norm_label": ".run()"
     },
     {
@@ -3512,7 +3566,7 @@
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L71",
       "id": "harness_harnessmodel_harnessmodel_startserver",
-      "community": 127,
+      "community": 10,
       "norm_label": ".startserver()"
     },
     {
@@ -3557,14 +3611,14 @@
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L95",
       "id": "harness_harnessmodel_harnessmodel_ensurememory",
-      "community": 87,
+      "community": 10,
       "norm_label": ".ensurememory()"
     },
     {
       "label": ".consolidateNow()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
-      "source_location": "L128",
+      "source_location": "L129",
       "id": "harness_harnessmodel_harnessmodel_consolidatenow",
       "community": 10,
       "norm_label": ".consolidatenow()"
@@ -3573,7 +3627,7 @@
       "label": ".runAgentTurn()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
-      "source_location": "L130",
+      "source_location": "L131",
       "id": "harness_harnessmodel_harnessmodel_runagentturn",
       "community": 10,
       "norm_label": ".runagentturn()"
@@ -3854,7 +3908,7 @@
       "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_sleepconsolidatione2etests_swift",
-      "community": 87,
+      "community": 144,
       "norm_label": "sleepconsolidatione2etests.swift"
     },
     {
@@ -3863,7 +3917,7 @@
       "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
       "source_location": "L23",
       "id": "gemmatests_sleepconsolidatione2etests_sleepconsolidatione2etests",
-      "community": 87,
+      "community": 144,
       "norm_label": "sleepconsolidatione2etests"
     },
     {
@@ -3872,7 +3926,7 @@
       "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
       "source_location": "L32",
       "id": "gemmatests_sleepconsolidatione2etests_sleepconsolidatione2etests_observe",
-      "community": 87,
+      "community": 144,
       "norm_label": ".observe()"
     },
     {
@@ -3881,7 +3935,7 @@
       "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
       "source_location": "L46",
       "id": "gemmatests_sleepconsolidatione2etests_sleepconsolidatione2etests_isserverup",
-      "community": 87,
+      "community": 144,
       "norm_label": ".isserverup()"
     },
     {
@@ -3890,7 +3944,7 @@
       "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
       "source_location": "L59",
       "id": "gemmatests_sleepconsolidatione2etests_sleepconsolidatione2etests_test_e2e_full_sleep_cycle",
-      "community": 87,
+      "community": 144,
       "norm_label": ".test_e2e_full_sleep_cycle()"
     },
     {
@@ -3962,7 +4016,7 @@
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L14",
       "id": "gemmatests_memoryconsolidationenginetests_cannedruntime_generate",
-      "community": 140,
+      "community": 56,
       "norm_label": ".generate()"
     },
     {
@@ -4052,7 +4106,7 @@
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L109",
       "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_resumes_from_persisted_phase",
-      "community": 87,
+      "community": 138,
       "norm_label": ".test_runcycle_resumes_from_persisted_phase()"
     },
     {
@@ -4061,14 +4115,14 @@
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L125",
       "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_cancel_persists_phase_for_resume",
-      "community": 87,
+      "community": 135,
       "norm_label": ".test_runcycle_cancel_persists_phase_for_resume()"
     },
     {
       "label": ".test_detect_creates_followup_nodes()",
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
-      "source_location": "L139",
+      "source_location": "L136",
       "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_detect_creates_followup_nodes",
       "community": 87,
       "norm_label": ".test_detect_creates_followup_nodes()"
@@ -4077,7 +4131,7 @@
       "label": ".test_detect_dedups_repeats()",
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
-      "source_location": "L148",
+      "source_location": "L145",
       "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_detect_dedups_repeats",
       "community": 87,
       "norm_label": ".test_detect_dedups_repeats()"
@@ -4086,19 +4140,28 @@
       "label": ".test_detect_links_sources_to_entities()",
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
-      "source_location": "L156",
+      "source_location": "L153",
       "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_detect_links_sources_to_entities",
       "community": 87,
       "norm_label": ".test_detect_links_sources_to_entities()"
     },
     {
-      "label": ".test_runCycle_includes_detect_and_sets_focus()",
+      "label": ".test_runCycle_consumes_transcript_and_marks_consolidated()",
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
-      "source_location": "L169",
-      "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_includes_detect_and_sets_focus",
-      "community": 87,
-      "norm_label": ".test_runcycle_includes_detect_and_sets_focus()"
+      "source_location": "L166",
+      "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_consumes_transcript_and_marks_consolidated",
+      "community": 135,
+      "norm_label": ".test_runcycle_consumes_transcript_and_marks_consolidated()"
+    },
+    {
+      "label": ".test_summarize_writes_structured_summary_node()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L183",
+      "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarize_writes_structured_summary_node",
+      "community": 135,
+      "norm_label": ".test_summarize_writes_structured_summary_node()"
     },
     {
       "label": "ServerRuntimeTests.swift",
@@ -4578,6 +4641,15 @@
       "norm_label": ".test_recent_keeps_user_before_assistant_within_turn_even_on_equal_timestamps()"
     },
     {
+      "label": ".test_rows_byIds_returnsMatching_orderedOldestFirst()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
+      "source_location": "L62",
+      "id": "gemmatests_transcriptstoretests_transcriptstoretests_test_rows_byids_returnsmatching_orderedoldestfirst",
+      "community": 141,
+      "norm_label": ".test_rows_byids_returnsmatching_orderedoldestfirst()"
+    },
+    {
       "label": "ToolCallingRuntimeTests.swift",
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/ToolCallingRuntimeTests.swift",
@@ -4929,6 +5001,33 @@
       "norm_label": ".testrankswithfakeembedder()"
     },
     {
+      "label": "MemoryRetrieverInjectionTests",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L58",
+      "id": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests",
+      "community": 51,
+      "norm_label": "memoryretrieverinjectiontests"
+    },
+    {
+      "label": ".node()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L59",
+      "id": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_node",
+      "community": 51,
+      "norm_label": ".node()"
+    },
+    {
+      "label": ".test_injectionBlock_lists_summaries_before_facts()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L66",
+      "id": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_test_injectionblock_lists_summaries_before_facts",
+      "community": 51,
+      "norm_label": ".test_injectionblock_lists_summaries_before_facts()"
+    },
+    {
       "label": "MemoryToolsTests.swift",
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/MemoryToolsTests.swift",
@@ -5042,7 +5141,7 @@
       "source_file": "Gemma/GemmaTests/MemoryToolsTests.swift",
       "source_location": "L86",
       "id": "gemmatests_memorytoolstests_memorytoolstests_test_forget_soft_deletes",
-      "community": 107,
+      "community": 130,
       "norm_label": ".test_forget_soft_deletes()"
     },
     {
@@ -5051,7 +5150,7 @@
       "source_file": "Gemma/GemmaTests/ReflectToolTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_reflecttooltests_swift",
-      "community": 117,
+      "community": 107,
       "norm_label": "reflecttooltests.swift"
     },
     {
@@ -5060,7 +5159,7 @@
       "source_file": "Gemma/GemmaTests/ReflectToolTests.swift",
       "source_location": "L4",
       "id": "gemmatests_reflecttooltests_reflecttooltests",
-      "community": 117,
+      "community": 107,
       "norm_label": "reflecttooltests"
     },
     {
@@ -5069,7 +5168,7 @@
       "source_file": "Gemma/GemmaTests/ReflectToolTests.swift",
       "source_location": "L6",
       "id": "gemmatests_reflecttooltests_reflecttooltests_teardown",
-      "community": 117,
+      "community": 107,
       "norm_label": ".teardown()"
     },
     {
@@ -5078,7 +5177,7 @@
       "source_file": "Gemma/GemmaTests/ReflectToolTests.swift",
       "source_location": "L7",
       "id": "gemmatests_reflecttooltests_reflecttooltests_test_reflect_tool_requests_light_reflection",
-      "community": 117,
+      "community": 107,
       "norm_label": ".test_reflect_tool_requests_light_reflection()"
     },
     {
@@ -5087,7 +5186,7 @@
       "source_file": "Gemma/GemmaTests/ReflectToolTests.swift",
       "source_location": "L14",
       "id": "gemmatests_reflecttooltests_reflecttooltests_test_reflect_tool_no_handler_is_safe",
-      "community": 117,
+      "community": 107,
       "norm_label": ".test_reflect_tool_no_handler_is_safe()"
     },
     {
@@ -5204,7 +5303,7 @@
       "source_file": "Gemma/GemmaTests/WakeContextTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_wakecontexttests_swift",
-      "community": 135,
+      "community": 70,
       "norm_label": "wakecontexttests.swift"
     },
     {
@@ -5213,7 +5312,7 @@
       "source_file": "Gemma/GemmaTests/WakeContextTests.swift",
       "source_location": "L4",
       "id": "gemmatests_wakecontexttests_wakecontexttests",
-      "community": 135,
+      "community": 70,
       "norm_label": "wakecontexttests"
     },
     {
@@ -5222,7 +5321,7 @@
       "source_file": "Gemma/GemmaTests/WakeContextTests.swift",
       "source_location": "L5",
       "id": "gemmatests_wakecontexttests_wakecontexttests_test_focus_only_when_cycle_pending",
-      "community": 135,
+      "community": 70,
       "norm_label": ".test_focus_only_when_cycle_pending()"
     },
     {
@@ -5231,7 +5330,7 @@
       "source_file": "Gemma/GemmaTests/WakeContextTests.swift",
       "source_location": "L10",
       "id": "gemmatests_wakecontexttests_wakecontexttests_test_followups_only_on_wake",
-      "community": 135,
+      "community": 70,
       "norm_label": ".test_followups_only_on_wake()"
     },
     {
@@ -5240,7 +5339,7 @@
       "source_file": "Gemma/GemmaTests/WakeContextTests.swift",
       "source_location": "L16",
       "id": "gemmatests_wakecontexttests_wakecontexttests_test_empty_when_nothing",
-      "community": 135,
+      "community": 70,
       "norm_label": ".test_empty_when_nothing()"
     },
     {
@@ -5744,7 +5843,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_serverruntimehistorytests_swift",
-      "community": 7,
+      "community": 131,
       "norm_label": "serverruntimehistorytests.swift"
     },
     {
@@ -5753,7 +5852,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L4",
       "id": "gemmatests_serverruntimehistorytests_serverruntimehistorytests",
-      "community": 7,
+      "community": 131,
       "norm_label": "serverruntimehistorytests"
     },
     {
@@ -5807,7 +5906,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L25",
       "id": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_makesession",
-      "community": 7,
+      "community": 131,
       "norm_label": ".makesession()"
     },
     {
@@ -5816,7 +5915,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L31",
       "id": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_test_history_is_sent_between_system_and_user",
-      "community": 7,
+      "community": 131,
       "norm_label": ".test_history_is_sent_between_system_and_user()"
     },
     {
@@ -5825,7 +5924,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_agenttests_swift",
-      "community": 140,
+      "community": 75,
       "norm_label": "agenttests.swift"
     },
     {
@@ -5834,7 +5933,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L4",
       "id": "gemmatests_agenttests_agenttests",
-      "community": 140,
+      "community": 75,
       "norm_label": "agenttests"
     },
     {
@@ -5843,7 +5942,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L7",
       "id": "gemmatests_agenttests_stubruntime",
-      "community": 140,
+      "community": 75,
       "norm_label": "stubruntime"
     },
     {
@@ -5852,7 +5951,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L8",
       "id": "gemmatests_agenttests_stubruntime_generate",
-      "community": 140,
+      "community": 75,
       "norm_label": ".generate()"
     },
     {
@@ -5861,7 +5960,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L20",
       "id": "gemmatests_agenttests_agenttests_test_run_relayseventsasagentevents",
-      "community": 140,
+      "community": 75,
       "norm_label": ".test_run_relayseventsasagentevents()"
     },
     {
@@ -5870,7 +5969,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L40",
       "id": "gemmatests_agenttests_agenttests_test_run_executestoolandfinishes",
-      "community": 140,
+      "community": 75,
       "norm_label": ".test_run_executestoolandfinishes()"
     },
     {
@@ -5879,7 +5978,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L80",
       "id": "gemmatests_agenttests_agenttests_test_run_executestoolevenwhenmodelalsoreturnstext",
-      "community": 140,
+      "community": 75,
       "norm_label": ".test_run_executestoolevenwhenmodelalsoreturnstext()"
     },
     {
@@ -5978,7 +6077,7 @@
       "source_file": "Gemma/GemmaTests/AgentMemoryTests.swift",
       "source_location": "L16",
       "id": "gemmatests_agentmemorytests_capturingruntime_generate",
-      "community": 140,
+      "community": 56,
       "norm_label": ".generate()"
     },
     {
@@ -6284,7 +6383,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_currenttimetooltests_swift",
-      "community": 107,
+      "community": 105,
       "norm_label": "currenttimetooltests.swift"
     },
     {
@@ -6293,7 +6392,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L4",
       "id": "gemmatests_currenttimetooltests_currenttimetooltests",
-      "community": 107,
+      "community": 105,
       "norm_label": "currenttimetooltests"
     },
     {
@@ -6302,7 +6401,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L5",
       "id": "gemmatests_currenttimetooltests_currenttimetooltests_test_metadata",
-      "community": 107,
+      "community": 105,
       "norm_label": ".test_metadata()"
     },
     {
@@ -6311,7 +6410,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L9",
       "id": "gemmatests_currenttimetooltests_currenttimetooltests_test_run_returnsnonemptytimestring",
-      "community": 107,
+      "community": 105,
       "norm_label": ".test_run_returnsnonemptytimestring()"
     },
     {
@@ -6320,7 +6419,7 @@
       "source_file": "Gemma/GemmaTests/NodeKindStringTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_nodekindstringtests_swift",
-      "community": 70,
+      "community": 145,
       "norm_label": "nodekindstringtests.swift"
     },
     {
@@ -6329,7 +6428,7 @@
       "source_file": "Gemma/GemmaTests/NodeKindStringTests.swift",
       "source_location": "L4",
       "id": "gemmatests_nodekindstringtests_nodekindstringtests",
-      "community": 70,
+      "community": 145,
       "norm_label": "nodekindstringtests"
     },
     {
@@ -6338,7 +6437,7 @@
       "source_file": "Gemma/GemmaTests/NodeKindStringTests.swift",
       "source_location": "L5",
       "id": "gemmatests_nodekindstringtests_nodekindstringtests_test_node_stores_arbitrary_kind_string_verbatim",
-      "community": 70,
+      "community": 145,
       "norm_label": ".test_node_stores_arbitrary_kind_string_verbatim()"
     },
     {
@@ -6347,7 +6446,7 @@
       "source_file": "Gemma/GemmaTests/NodeKindStringTests.swift",
       "source_location": "L15",
       "id": "gemmatests_nodekindstringtests_nodekindstringtests_test_nodekind_constants_available",
-      "community": 70,
+      "community": 145,
       "norm_label": ".test_nodekind_constants_available()"
     },
     {
@@ -6446,7 +6545,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L54",
       "id": "gemmatests_servermanagertests_testerror",
-      "community": 87,
+      "community": 115,
       "norm_label": "testerror"
     },
     {
@@ -6455,7 +6554,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L54",
       "id": "gemmatests_servermanagertests_testerror_boom",
-      "community": 87,
+      "community": 115,
       "norm_label": "boom"
     },
     {
@@ -6608,7 +6707,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_agenttooltests_swift",
-      "community": 125,
+      "community": 107,
       "norm_label": "agenttooltests.swift"
     },
     {
@@ -6617,7 +6716,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L4",
       "id": "gemmatests_agenttooltests_agenttooltests",
-      "community": 125,
+      "community": 107,
       "norm_label": "agenttooltests"
     },
     {
@@ -6626,7 +6725,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L5",
       "id": "gemmatests_agenttooltests_echotool",
-      "community": 125,
+      "community": 107,
       "norm_label": "echotool"
     },
     {
@@ -6635,7 +6734,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L11",
       "id": "gemmatests_agenttooltests_echotool_run",
-      "community": 125,
+      "community": 107,
       "norm_label": ".run()"
     },
     {
@@ -6644,7 +6743,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L17",
       "id": "gemmatests_agenttooltests_agenttooltests_testjsonschema",
-      "community": 125,
+      "community": 107,
       "norm_label": ".testjsonschema()"
     },
     {
@@ -6653,7 +6752,7 @@
       "source_file": "Gemma/GemmaTests/AgentToolTests.swift",
       "source_location": "L25",
       "id": "gemmatests_agenttooltests_agenttooltests_testrunparsesargs",
-      "community": 125,
+      "community": 107,
       "norm_label": ".testrunparsesargs()"
     },
     {
@@ -11598,6 +11697,285 @@
       "norm_label": "references"
     },
     {
+      "label": "2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L1",
+      "id": "docs_superpowers_plans_2026_06_01_m2d_2_semantic_summaries_consolidation_md",
+      "community": 117,
+      "norm_label": "2026-06-01-m2d-2-semantic-summaries-consolidation.md"
+    },
+    {
+      "label": "M2d-2 \u2014 Semantic summaries + consolidation from transcript \u2014 Implementation Plan",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L1",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_m2d_2_semantic_summaries_consolidation_from_transcript_implementation_plan",
+      "community": 117,
+      "norm_label": "m2d-2 \u2014 semantic summaries + consolidation from transcript \u2014 implementation plan"
+    },
+    {
+      "label": "code:bash (xcodebuild test -scheme Gemma -project Gemma/Gemma.xcodeproj)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L21",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_1",
+      "community": 117,
+      "norm_label": "code:bash (xcodebuild test -scheme gemma -project gemma/gemma.xcodeproj)"
+    },
+    {
+      "label": "Task 1: `NodeKind.summary` + `TranscriptStore.rows(ids:)`",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L28",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_1_nodekind_summary_transcriptstore_rows_ids",
+      "community": 117,
+      "norm_label": "task 1: `nodekind.summary` + `transcriptstore.rows(ids:)`"
+    },
+    {
+      "label": "code:swift (func test_rows_byIds_returnsMatching_orderedOldestFirst() th)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L37",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_2",
+      "community": 117,
+      "norm_label": "code:swift (func test_rows_byids_returnsmatching_orderedoldestfirst() th)"
+    },
+    {
+      "label": "code:swift (enum NodeKind: String, Codable, CaseIterable { case person, )",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L57",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_3",
+      "community": 117,
+      "norm_label": "code:swift (enum nodekind: string, codable, caseiterable { case person, )"
+    },
+    {
+      "label": "code:swift (/// Fetch specific rows by id, oldest-first. Used by consoli)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L63",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_4",
+      "community": 117,
+      "norm_label": "code:swift (/// fetch specific rows by id, oldest-first. used by consoli)"
+    },
+    {
+      "label": "code:bash (git add Gemma/Gemma/Memory/MemoryModels.swift Gemma/Gemma/Me)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L82",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_5",
+      "community": 117,
+      "norm_label": "code:bash (git add gemma/gemma/memory/memorymodels.swift gemma/gemma/me)"
+    },
+    {
+      "label": "Task 2: Source consolidation from the transcript",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L91",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_2_source_consolidation_from_the_transcript",
+      "community": 117,
+      "norm_label": "task 2: source consolidation from the transcript"
+    },
+    {
+      "label": "code:swift (func test_runCycle_consumes_transcript_and_marks_consolidate)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L100",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_6",
+      "community": 117,
+      "norm_label": "code:swift (func test_runcycle_consumes_transcript_and_marks_consolidate)"
+    },
+    {
+      "label": "code:swift (final class ScriptedRuntime: ModelRuntime, @unchecked Sendab)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L124",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_7",
+      "community": 117,
+      "norm_label": "code:swift (final class scriptedruntime: modelruntime, @unchecked sendab)"
+    },
+    {
+      "label": "code:swift (private let transcriptStore: TranscriptStore)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L152",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_8",
+      "community": 117,
+      "norm_label": "code:swift (private let transcriptstore: transcriptstore)"
+    },
+    {
+      "label": "code:swift (/// Formatted \"Role: text\" lines for the given transcript id)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L158",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_9",
+      "community": 117,
+      "norm_label": "code:swift (/// formatted \"role: text\" lines for the given transcript id)"
+    },
+    {
+      "label": "code:swift (let pending = ((try? transcriptStore.unconsolidated(limit: 2)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L168",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_10",
+      "community": 117,
+      "norm_label": "code:swift (let pending = ((try? transcriptstore.unconsolidated(limit: 2)"
+    },
+    {
+      "label": "code:swift (let engine = MemoryConsolidationEngine(store: store, embedde)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L185",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_11",
+      "community": 117,
+      "norm_label": "code:swift (let engine = memoryconsolidationengine(store: store, embedde)"
+    },
+    {
+      "label": "code:swift (let engine = MemoryConsolidationEngine(store: store, embedde)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L189",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_12",
+      "community": 117,
+      "norm_label": "code:swift (let engine = memoryconsolidationengine(store: store, embedde)"
+    },
+    {
+      "label": "Task 3: `summarize` phase \u2192 structured `summary` node",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L203",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_3_summarize_phase_structured_summary_node",
+      "community": 117,
+      "norm_label": "task 3: `summarize` phase \u2192 structured `summary` node"
+    },
+    {
+      "label": "code:swift (func test_summarize_writes_structured_summary_node() async t)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L212",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_13",
+      "community": 117,
+      "norm_label": "code:swift (func test_summarize_writes_structured_summary_node() async t)"
+    },
+    {
+      "label": "code:swift (enum SleepPhase: String, Codable, CaseIterable { case nrem, )",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L238",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_14",
+      "community": 117,
+      "norm_label": "code:swift (enum sleepphase: string, codable, caseiterable { case nrem, )"
+    },
+    {
+      "label": "code:swift (private struct SummaryOut: Decodable {)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L245",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_15",
+      "community": 117,
+      "norm_label": "code:swift (private struct summaryout: decodable {)"
+    },
+    {
+      "label": "code:swift (let order: [SleepPhase] = [.nrem, .summarize, .detect, .rem,)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L294",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_16",
+      "community": 117,
+      "norm_label": "code:swift (let order: [sleepphase] = [.nrem, .summarize, .detect, .rem,)"
+    },
+    {
+      "label": "code:swift (case .summarize:)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L298",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_17",
+      "community": 117,
+      "norm_label": "code:swift (case .summarize:)"
+    },
+    {
+      "label": "code:bash (git add Gemma/Gemma/Memory/MemoryConsolidationEngine.swift G)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L315",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_18",
+      "community": 117,
+      "norm_label": "code:bash (git add gemma/gemma/memory/memoryconsolidationengine.swift g)"
+    },
+    {
+      "label": "Task 4: Retriever \u2014 surface summaries first in the injection block",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L324",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_4_retriever_surface_summaries_first_in_the_injection_block",
+      "community": 117,
+      "norm_label": "task 4: retriever \u2014 surface summaries first in the injection block"
+    },
+    {
+      "label": "code:swift (import XCTest)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L334",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_19",
+      "community": 117,
+      "norm_label": "code:swift (import xctest)"
+    },
+    {
+      "label": "code:swift (/// Render retrieved nodes as a compact injection block (emp)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L366",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_20",
+      "community": 117,
+      "norm_label": "code:swift (/// render retrieved nodes as a compact injection block (emp)"
+    },
+    {
+      "label": "code:bash (git add Gemma/Gemma/Memory/MemoryRetriever.swift Gemma/Gemma)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L385",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_21",
+      "community": 117,
+      "norm_label": "code:bash (git add gemma/gemma/memory/memoryretriever.swift gemma/gemma)"
+    },
+    {
+      "label": "Task 5: Final verification + real-26B E2E + graphify",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L394",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_5_final_verification_real_26b_e2e_graphify",
+      "community": 117,
+      "norm_label": "task 5: final verification + real-26b e2e + graphify"
+    },
+    {
+      "label": "code:bash (lsof -ti tcp:8080 | xargs -r kill)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L409",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_22",
+      "community": 117,
+      "norm_label": "code:bash (lsof -ti tcp:8080 | xargs -r kill)"
+    },
+    {
+      "label": "code:bash (git add Gemma/GemmaTests/SleepConsolidationE2ETests.swift gr)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L422",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_23",
+      "community": 117,
+      "norm_label": "code:bash (git add gemma/gemmatests/sleepconsolidatione2etests.swift gr)"
+    },
+    {
+      "label": "Self-Review",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L431",
+      "id": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_self_review",
+      "community": 117,
+      "norm_label": "self-review"
+    },
+    {
       "label": "2026-05-28-s1-model-infra.md",
       "file_type": "document",
       "source_file": "docs/superpowers/plans/2026-05-28-s1-model-infra.md",
@@ -15828,6 +16206,15 @@
       "norm_label": "13. proximos specs que dependen del resultado de s1"
     },
     {
+      "label": ".test_runCycle_includes_detect_and_sets_focus()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L169",
+      "community": 87,
+      "norm_label": ".test_runcycle_includes_detect_and_sets_focus()",
+      "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_includes_detect_and_sets_focus"
+    },
+    {
       "label": ".test_default_config_targets_mlx_vlm_server_with_mtp_draft()",
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/ServerProcessTests.swift",
@@ -15868,7 +16255,7 @@
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/MemoryToolsTests.swift",
       "source_location": "L23",
-      "community": 107,
+      "community": 130,
       "norm_label": ".testforgetsoftdeletes()",
       "id": "gemmatests_memorytoolstests_memorytoolstests_testforgetsoftdeletes"
     },
@@ -15940,7 +16327,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L75",
-      "community": 140,
+      "community": 10,
       "norm_label": ".generate()",
       "id": "harness_harnessmodel_dummyruntime2_generate"
     },
@@ -16012,7 +16399,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/DummyRuntime.swift",
       "source_location": "L95",
-      "community": 0,
+      "community": 56,
       "norm_label": ".setlastmetrics()",
       "id": "runtime_dummyruntime_dummyruntime_setlastmetrics"
     },
@@ -16021,7 +16408,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Agent/CurrentTimeTool.swift",
       "source_location": "L11",
-      "community": 107,
+      "community": 105,
       "norm_label": ".init()",
       "id": "agent_currenttimetool_currenttimetool_init"
     },
@@ -17745,9 +18132,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_transcriptstore_transcriptrow",
-      "target": "codable",
-      "confidence_score": 1.0
+      "target": "codable"
     },
     {
       "relation": "inherits",
@@ -17765,9 +18152,9 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "runtime_modelruntime_role",
-      "target": "codable",
-      "confidence_score": 1.0
+      "target": "codable"
     },
     {
       "relation": "inherits",
@@ -17835,9 +18222,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_transcriptstore_transcriptrow",
-      "target": "equatable",
-      "confidence_score": 1.0
+      "target": "equatable"
     },
     {
       "relation": "inherits",
@@ -17845,9 +18232,9 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "runtime_modelruntime_chatmessage",
-      "target": "equatable",
-      "confidence_score": 1.0
+      "target": "equatable"
     },
     {
       "relation": "inherits",
@@ -17975,9 +18362,9 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "runtime_modelruntime_chatmessage",
-      "target": "sendable",
-      "confidence_score": 1.0
+      "target": "sendable"
     },
     {
       "relation": "inherits",
@@ -18045,9 +18432,9 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "runtime_modelruntime_role",
-      "target": "sendable",
-      "confidence_score": 1.0
+      "target": "sendable"
     },
     {
       "relation": "inherits",
@@ -18392,6 +18779,16 @@
       "target": "memory_memoryconsolidationengine_memoryconsolidationengine"
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L105",
+      "weight": 1.0,
+      "source": "gemma_gemma_memory_memoryconsolidationengine_swift",
+      "target": "memory_memoryconsolidationengine_summaryout",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "INFERRED",
@@ -18518,6 +18915,17 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L177",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_consumes_transcript_and_marks_consolidated",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L161",
       "weight": 1.0,
       "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_includes_detect_and_sets_focus",
@@ -18532,6 +18940,17 @@
       "source_location": "L102",
       "weight": 1.0,
       "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_resumes_from_persisted_phase",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L189",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarize_writes_structured_summary_node",
       "target": "memory_memoryconsolidationengine_memoryconsolidationengine"
     },
     {
@@ -18605,6 +19024,16 @@
       "confidence_score": 1.0,
       "source": "memory_memoryconsolidationengine_memoryconsolidationengine",
       "target": "memory_memoryconsolidationengine_memoryconsolidationengine_detectfollowups"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L98",
+      "weight": 1.0,
+      "source": "memory_memoryconsolidationengine_memoryconsolidationengine",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine_episodetexts",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -18687,6 +19116,27 @@
       "target": "memory_memoryconsolidationengine_memoryconsolidationengine_runlight"
     },
     {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "memory_memoryconsolidationengine_memoryconsolidationengine",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine_summarize",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "memory_memoryconsolidationengine_memoryconsolidationengine_init",
+      "target": "memory_transcriptstore_transcriptstore"
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -18757,6 +19207,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L125",
+      "weight": 1.0,
+      "source": "memory_memoryconsolidationengine_memoryconsolidationengine_summarize",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine_generate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L39",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -18817,6 +19278,17 @@
       "confidence_score": 1.0,
       "source": "memory_memoryconsolidationengine_memoryconsolidationengine_reflect",
       "target": "memory_memoryconsolidationengine_memoryconsolidationengine_parse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L125",
+      "weight": 1.0,
+      "source": "memory_memoryconsolidationengine_memoryconsolidationengine_summarize",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine_parse",
+      "confidence_score": 1.0
     },
     {
       "relation": "inherits",
@@ -18909,6 +19381,16 @@
       "target": "decodable"
     },
     {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L105",
+      "weight": 1.0,
+      "source": "memory_memoryconsolidationengine_summaryout",
+      "target": "decodable",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "INFERRED",
@@ -18929,6 +19411,28 @@
       "confidence_score": 1.0,
       "source": "memory_memoryconsolidationengine_memoryconsolidationengine_runcycle",
       "target": "memory_memoryconsolidationengine_memoryconsolidationengine_consolidate"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L325",
+      "weight": 1.0,
+      "source": "memory_memoryconsolidationengine_memoryconsolidationengine_runcycle",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine_episodetexts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L357",
+      "weight": 1.0,
+      "source": "memory_memoryconsolidationengine_memoryconsolidationengine_runcycle",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine_summarize",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -19365,9 +19869,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemma_memory_transcriptstore_swift",
-      "target": "memory_transcriptstore_transcriptrow",
-      "confidence_score": 1.0
+      "target": "memory_transcriptstore_transcriptrow"
     },
     {
       "relation": "contains",
@@ -19375,9 +19879,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemma_memory_transcriptstore_swift",
-      "target": "memory_transcriptstore_transcriptstore",
-      "confidence_score": 1.0
+      "target": "memory_transcriptstore_transcriptstore"
     },
     {
       "relation": "calls",
@@ -19396,9 +19900,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_transcriptstore_transcriptrow",
-      "target": "fetchablerecord",
-      "confidence_score": 1.0
+      "target": "fetchablerecord"
     },
     {
       "relation": "inherits",
@@ -19406,9 +19910,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_transcriptstore_transcriptrow",
-      "target": "persistablerecord",
-      "confidence_score": 1.0
+      "target": "persistablerecord"
     },
     {
       "relation": "calls",
@@ -19417,9 +19921,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_transcriptstore_transcriptstore_append",
-      "target": "memory_transcriptstore_transcriptrow",
-      "confidence_score": 1.0
+      "target": "memory_transcriptstore_transcriptrow"
     },
     {
       "relation": "inherits",
@@ -19460,6 +19964,61 @@
       "confidence_score": 1.0,
       "source": "memory_memorymodels_node",
       "target": "persistablerecord"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L127",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_cancel_persists_phase_for_resume",
+      "target": "memory_transcriptstore_transcriptstore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L168",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_consumes_transcript_and_marks_consolidated",
+      "target": "memory_transcriptstore_transcriptstore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L111",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_resumes_from_persisted_phase",
+      "target": "memory_transcriptstore_transcriptstore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L185",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarize_writes_structured_summary_node",
+      "target": "memory_transcriptstore_transcriptstore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
+      "source_location": "L85",
+      "weight": 1.0,
+      "source": "gemmatests_sleepconsolidatione2etests_sleepconsolidatione2etests_test_e2e_full_sleep_cycle",
+      "target": "memory_transcriptstore_transcriptstore"
     },
     {
       "relation": "calls",
@@ -19489,9 +20048,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_transcriptstore_transcriptstore",
-      "target": "memory_transcriptstore_transcriptstore_append",
-      "confidence_score": 1.0
+      "target": "memory_transcriptstore_transcriptstore_append"
     },
     {
       "relation": "method",
@@ -19499,9 +20058,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_transcriptstore_transcriptstore",
-      "target": "memory_transcriptstore_transcriptstore_init",
-      "confidence_score": 1.0
+      "target": "memory_transcriptstore_transcriptstore_init"
     },
     {
       "relation": "method",
@@ -19509,9 +20068,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L75",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_transcriptstore_transcriptstore",
-      "target": "memory_transcriptstore_transcriptstore_markconsolidated",
-      "confidence_score": 1.0
+      "target": "memory_transcriptstore_transcriptstore_markconsolidated"
     },
     {
       "relation": "method",
@@ -19519,9 +20078,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L54",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_transcriptstore_transcriptstore",
-      "target": "memory_transcriptstore_transcriptstore_range",
-      "confidence_score": 1.0
+      "target": "memory_transcriptstore_transcriptstore_range"
     },
     {
       "relation": "method",
@@ -19529,9 +20088,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L32",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_transcriptstore_transcriptstore",
-      "target": "memory_transcriptstore_transcriptstore_recent",
-      "confidence_score": 1.0
+      "target": "memory_transcriptstore_transcriptstore_recent"
     },
     {
       "relation": "method",
@@ -19540,8 +20099,18 @@
       "source_location": "L65",
       "weight": 1.0,
       "source": "memory_transcriptstore_transcriptstore",
-      "target": "memory_transcriptstore_transcriptstore_unconsolidated",
+      "target": "memory_transcriptstore_transcriptstore_rows",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
+      "source_location": "L65",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "memory_transcriptstore_transcriptstore",
+      "target": "memory_transcriptstore_transcriptstore_unconsolidated"
     },
     {
       "relation": "calls",
@@ -19550,9 +20119,9 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L48",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_transcriptstore_transcriptstore_recent",
-      "target": "memory_transcriptstore_transcriptstore_append",
-      "confidence_score": 1.0
+      "target": "memory_transcriptstore_transcriptstore_append"
     },
     {
       "relation": "contains",
@@ -19674,6 +20243,16 @@
       "confidence_score": 1.0,
       "source": "memory_memorystore_sleepphase",
       "target": "memory_memorystore_sleepphase_shy"
+    },
+    {
+      "relation": "case_of",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryStore.swift",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "memory_memorystore_sleepphase",
+      "target": "memory_memorystore_sleepphase_summarize",
+      "confidence_score": 1.0
     },
     {
       "relation": "inherits",
@@ -19926,6 +20505,17 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L167",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_consumes_transcript_and_marks_consolidated",
+      "target": "memory_memorystore_memorystore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L155",
       "weight": 1.0,
       "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_includes_detect_and_sets_focus",
@@ -19940,6 +20530,17 @@
       "source_location": "L94",
       "weight": 1.0,
       "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_resumes_from_persisted_phase",
+      "target": "memory_memorystore_memorystore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L184",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarize_writes_structured_summary_node",
       "target": "memory_memorystore_memorystore"
     },
     {
@@ -19962,6 +20563,17 @@
       "source_location": "L30",
       "weight": 1.0,
       "source": "gemmatests_memorycorerecalltests_memorycorerecalltests_test_corememories_returns_identity_only",
+      "target": "memory_memorystore_memorystore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L67",
+      "weight": 1.0,
+      "source": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_test_injectionblock_lists_summaries_before_facts",
       "target": "memory_memorystore_memorystore"
     },
     {
@@ -20350,9 +20962,9 @@
       "source_file": "Gemma/Gemma/Memory/MemoryStore.swift",
       "source_location": "L228",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_memorystore_memorystore",
-      "target": "memory_memorystore_memorystore_deleteconversationnodes",
-      "confidence_score": 1.0
+      "target": "memory_memorystore_memorystore_deleteconversationnodes"
     },
     {
       "relation": "method",
@@ -20380,9 +20992,9 @@
       "source_file": "Gemma/Gemma/Memory/MemoryStore.swift",
       "source_location": "L205",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_memorystore_memorystore",
-      "target": "memory_memorystore_memorystore_episodestatus",
-      "confidence_score": 1.0
+      "target": "memory_memorystore_memorystore_episodestatus"
     },
     {
       "relation": "method",
@@ -20460,9 +21072,9 @@
       "source_file": "Gemma/Gemma/Memory/MemoryStore.swift",
       "source_location": "L242",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_memorystore_memorystore",
-      "target": "memory_memorystore_memorystore_purgeconversationnodes",
-      "confidence_score": 1.0
+      "target": "memory_memorystore_memorystore_purgeconversationnodes"
     },
     {
       "relation": "method",
@@ -20649,9 +21261,9 @@
       "source_file": "Gemma/Gemma/Memory/MemoryStore.swift",
       "source_location": "L190",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_memorystore_memorystore_unconsolidatedepisodes",
-      "target": "memory_memorystore_memorystore_episodestatus",
-      "confidence_score": 1.0
+      "target": "memory_memorystore_memorystore_episodestatus"
     },
     {
       "relation": "calls",
@@ -20660,9 +21272,9 @@
       "source_file": "Gemma/Gemma/Memory/MemoryStore.swift",
       "source_location": "L243",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_memorystore_memorystore_purgeconversationnodes",
-      "target": "memory_memorystore_memorystore_deleteconversationnodes",
-      "confidence_score": 1.0
+      "target": "memory_memorystore_memorystore_deleteconversationnodes"
     },
     {
       "relation": "contains",
@@ -20843,6 +21455,16 @@
       "confidence_score": 1.0,
       "source": "memory_memorymodels_nodekind",
       "target": "memory_memorymodels_nodekind_preference"
+    },
+    {
+      "relation": "case_of",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryModels.swift",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "memory_memorymodels_nodekind",
+      "target": "memory_memorymodels_nodekind_summary",
+      "confidence_score": 1.0
     },
     {
       "relation": "case_of",
@@ -22433,9 +23055,9 @@
       "source_file": "Gemma/Gemma/Memory/ConversationWindow.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemma_memory_conversationwindow_swift",
-      "target": "memory_conversationwindow_conversationwindow",
-      "confidence_score": 1.0
+      "target": "memory_conversationwindow_conversationwindow"
     },
     {
       "relation": "method",
@@ -22443,9 +23065,9 @@
       "source_file": "Gemma/Gemma/Memory/ConversationWindow.swift",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "memory_conversationwindow_conversationwindow",
-      "target": "memory_conversationwindow_conversationwindow_messages",
-      "confidence_score": 1.0
+      "target": "memory_conversationwindow_conversationwindow_messages"
     },
     {
       "relation": "calls",
@@ -22521,6 +23143,17 @@
       "source_location": "L20",
       "weight": 1.0,
       "source": "gemmatests_memorycorerecalltests_memorycorerecalltests_testmetaquestionrecallspreferenceswithoutentitymatch",
+      "target": "memory_memoryretriever_memoryretriever"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_test_injectionblock_lists_summaries_before_facts",
       "target": "memory_memoryretriever_memoryretriever"
     },
     {
@@ -23278,9 +23911,9 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemma_runtime_modelruntime_swift",
-      "target": "runtime_modelruntime_chatmessage",
-      "confidence_score": 1.0
+      "target": "runtime_modelruntime_chatmessage"
     },
     {
       "relation": "contains",
@@ -23348,9 +23981,9 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemma_runtime_modelruntime_swift",
-      "target": "runtime_modelruntime_role",
-      "confidence_score": 1.0
+      "target": "runtime_modelruntime_role"
     },
     {
       "relation": "contains",
@@ -23411,9 +24044,9 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "runtime_modelruntime_chatmessage",
-      "target": "runtime_modelruntime_chatmessage_init",
-      "confidence_score": 1.0
+      "target": "runtime_modelruntime_chatmessage_init"
     },
     {
       "relation": "inherits",
@@ -23421,9 +24054,9 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "runtime_modelruntime_role",
-      "target": "agent_agenttool_paramtype_string",
-      "confidence_score": 1.0
+      "target": "agent_agenttool_paramtype_string"
     },
     {
       "relation": "case_of",
@@ -23431,9 +24064,9 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "runtime_modelruntime_role",
-      "target": "runtime_modelruntime_role_assistant",
-      "confidence_score": 1.0
+      "target": "runtime_modelruntime_role_assistant"
     },
     {
       "relation": "case_of",
@@ -23441,9 +24074,9 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "runtime_modelruntime_role",
-      "target": "runtime_modelruntime_role_system",
-      "confidence_score": 1.0
+      "target": "runtime_modelruntime_role_system"
     },
     {
       "relation": "case_of",
@@ -23451,9 +24084,9 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "runtime_modelruntime_role",
-      "target": "runtime_modelruntime_role_user",
-      "confidence_score": 1.0
+      "target": "runtime_modelruntime_role_user"
     },
     {
       "relation": "calls",
@@ -24785,9 +25418,9 @@
       "source_file": "Gemma/GemmaTests/AgentSystemPromptTests.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_agentsystemprompttests_capturingruntime",
-      "target": "runtime_toolcallingruntime_toolcallingruntime",
-      "confidence_score": 1.0
+      "target": "runtime_toolcallingruntime_toolcallingruntime"
     },
     {
       "relation": "inherits",
@@ -26597,9 +27230,9 @@
       "source_file": "Gemma/GemmaTests/AgentSystemPromptTests.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_agentsystemprompttests_agentsystemprompttests",
-      "target": "xctestcase",
-      "confidence_score": 1.0
+      "target": "xctestcase"
     },
     {
       "relation": "inherits",
@@ -26637,9 +27270,9 @@
       "source_file": "Gemma/GemmaTests/ConversationWindowTests.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_conversationwindowtests_conversationwindowtests",
-      "target": "xctestcase",
-      "confidence_score": 1.0
+      "target": "xctestcase"
     },
     {
       "relation": "inherits",
@@ -26720,6 +27353,16 @@
       "confidence_score": 1.0,
       "source": "gemmatests_memorycorerecalltests_memorycorerecalltests",
       "target": "xctestcase"
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests",
+      "target": "xctestcase",
+      "confidence_score": 1.0
     },
     {
       "relation": "inherits",
@@ -26847,9 +27490,9 @@
       "source_file": "Gemma/GemmaTests/PurgeConversationNodesTests.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_purgeconversationnodestests_purgeconversationnodestests",
-      "target": "xctestcase",
-      "confidence_score": 1.0
+      "target": "xctestcase"
     },
     {
       "relation": "inherits",
@@ -26917,9 +27560,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimehistorytests_serverruntimehistorytests",
-      "target": "xctestcase",
-      "confidence_score": 1.0
+      "target": "xctestcase"
     },
     {
       "relation": "inherits",
@@ -26987,9 +27630,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests",
-      "target": "xctestcase",
-      "confidence_score": 1.0
+      "target": "xctestcase"
     },
     {
       "relation": "inherits",
@@ -27479,6 +28122,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L172",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_consumes_transcript_and_marks_consolidated",
+      "target": "gemmatests_memoryconsolidationenginetests_cannedruntime",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L161",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -27495,6 +28149,17 @@
       "confidence_score": 1.0,
       "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_resumes_from_persisted_phase",
       "target": "gemmatests_memoryconsolidationenginetests_cannedruntime"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L186",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarize_writes_structured_summary_node",
+      "target": "gemmatests_memoryconsolidationenginetests_cannedruntime",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -27620,6 +28285,16 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L166",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests",
+      "target": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_consumes_transcript_and_marks_consolidated",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L154",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -27635,6 +28310,16 @@
       "confidence_score": 1.0,
       "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests",
       "target": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_resumes_from_persisted_phase"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L183",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests",
+      "target": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarize_writes_structured_summary_node",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -27745,9 +28430,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimehistorytests_bodycapture",
-      "target": "urlprotocol",
-      "confidence_score": 1.0
+      "target": "urlprotocol"
     },
     {
       "relation": "method",
@@ -28294,9 +28979,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemmatests_transcriptstoretests_swift",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests"
     },
     {
       "relation": "method",
@@ -28304,9 +28989,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore"
     },
     {
       "relation": "method",
@@ -28314,9 +28999,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_append_and_recent_ordered_oldestfirst",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_append_and_recent_ordered_oldestfirst"
     },
     {
       "relation": "method",
@@ -28324,9 +29009,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L36",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_range_returnsinclusiveturnslice",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_range_returnsinclusiveturnslice"
     },
     {
       "relation": "method",
@@ -28334,9 +29019,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L28",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_recent_caps_by_chars_keepingnewest",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_recent_caps_by_chars_keepingnewest"
     },
     {
       "relation": "method",
@@ -28344,9 +29029,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_recent_caps_by_turns_keepingnewest",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_recent_caps_by_turns_keepingnewest"
     },
     {
       "relation": "method",
@@ -28354,8 +29039,18 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L53",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_recent_keeps_user_before_assistant_within_turn_even_on_equal_timestamps",
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_recent_keeps_user_before_assistant_within_turn_even_on_equal_timestamps"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "gemmatests_transcriptstoretests_transcriptstoretests",
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_rows_byids_returnsmatching_orderedoldestfirst",
       "confidence_score": 1.0
     },
     {
@@ -28364,9 +29059,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_unconsolidated_and_mark",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_test_unconsolidated_and_mark"
     },
     {
       "relation": "calls",
@@ -28375,9 +29070,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests_test_append_and_recent_ordered_oldestfirst",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore"
     },
     {
       "relation": "calls",
@@ -28386,9 +29081,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L37",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests_test_range_returnsinclusiveturnslice",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore"
     },
     {
       "relation": "calls",
@@ -28397,9 +29092,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L29",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests_test_recent_caps_by_chars_keepingnewest",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore"
     },
     {
       "relation": "calls",
@@ -28408,9 +29103,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests_test_recent_caps_by_turns_keepingnewest",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore"
     },
     {
       "relation": "calls",
@@ -28419,7 +29114,18 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L54",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests_test_recent_keeps_user_before_assistant_within_turn_even_on_equal_timestamps",
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "gemmatests_transcriptstoretests_transcriptstoretests_test_rows_byids_returnsmatching_orderedoldestfirst",
       "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore",
       "confidence_score": 1.0
     },
@@ -28430,9 +29136,9 @@
       "source_file": "Gemma/GemmaTests/TranscriptStoreTests.swift",
       "source_location": "L44",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_transcriptstoretests_transcriptstoretests_test_unconsolidated_and_mark",
-      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore",
-      "confidence_score": 1.0
+      "target": "gemmatests_transcriptstoretests_transcriptstoretests_makestore"
     },
     {
       "relation": "contains",
@@ -28743,6 +29449,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "gemma_gemmatests_memoryretrievertests_swift",
+      "target": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
       "source_location": "L5",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -28896,6 +29612,81 @@
       "confidence_score": 1.0,
       "source": "gemmatests_memoryretrievertests_memoryretrievertests_testspreadingactivationpullsneighbors",
       "target": "gemmatests_memoryretrievertests_memoryretrievertests_node"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "gemmatests_memoryretrievertests_memoryretrievertests_testretrievesbykeywordwithoutembedder",
+      "target": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_node",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "gemmatests_memoryretrievertests_memoryretrievertests_testspreadingactivationpullsneighbors",
+      "target": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_node",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "gemmatests_memoryretrievertests_memoryretrievertests_testinjectionblockformats",
+      "target": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_node",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "gemmatests_memoryretrievertests_memoryretrievertests_testrankswithfakeembedder",
+      "target": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_node",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests",
+      "target": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_node",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests",
+      "target": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_test_injectionblock_lists_summaries_before_facts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryRetrieverTests.swift",
+      "source_location": "L69",
+      "weight": 1.0,
+      "source": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_test_injectionblock_lists_summaries_before_facts",
+      "target": "gemmatests_memoryretrievertests_memoryretrieverinjectiontests_node",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -29369,9 +30160,9 @@
       "source_file": "Gemma/GemmaTests/ConversationWindowTests.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemmatests_conversationwindowtests_swift",
-      "target": "gemmatests_conversationwindowtests_conversationwindowtests",
-      "confidence_score": 1.0
+      "target": "gemmatests_conversationwindowtests_conversationwindowtests"
     },
     {
       "relation": "method",
@@ -29379,9 +30170,9 @@
       "source_file": "Gemma/GemmaTests/ConversationWindowTests.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_conversationwindowtests_conversationwindowtests",
-      "target": "gemmatests_conversationwindowtests_conversationwindowtests_row",
-      "confidence_score": 1.0
+      "target": "gemmatests_conversationwindowtests_conversationwindowtests_row"
     },
     {
       "relation": "method",
@@ -29389,9 +30180,9 @@
       "source_file": "Gemma/GemmaTests/ConversationWindowTests.swift",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_conversationwindowtests_conversationwindowtests",
-      "target": "gemmatests_conversationwindowtests_conversationwindowtests_test_empty_rows_empty_messages",
-      "confidence_score": 1.0
+      "target": "gemmatests_conversationwindowtests_conversationwindowtests_test_empty_rows_empty_messages"
     },
     {
       "relation": "method",
@@ -29399,9 +30190,9 @@
       "source_file": "Gemma/GemmaTests/ConversationWindowTests.swift",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_conversationwindowtests_conversationwindowtests",
-      "target": "gemmatests_conversationwindowtests_conversationwindowtests_test_maps_rows_to_chat_messages_in_order",
-      "confidence_score": 1.0
+      "target": "gemmatests_conversationwindowtests_conversationwindowtests_test_maps_rows_to_chat_messages_in_order"
     },
     {
       "relation": "method",
@@ -29409,9 +30200,9 @@
       "source_file": "Gemma/GemmaTests/ConversationWindowTests.swift",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_conversationwindowtests_conversationwindowtests",
-      "target": "gemmatests_conversationwindowtests_conversationwindowtests_test_unknown_role_is_treated_as_user",
-      "confidence_score": 1.0
+      "target": "gemmatests_conversationwindowtests_conversationwindowtests_test_unknown_role_is_treated_as_user"
     },
     {
       "relation": "calls",
@@ -29420,9 +30211,9 @@
       "source_file": "Gemma/GemmaTests/ConversationWindowTests.swift",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_conversationwindowtests_conversationwindowtests_test_maps_rows_to_chat_messages_in_order",
-      "target": "gemmatests_conversationwindowtests_conversationwindowtests_row",
-      "confidence_score": 1.0
+      "target": "gemmatests_conversationwindowtests_conversationwindowtests_row"
     },
     {
       "relation": "calls",
@@ -29431,9 +30222,9 @@
       "source_file": "Gemma/GemmaTests/ConversationWindowTests.swift",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_conversationwindowtests_conversationwindowtests_test_unknown_role_is_treated_as_user",
-      "target": "gemmatests_conversationwindowtests_conversationwindowtests_row",
-      "confidence_score": 1.0
+      "target": "gemmatests_conversationwindowtests_conversationwindowtests_row"
     },
     {
       "relation": "contains",
@@ -29773,9 +30564,9 @@
       "source_file": "Gemma/GemmaTests/AgentSystemPromptTests.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemmatests_agentsystemprompttests_swift",
-      "target": "gemmatests_agentsystemprompttests_agentsystemprompttests",
-      "confidence_score": 1.0
+      "target": "gemmatests_agentsystemprompttests_agentsystemprompttests"
     },
     {
       "relation": "contains",
@@ -29783,9 +30574,9 @@
       "source_file": "Gemma/GemmaTests/AgentSystemPromptTests.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemmatests_agentsystemprompttests_swift",
-      "target": "gemmatests_agentsystemprompttests_capturingruntime",
-      "confidence_score": 1.0
+      "target": "gemmatests_agentsystemprompttests_capturingruntime"
     },
     {
       "relation": "method",
@@ -29793,9 +30584,9 @@
       "source_file": "Gemma/GemmaTests/AgentSystemPromptTests.swift",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_agentsystemprompttests_agentsystemprompttests",
-      "target": "gemmatests_agentsystemprompttests_agentsystemprompttests_test_system_prompt_has_no_save_memory_instruction",
-      "confidence_score": 1.0
+      "target": "gemmatests_agentsystemprompttests_agentsystemprompttests_test_system_prompt_has_no_save_memory_instruction"
     },
     {
       "relation": "calls",
@@ -29804,9 +30595,9 @@
       "source_file": "Gemma/GemmaTests/AgentSystemPromptTests.swift",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_agentsystemprompttests_agentsystemprompttests_test_system_prompt_has_no_save_memory_instruction",
-      "target": "gemmatests_agentsystemprompttests_capturingruntime",
-      "confidence_score": 1.0
+      "target": "gemmatests_agentsystemprompttests_capturingruntime"
     },
     {
       "relation": "method",
@@ -29814,9 +30605,9 @@
       "source_file": "Gemma/GemmaTests/AgentSystemPromptTests.swift",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_agentsystemprompttests_capturingruntime",
-      "target": "gemmatests_agentsystemprompttests_capturingruntime_generate",
-      "confidence_score": 1.0
+      "target": "gemmatests_agentsystemprompttests_capturingruntime_generate"
     },
     {
       "relation": "contains",
@@ -30038,9 +30829,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemmatests_serverruntimehistorytests_swift",
-      "target": "gemmatests_serverruntimehistorytests_bodycapture",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimehistorytests_bodycapture"
     },
     {
       "relation": "contains",
@@ -30048,9 +30839,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemmatests_serverruntimehistorytests_swift",
-      "target": "gemmatests_serverruntimehistorytests_serverruntimehistorytests",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimehistorytests_serverruntimehistorytests"
     },
     {
       "relation": "method",
@@ -30058,9 +30849,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimehistorytests_serverruntimehistorytests",
-      "target": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_makesession",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_makesession"
     },
     {
       "relation": "method",
@@ -30068,9 +30859,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimehistorytests_serverruntimehistorytests",
-      "target": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_test_history_is_sent_between_system_and_user",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_test_history_is_sent_between_system_and_user"
     },
     {
       "relation": "method",
@@ -30078,9 +30869,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimehistorytests_bodycapture",
-      "target": "gemmatests_serverruntimehistorytests_bodycapture_caninit",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimehistorytests_bodycapture_caninit"
     },
     {
       "relation": "method",
@@ -30088,9 +30879,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimehistorytests_bodycapture",
-      "target": "gemmatests_serverruntimehistorytests_bodycapture_canonicalrequest",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimehistorytests_bodycapture_canonicalrequest"
     },
     {
       "relation": "method",
@@ -30098,9 +30889,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimehistorytests_bodycapture",
-      "target": "gemmatests_serverruntimehistorytests_bodycapture_startloading",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimehistorytests_bodycapture_startloading"
     },
     {
       "relation": "method",
@@ -30108,9 +30899,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimehistorytests_bodycapture",
-      "target": "gemmatests_serverruntimehistorytests_bodycapture_stoploading",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimehistorytests_bodycapture_stoploading"
     },
     {
       "relation": "calls",
@@ -30119,9 +30910,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L33",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_test_history_is_sent_between_system_and_user",
-      "target": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_makesession",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_makesession"
     },
     {
       "relation": "contains",
@@ -30809,9 +31600,9 @@
       "source_file": "Gemma/GemmaTests/PurgeConversationNodesTests.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemmatests_purgeconversationnodestests_swift",
-      "target": "gemmatests_purgeconversationnodestests_purgeconversationnodestests",
-      "confidence_score": 1.0
+      "target": "gemmatests_purgeconversationnodestests_purgeconversationnodestests"
     },
     {
       "relation": "method",
@@ -30819,9 +31610,9 @@
       "source_file": "Gemma/GemmaTests/PurgeConversationNodesTests.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_purgeconversationnodestests_purgeconversationnodestests",
-      "target": "gemmatests_purgeconversationnodestests_purgeconversationnodestests_test_purge_removes_conversation_nodes_keeps_knowledge",
-      "confidence_score": 1.0
+      "target": "gemmatests_purgeconversationnodestests_purgeconversationnodestests_test_purge_removes_conversation_nodes_keeps_knowledge"
     },
     {
       "relation": "contains",
@@ -34612,9 +35403,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_superpowers_plans_2026_06_01_m2d_1_live_context_clean_capture_md",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_m2d_1_live_context_clean_capture_implementation_plan",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_m2d_1_live_context_clean_capture_implementation_plan"
     },
     {
       "relation": "contains",
@@ -34622,9 +35413,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_m2d_1_live_context_clean_capture_implementation_plan",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_1",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_1"
     },
     {
       "relation": "contains",
@@ -34632,9 +35423,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L698",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_m2d_1_live_context_clean_capture_implementation_plan",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_self_review",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_self_review"
     },
     {
       "relation": "contains",
@@ -34642,9 +35433,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_m2d_1_live_context_clean_capture_implementation_plan",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_1_chatmessage_generationoptions_history_serverruntime_prepends_history",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_1_chatmessage_generationoptions_history_serverruntime_prepends_history"
     },
     {
       "relation": "contains",
@@ -34652,9 +35443,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L139",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_m2d_1_live_context_clean_capture_implementation_plan",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_2_transcriptstore_raw_turns_separate_from_the_node_graph",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_2_transcriptstore_raw_turns_separate_from_the_node_graph"
     },
     {
       "relation": "contains",
@@ -34662,9 +35453,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L327",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_m2d_1_live_context_clean_capture_implementation_plan",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_3_conversationwindow_pure_builder_rows_chatmessage",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_3_conversationwindow_pure_builder_rows_chatmessage"
     },
     {
       "relation": "contains",
@@ -34672,9 +35463,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L405",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_m2d_1_live_context_clean_capture_implementation_plan",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_4_agent_system_prompt_drop_the_save_memory_instruction",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_4_agent_system_prompt_drop_the_save_memory_instruction"
     },
     {
       "relation": "contains",
@@ -34682,9 +35473,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L480",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_m2d_1_live_context_clean_capture_implementation_plan",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_5_harnessmodel_wire_short_term_window_in_append_turns_out_remove_save_memory_episoderecorder",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_5_harnessmodel_wire_short_term_window_in_append_turns_out_remove_save_memory_episoderecorder"
     },
     {
       "relation": "contains",
@@ -34692,9 +35483,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L562",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_m2d_1_live_context_clean_capture_implementation_plan",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_6_remove_episoderecorder_purge_existing_conversation_nodes",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_6_remove_episoderecorder_purge_existing_conversation_nodes"
     },
     {
       "relation": "contains",
@@ -34702,9 +35493,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L670",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_m2d_1_live_context_clean_capture_implementation_plan",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_7_final_verification_graphify",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_7_final_verification_graphify"
     },
     {
       "relation": "contains",
@@ -34712,9 +35503,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L32",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_1_chatmessage_generationoptions_history_serverruntime_prepends_history",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_2",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_2"
     },
     {
       "relation": "contains",
@@ -34722,9 +35513,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L90",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_1_chatmessage_generationoptions_history_serverruntime_prepends_history",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_3",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_3"
     },
     {
       "relation": "contains",
@@ -34732,9 +35523,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L103",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_1_chatmessage_generationoptions_history_serverruntime_prepends_history",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_4",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_4"
     },
     {
       "relation": "contains",
@@ -34742,9 +35533,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L112",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_1_chatmessage_generationoptions_history_serverruntime_prepends_history",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_5",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_5"
     },
     {
       "relation": "contains",
@@ -34752,9 +35543,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L130",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_1_chatmessage_generationoptions_history_serverruntime_prepends_history",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_6",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_6"
     },
     {
       "relation": "contains",
@@ -34762,9 +35553,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L318",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_2_transcriptstore_raw_turns_separate_from_the_node_graph",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_10",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_10"
     },
     {
       "relation": "contains",
@@ -34772,9 +35563,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L148",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_2_transcriptstore_raw_turns_separate_from_the_node_graph",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_7",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_7"
     },
     {
       "relation": "contains",
@@ -34782,9 +35573,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L210",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_2_transcriptstore_raw_turns_separate_from_the_node_graph",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_8",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_8"
     },
     {
       "relation": "contains",
@@ -34792,9 +35583,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L228",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_2_transcriptstore_raw_turns_separate_from_the_node_graph",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_9",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_9"
     },
     {
       "relation": "contains",
@@ -34802,9 +35593,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L335",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_3_conversationwindow_pure_builder_rows_chatmessage",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_11",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_11"
     },
     {
       "relation": "contains",
@@ -34812,9 +35603,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L369",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_3_conversationwindow_pure_builder_rows_chatmessage",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_12",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_12"
     },
     {
       "relation": "contains",
@@ -34822,9 +35613,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L396",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_3_conversationwindow_pure_builder_rows_chatmessage",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_13",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_13"
     },
     {
       "relation": "contains",
@@ -34832,9 +35623,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L415",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_4_agent_system_prompt_drop_the_save_memory_instruction",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_14",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_14"
     },
     {
       "relation": "contains",
@@ -34842,9 +35633,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L452",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_4_agent_system_prompt_drop_the_save_memory_instruction",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_15",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_15"
     },
     {
       "relation": "contains",
@@ -34852,9 +35643,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L471",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_4_agent_system_prompt_drop_the_save_memory_instruction",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_16",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_16"
     },
     {
       "relation": "contains",
@@ -34862,9 +35653,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L489",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_5_harnessmodel_wire_short_term_window_in_append_turns_out_remove_save_memory_episoderecorder",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_17",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_17"
     },
     {
       "relation": "contains",
@@ -34872,9 +35663,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L493",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_5_harnessmodel_wire_short_term_window_in_append_turns_out_remove_save_memory_episoderecorder",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_18",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_18"
     },
     {
       "relation": "contains",
@@ -34882,9 +35673,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L498",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_5_harnessmodel_wire_short_term_window_in_append_turns_out_remove_save_memory_episoderecorder",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_19",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_19"
     },
     {
       "relation": "contains",
@@ -34892,9 +35683,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L504",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_5_harnessmodel_wire_short_term_window_in_append_turns_out_remove_save_memory_episoderecorder",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_20",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_20"
     },
     {
       "relation": "contains",
@@ -34902,9 +35693,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L513",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_5_harnessmodel_wire_short_term_window_in_append_turns_out_remove_save_memory_episoderecorder",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_21",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_21"
     },
     {
       "relation": "contains",
@@ -34912,9 +35703,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L522",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_5_harnessmodel_wire_short_term_window_in_append_turns_out_remove_save_memory_episoderecorder",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_22",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_22"
     },
     {
       "relation": "contains",
@@ -34922,9 +35713,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L535",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_5_harnessmodel_wire_short_term_window_in_append_turns_out_remove_save_memory_episoderecorder",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_23",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_23"
     },
     {
       "relation": "contains",
@@ -34932,9 +35723,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L553",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_5_harnessmodel_wire_short_term_window_in_append_turns_out_remove_save_memory_episoderecorder",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_24",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_24"
     },
     {
       "relation": "contains",
@@ -34942,9 +35733,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L572",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_6_remove_episoderecorder_purge_existing_conversation_nodes",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_25",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_25"
     },
     {
       "relation": "contains",
@@ -34952,9 +35743,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L608",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_6_remove_episoderecorder_purge_existing_conversation_nodes",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_26",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_26"
     },
     {
       "relation": "contains",
@@ -34962,9 +35753,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L629",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_6_remove_episoderecorder_purge_existing_conversation_nodes",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_27",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_27"
     },
     {
       "relation": "contains",
@@ -34972,9 +35763,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L644",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_6_remove_episoderecorder_purge_existing_conversation_nodes",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_28",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_28"
     },
     {
       "relation": "contains",
@@ -34982,9 +35773,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L649",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_6_remove_episoderecorder_purge_existing_conversation_nodes",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_29",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_29"
     },
     {
       "relation": "contains",
@@ -34992,9 +35783,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L661",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_6_remove_episoderecorder_purge_existing_conversation_nodes",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_30",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_30"
     },
     {
       "relation": "contains",
@@ -35002,9 +35793,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L678",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_7_final_verification_graphify",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_31",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_31"
     },
     {
       "relation": "contains",
@@ -35012,9 +35803,9 @@
       "source_file": "docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md",
       "source_location": "L691",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_1_live_context_clean_capture_task_7_final_verification_graphify",
-      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_32",
-      "confidence_score": 1.0
+      "target": "plans_2026_06_01_m2d_1_live_context_clean_capture_codeblock_32"
     },
     {
       "relation": "contains",
@@ -37015,6 +37806,306 @@
       "confidence_score": 1.0,
       "source": "plans_2026_05_31_m2b_3_resume_followup_task_5_wakecontext_injection_agent_harnessmodel",
       "target": "plans_2026_05_31_m2b_3_resume_followup_codeblock_14"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "docs_superpowers_plans_2026_06_01_m2d_2_semantic_summaries_consolidation_md",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_m2d_2_semantic_summaries_consolidation_from_transcript_implementation_plan",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_m2d_2_semantic_summaries_consolidation_from_transcript_implementation_plan",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L431",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_m2d_2_semantic_summaries_consolidation_from_transcript_implementation_plan",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_self_review",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_m2d_2_semantic_summaries_consolidation_from_transcript_implementation_plan",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_1_nodekind_summary_transcriptstore_rows_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L91",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_m2d_2_semantic_summaries_consolidation_from_transcript_implementation_plan",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_2_source_consolidation_from_the_transcript",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L203",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_m2d_2_semantic_summaries_consolidation_from_transcript_implementation_plan",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_3_summarize_phase_structured_summary_node",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L324",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_m2d_2_semantic_summaries_consolidation_from_transcript_implementation_plan",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_4_retriever_surface_summaries_first_in_the_injection_block",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L394",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_m2d_2_semantic_summaries_consolidation_from_transcript_implementation_plan",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_5_final_verification_real_26b_e2e_graphify",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_1_nodekind_summary_transcriptstore_rows_ids",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_2",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L57",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_1_nodekind_summary_transcriptstore_rows_ids",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_3",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_1_nodekind_summary_transcriptstore_rows_ids",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_4",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L82",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_1_nodekind_summary_transcriptstore_rows_ids",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_5",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L168",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_2_source_consolidation_from_the_transcript",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_10",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L185",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_2_source_consolidation_from_the_transcript",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_11",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L189",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_2_source_consolidation_from_the_transcript",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_12",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L100",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_2_source_consolidation_from_the_transcript",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_6",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L124",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_2_source_consolidation_from_the_transcript",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_7",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L152",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_2_source_consolidation_from_the_transcript",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_8",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L158",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_2_source_consolidation_from_the_transcript",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_9",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L212",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_3_summarize_phase_structured_summary_node",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_13",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L238",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_3_summarize_phase_structured_summary_node",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_14",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L245",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_3_summarize_phase_structured_summary_node",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_15",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L294",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_3_summarize_phase_structured_summary_node",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_16",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L298",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_3_summarize_phase_structured_summary_node",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_17",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L315",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_3_summarize_phase_structured_summary_node",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_18",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L334",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_4_retriever_surface_summaries_first_in_the_injection_block",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_19",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L366",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_4_retriever_surface_summaries_first_in_the_injection_block",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_20",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L385",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_4_retriever_surface_summaries_first_in_the_injection_block",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_21",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L409",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_5_final_verification_real_26b_e2e_graphify",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_22",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md",
+      "source_location": "L422",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_task_5_final_verification_real_26b_e2e_graphify",
+      "target": "plans_2026_06_01_m2d_2_semantic_summaries_consolidation_codeblock_23",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -39122,9 +40213,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_superpowers_specs_2026_06_01_m2d_live_context_clean_capture_design_md",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design"
     },
     {
       "relation": "contains",
@@ -39132,9 +40223,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L148",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_10_file_structure",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_10_file_structure"
     },
     {
       "relation": "contains",
@@ -39142,9 +40233,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L154",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_11_resultado_m2d_a_completar_al_verificar",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_11_resultado_m2d_a_completar_al_verificar"
     },
     {
       "relation": "contains",
@@ -39152,9 +40243,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_1_problem",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_1_problem"
     },
     {
       "relation": "contains",
@@ -39162,9 +40253,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_2_goal",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_2_goal"
     },
     {
       "relation": "contains",
@@ -39172,9 +40263,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L38",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_3_architecture_multi_level_memory",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_3_architecture_multi_level_memory"
     },
     {
       "relation": "contains",
@@ -39182,9 +40273,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L64",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_components",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_components"
     },
     {
       "relation": "contains",
@@ -39192,9 +40283,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L114",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_5_data_flow",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_5_data_flow"
     },
     {
       "relation": "contains",
@@ -39202,9 +40293,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L122",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_6_error_handling_edge_cases",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_6_error_handling_edge_cases"
     },
     {
       "relation": "contains",
@@ -39212,9 +40303,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L129",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_7_testing",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_7_testing"
     },
     {
       "relation": "contains",
@@ -39222,9 +40313,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L139",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_8_out_of_scope_future_milestones",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_8_out_of_scope_future_milestones"
     },
     {
       "relation": "contains",
@@ -39232,9 +40323,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L142",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_m2d_live_context_clean_capture_semantic_summaries_design",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_9_decomposition_for_the_implementation_plan",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_9_decomposition_for_the_implementation_plan"
     },
     {
       "relation": "contains",
@@ -39242,9 +40333,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L47",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_3_architecture_multi_level_memory",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_codeblock_1",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_codeblock_1"
     },
     {
       "relation": "contains",
@@ -39252,9 +40343,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L66",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_components",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_1_transcriptstore_new_memory_transcriptstore_swift",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_1_transcriptstore_new_memory_transcriptstore_swift"
     },
     {
       "relation": "contains",
@@ -39262,9 +40353,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L74",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_components",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_2_runtime_messages_api_runtime_toolcallingruntime_swift_serverruntime_swift_dummyruntime_swift",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_2_runtime_messages_api_runtime_toolcallingruntime_swift_serverruntime_swift_dummyruntime_swift"
     },
     {
       "relation": "contains",
@@ -39272,9 +40363,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L84",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_components",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_3_agent_agent_agent_swift",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_3_agent_agent_agent_swift"
     },
     {
       "relation": "contains",
@@ -39282,9 +40373,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L90",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_components",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_4_live_write_path_harness_harnessmodel_runagentturn",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_4_live_write_path_harness_harnessmodel_runagentturn"
     },
     {
       "relation": "contains",
@@ -39292,9 +40383,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L93",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_components",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_5_consolidation_modified_memory_memoryconsolidationengine_swift_consolidationscheduler",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_5_consolidation_modified_memory_memoryconsolidationengine_swift_consolidationscheduler"
     },
     {
       "relation": "contains",
@@ -39302,9 +40393,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L100",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_components",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_6_tiered_proximity_graded_recall_memory_memoryretriever_swift",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_6_tiered_proximity_graded_recall_memory_memoryretriever_swift"
     },
     {
       "relation": "contains",
@@ -39312,9 +40403,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L106",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_components",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_7_expand_context_tool_new_memory_expandcontexttool_swift",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_7_expand_context_tool_new_memory_expandcontexttool_swift"
     },
     {
       "relation": "contains",
@@ -39322,9 +40413,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L109",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_components",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_8_cleanup_migration_memory_memorystore_swift_memoryview",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_8_cleanup_migration_memory_memorystore_swift_memoryview"
     },
     {
       "relation": "contains",
@@ -39332,9 +40423,9 @@
       "source_file": "docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md",
       "source_location": "L76",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "specs_2026_06_01_m2d_live_context_clean_capture_design_4_2_runtime_messages_api_runtime_toolcallingruntime_swift_serverruntime_swift_dummyruntime_swift",
-      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_codeblock_2",
-      "confidence_score": 1.0
+      "target": "specs_2026_06_01_m2d_live_context_clean_capture_design_codeblock_2"
     },
     {
       "relation": "contains",
@@ -42841,5 +43932,5 @@
       "source_file": "docs/superpowers/plans/2026-05-28-s1-model-infra.md"
     }
   ],
-  "built_at_commit": "33528aa8174f8c1d6f2406ceffd44433ad743755"
+  "built_at_commit": "b7b651b84b77b46c3f5bb75ab9263504453da148"
 }

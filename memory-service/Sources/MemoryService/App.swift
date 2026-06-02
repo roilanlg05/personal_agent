@@ -110,6 +110,7 @@ public func buildApp(services: Services, port: Int) async throws -> some Applica
     // Protected: anything under /v1 requires Bearer auth
     let v1 = router.group("/v1").add(middleware: BearerMiddleware(token: services.bearerToken))
     TranscriptHandlers(services: services).register(on: v1)
+    MemoryHandlers(services: services).register(on: v1)
     v1.get("/echo") { _, _ -> Response in
         return Response(
             status: .ok,
@@ -122,4 +123,35 @@ public func buildApp(services: Services, port: Int) async throws -> some Applica
         configuration: ApplicationConfiguration(address: .hostname("0.0.0.0", port: port)),
         logger: Logger(label: "memory-service")
     )
+}
+
+// MARK: - expand_context (M2d-3 drill-down)
+
+extension Services {
+    public struct ExpandResult: Sendable {
+        public let rows: [TranscriptRow]
+        public let summaryLabel: String?
+    }
+
+    /// Locate the best `summary` node whose label matches `topic` (canonical dedup key match,
+    /// falling back to case-insensitive substring), then return its referenced transcript range
+    /// (`extra` JSON keys `threadId` + `turnRange:[from,to]`). Empty rows + nil label when no
+    /// matching summary exists or its extra is malformed.
+    public func expandContext(topic: String) throws -> ExpandResult {
+        let trimmed = topic.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return ExpandResult(rows: [], summaryLabel: nil) }
+        let summaries = (try? store.allNodes())?
+            .filter { $0.kind == NodeKind.summary.rawValue } ?? []
+        let dedupKey = MemoryText.dedupKey(trimmed)
+        let match = summaries.first { MemoryText.dedupKey($0.label) == dedupKey }
+            ?? summaries.first { $0.label.localizedCaseInsensitiveContains(trimmed) }
+        guard let node = match, let raw = node.extra?.data(using: .utf8),
+              let any = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
+              let threadId = any["threadId"] as? String,
+              let tr = any["turnRange"] as? [Int], tr.count == 2 else {
+            return ExpandResult(rows: [], summaryLabel: match?.label)
+        }
+        let rows = (try? transcript.range(threadId: threadId, fromTurn: tr[0], toTurn: tr[1])) ?? []
+        return ExpandResult(rows: rows, summaryLabel: node.label)
+    }
 }

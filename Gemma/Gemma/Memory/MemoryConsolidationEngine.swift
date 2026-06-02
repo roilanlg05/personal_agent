@@ -52,9 +52,14 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
 
     // MARK: NREM — Consolidate
 
+    private func todayString() -> String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd (EEEE)"
+        return f.string(from: Date(timeIntervalSince1970: now()))
+    }
+
     private struct EntitiesOut: Decodable {
         struct E: Decodable { let entity: String; let kind: String?; let detail: String?; let permanent: Bool?
-            struct Attr: Decodable { let status: String?; let horizon: String? }
+            struct Attr: Decodable { let status: String?; let horizon: String?; let date: String? }
             let attributes: Attr? }
         let entities: [E]
     }
@@ -63,12 +68,13 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         guard !episodeTexts.isEmpty else { return }
         let convo = episodeTexts.joined(separator: "\n")
         let prompt = """
+        Today is \(todayString()). Resolve any relative date (today/tomorrow/a weekday) to an absolute date and put it in attributes.date as "yyyy-MM-dd".
         Extract durable facts the USER stated about themselves from this conversation. Output JSON only.
         Use a short canonical `entity` (a noun/name, not a sentence). The "entity" MUST be a short canonical noun/name (1-3 words), NEVER a sentence (e.g. "Roilan", not "the user's name is Roilan"). Choose a `kind`: person, place, \
         preference, fact, trait (personality), task (something to do — set attributes.status "pending"), \
         plan (an intention — set attributes.horizon "short" or "long"), or another short lowercase kind if \
         none fit. Put context in `detail`. Never invent; only what the user actually stated.
-        Schema: {"entities":[{"entity":"...","kind":"...","detail":"...","permanent":false,"attributes":{"status":"pending|done","horizon":"short|long"}}]}
+        Schema: {"entities":[{"entity":"...","kind":"...","detail":"...","permanent":false,"attributes":{"status":"pending|done","horizon":"short|long","date":"yyyy-MM-dd"}}]}
         Conversation:
         \(convo)
         JSON:
@@ -84,15 +90,28 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
             if MemoryText.isJunkLabel(label) { continue }
             let kind = rawKind
             let layer: MemoryLayer = (e.permanent ?? false) ? .identity : .daily
-            var attrs = NodeAttributes(); attrs.status = e.attributes?.status; attrs.horizon = e.attributes?.horizon
+            var attrs = NodeAttributes(); attrs.status = e.attributes?.status; attrs.horizon = e.attributes?.horizon; attrs.date = e.attributes?.date
             let t = now()
-            let node = Node(id: UUID().uuidString, kind: kind, label: label, body: e.detail ?? label, layer: layer,
+            let baseBody = e.detail ?? label
+            let body = (attrs.date != nil) ? baseBody + " (fecha: \(attrs.date!))" : baseBody
+            let node = Node(id: UUID().uuidString, kind: kind, label: label, body: body, layer: layer,
                             createdAt: t, updatedAt: t, lastSeenAt: t, salience: (e.permanent ?? false) ? 8 : 3,
                             decayRate: Decay.defaultDecayRate(for: layer), confidence: .probable, mentionCount: 1,
                             ttlExpiresAt: nil, sourceRef: nil, origin: .extracted, serverId: nil,
                             dirty: true, deleted: false, extra: attrs.toJSON())
+            let eventKinds: Set<String> = [NodeKind.task.rawValue, NodeKind.plan.rawValue]
             let emb = (try? embedder?.embed(label)) ?? nil
-            if (try? store.upsertMergingSemantic(node, embedding: emb, embedder: embedder)) != nil { added += 1 }
+            if eventKinds.contains(kind) {
+                // Events are distinct occurrences — never auto-merge (would lose a meeting).
+                // Ambiguous same-vs-different is resolved by clarify() asking the user (Task 3).
+                do {
+                    try store.upsert(node)
+                    if let emb { try store.setEmbedding(nodeId: node.id, emb) }
+                    added += 1
+                } catch {}
+            } else if (try? store.upsertMergingSemantic(node, embedding: emb, embedder: embedder)) != nil {
+                added += 1
+            }
         }
         onProgress?("+\(added) entities")
     }
@@ -118,7 +137,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         guard !episodeTexts.isEmpty else { return }
         let convo = episodeTexts.joined(separator: "\n")
         let prompt = """
-        Summarize this conversation segment as STRUCTURED knowledge about ONE user. Output JSON only.
+        Today is \(todayString()). Summarize this conversation segment as STRUCTURED knowledge about ONE user. Output JSON only.
         Give a short `topic` (2-5 words), the key `concepts` (short noun phrases), the user's `intent`, \
         any `decisions` made, an `importance` 0..1, and a one-sentence `summary`. Don't invent. \
         Answer in the SAME language as the conversation.
@@ -312,6 +331,45 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         onProgress?("+\(added) insights")
     }
 
+    // MARK: Clarify — ask the user when consolidation is genuinely unsure about event identity
+    private struct ClarifyOut: Decodable { let questions: [String] }
+
+    /// During reflection/sleep: if consolidation is unsure whether two memories are the same
+    /// (a task rephrased/extended vs a genuinely new one), ask the USER instead of guessing.
+    /// Emits pending `clarification` nodes (surfaced proactively in chat — Task 5). Never invents.
+    func clarify() async {
+        let events = ((try? store.allNodes()) ?? [])
+            .filter { $0.kind == NodeKind.task.rawValue || $0.kind == NodeKind.plan.rawValue }
+        guard events.count >= 2 else { return }
+        let list = events.map { "- [\($0.kind)] \($0.label): \($0.body)" }.joined(separator: "\n")
+        let prompt = """
+        Today is \(todayString()). These are the user's tasks/plans. ONLY if two of them might be the SAME thing
+        described twice (a rephrase/extension) and you are genuinely UNSURE, write a short question to ask the user
+        to disambiguate. If everything is clearly distinct, return an empty list. Output JSON only. Never invent.
+        Schema: {"questions":["<short question>"]}
+        Items:
+        \(list)
+        JSON:
+        """
+        guard let out = parse(await generate(prompt, maxTokens: 256), ClarifyOut.self) else { return }
+        let existing = Set(((try? store.allNodes()) ?? [])
+            .filter { $0.kind == NodeKind.clarification.rawValue }.map { MemoryText.dedupKey($0.body) })
+        var added = 0
+        for q in out.questions {
+            let text = q.trimmingCharacters(in: .whitespacesAndNewlines)
+            if text.isEmpty || existing.contains(MemoryText.dedupKey(text)) { continue }
+            var attrs = NodeAttributes(); attrs.status = "pending"
+            let t = now()
+            let node = Node(id: UUID().uuidString, kind: NodeKind.clarification.rawValue, label: String(text.prefix(60)),
+                            body: text, layer: .daily, createdAt: t, updatedAt: t, lastSeenAt: t, salience: 4,
+                            decayRate: Decay.defaultDecayRate(for: .daily), confidence: .probable, mentionCount: 1,
+                            ttlExpiresAt: nil, sourceRef: nil, origin: .extracted, serverId: nil, dirty: true, deleted: false,
+                            extra: attrs.toJSON())
+            try? store.upsert(node); added += 1
+        }
+        if added > 0 { onProgress?("+\(added) question\(added == 1 ? "" : "s")") }
+    }
+
     // MARK: Curate — fold synonym kinds into a canonical vocabulary
     private struct KindMapOut: Decodable { let map: [String: String] }
 
@@ -353,7 +411,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
             state = SleepCycleState(phase: .nrem, episodeIds: batch, startedAt: now(), focus: focus)
             try? store.saveSleepCycle(state)
         }
-        let order: [SleepPhase] = [.nrem, .summarize, .detect, .rem, .reflect, .curate, .shy]
+        let order: [SleepPhase] = [.nrem, .summarize, .detect, .rem, .reflect, .clarify, .curate, .shy]
         guard let startIdx = order.firstIndex(of: state.phase) else { return }
         for phase in order[startIdx...] {
             if isCancelled() { return }   // leave persisted phase for resume
@@ -391,6 +449,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
                 await detectFollowUps(episodeTexts: episodeTexts(ids: state.episodeIds))
             case .rem: await associate()
             case .reflect: await reflect()
+            case .clarify: await clarify()
             case .curate: await curateKinds()
             case .shy: await forget()
             }
@@ -416,5 +475,7 @@ nonisolated final class MemoryConsolidationEngine: ConsolidationRunning {
         await associate()
         if isCancelled() { return }
         await reflect()
+        if isCancelled() { return }
+        await clarify()
     }
 }

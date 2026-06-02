@@ -7,9 +7,10 @@ import Foundation
 struct NodeAttributes: Codable {
     var status: String?     // task: "pending" | "done"
     var horizon: String?    // plan: "short" | "long"
+    var date: String?       // task/plan: absolute ISO date (yyyy-MM-dd), resolved from relative refs
 
     func toJSON() -> String? {
-        guard status != nil || horizon != nil else { return nil }
+        guard status != nil || horizon != nil || date != nil else { return nil }
         return (try? JSONEncoder().encode(self)).flatMap { String(data: $0, encoding: .utf8) }
     }
     static func from(_ extra: String?) -> NodeAttributes {

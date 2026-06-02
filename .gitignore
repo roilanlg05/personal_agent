@@ -7,3 +7,12 @@ images/
 # MLX spike (venv + downloaded weights, not for git) — but keep the launcher script
 spike-mlx/*
 !spike-mlx/serve_mlx_vlm.py
+
+# M3a
+embedder/__pycache__/
+embedder/models/
+embedder/.pytest_cache/
+embedder/.venv/
+memory-service/.build/
+memory-service/.swiftpm/
+docker-data/

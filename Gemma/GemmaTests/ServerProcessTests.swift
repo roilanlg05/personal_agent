@@ -58,7 +58,7 @@ final class ServerProcessTests: XCTestCase {
         XCTAssertEqual(c.wiredLimitBytes, 0, "default must be pageable (toggle off)")
         XCTAssertEqual(c.draftKind, "mtp")
         XCTAssertNotNil(c.draftModelId)
-        XCTAssertEqual(c.draftBlockSize, 3)
+        XCTAssertEqual(c.draftBlockSize, 2, "tuned: bs=2 measured ~+13-15% decode vs 3 (see docs/spikes/2026-06-02)")
     }
 
     func test_watchdogScript_contains_guardrails() {

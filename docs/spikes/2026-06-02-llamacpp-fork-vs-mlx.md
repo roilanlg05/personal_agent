@@ -61,3 +61,18 @@ The real cold-start cost is **Metal-kernel JIT on the first real generation (~31
 **Fix (branch `feat/mlx-ttft-apc`):** `HTTPServerHealth.warm()` now sends a *representative* warm-up — system message + `max_tokens:16` — so the multi-token + MTP decode kernels JIT at startup (behind the app's existing "warming" state). Measured: user's first real message **31s → 0.83s**, full MTP decode (~29 t/s) retained.
 
 **APC was reverted** (incompatible with MTP — Metal GPU timeout; disk tier slower than recompute for small prefixes). The stable-system-prefix change (recall→user-tail) was kept as good hygiene. Net result: cold-start fixed, MLX + MTP retained, no backend switch.
+
+## MLX tuning (2026-06-02): draft-block-size 3→2, prompt-caching matrix
+
+**draft-block-size sweep (clean A/B, best-of-2):** bs=2 wins every regime — factual 26.2 vs 23.1 t/s (+13%), creative 18.7 vs 16.3 (+15%). Smaller block = lower acceptance/round but cheaper rounds → higher throughput at moderate acceptance. Monotonic 2>3>4>5>6 across the full 2–6 sweep. **Default changed to `draftBlockSize: 2`.**
+
+**Prompt caching matrix (mlx_vlm APC):**
+| Config | Decode | Cross-turn prompt cache |
+|---|---|---|
+| MTP, no APC (shipped) | ~26–29 t/s | none |
+| APC, no MTP | ~24 t/s | yes (warm TTFT ~0.3s) |
+| APC + MTP | ~29 t/s | **inert** (`stores=0`; MTP path bypasses APC) |
+
+APC + MTP does NOT crash in-memory (the earlier crash was the disk-restore path) but APC is **inert** with MTP. So prompt-caching and MTP are mutually exclusive in mlx_vlm. Not worth dropping MTP for it (cold-start already fixed by the representative warm-up; warm TTFT with MTP is ~0.83s).
+
+**batch size:** no single-user lever — `--prefill-step-size` only affects prompts >2048 tokens (ours ~200 = 1 prefill step); internal completion/prefill batch is for concurrent multi-user requests. Decode is autoregressive batch-1; its only "batch" is the MTP draft block (swept above).

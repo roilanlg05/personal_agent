@@ -40,7 +40,7 @@ nonisolated struct ServerConfig: Sendable {
         port: 8080,
         draftModelId: "guardiangate1775/gemma-4-26B-A4B-it-assistant-4bit",
         draftKind: "mtp",
-        draftBlockSize: 3,
+        draftBlockSize: 2,
         wiredLimitBytes: 0)
 }
 

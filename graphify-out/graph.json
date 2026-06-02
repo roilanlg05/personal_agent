@@ -164,7 +164,7 @@
       "source_file": "",
       "source_location": "",
       "id": "sendable",
-      "community": 145,
+      "community": 115,
       "norm_label": "sendable"
     },
     {
@@ -299,7 +299,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
       "source_location": "L15",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_init",
-      "community": 135,
+      "community": 87,
       "norm_label": ".init()"
     },
     {
@@ -378,7 +378,7 @@
       "label": ".episodeTexts()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L98",
+      "source_location": "L102",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_episodetexts",
       "community": 125,
       "norm_label": ".episodetexts()"
@@ -387,7 +387,7 @@
       "label": "SummaryOut",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L105",
+      "source_location": "L109",
       "id": "memory_memoryconsolidationengine_summaryout",
       "community": 119,
       "norm_label": "summaryout"
@@ -396,16 +396,25 @@
       "label": ".summarize()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L113",
+      "source_location": "L117",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_summarize",
       "community": 125,
       "norm_label": ".summarize()"
     },
     {
+      "label": ".summarizeRecent()",
+      "file_type": "code",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L157",
+      "id": "memory_memoryconsolidationengine_memoryconsolidationengine_summarizerecent",
+      "community": 125,
+      "norm_label": ".summarizerecent()"
+    },
+    {
       "label": "FollowUpsOut",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L148",
+      "source_location": "L174",
       "id": "memory_memoryconsolidationengine_followupsout",
       "community": 119,
       "norm_label": "followupsout"
@@ -414,7 +423,7 @@
       "label": "F",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L148",
+      "source_location": "L174",
       "id": "memory_memoryconsolidationengine_f",
       "community": 119,
       "norm_label": "f"
@@ -423,7 +432,7 @@
       "label": ".detectFollowUps()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L152",
+      "source_location": "L178",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_detectfollowups",
       "community": 125,
       "norm_label": ".detectfollowups()"
@@ -432,7 +441,7 @@
       "label": "EdgesOut",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L197",
+      "source_location": "L223",
       "id": "memory_memoryconsolidationengine_edgesout",
       "community": 119,
       "norm_label": "edgesout"
@@ -441,7 +450,7 @@
       "label": ".associate()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L199",
+      "source_location": "L225",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_associate",
       "community": 125,
       "norm_label": ".associate()"
@@ -450,7 +459,7 @@
       "label": "InsightsOut",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L241",
+      "source_location": "L267",
       "id": "memory_memoryconsolidationengine_insightsout",
       "community": 119,
       "norm_label": "insightsout"
@@ -459,7 +468,7 @@
       "label": "I",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L241",
+      "source_location": "L267",
       "id": "memory_memoryconsolidationengine_i",
       "community": 119,
       "norm_label": "i"
@@ -468,7 +477,7 @@
       "label": ".reflect()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L243",
+      "source_location": "L269",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_reflect",
       "community": 125,
       "norm_label": ".reflect()"
@@ -477,7 +486,7 @@
       "label": "KindMapOut",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L290",
+      "source_location": "L316",
       "id": "memory_memoryconsolidationengine_kindmapout",
       "community": 119,
       "norm_label": "kindmapout"
@@ -486,7 +495,7 @@
       "label": ".curateKinds()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L292",
+      "source_location": "L318",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_curatekinds",
       "community": 125,
       "norm_label": ".curatekinds()"
@@ -495,7 +504,7 @@
       "label": ".forget()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L310",
+      "source_location": "L336",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_forget",
       "community": 125,
       "norm_label": ".forget()"
@@ -504,7 +513,7 @@
       "label": ".runCycle()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L316",
+      "source_location": "L342",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_runcycle",
       "community": 125,
       "norm_label": ".runcycle()"
@@ -513,7 +522,7 @@
       "label": ".runLight()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
-      "source_location": "L385",
+      "source_location": "L412",
       "id": "memory_memoryconsolidationengine_memoryconsolidationengine_runlight",
       "community": 125,
       "norm_label": ".runlight()"
@@ -555,10 +564,19 @@
       "norm_label": ".dedupkey()"
     },
     {
+      "label": ".canonicalEntityLabel()",
+      "file_type": "code",
+      "source_file": "Gemma/Gemma/Memory/MemoryText.swift",
+      "source_location": "L39",
+      "id": "memory_memorytext_memorytext_canonicalentitylabel",
+      "community": 82,
+      "norm_label": ".canonicalentitylabel()"
+    },
+    {
       "label": ".isJunkLabel()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/MemoryText.swift",
-      "source_location": "L37",
+      "source_location": "L55",
       "id": "memory_memorytext_memorytext_isjunklabel",
       "community": 82,
       "norm_label": ".isjunklabel()"
@@ -632,7 +650,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L1",
       "id": "gemma_gemma_memory_transcriptstore_swift",
-      "community": 135,
+      "community": 87,
       "norm_label": "transcriptstore.swift"
     },
     {
@@ -668,7 +686,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L19",
       "id": "memory_transcriptstore_transcriptstore",
-      "community": 135,
+      "community": 87,
       "norm_label": "transcriptstore"
     },
     {
@@ -677,7 +695,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L21",
       "id": "memory_transcriptstore_transcriptstore_init",
-      "community": 135,
+      "community": 87,
       "norm_label": ".init()"
     },
     {
@@ -686,7 +704,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L23",
       "id": "memory_transcriptstore_transcriptstore_append",
-      "community": 135,
+      "community": 87,
       "norm_label": ".append()"
     },
     {
@@ -695,7 +713,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L32",
       "id": "memory_transcriptstore_transcriptstore_recent",
-      "community": 135,
+      "community": 87,
       "norm_label": ".recent()"
     },
     {
@@ -704,7 +722,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L54",
       "id": "memory_transcriptstore_transcriptstore_range",
-      "community": 135,
+      "community": 87,
       "norm_label": ".range()"
     },
     {
@@ -713,7 +731,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L65",
       "id": "memory_transcriptstore_transcriptstore_rows",
-      "community": 135,
+      "community": 87,
       "norm_label": ".rows()"
     },
     {
@@ -722,7 +740,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L75",
       "id": "memory_transcriptstore_transcriptstore_unconsolidated",
-      "community": 135,
+      "community": 87,
       "norm_label": ".unconsolidated()"
     },
     {
@@ -731,7 +749,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L86",
       "id": "memory_transcriptstore_transcriptstore_allrecent",
-      "community": 135,
+      "community": 87,
       "norm_label": ".allrecent()"
     },
     {
@@ -740,7 +758,7 @@
       "source_file": "Gemma/Gemma/Memory/TranscriptStore.swift",
       "source_location": "L92",
       "id": "memory_transcriptstore_transcriptstore_markconsolidated",
-      "community": 135,
+      "community": 87,
       "norm_label": ".markconsolidated()"
     },
     {
@@ -956,7 +974,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryStore.swift",
       "source_location": "L170",
       "id": "memory_memorystore_memorystore_loadsleepcycle",
-      "community": 143,
+      "community": 142,
       "norm_label": ".loadsleepcycle()"
     },
     {
@@ -1136,7 +1154,7 @@
       "source_file": "Gemma/Gemma/Memory/MemoryModels.swift",
       "source_location": "L4",
       "id": "memory_memorymodels_nodekind_task",
-      "community": 10,
+      "community": 127,
       "norm_label": "task"
     },
     {
@@ -1487,7 +1505,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L1",
       "id": "gemma_gemma_memory_embedder_swift",
-      "community": 87,
+      "community": 144,
       "norm_label": "embedder.swift"
     },
     {
@@ -1496,7 +1514,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L7",
       "id": "memory_embedder_embedder",
-      "community": 87,
+      "community": 144,
       "norm_label": "embedder"
     },
     {
@@ -1505,7 +1523,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L12",
       "id": "memory_embedder_memoryerror",
-      "community": 87,
+      "community": 144,
       "norm_label": "memoryerror"
     },
     {
@@ -1514,7 +1532,7 @@
       "source_file": "",
       "source_location": "",
       "id": "error",
-      "community": 145,
+      "community": 115,
       "norm_label": "error"
     },
     {
@@ -1523,7 +1541,7 @@
       "source_file": "Gemma/Gemma/Memory/Embedder.swift",
       "source_location": "L12",
       "id": "memory_embedder_memoryerror_embedderunavailable",
-      "community": 87,
+      "community": 144,
       "norm_label": "embedderunavailable"
     },
     {
@@ -1737,7 +1755,7 @@
       "label": ".init()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/ConsolidationScheduler.swift",
-      "source_location": "L27",
+      "source_location": "L28",
       "id": "memory_consolidationscheduler_consolidationscheduler_init",
       "community": 127,
       "norm_label": ".init()"
@@ -1746,16 +1764,25 @@
       "label": ".noteUserActivity()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/ConsolidationScheduler.swift",
-      "source_location": "L34",
+      "source_location": "L38",
       "id": "memory_consolidationscheduler_consolidationscheduler_noteuseractivity",
       "community": 127,
       "norm_label": ".noteuseractivity()"
     },
     {
+      "label": ".noteTurnEnded()",
+      "file_type": "code",
+      "source_file": "Gemma/Gemma/Memory/ConsolidationScheduler.swift",
+      "source_location": "L46",
+      "id": "memory_consolidationscheduler_consolidationscheduler_noteturnended",
+      "community": 127,
+      "norm_label": ".noteturnended()"
+    },
+    {
       "label": ".consolidateNow()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/ConsolidationScheduler.swift",
-      "source_location": "L42",
+      "source_location": "L51",
       "id": "memory_consolidationscheduler_consolidationscheduler_consolidatenow",
       "community": 127,
       "norm_label": ".consolidatenow()"
@@ -1764,7 +1791,7 @@
       "label": ".requestLightReflection()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/ConsolidationScheduler.swift",
-      "source_location": "L43",
+      "source_location": "L52",
       "id": "memory_consolidationscheduler_consolidationscheduler_requestlightreflection",
       "community": 127,
       "norm_label": ".requestlightreflection()"
@@ -1773,7 +1800,7 @@
       "label": ".scheduleTimers()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/ConsolidationScheduler.swift",
-      "source_location": "L45",
+      "source_location": "L54",
       "id": "memory_consolidationscheduler_consolidationscheduler_scheduletimers",
       "community": 127,
       "norm_label": ".scheduletimers()"
@@ -1782,7 +1809,7 @@
       "label": ".launch()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Memory/ConsolidationScheduler.swift",
-      "source_location": "L59",
+      "source_location": "L68",
       "id": "memory_consolidationscheduler_consolidationscheduler_launch",
       "community": 127,
       "norm_label": ".launch()"
@@ -1955,7 +1982,7 @@
       "source_file": "Gemma/Gemma/Memory/SaveMemoryTool.swift",
       "source_location": "L21",
       "id": "memory_savememorytool_savememorytool_run",
-      "community": 130,
+      "community": 92,
       "norm_label": ".run()"
     },
     {
@@ -2261,7 +2288,7 @@
       "source_file": "Gemma/Gemma/Runtime/HTTPServerHealth.swift",
       "source_location": "L1",
       "id": "gemma_gemma_runtime_httpserverhealth_swift",
-      "community": 150,
+      "community": 115,
       "norm_label": "httpserverhealth.swift"
     },
     {
@@ -2270,7 +2297,7 @@
       "source_file": "Gemma/Gemma/Runtime/HTTPServerHealth.swift",
       "source_location": "L4",
       "id": "runtime_httpserverhealth_httpserverhealth",
-      "community": 150,
+      "community": 115,
       "norm_label": "httpserverhealth"
     },
     {
@@ -2279,7 +2306,7 @@
       "source_file": "Gemma/Gemma/Runtime/HTTPServerHealth.swift",
       "source_location": "L6",
       "id": "runtime_httpserverhealth_httpserverhealth_init",
-      "community": 150,
+      "community": 115,
       "norm_label": ".init()"
     },
     {
@@ -2288,7 +2315,7 @@
       "source_file": "Gemma/Gemma/Runtime/HTTPServerHealth.swift",
       "source_location": "L8",
       "id": "runtime_httpserverhealth_httpserverhealth_probe",
-      "community": 150,
+      "community": 115,
       "norm_label": ".probe()"
     },
     {
@@ -2297,7 +2324,7 @@
       "source_file": "Gemma/Gemma/Runtime/HTTPServerHealth.swift",
       "source_location": "L19",
       "id": "runtime_httpserverhealth_httpserverhealth_warm",
-      "community": 150,
+      "community": 115,
       "norm_label": ".warm()"
     },
     {
@@ -2306,7 +2333,7 @@
       "source_file": "Gemma/Gemma/Runtime/RuntimeFactory.swift",
       "source_location": "L1",
       "id": "gemma_gemma_runtime_runtimefactory_swift",
-      "community": 147,
+      "community": 124,
       "norm_label": "runtimefactory.swift"
     },
     {
@@ -2342,7 +2369,7 @@
       "source_file": "Gemma/Gemma/Runtime/RuntimeFactory.swift",
       "source_location": "L15",
       "id": "runtime_runtimefactory_runtimefactory",
-      "community": 147,
+      "community": 124,
       "norm_label": "runtimefactory"
     },
     {
@@ -2351,7 +2378,7 @@
       "source_file": "Gemma/Gemma/Runtime/RuntimeFactory.swift",
       "source_location": "L17",
       "id": "runtime_runtimefactory_runtimefactory_make",
-      "community": 147,
+      "community": 124,
       "norm_label": ".make()"
     },
     {
@@ -2376,7 +2403,7 @@
       "label": ".init()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerRuntime.swift",
-      "source_location": "L19",
+      "source_location": "L20",
       "id": "runtime_serverruntime_serverruntime_init",
       "community": 147,
       "norm_label": ".init()"
@@ -2385,7 +2412,7 @@
       "label": ".isLoaded()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerRuntime.swift",
-      "source_location": "L29",
+      "source_location": "L32",
       "id": "runtime_serverruntime_serverruntime_isloaded",
       "community": 147,
       "norm_label": ".isloaded()"
@@ -2394,7 +2421,7 @@
       "label": ".load()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerRuntime.swift",
-      "source_location": "L30",
+      "source_location": "L33",
       "id": "runtime_serverruntime_serverruntime_load",
       "community": 147,
       "norm_label": ".load()"
@@ -2403,7 +2430,7 @@
       "label": ".unload()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerRuntime.swift",
-      "source_location": "L31",
+      "source_location": "L34",
       "id": "runtime_serverruntime_serverruntime_unload",
       "community": 147,
       "norm_label": ".unload()"
@@ -2412,7 +2439,7 @@
       "label": ".currentMetrics()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerRuntime.swift",
-      "source_location": "L32",
+      "source_location": "L35",
       "id": "runtime_serverruntime_serverruntime_currentmetrics",
       "community": 147,
       "norm_label": ".currentmetrics()"
@@ -2421,9 +2448,9 @@
       "label": ".generate()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/ServerRuntime.swift",
-      "source_location": "L34",
+      "source_location": "L37",
       "id": "runtime_serverruntime_serverruntime_generate",
-      "community": 10,
+      "community": 127,
       "norm_label": ".generate()"
     },
     {
@@ -2432,7 +2459,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L1",
       "id": "gemma_gemma_runtime_modelruntime_swift",
-      "community": 128,
+      "community": 142,
       "norm_label": "modelruntime.swift"
     },
     {
@@ -2450,7 +2477,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L5",
       "id": "runtime_modelruntime_role",
-      "community": 128,
+      "community": 142,
       "norm_label": "role"
     },
     {
@@ -2459,7 +2486,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L5",
       "id": "runtime_modelruntime_role_system",
-      "community": 128,
+      "community": 142,
       "norm_label": "system"
     },
     {
@@ -2468,7 +2495,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L5",
       "id": "runtime_modelruntime_role_user",
-      "community": 128,
+      "community": 142,
       "norm_label": "user"
     },
     {
@@ -2477,7 +2504,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L5",
       "id": "runtime_modelruntime_role_assistant",
-      "community": 128,
+      "community": 142,
       "norm_label": "assistant"
     },
     {
@@ -2513,7 +2540,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L42",
       "id": "runtime_modelruntime_computebackend",
-      "community": 128,
+      "community": 98,
       "norm_label": "computebackend"
     },
     {
@@ -2522,7 +2549,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L43",
       "id": "runtime_modelruntime_computebackend_cpu",
-      "community": 128,
+      "community": 98,
       "norm_label": "cpu"
     },
     {
@@ -2531,7 +2558,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L44",
       "id": "runtime_modelruntime_computebackend_gpu",
-      "community": 128,
+      "community": 98,
       "norm_label": "gpu"
     },
     {
@@ -2576,7 +2603,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L121",
       "id": "runtime_modelruntime_generationresult",
-      "community": 140,
+      "community": 56,
       "norm_label": "generationresult"
     },
     {
@@ -2585,7 +2612,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L125",
       "id": "runtime_modelruntime_generationresult_init",
-      "community": 140,
+      "community": 56,
       "norm_label": ".init()"
     },
     {
@@ -2594,7 +2621,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L131",
       "id": "runtime_modelruntime_runtimeerror",
-      "community": 145,
+      "community": 115,
       "norm_label": "runtimeerror"
     },
     {
@@ -2603,7 +2630,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L132",
       "id": "runtime_modelruntime_runtimeerror_modelnotfound",
-      "community": 145,
+      "community": 115,
       "norm_label": "modelnotfound"
     },
     {
@@ -2612,7 +2639,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L133",
       "id": "runtime_modelruntime_runtimeerror_loadfailed",
-      "community": 145,
+      "community": 115,
       "norm_label": "loadfailed"
     },
     {
@@ -2621,7 +2648,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L134",
       "id": "runtime_modelruntime_runtimeerror_notloaded",
-      "community": 145,
+      "community": 115,
       "norm_label": "notloaded"
     },
     {
@@ -2630,7 +2657,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L135",
       "id": "runtime_modelruntime_runtimeerror_generationfailed",
-      "community": 145,
+      "community": 115,
       "norm_label": "generationfailed"
     },
     {
@@ -2684,7 +2711,7 @@
       "source_file": "Gemma/Gemma/Runtime/ModelRuntime.swift",
       "source_location": "L153",
       "id": "runtime_modelruntime_modelruntime",
-      "community": 147,
+      "community": 124,
       "norm_label": "modelruntime"
     },
     {
@@ -2693,7 +2720,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L1",
       "id": "gemma_gemma_runtime_servermanager_swift",
-      "community": 148,
+      "community": 115,
       "norm_label": "servermanager.swift"
     },
     {
@@ -2702,7 +2729,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L6",
       "id": "runtime_servermanager_serverstate",
-      "community": 148,
+      "community": 115,
       "norm_label": "serverstate"
     },
     {
@@ -2711,7 +2738,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L7",
       "id": "runtime_servermanager_serverstate_idle",
-      "community": 148,
+      "community": 115,
       "norm_label": "idle"
     },
     {
@@ -2720,7 +2747,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L8",
       "id": "runtime_servermanager_serverstate_starting",
-      "community": 148,
+      "community": 115,
       "norm_label": "starting"
     },
     {
@@ -2729,7 +2756,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L9",
       "id": "runtime_servermanager_serverstate_loadingmodel",
-      "community": 148,
+      "community": 115,
       "norm_label": "loadingmodel"
     },
     {
@@ -2738,7 +2765,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L10",
       "id": "runtime_servermanager_serverstate_ready",
-      "community": 148,
+      "community": 115,
       "norm_label": "ready"
     },
     {
@@ -2747,7 +2774,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L11",
       "id": "runtime_servermanager_serverstate_stopped",
-      "community": 148,
+      "community": 115,
       "norm_label": "stopped"
     },
     {
@@ -2756,7 +2783,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L12",
       "id": "runtime_servermanager_serverstate_failed",
-      "community": 148,
+      "community": 115,
       "norm_label": "failed"
     },
     {
@@ -2774,7 +2801,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L48",
       "id": "runtime_servermanager_serverprocesshandle",
-      "community": 145,
+      "community": 115,
       "norm_label": "serverprocesshandle"
     },
     {
@@ -2783,7 +2810,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L55",
       "id": "runtime_servermanager_serverprocesslauncher",
-      "community": 148,
+      "community": 115,
       "norm_label": "serverprocesslauncher"
     },
     {
@@ -2792,7 +2819,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L60",
       "id": "runtime_servermanager_serverhealth",
-      "community": 148,
+      "community": 115,
       "norm_label": "serverhealth"
     },
     {
@@ -2801,7 +2828,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L65",
       "id": "runtime_servermanager_servermanager",
-      "community": 149,
+      "community": 115,
       "norm_label": "servermanager"
     },
     {
@@ -2810,7 +2837,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L85",
       "id": "runtime_servermanager_servermanager_init",
-      "community": 149,
+      "community": 115,
       "norm_label": ".init()"
     },
     {
@@ -2819,7 +2846,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L102",
       "id": "runtime_servermanager_servermanager_start",
-      "community": 149,
+      "community": 115,
       "norm_label": ".start()"
     },
     {
@@ -2828,7 +2855,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L154",
       "id": "runtime_servermanager_servermanager_stop",
-      "community": 149,
+      "community": 115,
       "norm_label": ".stop()"
     },
     {
@@ -2837,7 +2864,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L163",
       "id": "runtime_servermanager_servermanager_setwiredlimit",
-      "community": 149,
+      "community": 115,
       "norm_label": ".setwiredlimit()"
     },
     {
@@ -2846,7 +2873,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L176",
       "id": "runtime_servermanager_servermanager_restart",
-      "community": 149,
+      "community": 115,
       "norm_label": ".restart()"
     },
     {
@@ -2855,7 +2882,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L184",
       "id": "runtime_servermanager_servermanager_waitforserverdown",
-      "community": 149,
+      "community": 115,
       "norm_label": ".waitforserverdown()"
     },
     {
@@ -2864,7 +2891,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L200",
       "id": "runtime_servermanager_servermanager_warmtoready",
-      "community": 149,
+      "community": 115,
       "norm_label": ".warmtoready()"
     },
     {
@@ -2873,7 +2900,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L211",
       "id": "runtime_servermanager_servermanager_startkeepalive",
-      "community": 149,
+      "community": 115,
       "norm_label": ".startkeepalive()"
     },
     {
@@ -2882,7 +2909,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerManager.swift",
       "source_location": "L230",
       "id": "runtime_servermanager_servermanager_handleunexpectedexit",
-      "community": 149,
+      "community": 115,
       "norm_label": ".handleunexpectedexit()"
     },
     {
@@ -3062,7 +3089,7 @@
       "source_file": "Gemma/Gemma/Runtime/DummyRuntime.swift",
       "source_location": "L9",
       "id": "runtime_dummyruntime_dummyruntime_generate",
-      "community": 0,
+      "community": 56,
       "norm_label": ".generate()"
     },
     {
@@ -3125,7 +3152,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerProcess.swift",
       "source_location": "L45",
       "id": "runtime_serverprocess_realserverprocesshandle",
-      "community": 145,
+      "community": 115,
       "norm_label": "realserverprocesshandle"
     },
     {
@@ -3134,7 +3161,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerProcess.swift",
       "source_location": "L55",
       "id": "runtime_serverprocess_realserverprocesshandle_init",
-      "community": 145,
+      "community": 115,
       "norm_label": ".init()"
     },
     {
@@ -3143,7 +3170,7 @@
       "source_file": "Gemma/Gemma/Runtime/ServerProcess.swift",
       "source_location": "L68",
       "id": "runtime_serverprocess_realserverprocesshandle_terminate",
-      "community": 145,
+      "community": 115,
       "norm_label": ".terminate()"
     },
     {
@@ -3170,7 +3197,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L1",
       "id": "gemma_gemma_agent_agent_swift",
-      "community": 132,
+      "community": 154,
       "norm_label": "agent.swift"
     },
     {
@@ -3233,7 +3260,7 @@
       "source_file": "Gemma/Gemma/Agent/Agent.swift",
       "source_location": "L12",
       "id": "agent_agent_memoryservices",
-      "community": 132,
+      "community": 146,
       "norm_label": "memoryservices"
     },
     {
@@ -3422,7 +3449,7 @@
       "source_file": "Gemma/Gemma/Agent/CurrentTimeTool.swift",
       "source_location": "L1",
       "id": "gemma_gemma_agent_currenttimetool_swift",
-      "community": 131,
+      "community": 132,
       "norm_label": "currenttimetool.swift"
     },
     {
@@ -3431,7 +3458,7 @@
       "source_file": "Gemma/Gemma/Agent/CurrentTimeTool.swift",
       "source_location": "L4",
       "id": "agent_currenttimetool_currenttimetool",
-      "community": 131,
+      "community": 132,
       "norm_label": "currenttimetool"
     },
     {
@@ -3440,7 +3467,7 @@
       "source_file": "Gemma/Gemma/Agent/CurrentTimeTool.swift",
       "source_location": "L9",
       "id": "agent_currenttimetool_currenttimetool_run",
-      "community": 131,
+      "community": 132,
       "norm_label": ".run()"
     },
     {
@@ -3566,7 +3593,7 @@
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L1",
       "id": "gemma_gemma_harness_harnessmodel_swift",
-      "community": 140,
+      "community": 124,
       "norm_label": "harnessmodel.swift"
     },
     {
@@ -3611,7 +3638,7 @@
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L71",
       "id": "harness_harnessmodel_harnessmodel_startserver",
-      "community": 10,
+      "community": 127,
       "norm_label": ".startserver()"
     },
     {
@@ -3663,7 +3690,7 @@
       "label": ".consolidateNow()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
-      "source_location": "L130",
+      "source_location": "L131",
       "id": "harness_harnessmodel_harnessmodel_consolidatenow",
       "community": 10,
       "norm_label": ".consolidatenow()"
@@ -3672,7 +3699,7 @@
       "label": ".runAgentTurn()",
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
-      "source_location": "L132",
+      "source_location": "L133",
       "id": "harness_harnessmodel_harnessmodel_runagentturn",
       "community": 10,
       "norm_label": ".runagentturn()"
@@ -3746,7 +3773,7 @@
       "source_file": "Gemma/Gemma/Harness/MemoryView.swift",
       "source_location": "L1",
       "id": "gemma_gemma_harness_memoryview_swift",
-      "community": 84,
+      "community": 6,
       "norm_label": "memoryview.swift"
     },
     {
@@ -4088,7 +4115,7 @@
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L14",
       "id": "gemmatests_memoryconsolidationenginetests_cannedruntime_generate",
-      "community": 140,
+      "community": 56,
       "norm_label": ".generate()"
     },
     {
@@ -4223,7 +4250,7 @@
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L166",
       "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_runcycle_consumes_transcript_and_marks_consolidated",
-      "community": 135,
+      "community": 87,
       "norm_label": ".test_runcycle_consumes_transcript_and_marks_consolidated()"
     },
     {
@@ -4232,7 +4259,7 @@
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L183",
       "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarize_groups_by_thread_one_summary_per_session",
-      "community": 135,
+      "community": 87,
       "norm_label": ".test_summarize_groups_by_thread_one_summary_per_session()"
     },
     {
@@ -4241,8 +4268,26 @@
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
       "source_location": "L200",
       "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarize_writes_structured_summary_node",
-      "community": 135,
+      "community": 87,
       "norm_label": ".test_summarize_writes_structured_summary_node()"
+    },
+    {
+      "label": ".test_summarizeRecent_creates_summary_without_marking_consolidated()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L217",
+      "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_creates_summary_without_marking_consolidated",
+      "community": 87,
+      "norm_label": ".test_summarizerecent_creates_summary_without_marking_consolidated()"
+    },
+    {
+      "label": ".test_summarizeRecent_skips_threads_already_summarized()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L233",
+      "id": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_skips_threads_already_summarized",
+      "community": 87,
+      "norm_label": ".test_summarizerecent_skips_threads_already_summarized()"
     },
     {
       "label": "ExpandContextToolTests.swift",
@@ -4853,7 +4898,7 @@
       "source_file": "Gemma/GemmaTests/NodeAttributesTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_nodeattributestests_swift",
-      "community": 124,
+      "community": 70,
       "norm_label": "nodeattributestests.swift"
     },
     {
@@ -4862,7 +4907,7 @@
       "source_file": "Gemma/GemmaTests/NodeAttributesTests.swift",
       "source_location": "L4",
       "id": "gemmatests_nodeattributestests_nodeattributestests",
-      "community": 124,
+      "community": 70,
       "norm_label": "nodeattributestests"
     },
     {
@@ -4871,7 +4916,7 @@
       "source_file": "Gemma/GemmaTests/NodeAttributesTests.swift",
       "source_location": "L5",
       "id": "gemmatests_nodeattributestests_nodeattributestests_test_round_trip_status_and_horizon",
-      "community": 124,
+      "community": 70,
       "norm_label": ".test_round_trip_status_and_horizon()"
     },
     {
@@ -4880,7 +4925,7 @@
       "source_file": "Gemma/GemmaTests/NodeAttributesTests.swift",
       "source_location": "L13",
       "id": "gemmatests_nodeattributestests_nodeattributestests_test_from_nil_or_garbage_is_empty",
-      "community": 124,
+      "community": 70,
       "norm_label": ".test_from_nil_or_garbage_is_empty()"
     },
     {
@@ -4889,7 +4934,7 @@
       "source_file": "Gemma/GemmaTests/MemorySettingTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_memorysettingtests_swift",
-      "community": 70,
+      "community": 148,
       "norm_label": "memorysettingtests.swift"
     },
     {
@@ -4898,7 +4943,7 @@
       "source_file": "Gemma/GemmaTests/MemorySettingTests.swift",
       "source_location": "L6",
       "id": "gemmatests_memorysettingtests_memorysettingtests",
-      "community": 70,
+      "community": 148,
       "norm_label": "memorysettingtests"
     },
     {
@@ -4907,7 +4952,7 @@
       "source_file": "Gemma/GemmaTests/MemorySettingTests.swift",
       "source_location": "L7",
       "id": "gemmatests_memorysettingtests_memorysettingtests_testdefaultisnil",
-      "community": 70,
+      "community": 148,
       "norm_label": ".testdefaultisnil()"
     },
     {
@@ -4916,7 +4961,7 @@
       "source_file": "Gemma/GemmaTests/MemorySettingTests.swift",
       "source_location": "L11",
       "id": "gemmatests_memorysettingtests_memorysettingtests_testroundtrips",
-      "community": 70,
+      "community": 148,
       "norm_label": ".testroundtrips()"
     },
     {
@@ -4925,7 +4970,7 @@
       "source_file": "Gemma/GemmaTests/MemorySettingTests.swift",
       "source_location": "L19",
       "id": "gemmatests_memorysettingtests_memorysettingtests_testbackcompatdecodewithoutkey",
-      "community": 70,
+      "community": 148,
       "norm_label": ".testbackcompatdecodewithoutkey()"
     },
     {
@@ -5091,6 +5136,24 @@
       "norm_label": ".test_pause_resumes_pending_cycle_instead_of_light()"
     },
     {
+      "label": ".test_does_not_launch_while_user_busy()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/ConsolidationSchedulerTests.swift",
+      "source_location": "L60",
+      "id": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_does_not_launch_while_user_busy",
+      "community": 127,
+      "norm_label": ".test_does_not_launch_while_user_busy()"
+    },
+    {
+      "label": ".test_noteUserActivity_cancels_without_arming()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/ConsolidationSchedulerTests.swift",
+      "source_location": "L74",
+      "id": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_noteuseractivity_cancels_without_arming",
+      "community": 127,
+      "norm_label": ".test_noteuseractivity_cancels_without_arming()"
+    },
+    {
       "label": "ServerRuntimeStreamingTests.swift",
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
@@ -5172,10 +5235,64 @@
       "norm_label": ".test_streaming_yields_incremental_tokens_then_completed()"
     },
     {
-      "label": ".test_streaming_accumulates_tool_call_deltas()",
+      "label": "StallStub",
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L49",
+      "id": "gemmatests_serverruntimestreamingtests_stallstub",
+      "community": 7,
+      "norm_label": "stallstub"
+    },
+    {
+      "label": ".canInit()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L50",
+      "id": "gemmatests_serverruntimestreamingtests_stallstub_caninit",
+      "community": 7,
+      "norm_label": ".caninit()"
+    },
+    {
+      "label": ".canonicalRequest()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L51",
+      "id": "gemmatests_serverruntimestreamingtests_stallstub_canonicalrequest",
+      "community": 7,
+      "norm_label": ".canonicalrequest()"
+    },
+    {
+      "label": ".startLoading()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L52",
+      "id": "gemmatests_serverruntimestreamingtests_stallstub_startloading",
+      "community": 7,
+      "norm_label": ".startloading()"
+    },
+    {
+      "label": ".stopLoading()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L58",
+      "id": "gemmatests_serverruntimestreamingtests_stallstub_stoploading",
+      "community": 7,
+      "norm_label": ".stoploading()"
+    },
+    {
+      "label": ".test_generation_times_out_when_server_stalls()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L61",
+      "id": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_generation_times_out_when_server_stalls",
+      "community": 147,
+      "norm_label": ".test_generation_times_out_when_server_stalls()"
+    },
+    {
+      "label": ".test_streaming_accumulates_tool_call_deltas()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L71",
       "id": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_streaming_accumulates_tool_call_deltas",
       "community": 147,
       "norm_label": ".test_streaming_accumulates_tool_call_deltas()"
@@ -5906,7 +6023,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerLiveTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_servermanagerlivetests_swift",
-      "community": 150,
+      "community": 115,
       "norm_label": "servermanagerlivetests.swift"
     },
     {
@@ -5915,7 +6032,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerLiveTests.swift",
       "source_location": "L16",
       "id": "gemmatests_servermanagerlivetests_servermanagerlivetests",
-      "community": 150,
+      "community": 115,
       "norm_label": "servermanagerlivetests"
     },
     {
@@ -5924,7 +6041,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerLiveTests.swift",
       "source_location": "L19",
       "id": "gemmatests_servermanagerlivetests_servermanagerlivetests_test_live_spawn_ready_then_stop",
-      "community": 150,
+      "community": 115,
       "norm_label": ".test_live_spawn_ready_then_stop()"
     },
     {
@@ -5933,7 +6050,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerLiveTests.swift",
       "source_location": "L77",
       "id": "gemmatests_servermanagerlivetests_servermanagerlivetests_test_live_setwiredlimit_restarts_into_wired_server",
-      "community": 150,
+      "community": 115,
       "norm_label": ".test_live_setwiredlimit_restarts_into_wired_server()"
     },
     {
@@ -5980,6 +6097,51 @@
       "id": "gemmatests_agentsystemprompttests_agentsystemprompttests_test_system_prompt_has_no_save_memory_instruction",
       "community": 140,
       "norm_label": ".test_system_prompt_has_no_save_memory_instruction()"
+    },
+    {
+      "label": "MemoryTextCanonicalTests.swift",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryTextCanonicalTests.swift",
+      "source_location": "L1",
+      "id": "gemma_gemmatests_memorytextcanonicaltests_swift",
+      "community": 149,
+      "norm_label": "memorytextcanonicaltests.swift"
+    },
+    {
+      "label": "MemoryTextCanonicalTests",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryTextCanonicalTests.swift",
+      "source_location": "L4",
+      "id": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests",
+      "community": 149,
+      "norm_label": "memorytextcanonicaltests"
+    },
+    {
+      "label": ".test_strips_user_name_sentence_prefix()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryTextCanonicalTests.swift",
+      "source_location": "L5",
+      "id": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests_test_strips_user_name_sentence_prefix",
+      "community": 149,
+      "norm_label": ".test_strips_user_name_sentence_prefix()"
+    },
+    {
+      "label": ".test_keeps_already_canonical_labels()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryTextCanonicalTests.swift",
+      "source_location": "L10",
+      "id": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests_test_keeps_already_canonical_labels",
+      "community": 149,
+      "norm_label": ".test_keeps_already_canonical_labels()"
+    },
+    {
+      "label": ".test_trims_overlong_to_first_words()",
+      "file_type": "code",
+      "source_file": "Gemma/GemmaTests/MemoryTextCanonicalTests.swift",
+      "source_location": "L14",
+      "id": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests_test_trims_overlong_to_first_words",
+      "community": 149,
+      "norm_label": ".test_trims_overlong_to_first_words()"
     },
     {
       "label": "MemoryStoreEdgesTests.swift",
@@ -6095,7 +6257,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_serverruntimehistorytests_swift",
-      "community": 7,
+      "community": 128,
       "norm_label": "serverruntimehistorytests.swift"
     },
     {
@@ -6104,7 +6266,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L4",
       "id": "gemmatests_serverruntimehistorytests_serverruntimehistorytests",
-      "community": 7,
+      "community": 128,
       "norm_label": "serverruntimehistorytests"
     },
     {
@@ -6113,7 +6275,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L5",
       "id": "gemmatests_serverruntimehistorytests_bodycapture",
-      "community": 7,
+      "community": 128,
       "norm_label": "bodycapture"
     },
     {
@@ -6122,7 +6284,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L7",
       "id": "gemmatests_serverruntimehistorytests_bodycapture_caninit",
-      "community": 7,
+      "community": 128,
       "norm_label": ".caninit()"
     },
     {
@@ -6131,7 +6293,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L8",
       "id": "gemmatests_serverruntimehistorytests_bodycapture_canonicalrequest",
-      "community": 7,
+      "community": 128,
       "norm_label": ".canonicalrequest()"
     },
     {
@@ -6140,7 +6302,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L9",
       "id": "gemmatests_serverruntimehistorytests_bodycapture_startloading",
-      "community": 7,
+      "community": 128,
       "norm_label": ".startloading()"
     },
     {
@@ -6149,7 +6311,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L22",
       "id": "gemmatests_serverruntimehistorytests_bodycapture_stoploading",
-      "community": 7,
+      "community": 128,
       "norm_label": ".stoploading()"
     },
     {
@@ -6158,7 +6320,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L25",
       "id": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_makesession",
-      "community": 7,
+      "community": 128,
       "norm_label": ".makesession()"
     },
     {
@@ -6167,7 +6329,7 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeHistoryTests.swift",
       "source_location": "L31",
       "id": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_test_history_is_sent_between_system_and_user",
-      "community": 7,
+      "community": 128,
       "norm_label": ".test_history_is_sent_between_system_and_user()"
     },
     {
@@ -6176,7 +6338,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_agenttests_swift",
-      "community": 146,
+      "community": 140,
       "norm_label": "agenttests.swift"
     },
     {
@@ -6185,7 +6347,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L4",
       "id": "gemmatests_agenttests_agenttests",
-      "community": 146,
+      "community": 140,
       "norm_label": "agenttests"
     },
     {
@@ -6194,7 +6356,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L7",
       "id": "gemmatests_agenttests_stubruntime",
-      "community": 146,
+      "community": 140,
       "norm_label": "stubruntime"
     },
     {
@@ -6203,7 +6365,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L8",
       "id": "gemmatests_agenttests_stubruntime_generate",
-      "community": 146,
+      "community": 140,
       "norm_label": ".generate()"
     },
     {
@@ -6212,7 +6374,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L20",
       "id": "gemmatests_agenttests_agenttests_test_run_relayseventsasagentevents",
-      "community": 146,
+      "community": 140,
       "norm_label": ".test_run_relayseventsasagentevents()"
     },
     {
@@ -6221,7 +6383,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L40",
       "id": "gemmatests_agenttests_agenttests_test_run_executestoolandfinishes",
-      "community": 146,
+      "community": 140,
       "norm_label": ".test_run_executestoolandfinishes()"
     },
     {
@@ -6230,7 +6392,7 @@
       "source_file": "Gemma/GemmaTests/AgentTests.swift",
       "source_location": "L80",
       "id": "gemmatests_agenttests_agenttests_test_run_executestoolevenwhenmodelalsoreturnstext",
-      "community": 146,
+      "community": 140,
       "norm_label": ".test_run_executestoolevenwhenmodelalsoreturnstext()"
     },
     {
@@ -6293,7 +6455,7 @@
       "source_file": "Gemma/GemmaTests/AgentMemoryTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_agentmemorytests_swift",
-      "community": 132,
+      "community": 146,
       "norm_label": "agentmemorytests.swift"
     },
     {
@@ -6302,7 +6464,7 @@
       "source_file": "Gemma/GemmaTests/AgentMemoryTests.swift",
       "source_location": "L5",
       "id": "gemmatests_agentmemorytests_agentmemorytests",
-      "community": 132,
+      "community": 146,
       "norm_label": "agentmemorytests"
     },
     {
@@ -6311,7 +6473,7 @@
       "source_file": "Gemma/GemmaTests/AgentMemoryTests.swift",
       "source_location": "L7",
       "id": "gemmatests_agentmemorytests_agentmemorytests_teardown",
-      "community": 132,
+      "community": 146,
       "norm_label": ".teardown()"
     },
     {
@@ -6320,7 +6482,7 @@
       "source_file": "Gemma/GemmaTests/AgentMemoryTests.swift",
       "source_location": "L14",
       "id": "gemmatests_agentmemorytests_capturingruntime",
-      "community": 132,
+      "community": 146,
       "norm_label": "capturingruntime"
     },
     {
@@ -6338,7 +6500,7 @@
       "source_file": "Gemma/GemmaTests/AgentMemoryTests.swift",
       "source_location": "L25",
       "id": "gemmatests_agentmemorytests_agentmemorytests_testinjectsmemoryintosystemprompt",
-      "community": 132,
+      "community": 146,
       "norm_label": ".testinjectsmemoryintosystemprompt()"
     },
     {
@@ -6347,7 +6509,7 @@
       "source_file": "Gemma/GemmaTests/AgentMemoryTests.swift",
       "source_location": "L42",
       "id": "gemmatests_agentmemorytests_agentmemorytests_testnomemoryisplainsystemprompt",
-      "community": 132,
+      "community": 146,
       "norm_label": ".testnomemoryisplainsystemprompt()"
     },
     {
@@ -6356,7 +6518,7 @@
       "source_file": "Gemma/GemmaTests/AgentMemoryTests.swift",
       "source_location": "L49",
       "id": "gemmatests_agentmemorytests_agentmemorytests_test_wakecontext_is_injected_into_system_prompt",
-      "community": 132,
+      "community": 146,
       "norm_label": ".test_wakecontext_is_injected_into_system_prompt()"
     },
     {
@@ -6365,7 +6527,7 @@
       "source_file": "Gemma/GemmaTests/MemoryCoreRecallTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_memorycorerecalltests_swift",
-      "community": 51,
+      "community": 145,
       "norm_label": "memorycorerecalltests.swift"
     },
     {
@@ -6374,7 +6536,7 @@
       "source_file": "Gemma/GemmaTests/MemoryCoreRecallTests.swift",
       "source_location": "L6",
       "id": "gemmatests_memorycorerecalltests_memorycorerecalltests",
-      "community": 51,
+      "community": 145,
       "norm_label": "memorycorerecalltests"
     },
     {
@@ -6383,7 +6545,7 @@
       "source_file": "Gemma/GemmaTests/MemoryCoreRecallTests.swift",
       "source_location": "L7",
       "id": "gemmatests_memorycorerecalltests_memorycorerecalltests_store",
-      "community": 51,
+      "community": 145,
       "norm_label": ".store()"
     },
     {
@@ -6392,7 +6554,7 @@
       "source_file": "Gemma/GemmaTests/MemoryCoreRecallTests.swift",
       "source_location": "L8",
       "id": "gemmatests_memorycorerecalltests_memorycorerecalltests_node",
-      "community": 51,
+      "community": 145,
       "norm_label": ".node()"
     },
     {
@@ -6401,7 +6563,7 @@
       "source_file": "Gemma/GemmaTests/MemoryCoreRecallTests.swift",
       "source_location": "L16",
       "id": "gemmatests_memorycorerecalltests_memorycorerecalltests_testmetaquestionrecallsidentitypreferenceswithoutentitymatch",
-      "community": 51,
+      "community": 145,
       "norm_label": ".testmetaquestionrecallsidentitypreferenceswithoutentitymatch()"
     },
     {
@@ -6410,7 +6572,7 @@
       "source_file": "Gemma/GemmaTests/MemoryCoreRecallTests.swift",
       "source_location": "L30",
       "id": "gemmatests_memorycorerecalltests_memorycorerecalltests_test_corememories_returns_identity_only",
-      "community": 51,
+      "community": 145,
       "norm_label": ".test_corememories_returns_identity_only()"
     },
     {
@@ -6419,7 +6581,7 @@
       "source_file": "Gemma/GemmaTests/MemoryCoreRecallTests.swift",
       "source_location": "L46",
       "id": "gemmatests_memorycorerecalltests_memorycorerecalltests_testidentitylayeralwaysincore",
-      "community": 51,
+      "community": 145,
       "norm_label": ".testidentitylayeralwaysincore()"
     },
     {
@@ -6635,7 +6797,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L1",
       "id": "gemma_gemmatests_currenttimetooltests_swift",
-      "community": 105,
+      "community": 132,
       "norm_label": "currenttimetooltests.swift"
     },
     {
@@ -6644,7 +6806,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L4",
       "id": "gemmatests_currenttimetooltests_currenttimetooltests",
-      "community": 105,
+      "community": 132,
       "norm_label": "currenttimetooltests"
     },
     {
@@ -6653,7 +6815,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L5",
       "id": "gemmatests_currenttimetooltests_currenttimetooltests_test_metadata",
-      "community": 105,
+      "community": 132,
       "norm_label": ".test_metadata()"
     },
     {
@@ -6662,7 +6824,7 @@
       "source_file": "Gemma/GemmaTests/CurrentTimeToolTests.swift",
       "source_location": "L9",
       "id": "gemmatests_currenttimetooltests_currenttimetooltests_test_run_returnsnonemptytimestring",
-      "community": 105,
+      "community": 132,
       "norm_label": ".test_run_returnsnonemptytimestring()"
     },
     {
@@ -6716,7 +6878,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L6",
       "id": "gemmatests_servermanagertests_fakeserverhandle",
-      "community": 145,
+      "community": 115,
       "norm_label": "fakeserverhandle"
     },
     {
@@ -6725,7 +6887,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L10",
       "id": "gemmatests_servermanagertests_fakeserverhandle_terminate",
-      "community": 145,
+      "community": 115,
       "norm_label": ".terminate()"
     },
     {
@@ -6734,7 +6896,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L12",
       "id": "gemmatests_servermanagertests_fakeserverhandle_simulateexit",
-      "community": 145,
+      "community": 115,
       "norm_label": ".simulateexit()"
     },
     {
@@ -6752,7 +6914,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L22",
       "id": "gemmatests_servermanagertests_fakelauncher_launch",
-      "community": 145,
+      "community": 115,
       "norm_label": ".launch()"
     },
     {
@@ -6797,7 +6959,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L54",
       "id": "gemmatests_servermanagertests_testerror",
-      "community": 145,
+      "community": 115,
       "norm_label": "testerror"
     },
     {
@@ -6806,7 +6968,7 @@
       "source_file": "Gemma/GemmaTests/ServerManagerTests.swift",
       "source_location": "L54",
       "id": "gemmatests_servermanagertests_testerror_boom",
-      "community": 145,
+      "community": 115,
       "norm_label": "boom"
     },
     {
@@ -9435,6 +9597,267 @@
       "source_location": "L348",
       "id": "plans_2026_06_01_m2d_3_drilldown_and_ui_self_review",
       "community": 133,
+      "norm_label": "self-review"
+    },
+    {
+      "label": "2026-06-01-recall-and-consolidation-fixes.md",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L1",
+      "id": "docs_superpowers_plans_2026_06_01_recall_and_consolidation_fixes_md",
+      "community": 105,
+      "norm_label": "2026-06-01-recall-and-consolidation-fixes.md"
+    },
+    {
+      "label": "Recall & consolidation fixes (P1/P2/P3) \u2014 Implementation Plan",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L1",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_recall_consolidation_fixes_p1_p2_p3_implementation_plan",
+      "community": 105,
+      "norm_label": "recall & consolidation fixes (p1/p2/p3) \u2014 implementation plan"
+    },
+    {
+      "label": "Task 1: Scheduler never consolidates during a user turn; arm timers at turn END (P2a)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L20",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_task_1_scheduler_never_consolidates_during_a_user_turn_arm_timers_at_turn_end_p2a",
+      "community": 105,
+      "norm_label": "task 1: scheduler never consolidates during a user turn; arm timers at turn end (p2a)"
+    },
+    {
+      "label": "code:swift (func test_does_not_launch_while_user_busy() async {)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L29",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_1",
+      "community": 105,
+      "norm_label": "code:swift (func test_does_not_launch_while_user_busy() async {)"
+    },
+    {
+      "label": "code:swift (@ObservationIgnored private let isUserBusy: () -> Bool)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L63",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_2",
+      "community": 105,
+      "norm_label": "code:swift (@observationignored private let isuserbusy: () -> bool)"
+    },
+    {
+      "label": "code:swift (/// Turn START: cancel any running/scheduled consolidation s)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L69",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_3",
+      "community": 105,
+      "norm_label": "code:swift (/// turn start: cancel any running/scheduled consolidation s)"
+    },
+    {
+      "label": "code:swift (private func launch(light: Bool) {)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L87",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_4",
+      "community": 105,
+      "norm_label": "code:swift (private func launch(light: bool) {)"
+    },
+    {
+      "label": "code:swift (let sched = ConsolidationScheduler(runner: engine, isReady: )",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L96",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_5",
+      "community": 105,
+      "norm_label": "code:swift (let sched = consolidationscheduler(runner: engine, isready: )"
+    },
+    {
+      "label": "code:swift (consolidationScheduler?.noteTurnEnded())",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L102",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_6",
+      "community": 105,
+      "norm_label": "code:swift (consolidationscheduler?.noteturnended())"
+    },
+    {
+      "label": "code:bash (git add Gemma/Gemma/Memory/ConsolidationScheduler.swift Gemm)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L114",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_7",
+      "community": 105,
+      "norm_label": "code:bash (git add gemma/gemma/memory/consolidationscheduler.swift gemm)"
+    },
+    {
+      "label": "Task 2: `ServerRuntime` inactivity timeout (P2b)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L123",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_task_2_serverruntime_inactivity_timeout_p2b",
+      "community": 105,
+      "norm_label": "task 2: `serverruntime` inactivity timeout (p2b)"
+    },
+    {
+      "label": "code:swift (final class StallStub: URLProtocol {)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L131",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_8",
+      "community": 105,
+      "norm_label": "code:swift (final class stallstub: urlprotocol {)"
+    },
+    {
+      "label": "code:swift (/// Inactivity timeout: if no SSE bytes arrive for this long)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L163",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_9",
+      "community": 105,
+      "norm_label": "code:swift (/// inactivity timeout: if no sse bytes arrive for this long)"
+    },
+    {
+      "label": "code:swift (req.timeoutInterval = Double(generationTimeout.components.se)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L170",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_10",
+      "community": 105,
+      "norm_label": "code:swift (req.timeoutinterval = double(generationtimeout.components.se)"
+    },
+    {
+      "label": "code:bash (git add Gemma/Gemma/Runtime/ServerRuntime.swift Gemma/GemmaT)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L180",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_11",
+      "community": 105,
+      "norm_label": "code:bash (git add gemma/gemma/runtime/serverruntime.swift gemma/gemmat)"
+    },
+    {
+      "label": "Task 3: Prompt session summary at the post-turn pause (P1)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L189",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_task_3_prompt_session_summary_at_the_post_turn_pause_p1",
+      "community": 105,
+      "norm_label": "task 3: prompt session summary at the post-turn pause (p1)"
+    },
+    {
+      "label": "code:swift (func test_summarizeRecent_creates_summary_without_marking_co)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L197",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_12",
+      "community": 105,
+      "norm_label": "code:swift (func test_summarizerecent_creates_summary_without_marking_co)"
+    },
+    {
+      "label": "code:swift (let prose = (out.summary?.isEmpty == false) ? out.summary! :)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L234",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_13",
+      "community": 105,
+      "norm_label": "code:swift (let prose = (out.summary?.isempty == false) ? out.summary! :)"
+    },
+    {
+      "label": "code:swift (/// Light, immediate summarization of the current unconsolid)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L241",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_14",
+      "community": 105,
+      "norm_label": "code:swift (/// light, immediate summarization of the current unconsolid)"
+    },
+    {
+      "label": "code:swift (func runLight(isCancelled: @escaping () -> Bool) async {)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L265",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_15",
+      "community": 105,
+      "norm_label": "code:swift (func runlight(iscancelled: @escaping () -> bool) async {)"
+    },
+    {
+      "label": "code:bash (git add Gemma/Gemma/Memory/MemoryConsolidationEngine.swift G)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L282",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_16",
+      "community": 105,
+      "norm_label": "code:bash (git add gemma/gemma/memory/memoryconsolidationengine.swift g)"
+    },
+    {
+      "label": "Task 4: Canonical entity labels (P3)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L291",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_task_4_canonical_entity_labels_p3",
+      "community": 105,
+      "norm_label": "task 4: canonical entity labels (p3)"
+    },
+    {
+      "label": "code:swift (import XCTest)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L300",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_17",
+      "community": 105,
+      "norm_label": "code:swift (import xctest)"
+    },
+    {
+      "label": "code:swift (/// Reduce an entity label to a canonical short form: strip )",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L329",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_18",
+      "community": 105,
+      "norm_label": "code:swift (/// reduce an entity label to a canonical short form: strip )"
+    },
+    {
+      "label": "code:swift (let rawKind = (e.kind?.isEmpty == false) ? e.kind! : NodeKin)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L351",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_19",
+      "community": 105,
+      "norm_label": "code:swift (let rawkind = (e.kind?.isempty == false) ? e.kind! : nodekin)"
+    },
+    {
+      "label": "code:bash (git add Gemma/Gemma/Memory/MemoryText.swift Gemma/Gemma/Memo)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L366",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_20",
+      "community": 105,
+      "norm_label": "code:bash (git add gemma/gemma/memory/memorytext.swift gemma/gemma/memo)"
+    },
+    {
+      "label": "Task 5: Verification + graphify",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L375",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_task_5_verification_graphify",
+      "community": 105,
+      "norm_label": "task 5: verification + graphify"
+    },
+    {
+      "label": "code:bash (git add graphify-out ':!graphify-out/cache/ast')",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L387",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_21",
+      "community": 105,
+      "norm_label": "code:bash (git add graphify-out ':!graphify-out/cache/ast')"
+    },
+    {
+      "label": "Self-Review",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L394",
+      "id": "plans_2026_06_01_recall_and_consolidation_fixes_self_review",
+      "community": 105,
       "norm_label": "self-review"
     },
     {
@@ -16705,7 +17128,7 @@
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/AgentMemoryTests.swift",
       "source_location": "L55",
-      "community": 132,
+      "community": 146,
       "norm_label": ".testmemoryturnschedulesconsolidation()",
       "id": "gemmatests_agentmemorytests_agentmemorytests_testmemoryturnschedulesconsolidation"
     },
@@ -16741,7 +17164,7 @@
       "file_type": "code",
       "source_file": "Gemma/GemmaTests/MemoryCoreRecallTests.swift",
       "source_location": "L16",
-      "community": 51,
+      "community": 145,
       "norm_label": ".testmetaquestionrecallspreferenceswithoutentitymatch()",
       "id": "gemmatests_memorycorerecalltests_memorycorerecalltests_testmetaquestionrecallspreferenceswithoutentitymatch"
     },
@@ -16750,7 +17173,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L69",
-      "community": 140,
+      "community": 124,
       "norm_label": "dummyruntime2",
       "id": "harness_harnessmodel_dummyruntime2"
     },
@@ -16759,7 +17182,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L71",
-      "community": 140,
+      "community": 124,
       "norm_label": ".isloaded()",
       "id": "harness_harnessmodel_dummyruntime2_isloaded"
     },
@@ -16768,7 +17191,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L72",
-      "community": 140,
+      "community": 10,
       "norm_label": ".load()",
       "id": "harness_harnessmodel_dummyruntime2_load"
     },
@@ -16777,7 +17200,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L73",
-      "community": 140,
+      "community": 124,
       "norm_label": ".unload()",
       "id": "harness_harnessmodel_dummyruntime2_unload"
     },
@@ -16786,7 +17209,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L74",
-      "community": 140,
+      "community": 124,
       "norm_label": ".currentmetrics()",
       "id": "harness_harnessmodel_dummyruntime2_currentmetrics"
     },
@@ -16795,7 +17218,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Harness/HarnessModel.swift",
       "source_location": "L75",
-      "community": 140,
+      "community": 56,
       "norm_label": ".generate()",
       "id": "harness_harnessmodel_dummyruntime2_generate"
     },
@@ -16822,7 +17245,7 @@
       "file_type": "code",
       "source_file": "",
       "source_location": "",
-      "community": 131,
+      "community": 132,
       "norm_label": "tool",
       "id": "tool"
     },
@@ -16867,7 +17290,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Runtime/DummyRuntime.swift",
       "source_location": "L95",
-      "community": 0,
+      "community": 56,
       "norm_label": ".setlastmetrics()",
       "id": "runtime_dummyruntime_dummyruntime_setlastmetrics"
     },
@@ -16876,7 +17299,7 @@
       "file_type": "code",
       "source_file": "Gemma/Gemma/Agent/CurrentTimeTool.swift",
       "source_location": "L11",
-      "community": 131,
+      "community": 132,
       "norm_label": ".init()",
       "id": "agent_currenttimetool_currenttimetool_init"
     },
@@ -19447,6 +19870,28 @@
       "context": "call",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L225",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_creates_summary_without_marking_consolidated",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L238",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_skips_threads_already_summarized",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
       "source_file": "Gemma/GemmaTests/SleepConsolidationE2ETests.swift",
       "source_location": "L85",
       "weight": 1.0,
@@ -19613,6 +20058,16 @@
       "confidence_score": 1.0,
       "source": "memory_memoryconsolidationengine_memoryconsolidationengine",
       "target": "memory_memoryconsolidationengine_memoryconsolidationengine_summarize"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L157",
+      "weight": 1.0,
+      "source": "memory_memoryconsolidationengine_memoryconsolidationengine",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine_summarizerecent",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -19936,6 +20391,28 @@
     {
       "relation": "calls",
       "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L169",
+      "weight": 1.0,
+      "source": "memory_memoryconsolidationengine_memoryconsolidationengine_summarizerecent",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine_summarize",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryConsolidationEngine.swift",
+      "source_location": "L414",
+      "weight": 1.0,
+      "source": "memory_memoryconsolidationengine_memoryconsolidationengine_runlight",
+      "target": "memory_memoryconsolidationengine_memoryconsolidationengine_summarizerecent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "Gemma/GemmaTests/Mutex.swift",
@@ -20123,6 +20600,16 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/Gemma/Memory/MemoryText.swift",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "memory_memorytext_memorytext",
+      "target": "memory_memorytext_memorytext_canonicalentitylabel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryText.swift",
       "source_location": "L16",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -20148,6 +20635,17 @@
       "confidence_score": 1.0,
       "source": "memory_memorytext_memorytext",
       "target": "memory_memorytext_memorytext_isjunklabel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/MemoryText.swift",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "memory_memorytext_memorytext_canonicalentitylabel",
+      "target": "memory_memorytext_memorytext_cleanlabel",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -20539,6 +21037,28 @@
       "source_location": "L185",
       "weight": 1.0,
       "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarize_writes_structured_summary_node",
+      "target": "memory_transcriptstore_transcriptstore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L219",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_creates_summary_without_marking_consolidated",
+      "target": "memory_transcriptstore_transcriptstore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L235",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_skips_threads_already_summarized",
       "target": "memory_transcriptstore_transcriptstore"
     },
     {
@@ -21116,6 +21636,28 @@
       "source_location": "L184",
       "weight": 1.0,
       "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarize_writes_structured_summary_node",
+      "target": "memory_memorystore_memorystore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L218",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_creates_summary_without_marking_consolidated",
+      "target": "memory_memorystore_memorystore"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L234",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_skips_threads_already_summarized",
       "target": "memory_memorystore_memorystore"
     },
     {
@@ -23172,6 +23714,17 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "Gemma/GemmaTests/ConsolidationSchedulerTests.swift",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_does_not_launch_while_user_busy",
+      "target": "memory_consolidationscheduler_consolidationscheduler"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/ConsolidationSchedulerTests.swift",
       "source_location": "L13",
       "weight": 1.0,
       "source": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_idle_fires_cycle_and_pause_fires_light",
@@ -23186,6 +23739,17 @@
       "source_location": "L33",
       "weight": 1.0,
       "source": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_not_ready_does_not_fire",
+      "target": "memory_consolidationscheduler_consolidationscheduler"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/ConsolidationSchedulerTests.swift",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_noteuseractivity_cancels_without_arming",
       "target": "memory_consolidationscheduler_consolidationscheduler"
     },
     {
@@ -23250,6 +23814,16 @@
       "confidence_score": 1.0,
       "source": "memory_consolidationscheduler_consolidationscheduler",
       "target": "memory_consolidationscheduler_consolidationscheduler_launch"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/ConsolidationScheduler.swift",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "memory_consolidationscheduler_consolidationscheduler",
+      "target": "memory_consolidationscheduler_consolidationscheduler_noteturnended",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -23331,6 +23905,17 @@
       "confidence_score": 1.0,
       "source": "memory_consolidationscheduler_consolidationscheduler_noteuseractivity",
       "target": "memory_consolidationscheduler_consolidationscheduler_scheduletimers"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/Gemma/Memory/ConsolidationScheduler.swift",
+      "source_location": "L48",
+      "weight": 1.0,
+      "source": "memory_consolidationscheduler_consolidationscheduler_noteturnended",
+      "target": "memory_consolidationscheduler_consolidationscheduler_scheduletimers",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -24457,6 +25042,17 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_generation_times_out_when_server_stalls",
+      "target": "runtime_serverruntime_serverruntime"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L58",
       "weight": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_streaming_accumulates_tool_call_deltas",
@@ -25156,6 +25752,17 @@
       "source_location": "L34",
       "weight": 1.0,
       "source": "gemmatests_serverruntimehistorytests_serverruntimehistorytests_test_history_is_sent_between_system_and_user",
+      "target": "runtime_modelruntime_generationoptions"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_generation_times_out_when_server_stalls",
       "target": "runtime_modelruntime_generationoptions"
     },
     {
@@ -28181,6 +28788,16 @@
     {
       "relation": "inherits",
       "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryTextCanonicalTests.swift",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests",
+      "target": "xctestcase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
       "source_file": "Gemma/GemmaTests/MemoryTextTests.swift",
       "source_location": "L6",
       "weight": 1.0,
@@ -28314,9 +28931,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests",
-      "target": "xctestcase",
-      "confidence_score": 1.0
+      "target": "xctestcase"
     },
     {
       "relation": "inherits",
@@ -28364,9 +28981,9 @@
       "source_file": "Gemma/GemmaTests/SummaryMergeExtraTests.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_summarymergeextratests_summarymergeextratests",
-      "target": "xctestcase",
-      "confidence_score": 1.0
+      "target": "xctestcase"
     },
     {
       "relation": "inherits",
@@ -28937,6 +29554,28 @@
       "target": "gemmatests_memoryconsolidationenginetests_cannedruntime"
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L222",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_creates_summary_without_marking_consolidated",
+      "target": "gemmatests_memoryconsolidationenginetests_cannedruntime",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L237",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_skips_threads_already_summarized",
+      "target": "gemmatests_memoryconsolidationenginetests_cannedruntime",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
@@ -29107,6 +29746,26 @@
       "target": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarize_writes_structured_summary_node"
     },
     {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L217",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests",
+      "target": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_creates_summary_without_marking_consolidated",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryConsolidationEngineTests.swift",
+      "source_location": "L233",
+      "weight": 1.0,
+      "source": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests",
+      "target": "gemmatests_memoryconsolidationenginetests_memoryconsolidationenginetests_test_summarizerecent_skips_threads_already_summarized",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -29265,7 +29924,17 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_ssestub",
+      "target": "urlprotocol"
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "gemmatests_serverruntimestreamingtests_stallstub",
       "target": "urlprotocol",
       "confidence_score": 1.0
     },
@@ -30122,9 +30791,9 @@
       "source_file": "Gemma/GemmaTests/SummaryMergeExtraTests.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemmatests_summarymergeextratests_swift",
-      "target": "gemmatests_summarymergeextratests_summarymergeextratests",
-      "confidence_score": 1.0
+      "target": "gemmatests_summarymergeextratests_summarymergeextratests"
     },
     {
       "relation": "method",
@@ -30132,9 +30801,9 @@
       "source_file": "Gemma/GemmaTests/SummaryMergeExtraTests.swift",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_summarymergeextratests_summarymergeextratests",
-      "target": "gemmatests_summarymergeextratests_summarymergeextratests_test_summary_merge_adopts_latest_extra",
-      "confidence_score": 1.0
+      "target": "gemmatests_summarymergeextratests_summarymergeextratests_test_summary_merge_adopts_latest_extra"
     },
     {
       "relation": "contains",
@@ -30210,6 +30879,16 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/GemmaTests/ConsolidationSchedulerTests.swift",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "gemmatests_consolidationschedulertests_consolidationschedulertests",
+      "target": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_does_not_launch_while_user_busy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ConsolidationSchedulerTests.swift",
       "source_location": "L11",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -30225,6 +30904,16 @@
       "confidence_score": 1.0,
       "source": "gemmatests_consolidationschedulertests_consolidationschedulertests",
       "target": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_not_ready_does_not_fire"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ConsolidationSchedulerTests.swift",
+      "source_location": "L74",
+      "weight": 1.0,
+      "source": "gemmatests_consolidationschedulertests_consolidationschedulertests",
+      "target": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_noteuseractivity_cancels_without_arming",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -30262,6 +30951,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "Gemma/GemmaTests/ConsolidationSchedulerTests.swift",
+      "source_location": "L61",
+      "weight": 1.0,
+      "source": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_does_not_launch_while_user_busy",
+      "target": "gemmatests_consolidationschedulertests_spyrunner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ConsolidationSchedulerTests.swift",
       "source_location": "L12",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -30278,6 +30978,17 @@
       "confidence_score": 1.0,
       "source": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_not_ready_does_not_fire",
       "target": "gemmatests_consolidationschedulertests_spyrunner"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ConsolidationSchedulerTests.swift",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "gemmatests_consolidationschedulertests_consolidationschedulertests_test_noteuseractivity_cancels_without_arming",
+      "target": "gemmatests_consolidationschedulertests_spyrunner",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -30327,9 +31038,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemmatests_serverruntimestreamingtests_swift",
-      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests"
     },
     {
       "relation": "contains",
@@ -30337,8 +31048,18 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemma_gemmatests_serverruntimestreamingtests_swift",
-      "target": "gemmatests_serverruntimestreamingtests_ssestub",
+      "target": "gemmatests_serverruntimestreamingtests_ssestub"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "gemma_gemmatests_serverruntimestreamingtests_swift",
+      "target": "gemmatests_serverruntimestreamingtests_stallstub",
       "confidence_score": 1.0
     },
     {
@@ -30347,8 +31068,18 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests",
-      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_makesession",
+      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_makesession"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L61",
+      "weight": 1.0,
+      "source": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests",
+      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_generation_times_out_when_server_stalls",
       "confidence_score": 1.0
     },
     {
@@ -30357,9 +31088,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L49",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests",
-      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_streaming_accumulates_tool_call_deltas",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_streaming_accumulates_tool_call_deltas"
     },
     {
       "relation": "method",
@@ -30367,9 +31098,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests",
-      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_streaming_yields_incremental_tokens_then_completed",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_streaming_yields_incremental_tokens_then_completed"
     },
     {
       "relation": "method",
@@ -30377,9 +31108,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_ssestub",
-      "target": "gemmatests_serverruntimestreamingtests_ssestub_caninit",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimestreamingtests_ssestub_caninit"
     },
     {
       "relation": "method",
@@ -30387,9 +31118,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_ssestub",
-      "target": "gemmatests_serverruntimestreamingtests_ssestub_canonicalrequest",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimestreamingtests_ssestub_canonicalrequest"
     },
     {
       "relation": "method",
@@ -30397,9 +31128,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_ssestub",
-      "target": "gemmatests_serverruntimestreamingtests_ssestub_startloading",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimestreamingtests_ssestub_startloading"
     },
     {
       "relation": "method",
@@ -30407,9 +31138,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_ssestub",
-      "target": "gemmatests_serverruntimestreamingtests_ssestub_stoploading",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimestreamingtests_ssestub_stoploading"
     },
     {
       "relation": "calls",
@@ -30418,9 +31149,9 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L58",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_streaming_accumulates_tool_call_deltas",
-      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_makesession",
-      "confidence_score": 1.0
+      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_makesession"
     },
     {
       "relation": "calls",
@@ -30429,8 +31160,48 @@
       "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_test_streaming_yields_incremental_tokens_then_completed",
-      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_makesession",
+      "target": "gemmatests_serverruntimestreamingtests_serverruntimestreamingtests_makesession"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L50",
+      "weight": 1.0,
+      "source": "gemmatests_serverruntimestreamingtests_stallstub",
+      "target": "gemmatests_serverruntimestreamingtests_stallstub_caninit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "gemmatests_serverruntimestreamingtests_stallstub",
+      "target": "gemmatests_serverruntimestreamingtests_stallstub_canonicalrequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "gemmatests_serverruntimestreamingtests_stallstub",
+      "target": "gemmatests_serverruntimestreamingtests_stallstub_startloading",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/ServerRuntimeStreamingTests.swift",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "gemmatests_serverruntimestreamingtests_stallstub",
+      "target": "gemmatests_serverruntimestreamingtests_stallstub_stoploading",
       "confidence_score": 1.0
     },
     {
@@ -31596,6 +32367,46 @@
       "confidence_score": 1.0,
       "source": "gemmatests_agentsystemprompttests_capturingruntime",
       "target": "gemmatests_agentsystemprompttests_capturingruntime_generate"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryTextCanonicalTests.swift",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "gemma_gemmatests_memorytextcanonicaltests_swift",
+      "target": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryTextCanonicalTests.swift",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests",
+      "target": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests_test_keeps_already_canonical_labels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryTextCanonicalTests.swift",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests",
+      "target": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests_test_strips_user_name_sentence_prefix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Gemma/GemmaTests/MemoryTextCanonicalTests.swift",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests",
+      "target": "gemmatests_memorytextcanonicaltests_memorytextcanonicaltests_test_trims_overlong_to_first_words",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -36074,6 +36885,286 @@
       "confidence_score": 1.0,
       "source": "plans_2026_06_01_m2d_3_drilldown_and_ui_task_4_final_verification_graphify",
       "target": "plans_2026_06_01_m2d_3_drilldown_and_ui_codeblock_17"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "docs_superpowers_plans_2026_06_01_recall_and_consolidation_fixes_md",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_recall_consolidation_fixes_p1_p2_p3_implementation_plan",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L394",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_recall_consolidation_fixes_p1_p2_p3_implementation_plan",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_self_review",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_recall_consolidation_fixes_p1_p2_p3_implementation_plan",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_task_1_scheduler_never_consolidates_during_a_user_turn_arm_timers_at_turn_end_p2a",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L123",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_recall_consolidation_fixes_p1_p2_p3_implementation_plan",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_task_2_serverruntime_inactivity_timeout_p2b",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L189",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_recall_consolidation_fixes_p1_p2_p3_implementation_plan",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_task_3_prompt_session_summary_at_the_post_turn_pause_p1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L291",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_recall_consolidation_fixes_p1_p2_p3_implementation_plan",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_task_4_canonical_entity_labels_p3",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L375",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_recall_consolidation_fixes_p1_p2_p3_implementation_plan",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_task_5_verification_graphify",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_1_scheduler_never_consolidates_during_a_user_turn_arm_timers_at_turn_end_p2a",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_1_scheduler_never_consolidates_during_a_user_turn_arm_timers_at_turn_end_p2a",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_2",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L69",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_1_scheduler_never_consolidates_during_a_user_turn_arm_timers_at_turn_end_p2a",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_3",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L87",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_1_scheduler_never_consolidates_during_a_user_turn_arm_timers_at_turn_end_p2a",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_4",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_1_scheduler_never_consolidates_during_a_user_turn_arm_timers_at_turn_end_p2a",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_5",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_1_scheduler_never_consolidates_during_a_user_turn_arm_timers_at_turn_end_p2a",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_6",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L114",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_1_scheduler_never_consolidates_during_a_user_turn_arm_timers_at_turn_end_p2a",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_7",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L170",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_2_serverruntime_inactivity_timeout_p2b",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_10",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L180",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_2_serverruntime_inactivity_timeout_p2b",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_11",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L131",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_2_serverruntime_inactivity_timeout_p2b",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_8",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L163",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_2_serverruntime_inactivity_timeout_p2b",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_9",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L197",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_3_prompt_session_summary_at_the_post_turn_pause_p1",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_12",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L234",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_3_prompt_session_summary_at_the_post_turn_pause_p1",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_13",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L241",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_3_prompt_session_summary_at_the_post_turn_pause_p1",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_14",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L265",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_3_prompt_session_summary_at_the_post_turn_pause_p1",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_15",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L282",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_3_prompt_session_summary_at_the_post_turn_pause_p1",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_16",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L300",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_4_canonical_entity_labels_p3",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_17",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L329",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_4_canonical_entity_labels_p3",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_18",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L351",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_4_canonical_entity_labels_p3",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_19",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L366",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_4_canonical_entity_labels_p3",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_20",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md",
+      "source_location": "L387",
+      "weight": 1.0,
+      "source": "plans_2026_06_01_recall_and_consolidation_fixes_task_5_verification_graphify",
+      "target": "plans_2026_06_01_recall_and_consolidation_fixes_codeblock_21",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -45150,5 +46241,5 @@
       "source_file": "docs/superpowers/plans/2026-05-28-s1-model-infra.md"
     }
   ],
-  "built_at_commit": "8f06e8ef95cc3fcdfc2b611e5e67dabb5c6a49d0"
+  "built_at_commit": "520138e06f8ab76ec10d6bd0c73cec95ed686ff9"
 }

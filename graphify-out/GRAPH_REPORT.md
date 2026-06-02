@@ -1,16 +1,16 @@
 # Graph Report - personal_agent  (2026-06-01)
 
 ## Corpus Check
-- 133 files · ~137,603 words
+- 135 files · ~141,346 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2013 nodes · 2614 edges · 156 communities (116 shown, 40 thin omitted)
-- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 313 edges (avg confidence: 0.8)
+- 2060 nodes · 2679 edges · 155 communities (115 shown, 40 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 323 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8f06e8ef`
+- Built from commit: `520138e0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -165,7 +165,6 @@
 - [[_COMMUNITY_Community 147|Community 147]]
 - [[_COMMUNITY_Community 148|Community 148]]
 - [[_COMMUNITY_Community 149|Community 149]]
-- [[_COMMUNITY_Community 150|Community 150]]
 - [[_COMMUNITY_Community 151|Community 151]]
 - [[_COMMUNITY_Community 152|Community 152]]
 - [[_COMMUNITY_Community 154|Community 154]]
@@ -173,16 +172,16 @@
 - [[_COMMUNITY_Community 159|Community 159]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `MemoryStore` - 87 edges
-2. `MemoryConsolidationEngine` - 34 edges
-3. `GenerationOptions` - 30 edges
+1. `MemoryStore` - 89 edges
+2. `MemoryConsolidationEngine` - 37 edges
+3. `GenerationOptions` - 31 edges
 4. `HarnessModel` - 29 edges
 5. `DummyRuntime` - 28 edges
-6. `CannedRuntime` - 25 edges
+6. `CannedRuntime` - 27 edges
 7. `FakeEmbedder` - 24 edges
-8. `TranscriptStore` - 20 edges
-9. `NodeKind` - 20 edges
-10. `FakeHealth` - 20 edges
+8. `TranscriptStore` - 22 edges
+9. `MemoryConsolidationEngineTests` - 21 edges
+10. `NodeKind` - 20 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `ModelRuntimeTypesTests` --implements--> `S1 Plan 1: Scaffold + Protocol + Dummy Runtime + Bench`  [INFERRED]
@@ -204,10 +203,10 @@
 - **Bench pipeline test trio (Runner+PromptSet+Report+Runtime)** — gemmatests_benchrunnertests_class, gemmatests_promptsettests_class, gemmatests_benchreporttests_class, gemmatests_dummyruntimetests_class [INFERRED 0.85]
 - **Model infra layered subsystem (Descriptor+Catalog+Capability+Downloader+InstalledModels)** — gemmatests_modeldescriptortests_class, gemmatests_modelcatalogtests_class, gemmatests_devicecapabilitytests_class, gemmatests_modeldownloadertests_class, gemmatests_installedmodelstests_class [INFERRED 0.95]
 
-## Communities (156 total, 40 thin omitted)
+## Communities (155 total, 40 thin omitted)
 
 ### Community 0 - "Bench & Runtime Layer"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (3): DummyRuntimeTests, DummyRuntime, ModelLoadOptions
 
 ### Community 1 - "Product Concepts & Plans"
@@ -231,8 +230,8 @@ Cohesion: 0.08
 Nodes (12): App, GemmaApp, AgentChatView, HarnessView, MemoryGraphDetailPanel, MemoryGraphView, MemoryNodeMarker, MemoryInspectorView (+4 more)
 
 ### Community 7 - "Model Downloader"
-Cohesion: 0.10
-Nodes (5): BodyCapture, ServerRuntimeHistoryTests, SSEStub, ServerRuntimeMockProtocol, URLProtocol
+Cohesion: 0.12
+Nodes (4): SSEStub, StallStub, ServerRuntimeMockProtocol, URLProtocol
 
 ### Community 8 - "Installed Models Storage"
 Cohesion: 0.11
@@ -383,8 +382,8 @@ Cohesion: 0.14
 Nodes (13): 1. Value types (package-agnostic — no LiteRTLM import), 2. `PerfBenchmarker` (imports LiteRTLM), 3. `BenchmarkModel` (@Observable @MainActor), 4. `BenchmarkView` (sheet), 5. `HarnessModel` / `HarnessView` integration, Components, Data flow, Error handling (+5 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.18
-Nodes (4): MemoryCoreRecallTests, MemoryRetrieverInjectionTests, MemoryRetrieverTests, MemoryRetriever
+Cohesion: 0.27
+Nodes (3): MemoryRetrieverInjectionTests, MemoryRetrieverTests, MemoryRetriever
 
 ### Community 52 - "Community 52"
 Cohesion: 0.07
@@ -397,6 +396,10 @@ Nodes (14): 1. Problema (evidencia de device, corregida con feedback del usuario
 ### Community 55 - "Community 55"
 Cohesion: 0.08
 Nodes (24): code:block1 (Gemma/Gemma/), code:bash (cd /Users/hashdown/Projects/personal_agent), code:swift (Button {), code:swift (if let c = model.comparison {), code:swift (private func comparisonRow(_ label: String, _ off: String, _), code:bash (cd /Users/hashdown/Projects/personal_agent), code:bash (cd /Users/hashdown/Projects/personal_agent/Gemma), code:bash (cd /Users/hashdown/Projects/personal_agent) (+16 more)
+
+### Community 56 - "Community 56"
+Cohesion: 0.15
+Nodes (3): ModelRuntimeTypesTests, GenerationResult, RuntimeMetrics
 
 ### Community 57 - "Community 57"
 Cohesion: 0.13
@@ -452,7 +455,7 @@ Nodes (15): 1. Problem, 2. Goal, 3.1 `ServerManager` (`Runtime/ServerManager.swi
 
 ### Community 70 - "Community 70"
 Cohesion: 0.11
-Nodes (7): GemmaTests, MemorySettingTests, PurgeConversationNodesTests, SqliteVecSpikeTests, SummaryMergeExtraTests, summary, XCTestCase
+Nodes (7): GemmaTests, NodeAttributesTests, PurgeConversationNodesTests, SqliteVecSpikeTests, SummaryMergeExtraTests, summary, XCTestCase
 
 ### Community 71 - "Community 71"
 Cohesion: 0.25
@@ -495,7 +498,7 @@ Cohesion: 0.40
 Nodes (4): code:swift (import Foundation), code:swift (import Foundation), code:swift (import Foundation), Task 5: De-couple runtime protocols + Agent + DummyRuntime from LiteRT/UIKit
 
 ### Community 84 - "Community 84"
-Cohesion: 0.10
+Cohesion: 0.11
 Nodes (23): ParamType, boolean, integer, number, string, CaseIterable, Mode, grafo (+15 more)
 
 ### Community 85 - "Community 85"
@@ -507,8 +510,8 @@ Cohesion: 0.11
 Nodes (18): 10. Resultado M2b-2 (VERIFICADO contra el 26B real, 2026-05-31), 1. Goal, 2. Decisions (locked in brainstorm 2026-05-31), 3.1 Structured + extensible kinds (foundation), 3.2 `Memory/MemoryConsolidationEngine.swift` (new) — the shared phase operations, 3.3 Sleep cycle — resumable (`runCycle`), 3.4 Awake reflection — light (`runLight`), 3.5 `Memory/ConsolidationScheduler.swift` (new, `@MainActor @Observable`) (+10 more)
 
 ### Community 87 - "Community 87"
-Cohesion: 0.14
-Nodes (6): CannedRuntime, MemoryConsolidationEngineTests, Embedder, FakeEmbedder, MemoryError, embedderUnavailable
+Cohesion: 0.10
+Nodes (4): CannedRuntime, MemoryConsolidationEngineTests, FakeEmbedder, TranscriptStore
 
 ### Community 89 - "Community 89"
 Cohesion: 0.17
@@ -523,7 +526,7 @@ Cohesion: 0.20
 Nodes (10): code:swift (import Foundation), code:swift (import XCTest), code:swift (import Foundation), code:swift (import Foundation), code:swift (import XCTest), code:swift (import Foundation), Phase 4 — Captura: toolbox singleton + tools + consolidador, Task 4.1: MemoryToolbox (singleton para tools) (+2 more)
 
 ### Community 92 - "Community 92"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (13): NodeKind, conversation, day, episode, fact, followUp, insight, person (+5 more)
 
 ### Community 93 - "Community 93"
@@ -543,8 +546,8 @@ Cohesion: 0.25
 Nodes (8): code:swift (func testMemoryEnabledDefaultsNilDecodesOldJSON() throws {), code:swift (public var memoryEnabled: Bool?), code:swift (Section("Memory") {), code:swift (import SwiftUI), Phase 6 — Settings toggle + inspector, Task 6.1: memoryEnabled en GenerationSettings (TDD), Task 6.2: Toggle en SettingsView, Task 6.3: Inspector de memoria
 
 ### Community 98 - "Community 98"
-Cohesion: 0.44
-Nodes (8): Codable, Equatable, FetchableRecord, Identifiable, Edge, Node, TranscriptRow, PersistableRecord
+Cohesion: 0.30
+Nodes (11): Codable, Equatable, FetchableRecord, Identifiable, Edge, Node, TranscriptRow, PersistableRecord (+3 more)
 
 ### Community 100 - "Community 100"
 Cohesion: 0.29
@@ -562,13 +565,17 @@ Nodes (4): code:bash (cd /Users/hashdown/Projects/personal_agent/spike-mlx), cod
 Cohesion: 0.33
 Nodes (6): code:swift (import Foundation), code:swift (import XCTest), code:swift (import Foundation), Phase 1 — Modelos + MemoryStore (esquema, CRUD, FTS), Task 1.1: Modelos de dominio, Task 1.2: MemoryStore — esquema + CRUD + FTS (TDD)
 
+### Community 105 - "Community 105"
+Cohesion: 0.07
+Nodes (28): code:swift (func test_does_not_launch_while_user_busy() async {), code:swift (req.timeoutInterval = Double(generationTimeout.components.se), code:bash (git add Gemma/Gemma/Runtime/ServerRuntime.swift Gemma/GemmaT), code:swift (func test_summarizeRecent_creates_summary_without_marking_co), code:swift (let prose = (out.summary?.isEmpty == false) ? out.summary! :), code:swift (/// Light, immediate summarization of the current unconsolid), code:swift (func runLight(isCancelled: @escaping () -> Bool) async {), code:bash (git add Gemma/Gemma/Memory/MemoryConsolidationEngine.swift G) (+20 more)
+
 ### Community 108 - "Community 108"
 Cohesion: 0.40
 Nodes (5): code:swift (import XCTest), Phase 7 — E2E en device + cierre, Task 7.1: Test E2E device-gated, Task 7.2: Verificación manual en device, Task 7.3: Cierre
 
 ### Community 115 - "Community 115"
-Cohesion: 0.26
-Nodes (3): FakeHealth, FakeLauncher, ServerManagerTests
+Cohesion: 0.06
+Nodes (27): Error, ServerManagerLiveTests, FakeHealth, FakeLauncher, FakeServerHandle, ServerManagerTests, TestError, boom (+19 more)
 
 ### Community 116 - "Community 116"
 Cohesion: 0.15
@@ -594,13 +601,13 @@ Nodes (11): 1. Vision, 2. Research grounding (cited), 3. Concept → our system,
 Cohesion: 0.11
 Nodes (18): 1. Problem, 2. Goal, 3.1 `ServerConfig` (`Runtime/ServerManager.swift`), 3.2 `ServerProcess` (`Runtime/ServerProcess.swift`), 3.3 `ServerManager` (`Runtime/ServerManager.swift`), 3.4 `HarnessModel` (`Harness/HarnessModel.swift`), 3.5 Settings scene + view, 3. Architecture (+10 more)
 
-### Community 127 - "Community 127"
-Cohesion: 0.13
-Nodes (9): ConsolidationSchedulerTests, SpyRunner, ConsolidationRunning, ConsolidationScheduler, State, done, idle, reflecting (+1 more)
+### Community 124 - "Community 124"
+Cohesion: 0.22
+Nodes (3): DummyRuntime2, ModelRuntime, RuntimeFactory
 
-### Community 128 - "Community 128"
-Cohesion: 0.25
-Nodes (7): ComputeBackend, cpu, gpu, Role, assistant, system, user
+### Community 127 - "Community 127"
+Cohesion: 0.11
+Nodes (10): ConsolidationSchedulerTests, SpyRunner, ConsolidationRunning, ConsolidationScheduler, State, done, idle, reflecting (+2 more)
 
 ### Community 129 - "Community 129"
 Cohesion: 0.05
@@ -610,13 +617,9 @@ Nodes (41): code:bash (xcodebuild test -scheme Gemma -project Gemma/Gemma.xcodep
 Cohesion: 0.10
 Nodes (6): AgentTool, AgentToolParam, KeywordEmbedder, MemoryToolsTests, ForgetTool, SaveMemoryTool
 
-### Community 131 - "Community 131"
-Cohesion: 0.23
-Nodes (3): CurrentTimeTool, ServerE2ETests, Tool
-
 ### Community 132 - "Community 132"
-Cohesion: 0.13
-Nodes (5): MemoryServices, ToolRegistry, AgentMemoryTests, CapturingRuntime, ToolRegistryTests
+Cohesion: 0.11
+Nodes (5): CurrentTimeTool, ToolRegistry, CurrentTimeToolTests, ToolRegistryTests, Tool
 
 ### Community 133 - "Community 133"
 Cohesion: 0.08
@@ -627,68 +630,60 @@ Cohesion: 0.09
 Nodes (22): 10. File structure, 11. Resultado M2d (a completar al verificar), 1. Problem, 2. Goal, 3. Architecture — multi-level memory, 4.1 `TranscriptStore` (new — `Memory/TranscriptStore.swift`), 4.2 Runtime `messages` API (`Runtime/ToolCallingRuntime.swift`, `ServerRuntime.swift`, `DummyRuntime.swift`), 4.3 `Agent` (`Agent/Agent.swift`) (+14 more)
 
 ### Community 135 - "Community 135"
-Cohesion: 0.10
-Nodes (4): ExpandContextToolTests, ExpandContextTool, Ref, TranscriptStore
+Cohesion: 0.25
+Nodes (3): ExpandContextToolTests, ExpandContextTool, Ref
 
 ### Community 137 - "Community 137"
 Cohesion: 0.19
 Nodes (7): ServerProcessTests, ServerConfig, launchArguments(), RealServerProcessLauncher, serverArguments(), watchdogScript(), wiringArguments()
 
 ### Community 140 - "Community 140"
-Cohesion: 0.13
-Nodes (6): AnyObject, AgentSystemPromptTests, CapturingRuntime, DummyRuntime2, GenerationResult, ToolCallingRuntime
+Cohesion: 0.16
+Nodes (6): AnyObject, AgentSystemPromptTests, CapturingRuntime, AgentTests, StubRuntime, ToolCallingRuntime
 
 ### Community 142 - "Community 142"
-Cohesion: 0.24
-Nodes (3): ConversationWindowTests, ConversationWindow, ChatMessage
+Cohesion: 0.14
+Nodes (7): ConversationWindowTests, ConversationWindow, ChatMessage, Role, assistant, system, user
 
 ### Community 143 - "Community 143"
-Cohesion: 0.22
+Cohesion: 0.25
 Nodes (8): SleepPhase, curate, detect, nrem, reflect, rem, shy, summarize
 
-### Community 145 - "Community 145"
-Cohesion: 0.12
-Nodes (12): Error, FakeServerHandle, TestError, boom, RuntimeError, generationFailed, loadFailed, modelNotFound (+4 more)
+### Community 144 - "Community 144"
+Cohesion: 0.19
+Nodes (5): SleepConsolidationE2ETests, Embedder, MemoryError, embedderUnavailable, NLContextualEmbedder
 
 ### Community 146 - "Community 146"
-Cohesion: 0.25
-Nodes (3): Agent, AgentTests, StubRuntime
-
-### Community 147 - "Community 147"
-Cohesion: 0.17
-Nodes (4): ServerRuntimeStreamingTests, ModelRuntime, RuntimeFactory, ServerRuntime
-
-### Community 148 - "Community 148"
-Cohesion: 0.20
-Nodes (9): ServerHealth, ServerProcessLauncher, ServerState, failed, idle, loadingModel, ready, starting (+1 more)
+Cohesion: 0.27
+Nodes (4): Agent, MemoryServices, AgentMemoryTests, CapturingRuntime
 
 ### Community 151 - "Community 151"
 Cohesion: 0.40
 Nodes (5): GenerationEvent, completed, token, toolCallFinished, toolCallStarted
 
 ### Community 154 - "Community 154"
-Cohesion: 0.33
+Cohesion: 0.29
 Nodes (6): AgentEvent, completed, failed, token, toolCallFinished, toolCallStarted
 
 ## Knowledge Gaps
-- **962 isolated node(s):** `SettingsKeys`, `nrem`, `summarize`, `detect`, `rem` (+957 more)
+- **984 isolated node(s):** `SettingsKeys`, `nrem`, `summarize`, `detect`, `rem` (+979 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **40 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `MemoryStore` connect `Community 54` to `Community 130`, `Community 131`, `Community 132`, `Community 70`, `Community 135`, `Community 103`, `Community 138`, `Community 141`, `Community 143`, `Community 144`, `Community 51`, `Community 118`, `Community 87`, `Community 152`, `Community 123`, `Community 126`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
-- **Why does `GenerationOptions` connect `Community 75` to `Community 128`, `Bench & Runtime Layer`, `Community 131`, `Community 132`, `Model Downloader`, `Device Capability`, `Community 140`, `Community 145`, `Community 146`, `Community 147`, `Community 56`, `Community 125`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **Why does `HarnessModel` connect `Device Capability` to `Bench & Runtime Layer`, `Community 68`, `SwiftUI App Shell`, `Community 75`, `Community 140`, `Community 144`, `Community 147`, `Community 56`?**
-  _High betweenness centrality (0.015) - this node is a cross-community bridge._
-- **Are the 52 inferred relationships involving `MemoryStore` (e.g. with `.testInjectsMemoryIntoSystemPrompt()` and `.testMemoryTurnSchedulesConsolidation()`) actually correct?**
-  _`MemoryStore` has 52 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 18 inferred relationships involving `MemoryConsolidationEngine` (e.g. with `.test_associate_creates_edges_between_existing_nodes()` and `.test_associate_skips_unknown_relation_and_unresolved_endpoints()`) actually correct?**
-  _`MemoryConsolidationEngine` has 18 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 26 inferred relationships involving `GenerationOptions` (e.g. with `.test_wakeContext_is_injected_into_system_prompt()` and `.testInjectsMemoryIntoSystemPrompt()`) actually correct?**
-  _`GenerationOptions` has 26 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `MemoryStore` connect `Community 54` to `Community 130`, `Community 131`, `Community 70`, `Community 135`, `Community 103`, `Community 138`, `Community 141`, `Community 142`, `Community 144`, `Community 145`, `Community 146`, `Community 51`, `Community 118`, `Community 87`, `Community 152`, `Community 123`, `Community 126`?**
+  _High betweenness centrality (0.025) - this node is a cross-community bridge._
+- **Why does `HarnessModel` connect `Device Capability` to `Bench & Runtime Layer`, `Community 68`, `SwiftUI App Shell`, `Community 75`, `Community 144`, `Community 56`, `Community 124`, `Community 127`?**
+  _High betweenness centrality (0.020) - this node is a cross-community bridge._
+- **Why does `GenerationOptions` connect `Community 75` to `Bench & Runtime Layer`, `Community 128`, `Community 131`, `Device Capability`, `Community 140`, `Community 142`, `Community 146`, `Community 147`, `Community 115`, `Community 56`, `Community 125`?**
+  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+- **Are the 54 inferred relationships involving `MemoryStore` (e.g. with `.testInjectsMemoryIntoSystemPrompt()` and `.testMemoryTurnSchedulesConsolidation()`) actually correct?**
+  _`MemoryStore` has 54 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 20 inferred relationships involving `MemoryConsolidationEngine` (e.g. with `.test_associate_creates_edges_between_existing_nodes()` and `.test_associate_skips_unknown_relation_and_unresolved_endpoints()`) actually correct?**
+  _`MemoryConsolidationEngine` has 20 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 27 inferred relationships involving `GenerationOptions` (e.g. with `.test_wakeContext_is_injected_into_system_prompt()` and `.testInjectsMemoryIntoSystemPrompt()`) actually correct?**
+  _`GenerationOptions` has 27 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `SettingsKeys`, `nrem`, `summarize` to the rest of the system?**
-  _965 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _987 weakly-connected nodes found - possible documentation gaps or missing edges._

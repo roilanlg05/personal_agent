@@ -16,15 +16,9 @@ spike-llamacpp/
 # Keep the indexed outputs: GRAPH_REPORT.md, graph.json, manifest.json, .graphify_labels.json, dated snapshots.
 graphify-out/cache/
 
-# gemma-memory/ stack (will live in its own GitHub repo; ignore its dev artifacts here too)
-gemma-memory/embedder/__pycache__/
-gemma-memory/embedder/models/
-gemma-memory/embedder/.pytest_cache/
-gemma-memory/embedder/.venv/
-gemma-memory/memory-service/.build/
-gemma-memory/memory-service/.swiftpm/
-gemma-memory/docker-data/
-gemma-memory/.env
+# gemma-memory/ lives in its own repo now (github.com/roilanlg05/gemma-memory).
+# Ignore the folder entirely so a local re-clone for dev convenience doesn't pollute git status here.
+gemma-memory/
 
 # Stray root-level (residual from before the gemma-memory/ split)
 /.env

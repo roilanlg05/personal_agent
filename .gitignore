@@ -8,6 +8,14 @@ images/
 spike-mlx/*
 !spike-mlx/serve_mlx_vlm.py
 
+# llama.cpp spike (full fork clone — investigated and decided against; not for git)
+spike-llamacpp/
+
+# graphify
+# Cache (AST + stat-index) is regenerable from source — never check it in.
+# Keep the indexed outputs: GRAPH_REPORT.md, graph.json, manifest.json, .graphify_labels.json, dated snapshots.
+graphify-out/cache/
+
 # gemma-memory/ stack (will live in its own GitHub repo; ignore its dev artifacts here too)
 gemma-memory/embedder/__pycache__/
 gemma-memory/embedder/models/
@@ -17,3 +25,7 @@ gemma-memory/memory-service/.build/
 gemma-memory/memory-service/.swiftpm/
 gemma-memory/docker-data/
 gemma-memory/.env
+
+# Stray root-level (residual from before the gemma-memory/ split)
+/.env
+/docker-data/

@@ -24,7 +24,7 @@ struct TranscriptHandlers {
         let buf: ByteBuffer
         do { buf = try await req.body.collect(upTo: 32_000) }
         catch { return jsonError(.badRequest, "bad_request", "body unreadable") }
-        let data = Data(buffer: buf)
+        let data = Data(buf.readableBytesView)
         guard let body = try? JSONDecoder().decode(AppendBody.self, from: data),
               ["user", "assistant"].contains(body.role) else {
             return jsonError(.badRequest, "bad_request", "invalid append body")
@@ -50,7 +50,7 @@ struct TranscriptHandlers {
         let out = OutPayload(turns: rows.map { OutTurn(role: $0.role, text: $0.text) })
         let data = try JSONEncoder().encode(out)
         return Response(status: .ok, headers: [.contentType: "application/json"],
-                        body: ResponseBody(byteBuffer: ByteBuffer(data: data)))
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
     }
 }
 

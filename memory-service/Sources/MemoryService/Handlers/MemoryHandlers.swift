@@ -33,7 +33,7 @@ struct MemoryHandlers {
         let buf: ByteBuffer
         do { buf = try await req.body.collect(upTo: 64_000) }
         catch { return jsonError(.badRequest, "bad_request", "body unreadable") }
-        guard let body = try? JSONDecoder().decode(SaveBody.self, from: Data(buffer: buf)),
+        guard let body = try? JSONDecoder().decode(SaveBody.self, from: Data(buf.readableBytesView)),
               !body.kind.isEmpty, !body.label.isEmpty else {
             return jsonError(.badRequest, "bad_request", "invalid save body")
         }
@@ -70,14 +70,14 @@ struct MemoryHandlers {
         let payload = Out(id: id, mergedInto: mergedInto)
         let data = try JSONEncoder().encode(payload)
         return Response(status: .ok, headers: [.contentType: "application/json"],
-                        body: ResponseBody(byteBuffer: ByteBuffer(data: data)))
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
     }
 
     @Sendable func forget(_ req: Request, _ ctx: BasicRequestContext) async throws -> Response {
         let buf: ByteBuffer
         do { buf = try await req.body.collect(upTo: 16_000) }
         catch { return jsonError(.badRequest, "bad_request", "body unreadable") }
-        guard let body = try? JSONDecoder().decode(ForgetBody.self, from: Data(buffer: buf)) else {
+        guard let body = try? JSONDecoder().decode(ForgetBody.self, from: Data(buf.readableBytesView)) else {
             return jsonError(.badRequest, "bad_request", "invalid forget body")
         }
         let removed: Int
@@ -104,7 +104,7 @@ struct MemoryHandlers {
         let buf: ByteBuffer
         do { buf = try await req.body.collect(upTo: 16_000) }
         catch { return jsonError(.badRequest, "bad_request", "body unreadable") }
-        guard let body = try? JSONDecoder().decode(RecallBody.self, from: Data(buffer: buf)),
+        guard let body = try? JSONDecoder().decode(RecallBody.self, from: Data(buf.readableBytesView)),
               !body.query.isEmpty else {
             return jsonError(.badRequest, "bad_request", "invalid recall body")
         }
@@ -127,7 +127,7 @@ struct MemoryHandlers {
         let payload = Payload(core: coreNodes.map(toOut), recall: recallNodes.map(toOut))
         let data = try JSONEncoder().encode(payload)
         return Response(status: .ok, headers: [.contentType: "application/json"],
-                        body: ResponseBody(byteBuffer: ByteBuffer(data: data)))
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
     }
 
     @Sendable func expand(_ req: Request, _ ctx: BasicRequestContext) async throws -> Response {
@@ -145,6 +145,6 @@ struct MemoryHandlers {
                               summaryLabel: result.summaryLabel)
         let data = try JSONEncoder().encode(payload)
         return Response(status: .ok, headers: [.contentType: "application/json"],
-                        body: ResponseBody(byteBuffer: ByteBuffer(data: data)))
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
     }
 }

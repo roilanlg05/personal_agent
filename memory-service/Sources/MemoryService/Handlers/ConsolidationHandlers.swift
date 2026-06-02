@@ -20,7 +20,7 @@ struct ConsolidationHandlers {
 
     @Sendable func turnEnd(_ req: Request, _ ctx: BasicRequestContext) async throws -> Response {
         let buf = (try? await req.body.collect(upTo: 4_000)) ?? ByteBuffer()
-        guard let body = try? JSONDecoder().decode(TurnEndBody.self, from: Data(buffer: buf)) else {
+        guard let body = try? JSONDecoder().decode(TurnEndBody.self, from: Data(buf.readableBytesView)) else {
             return jsonError(.badRequest, "bad_request", "threadId required")
         }
         await services.scheduler.armTurnEnd(threadId: body.threadId)
@@ -57,6 +57,6 @@ struct ConsolidationHandlers {
         )
         let data = try JSONEncoder().encode(payload)
         return Response(status: .ok, headers: [.contentType: "application/json"],
-                        body: ResponseBody(byteBuffer: ByteBuffer(data: data)))
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
     }
 }

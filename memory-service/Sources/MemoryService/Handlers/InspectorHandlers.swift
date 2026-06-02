@@ -23,7 +23,7 @@ struct InspectorHandlers {
         let result = try services.store.listNodes(limit: limit, offset: offset, kind: kind)
         let data = try JSONEncoder().encode(result)
         return Response(status: .ok, headers: [.contentType: "application/json"],
-                        body: ResponseBody(byteBuffer: ByteBuffer(data: data)))
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
     }
 
     @Sendable func recent(_ req: Request, _ ctx: BasicRequestContext) async throws -> Response {
@@ -43,6 +43,6 @@ struct InspectorHandlers {
                                                   createdAt: $0.createdAt) })
         let data = try JSONEncoder().encode(out)
         return Response(status: .ok, headers: [.contentType: "application/json"],
-                        body: ResponseBody(byteBuffer: ByteBuffer(data: data)))
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
     }
 }

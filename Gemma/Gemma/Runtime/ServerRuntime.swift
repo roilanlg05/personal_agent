@@ -53,7 +53,7 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                         "messages": messages,
                         "max_tokens": options.maxTokens,
                         "temperature": options.temperature,
-                        "stream": false,
+                        "stream": true,   // SSE: tokens arrive incrementally so the UI can render live.
                         // Skip the model's hidden chain-of-thought (~48x faster; see `enableThinking`).
                         "chat_template_kwargs": ["enable_thinking": enableThinking],
                     ]
@@ -64,37 +64,52 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                     var req = URLRequest(url: baseURL.appendingPathComponent("v1/chat/completions"))
                     req.httpMethod = "POST"
                     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    req.setValue("text/event-stream", forHTTPHeaderField: "Accept")
                     req.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-                    let (data, response) = try await session.data(for: req)
+                    let (bytes, response) = try await session.bytes(for: req)
                     if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-                        // Surface non-2xx as an error instead of falling through to empty content.
-                        let errJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-                        let serverMsg = (errJson?["error"] as? [String: Any])?["message"] as? String
-                            ?? (errJson?["error"] as? String)
-                            ?? String(data: data.prefix(512), encoding: .utf8)
-                        throw RuntimeError.generationFailed("server returned HTTP \(http.statusCode): \(serverMsg ?? "<no body>")")
+                        // Drain the body for a useful error, then surface non-2xx.
+                        var raw = ""
+                        for try await line in bytes.lines { raw += line; if raw.count > 1024 { break } }
+                        throw RuntimeError.generationFailed("server returned HTTP \(http.statusCode): \(raw.isEmpty ? "<no body>" : raw)")
                     }
-                    let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                    let choice = (json?["choices"] as? [[String: Any]])?.first
-                    let message = choice?["message"] as? [String: Any]
-                    // The visible answer is `content`; `reasoning` is the thought channel — never surface it.
-                    let content = (message?["content"] as? String) ?? ""
 
-                    // Branch A: native OpenAI tool_calls.
-                    if let calls = message?["tool_calls"] as? [[String: Any]], !calls.isEmpty {
-                        for call in calls {
-                            let fn = call["function"] as? [String: Any]
-                            let name = (fn?["name"] as? String) ?? ""
-                            let args = (fn?["arguments"] as? String) ?? "{}"
-                            continuation.yield(.toolCallStarted(name: name, args: args))
+                    // Parse the OpenAI SSE stream: `data: {chunk}` lines, ending with `data: [DONE]`.
+                    // Emit each content delta as a token (live); accumulate tool-call deltas (which
+                    // arrive fragmented by index) and emit them at the end so the Agent tool loop
+                    // sees the same shape as before.
+                    var visible = ""
+                    var toolNames: [Int: String] = [:]
+                    var toolArgs: [Int: String] = [:]
+                    for try await line in bytes.lines {
+                        guard line.hasPrefix("data:") else { continue }
+                        let payload = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
+                        if payload == "[DONE]" { break }
+                        guard let d = payload.data(using: .utf8),
+                              let chunk = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
+                              let delta = (chunk["choices"] as? [[String: Any]])?.first?["delta"] as? [String: Any]
+                        else { continue }
+                        if let piece = delta["content"] as? String, !piece.isEmpty {
+                            visible += piece
+                            continuation.yield(.token(piece))
+                        }
+                        if let calls = delta["tool_calls"] as? [[String: Any]] {
+                            for call in calls {
+                                let idx = (call["index"] as? Int) ?? 0
+                                let fn = call["function"] as? [String: Any]
+                                if let n = fn?["name"] as? String, !n.isEmpty { toolNames[idx, default: ""] += n }
+                                if let a = fn?["arguments"] as? String { toolArgs[idx, default: ""] += a }
+                            }
                         }
                     }
 
-                    let visible = GemmaToolCallParser.strip(content)
-                    if !visible.isEmpty { continuation.yield(.token(visible)) }
+                    for idx in toolNames.keys.sorted() {
+                        let args = toolArgs[idx].flatMap { $0.isEmpty ? nil : $0 } ?? "{}"
+                        continuation.yield(.toolCallStarted(name: toolNames[idx] ?? "", args: args))
+                    }
                     continuation.yield(.completed(GenerationResult(
-                        text: visible,
+                        text: GemmaToolCallParser.strip(visible),
                         metrics: .init(tokensGenerated: 0, elapsedSeconds: 0, timeToFirstTokenSeconds: 0, peakResidentMemoryBytes: 0, draftAcceptanceRate: nil))))
                     continuation.finish()
                 } catch {

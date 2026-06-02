@@ -174,13 +174,20 @@ public final class HarnessModel {
         }()
         let agent = Agent(runtime: runtime, registry: registry, memory: memory, wakeContext: wakeContext)
         var answer = ""
+        var streamingIdx: Int? = nil   // index of the live "gemma: …" line being streamed into
         do {
             for try await event in agent.run(prompt: prompt, options: makeGenerationOptions(history: history)) {
                 switch event {
-                case .token(let t): answer += t
+                case .token(let t):
+                    answer += t
+                    // Render tokens live: append the assistant line on the first token, then grow it.
+                    if let i = streamingIdx { agentLog[i] = "gemma: \(answer)" }
+                    else { agentLog.append("gemma: \(answer)"); streamingIdx = agentLog.count - 1 }
                 case .toolCallStarted(let n, _): agentLog.append("🔧 \(n)…")
                 case .toolCallFinished(let n, let r): agentLog.append("🔧 \(n) ✓ \(r)")
-                case .completed: agentLog.append("gemma: \(answer)")
+                case .completed:
+                    // If nothing streamed (e.g. dummy runtime / empty answer), show it once now.
+                    if streamingIdx == nil, !answer.isEmpty { agentLog.append("gemma: \(answer)") }
                 case .failed(let m): agentLog.append("[error: \(m)]")
                 }
             }

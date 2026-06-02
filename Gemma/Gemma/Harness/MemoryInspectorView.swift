@@ -1,21 +1,25 @@
 import SwiftUI
 
-/// Debug/verification view: lists stored memory nodes with their layer, salience and
-/// mention count. Reloads on appear and via the toolbar button.
+/// Debug/verification view: lists stored memory nodes (kind / label / body / extra).
+/// Reloads on appear and via the toolbar button. Reads from the Memory Service over HTTP
+/// (`/v1/nodes`). Salience / mention count / layer aren't exposed by the inspector
+/// endpoint yet — they remain only in the service DB.
+/// TODO(m3a-follow-up): extend `/v1/nodes` to surface layer + salience + mentionCount.
 struct MemoryInspectorView: View {
-    let store: MemoryStore?
-    @State private var nodes: [Node] = []
+    let client: MemoryClient?
+    @State private var nodes: [MemoryClient.Node] = []
 
     var body: some View {
         List(nodes) { n in
             VStack(alignment: .leading, spacing: 2) {
-                Text("[\(n.kind)/\(n.layer.rawValue)] \(n.label)")
+                Text("[\(n.kind)] \(n.label)")
                     .font(.subheadline).bold()
                 if !n.body.isEmpty, n.body != n.label {
                     Text(n.body).font(.caption)
                 }
-                Text("salience \(String(format: "%.2f", n.salience)) · ×\(n.mentionCount) · \(n.confidence.rawValue)")
-                    .font(.caption2).foregroundStyle(.secondary)
+                if let extra = n.extra, !extra.isEmpty {
+                    Text(extra).font(.caption2).foregroundStyle(.secondary)
+                }
             }
         }
         .navigationTitle("Memory")
@@ -25,9 +29,13 @@ struct MemoryInspectorView: View {
                                        description: Text("Talk to the agent with memory enabled, then reload."))
             }
         }
-        .task { reload() }
-        .toolbar { Button("Reload") { reload() } }
+        .task { await reload() }
+        .toolbar { Button("Reload") { Task { await reload() } } }
     }
 
-    private func reload() { nodes = (try? store?.allNodes()) ?? [] }
+    private func reload() async {
+        guard let client else { nodes = []; return }
+        let listed = (try? await client.nodes(limit: 200)) ?? .init(nodes: [], total: 0)
+        nodes = listed.nodes
+    }
 }

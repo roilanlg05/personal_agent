@@ -13,8 +13,10 @@ public final class HarnessModel {
     @ObservationIgnored private var runtime: ModelRuntime & ToolCallingRuntime
     @ObservationIgnored private let settingsStore = SettingsStore()
     @ObservationIgnored private(set) var settings: GenerationSettings
-    @ObservationIgnored private var memoryStore: MemoryStore?
-    @ObservationIgnored private var transcriptStore: TranscriptStore?
+    /// HTTP client to the Memory Service (Docker). Built once in `ensureMemory()` from
+    /// `UserDefaults` (`memoryBaseURL`, `memoryBearerToken`); shared with `MemoryToolbox`
+    /// so tools (Save / Forget / Reflect / Expand) can reach it.
+    @ObservationIgnored private(set) var memory: MemoryClient?
     @ObservationIgnored private var lastTurnEndedAt: Double = 0
     private static let wakeGapSeconds: Double = 180   // first turn or a gap > this = a "wake"
 
@@ -31,14 +33,8 @@ public final class HarnessModel {
         }
         return parts.joined(separator: "\n\n")
     }
-    @ObservationIgnored private var memoryEmbedder: Embedder?
     @ObservationIgnored private let threadId = UUID().uuidString
     @ObservationIgnored private var turnIndex = 0
-
-    /// Consolidation engine (phase ops) — built once, reused. Not observed.
-    @ObservationIgnored private var consolidationEngine: MemoryConsolidationEngine?
-    /// Scheduler driving awake/sleep consolidation — observed so the UI banner reacts.
-    private(set) var consolidationScheduler: ConsolidationScheduler?
 
     /// Owns the local mlx_vlm server process lifecycle (M2a). Built in init() so its initial
     /// ServerConfig reflects the persisted "keep model resident" toggle (M2c-1).
@@ -84,7 +80,9 @@ public final class HarnessModel {
         Task { await serverManager.setWiredLimit(Self.wiredLimitBytes(keepResident: on)) }
     }
 
-    func inspectorStore() -> MemoryStore? { memoryStore }
+    /// The current Memory Service client, exposed for the inspector views. Nil until
+    /// `ensureMemory()` has been called at least once with valid settings.
+    func memoryClient() -> MemoryClient? { memory }
 
     private func makeGenerationOptions(history: [ChatMessage] = []) -> GenerationOptions {
         GenerationOptions(maxTokens: settings.maxOutputTokens, temperature: settings.temperature,
@@ -93,43 +91,42 @@ public final class HarnessModel {
                           history: history)
     }
 
-    private func ensureMemory() -> MemoryServices? {
-        guard settings.memoryEnabled ?? true else { return nil }
-        if memoryStore == nil {
-            memoryEmbedder = try? NLContextualEmbedder()
-            let dim = memoryEmbedder?.dimension ?? 512
-            memoryStore = try? MemoryStore(url: try? MemoryStore.defaultURL(), embeddingDim: dim)
+    /// Build (or rebuild) the `MemoryClient` from `UserDefaults` settings. The Settings UI
+    /// (Task 14) will surface these keys; today users may override via `defaults write`.
+    ///
+    /// Keys:
+    /// - `memoryBaseURL` (String, default `http://localhost:8081`)
+    /// - `memoryBearerToken` (String, default empty)
+    ///
+    /// Mirrors the client into `MemoryToolbox.shared.memory` so the four memory tools
+    /// (Save / Forget / Reflect / Expand) can reach the same instance.
+    func ensureMemory() {
+        guard settings.memoryEnabled ?? true else {
+            self.memory = nil
+            MemoryToolbox.shared.memory = nil
+            MemoryToolbox.shared.reflectionRequest = nil
+            return
         }
-        guard let store = memoryStore else { return nil }
-        if transcriptStore == nil { transcriptStore = TranscriptStore(dbQueue: store.dbQueue) }
-        MemoryToolbox.shared.store = store
-        MemoryToolbox.shared.embedder = memoryEmbedder
-        MemoryToolbox.shared.transcriptStore = transcriptStore
-        // Build the consolidation engine + scheduler ONCE, then reuse across turns.
-        if consolidationScheduler == nil {
-            // Share the turn runtime: all consolidation phases run thinking-OFF (the runtime's
-            // default), same as turns, so there is nothing to override. Safe to share —
-            // ServerRuntime is stateless.
-            let engine = MemoryConsolidationEngine(store: store, embedder: memoryEmbedder, runtime: runtime,
-                                                   transcriptStore: transcriptStore ?? TranscriptStore(dbQueue: store.dbQueue))
-            let sched = ConsolidationScheduler(runner: engine, isReady: { [weak self] in self?.serverManager.state == .ready },
-                                               hasPendingCycle: { [weak self] in ((try? self?.memoryStore?.loadSleepCycle()) ?? nil) != nil },
-                                               isUserBusy: { [weak self] in self?.agentRunning ?? false })
-            // Mirror short engine progress into the scheduler's summary so the
-            // ".done" banner can show what changed.
-            engine.onProgress = { [weak sched] mark in
-                Task { @MainActor [weak sched] in sched?.lastSummary = mark }
-            }
-            MemoryToolbox.shared.reflectionRequest = { [weak sched] in sched?.requestLightReflection() }
-            self.consolidationEngine = engine
-            self.consolidationScheduler = sched
+        let urlString = UserDefaults.standard.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
+        let token = UserDefaults.standard.string(forKey: "memoryBearerToken") ?? ""
+        guard let baseURL = URL(string: urlString) else {
+            self.memory = nil
+            MemoryToolbox.shared.memory = nil
+            return
         }
-        let retriever = MemoryRetriever(store: store, embedder: memoryEmbedder)
-        return MemoryServices(retriever: retriever)
+        let client = MemoryClient(baseURL: baseURL, bearerToken: token)
+        self.memory = client
+        MemoryToolbox.shared.memory = client
+        MemoryToolbox.shared.reflectionRequest = { [weak client] in
+            Task { _ = try? await client?.reflect() }
+        }
     }
 
-    /// Manually kick off a full consolidation cycle (toolbar "Consolidar").
-    func consolidateNow() { consolidationScheduler?.consolidateNow() }
+    /// Manually kick off a reflection cycle (toolbar "Consolidar"). Service-driven now.
+    func consolidateNow() {
+        guard let client = memory else { return }
+        Task { _ = try? await client.reflect() }
+    }
 
     /// Compose agent-initiated chat lines from pending clarifications + due reminders. Empty when
     /// there's nothing to say (the agent never speaks for chit-chat).
@@ -140,62 +137,47 @@ public final class HarnessModel {
         return out
     }
 
-    /// Post the agent's pending clarifications + due reminders into the chat. No-op if none, and
-    /// no-op while a turn is running so it never interrupts the user mid-answer.
+    /// Post the agent's pending clarifications + due reminders into the chat. No-op for M3a:
+    /// the Memory Service does not yet expose dedicated endpoints for pending clarifications /
+    /// due reminders. Will be re-enabled when those endpoints land.
     func surfaceProactive() {
-        guard !agentRunning, let store = memoryStore else { return }
-        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-        let today = df.string(from: Date())
-        let clar = ((try? store.pendingClarifications()) ?? []).map { $0.body }
-        let due = ((try? store.dueReminders(today: today)) ?? []).map { $0.body }
-        let msgs = Self.proactiveMessages(clarifications: clar, dueReminders: due)
-        guard !msgs.isEmpty else { return }
-        agentLog.append(contentsOf: msgs)
-        hasProactive = true
+        // TODO(m3a-follow-up): expose /v1/proactive (clarifications + due reminders) on the
+        // service so the harness can surface them again without GRDB access.
     }
 
     public func runAgentTurn(_ prompt: String) async {
         surfaceProactive()
         agentRunning = true; defer { agentRunning = false }
         agentLog.append("you: \(prompt)")
-        let memory = ensureMemory()
-        // noteUserActivity() at turn START: cancels any in-flight consolidation so the model is
-        // free for this turn. It does NOT arm timers — timers are armed at turn END via
-        // noteTurnEnded() so consolidation never starts while agentRunning==true. A light
-        // reflection requested mid-turn by the `reflect` tool is still gated by isUserBusy()
-        // inside launch() and will only run once the turn finishes and noteTurnEnded() fires.
-        //
-        // Capture whether a consolidation was ACTIVELY running before we cancel it: only such a
-        // turn truly "interrupts" a cycle. We use this to gate the reflection-focus line below so
-        // it surfaces once (on the interrupting turn) rather than nagging on every subsequent
-        // pending-but-idle turn while the cycle merely waits to resume.
-        let wasConsolidating: Bool = {
-            switch consolidationScheduler?.state {
-            case .reflecting, .sleeping: return true
-            default: return false
-            }
-        }()
-        consolidationScheduler?.noteUserActivity()
+        ensureMemory()
+        let client = memory
         let registry = ToolRegistry()
         registry.register(CurrentTimeTool())
-        if memory != nil {
+        if client != nil {
             registry.register(ForgetTool()); registry.register(ReflectTool()); registry.register(ExpandContextTool())
+            registry.register(SaveMemoryTool())
         }
         let now = Date().timeIntervalSince1970
         let isWake = (lastTurnEndedAt == 0) || (now - lastTurnEndedAt > Self.wakeGapSeconds)
-        // Focus is gated to the turn that interrupted an active cycle (see wasConsolidating
-        // above): on a merely pending-but-idle cycle we pass "" so buildWakeContext omits the line.
-        let focus = wasConsolidating ? (((try? memoryStore?.loadSleepCycle()) ?? nil)?.focus ?? "") : ""
-        let followUps = isWake ? (((try? memoryStore?.pendingFollowUps()) ?? nil)?.map { $0.body } ?? []) : []
-        let wakeContext = Self.buildWakeContext(focus: focus, followUps: followUps, isWake: isWake)
-        let history: [ChatMessage] = {
-            guard let ts = transcriptStore else { return [] }
-            let rows = (try? ts.recent(threadId: threadId,
-                                       maxTurns: ConversationWindow.defaultMaxTurns,
-                                       maxChars: ConversationWindow.defaultMaxChars)) ?? []
-            return ConversationWindow.messages(from: rows)
+        _ = isWake // followUps / focus are service-driven now (no per-turn HTTP for them in M3a)
+        // M3a: focus / pendingFollowUps surfaces would require dedicated endpoints. The
+        // service still consolidates in the background; for now wake-context is silent until
+        // those endpoints land. Recall (the main signal) still rides the user prompt tail.
+        let wakeContext = ""
+        // Build recallTail via HTTP. recall() returns .empty on transport failure (see
+        // MemoryClient.recall), so an offline service degrades to "no recall" instead of crashing.
+        var recallTail = ""
+        if let client {
+            let bundle = (try? await client.recall(query: prompt)) ?? .empty
+            recallTail = bundle.injectionBlock()
+        }
+        // Fetch the short-term conversation window over HTTP. Falls back to empty on failure.
+        let history: [ChatMessage] = await {
+            guard let client else { return [] }
+            let turns = (try? await client.conversationWindow(threadId: threadId)) ?? []
+            return turns.map { ChatMessage(role: $0.role == "assistant" ? .assistant : .user, content: $0.text) }
         }()
-        let agent = Agent(runtime: runtime, registry: registry, memory: memory, wakeContext: wakeContext)
+        let agent = Agent(runtime: runtime, registry: registry, recallTail: recallTail, wakeContext: wakeContext)
         var answer = ""
         var streamingIdx: Int? = nil   // index of the live "gemma: …" line being streamed into
         do {
@@ -215,17 +197,17 @@ public final class HarnessModel {
                 }
             }
         } catch { agentLog.append("[error: \(error)]") }
-        if let ts = transcriptStore {
-            let now = Date().timeIntervalSince1970
-            try? ts.append(threadId: threadId, turnIndex: turnIndex, role: "user", text: prompt, now: now)
+        // Append both turns to the transcript over HTTP. Failures are silent (service-down
+        // shouldn't crash a successful turn — the user can see Gemma's reply).
+        if let client {
+            try? await client.appendTranscript(threadId: threadId, role: "user", text: prompt, turnIndex: turnIndex)
             if !answer.isEmpty {
-                // +1ms so the assistant row always sorts strictly after its user turn (recent()
-                // orders by createdAt; equal timestamps would tie and fall back to undefined rowid order).
-                try? ts.append(threadId: threadId, turnIndex: turnIndex, role: "assistant", text: answer, now: now + 0.001)
+                try? await client.appendTranscript(threadId: threadId, role: "assistant", text: answer, turnIndex: turnIndex)
             }
             turnIndex += 1
+            // Signal the service to arm its consolidation timers. Fire-and-forget.
+            try? await client.consolidationTurnEnd(threadId: threadId)
         }
         lastTurnEndedAt = Date().timeIntervalSince1970
-        consolidationScheduler?.noteTurnEnded()
     }
 }

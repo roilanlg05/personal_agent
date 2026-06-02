@@ -1,11 +1,14 @@
 import SwiftUI
 
-/// Hosts the memory inspector with a List / Graph / Transcript segmented toggle.
+/// Hosts the memory inspector with a List / Transcript segmented toggle. The Grafo tab
+/// from M2 is removed in M3a: it relied on direct GRDB access to read edges, and the
+/// Memory Service does not yet expose `/v1/edges`.
+/// TODO(m3a-follow-up): add `/v1/edges` on the service and restore the Grafo tab.
 struct MemoryView: View {
-    let store: MemoryStore?
+    let client: MemoryClient?
 
-    private enum Mode: String, CaseIterable { case lista = "Lista", grafo = "Grafo", transcript = "Transcript" }
-    @State private var mode: Mode = .grafo
+    private enum Mode: String, CaseIterable { case lista = "Lista", transcript = "Transcript" }
+    @State private var mode: Mode = .lista
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,9 +20,8 @@ struct MemoryView: View {
             .padding(8)
             Divider()
             switch mode {
-            case .lista: MemoryInspectorView(store: store)
-            case .grafo: MemoryGraphView(store: store)
-            case .transcript: TranscriptInspectorView(store: store)
+            case .lista: MemoryInspectorView(client: client)
+            case .transcript: TranscriptInspectorView(client: client)
             }
         }
     }

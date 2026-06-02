@@ -8,29 +8,23 @@ public enum AgentEvent: Sendable {
     case failed(String)
 }
 
-/// Memory services injected into the Agent (nil → S4 behavior, no memory).
-@MainActor
-struct MemoryServices {
-    let retriever: MemoryRetriever
-}
-
-/// Orchestrates one agent turn over a tool-calling runtime. With memory it retrieves relevant
-/// memories and injects them (with wakeContext) at the tail of the user message, keeping the
-/// system prompt byte-stable so the server's prefix cache (APC) stays warm. The live turn does
-/// NOT write memory (no save_memory) — capture is deferred to background consolidation, and the
-/// caller appends the turn to the TranscriptStore (short-term context). Without memory it behaves
-/// exactly as the S4 agent.
+/// Orchestrates one agent turn over a tool-calling runtime. The caller (HarnessModel) is
+/// responsible for fetching recall (via MemoryClient) and rendering it into `recallTail`
+/// before the turn — Agent itself is memory-agnostic and just appends `recallTail` + `wakeContext`
+/// to the user prompt, keeping the system prompt byte-stable so the server's prefix cache (APC)
+/// stays warm. The live turn does NOT write memory (no save_memory) — capture is deferred to
+/// background consolidation, and the caller appends the turn to the Memory Service.
 @MainActor
 final class Agent {
     private let runtime: ToolCallingRuntime
     private let registry: ToolRegistry
-    private let memory: MemoryServices?
+    private let recallTail: String
     private let wakeContext: String
 
-    init(runtime: ToolCallingRuntime, registry: ToolRegistry, memory: MemoryServices? = nil, wakeContext: String = "") {
+    init(runtime: ToolCallingRuntime, registry: ToolRegistry, recallTail: String = "", wakeContext: String = "") {
         self.runtime = runtime
         self.registry = registry
-        self.memory = memory
+        self.recallTail = recallTail
         self.wakeContext = wakeContext
     }
 
@@ -55,16 +49,12 @@ final class Agent {
 
     func run(prompt: String, options: GenerationOptions) -> AsyncThrowingStream<AgentEvent, Error> {
         let tools = registry.tools
-        let memory = self.memory
         return AsyncThrowingStream { continuation in
             let task = Task {
                 // Recall + wakeContext ride the TAIL of the user message so the system prefix
                 // stays byte-identical across turns → APC prefix-cache hit (disk on cold start,
                 // memory when warm). See docs/superpowers/specs/2026-06-02-mlx-ttft-quickwin-design.md.
-                var recallTail = ""
-                if let memory, let nodes = try? memory.retriever.retrieve(query: prompt) {
-                    recallTail = memory.retriever.injectionBlock(for: nodes)
-                }
+                var recallTail = self.recallTail
                 if !wakeContext.isEmpty {
                     recallTail = recallTail.isEmpty ? wakeContext : recallTail + "\n\n" + wakeContext
                 }

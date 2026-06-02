@@ -4,35 +4,43 @@ import XCTest
 @MainActor
 final class ExpandContextToolTests: XCTestCase {
     override func tearDown() {
-        MemoryToolbox.shared.store = nil
-        MemoryToolbox.shared.transcriptStore = nil
+        MemoryToolbox.shared.memory = nil
         super.tearDown()
     }
 
-    func test_expand_returns_verbatim_turns_for_a_summary_topic() async throws {
-        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
-        let ts = TranscriptStore(dbQueue: store.dbQueue)
-        try ts.append(threadId: "T", turnIndex: 0, role: "user", text: "quiero ir a Japón en abril", now: 1)
-        try ts.append(threadId: "T", turnIndex: 0, role: "assistant", text: "buena idea", now: 2)
-        let extra = #"{"concepts":["Japón"],"threadId":"T","turnRange":[0,0]}"#
-        let summary = Node(id: "s1", kind: NodeKind.summary.rawValue, label: "viaje a Japón", body: "Plan a trip",
-                           layer: .daily, createdAt: 1, updatedAt: 1, lastSeenAt: 1, salience: 4, decayRate: 0.1,
-                           confidence: .probable, mentionCount: 1, ttlExpiresAt: nil, sourceRef: "T",
-                           origin: .extracted, serverId: nil, dirty: true, deleted: false, extra: extra)
-        try store.upsert(summary)
-        MemoryToolbox.shared.store = store
-        MemoryToolbox.shared.transcriptStore = ts
-
+    func test_expand_returns_formatted_turns_for_a_topic() async {
+        MemoryToolbox.shared.memory = makeStubMemoryClient { req in
+            XCTAssertEqual(req.url?.path, "/v1/memory/expand")
+            let payload = #"""
+            {"transcript":[
+              {"role":"user","text":"quiero ir a Japón en abril"},
+              {"role":"assistant","text":"buena idea"}
+            ],"summaryLabel":"viaje a Japón"}
+            """#.data(using: .utf8)!
+            return (200, payload)
+        }
         let out = await ExpandContextTool().run(argsJSON: #"{"topic":"viaje a Japón"}"#)
         XCTAssertTrue(out.contains("quiero ir a Japón en abril"), "verbatim user turn; got: \(out)")
-        XCTAssertTrue(out.contains("buena idea"), "assistant turn")
+        XCTAssertTrue(out.contains("buena idea"), "assistant turn; got: \(out)")
+        XCTAssertTrue(out.contains("User:"), "user role label; got: \(out)")
+        XCTAssertTrue(out.contains("Gemma:"), "assistant role label; got: \(out)")
     }
 
-    func test_expand_unknown_topic_is_safe() async throws {
-        let store = try MemoryStore(inMemory: true, embeddingDim: 8)
-        MemoryToolbox.shared.store = store
-        MemoryToolbox.shared.transcriptStore = TranscriptStore(dbQueue: store.dbQueue)
+    func test_expand_empty_transcript_returns_no_detail_message() async {
+        MemoryToolbox.shared.memory = makeStubMemoryClient { _ in
+            (200, #"{"transcript":[],"summaryLabel":null}"#.data(using: .utf8)!)
+        }
         let out = await ExpandContextTool().run(argsJSON: #"{"topic":"inexistente"}"#)
-        XCTAssertFalse(out.isEmpty)
+        XCTAssertTrue(out.contains("no detail found"), "got: \(out)")
+    }
+
+    func test_expand_empty_topic_is_noop() async {
+        let out = await ExpandContextTool().run(argsJSON: #"{"topic":""}"#)
+        XCTAssertEqual(out, "no topic given")
+    }
+
+    func test_expand_no_client_is_safe() async {
+        let out = await ExpandContextTool().run(argsJSON: #"{"topic":"x"}"#)
+        XCTAssertEqual(out, "memory unavailable")
     }
 }

@@ -195,7 +195,7 @@ final class MemoryClient {
 
     func scheduleWindow(from: Double, to: Double, includeCancelled: Bool = false) async throws -> [ScheduleEvent] {
         struct R: Decodable { let events: [ScheduleEvent] }
-        let r: R = try await get("/v1/schedule/window?from=\(from)&to=\(to)&includeCancelled=\(includeCancelled)")
+        let r: R = try await get("/v1/schedule/window?from=\(Int(from))&to=\(Int(to))&includeCancelled=\(includeCancelled)")
         return r.events
     }
 

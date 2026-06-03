@@ -51,4 +51,12 @@ final class MemoryClientScheduleTests: XCTestCase {
         let n = try await c.cancelEvents(ids: nil, from: 0, to: 5000)
         XCTAssertEqual(n, 2)
     }
+
+    func test_checkSchedule_returnsConflicts() async throws {
+        StubURLProtocol.routes = ["/v1/schedule/check":
+            (200, #"{"conflicts":[{"id":"y","title":"Gym","start":1000,"end":2000,"allDay":false,"status":"scheduled"}]}"#)]
+        let c = makeClient()
+        let conflicts = try await c.checkSchedule(start: 1500, end: 1600)
+        XCTAssertEqual(conflicts.first?.title, "Gym")
+    }
 }

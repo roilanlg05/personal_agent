@@ -143,6 +143,27 @@ final class MemoryClient {
         try await get("/v1/graph?nodeLimit=\(nodeLimit)")
     }
 
+    // MARK: hub navigation (Phase 2)
+    struct ByHubResult: Decodable, Sendable { let nodes: [Node]; let kind: String; let total: Int }
+    struct ByEntityResult: Decodable, Sendable { let nodes: [Node]; let entity: String; let total: Int }
+
+    /// All members of the `<kind>` hub. `status` filters `extra.status`; `sortByDate`
+    /// orders by `extra.date` ascending. Used for "list my pending tasks ordered by date"
+    /// without scanning every node.
+    func byHub(kind: String, status: String? = nil, sortByDate: Bool = false,
+               limit: Int = 100) async throws -> ByHubResult {
+        var path = "/v1/memory/byHub?kind=\(escape(kind))&limit=\(limit)"
+        if let status { path += "&status=\(escape(status))" }
+        if sortByDate { path += "&sort=date" }
+        return try await get(path)
+    }
+
+    /// Every node connected to the named entity (either direction, any relation).
+    /// Used for "tell me everything you know about <person>".
+    func byEntity(label: String, limit: Int = 100) async throws -> ByEntityResult {
+        try await get("/v1/memory/byEntity?label=\(escape(label))&limit=\(limit)")
+    }
+
     // MARK: HTTP helpers
     private struct EmptyOK: Decodable {}
     private struct EmptyBody: Encodable {}

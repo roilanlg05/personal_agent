@@ -25,7 +25,7 @@ Causa transversal: la consolidación estuvo rota durante esas charlas (modelo in
 - Enumeración de agenda por ventana de tiempo (determinista).
 - Soft-cancel (conserva el evento como `cancelled`) y operaciones sobre ventanas.
 - `consolidate()` emite eventos estructurados (captura asíncrona).
-- Migración de los nodos actuales (viaje, mecánico, citas) al nuevo modelo.
+- **Sin migración:** la memoria del agente se **resetea (wipe total)** antes de SP1 — los datos viejos están fragmentados/duplicados y no vale la pena migrarlos. Se arranca limpio con el modelo nuevo.
 
 **No-objetivos (van al Roadmap)**
 - **Wake schedule rico** (hora recurrente + overrides por día + comandos) → **SP5**. SP1 solo usa una _hora de despertar simple_ (un valor persistido) para resolver "resto de la noche".
@@ -106,13 +106,17 @@ Implementados sobre `MemoryClient` (HTTP), registrados en el `ToolRegistry` junt
 
 La fase `consolidate()` del engine se actualiza para que, cuando extraiga algo con tiempo, emita un `event` estructurado (con `start`/`end`/`canonicalKey`) en vez de un `task`/`fact` con la fecha en prosa. Reusa la misma representación y la dedup por `canonicalKey`, de modo que un evento creado en vivo por el tool y el mismo mencionado de pasada no se dupliquen.
 
-## 7. Migración de datos existentes
+## 7. Reset de memoria (sin migración)
 
-Script/rutina idempotente (one-off) contra la DB del i3:
-- `fact | Varadero trip` → `event` con `start=2026-06-08`, `end=2026-06-13`, `allDay=true`, `location="Varadero, Cuba"`.
-- `task | appointment` (3pm 03-jun) y `task | dentist appointment` (10am 04-jun) → `event` con `start`/`end` (asumir 1h si no hay fin; marcar para confirmar con el usuario).
-- `task|mechanic appointment` + `fact|mechanic appointment` + `follow_up` → fundir en un `event` (pedir fecha/hora al usuario, hoy falta).
-- Recalcular `canonicalKey` y deduplicar.
+La memoria del agente se **resetea por completo** antes de SP1 (decisión del usuario): la DB SQLite del i3 (`docker-data/memory/memory.sqlite`) se borra y el container `memory` se reinicia, recreando el esquema limpio en `Services.init` (+ `ensureKindHubs`). Se borran **nodos y transcripts**. No hay migración: los datos viejos estaban fragmentados/duplicados (mecánico en 3 nodos, "Roilan" como persona externa, spam de insights, viaje como `fact`).
+
+Reset (correr en el i3, en el dir del repo `gemma-memory`):
+```
+docker compose stop memory \
+  && rm -f docker-data/memory/memory.sqlite docker-data/memory/memory.sqlite-wal docker-data/memory/memory.sqlite-shm \
+  && docker compose up -d memory
+```
+Verificar: `GET /v1/consolidation/state` → `nodeCount:0, transcriptCount:0`.
 
 ## 8. Casos borde y manejo de errores
 
@@ -131,7 +135,6 @@ Script/rutina idempotente (one-off) contra la DB del i3:
 - **Endpoint (MemoryService):** `check`/`create` (force on/off)/`window`/`cancel` (por ids y por ventana). Auth. Degradación.
 - **`consolidate()`:** emite `event` estructurado con `start`/`end` desde un transcript con fecha relativa resuelta.
 - **Agente (personal_agent):** los 4 tools sobre `MemoryClient` (con URLProtocol mock). Flujo: clarifica hora de fin faltante; chequea antes de crear; en choque no crea sin `force`.
-- **Migración:** idempotente; correr 2x no duplica.
 
 ## 10. Roadmap (después de SP1)
 
@@ -148,5 +151,6 @@ Script/rutina idempotente (one-off) contra la DB del i3:
 - Detección de conflictos: **híbrida** (determinista + capa de sentido común del modelo).
 - En conflicto: **conversacional** — acusar recibo, chequear, y si choca explicar y preguntar (no rechazar de entrada, no agendar a ciegas).
 - `event` es un **NodeKind separado** de `task`.
-- Wake schedule rico **diferido a SP5**; SP1 usa hora-de-despertar simple.
+- Wake schedule rico **diferido a SP5**; SP1 usa hora-de-despertar simple (default `06:00`).
 - Alarma y avisos/correos **diferidos** (M3d / M3c).
+- **Reset total de la memoria** (nodos + transcripts) antes de SP1; **sin migración**.

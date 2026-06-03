@@ -17,13 +17,25 @@ final class ServerProcessTests: XCTestCase {
 
     func test_serverArguments_baseShape_noDraft() {
         XCTAssertEqual(serverArguments(for: cfg()),
-                       ["--model", "some/model", "--host", "127.0.0.1", "--port", "8080"])
+                       ["--model", "some/model", "--host", "0.0.0.0", "--port", "8080"])
     }
 
     func test_serverArguments_appendsDraftFlags_whenConfigured() {
         XCTAssertEqual(serverArguments(for: cfg(draft: true)),
-                       ["--model", "some/model", "--host", "127.0.0.1", "--port", "8080",
+                       ["--model", "some/model", "--host", "0.0.0.0", "--port", "8080",
                         "--draft-model", "some/assistant", "--draft-kind", "mtp", "--draft-block-size", "3"])
+    }
+
+    /// The server must bind all interfaces (`0.0.0.0`) so the remote Memory Service (i3) can
+    /// reach the model for consolidation — but the app's own client URL must stay loopback
+    /// (`127.0.0.1`), since connecting a client to `0.0.0.0` is not portable. Regression guard:
+    /// binding to `127.0.0.1` silently breaks remote consolidation (model unreachable from LAN).
+    func test_serverArguments_bindAllInterfaces_butClientStaysLoopback() {
+        let c = cfg()
+        XCTAssertEqual(serverArguments(for: c)[2...3].map { $0 }, ["--host", "0.0.0.0"],
+                       "server must bind 0.0.0.0 so the i3 can reach it")
+        XCTAssertEqual(c.baseURL.absoluteString, "http://127.0.0.1:8080",
+                       "the app's client URL must stay loopback")
     }
 
     func test_wiringArguments_emptyWhenPageable() {
@@ -40,7 +52,7 @@ final class ServerProcessTests: XCTestCase {
         XCTAssertEqual(a.first, "/x/spike-mlx/serve_mlx_vlm.py", "launcher script must be python's argv[1] (first arg after the interpreter)")
         XCTAssertFalse(a.contains("--wired-limit-bytes"))
         XCTAssertEqual(Array(a.suffix(12)),
-                       ["--model", "some/model", "--host", "127.0.0.1", "--port", "8080",
+                       ["--model", "some/model", "--host", "0.0.0.0", "--port", "8080",
                         "--draft-model", "some/assistant", "--draft-kind", "mtp", "--draft-block-size", "3"])
     }
 

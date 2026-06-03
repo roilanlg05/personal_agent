@@ -19,7 +19,12 @@ nonisolated struct ServerConfig: Sendable {
     /// The wiring launcher script (spike-mlx/serve_mlx_vlm.py): sets mx.set_wired_limit then runs mlx_vlm.server.
     var launcherScriptURL: URL
     var modelId: String
+    /// Host the app uses as a *client* to reach the model (drives `baseURL`). Stays loopback.
     var host: String
+    /// Address the spawned server *binds* to (`--host`). Defaults to `0.0.0.0` so the remote
+    /// Memory Service (i3) can reach the model for consolidation. Decoupled from `host` because
+    /// a client must not dial `0.0.0.0`. Binding loopback here silently breaks remote consolidation.
+    var bindHost: String = "0.0.0.0"
     var port: Int
     /// MTP speculative-decoding drafter (HF id or path). nil = no speculative decoding.
     var draftModelId: String? = nil

@@ -2,7 +2,7 @@ import Foundation
 
 /// The argv (after the executable) for `mlx_vlm.server`. Pure → unit-testable.
 nonisolated func serverArguments(for config: ServerConfig) -> [String] {
-    var args = ["--model", config.modelId, "--host", config.host, "--port", String(config.port)]
+    var args = ["--model", config.modelId, "--host", config.bindHost, "--port", String(config.port)]
     if let draft = config.draftModelId {
         args += ["--draft-model", draft]
         if let kind = config.draftKind { args += ["--draft-kind", kind] }

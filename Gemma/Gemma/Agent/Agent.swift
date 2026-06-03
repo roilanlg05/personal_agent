@@ -43,7 +43,12 @@ final class Agent {
         But when several remembered facts match the question (e.g. multiple meetings or events), \
         mention ALL of them with their dates — never answer with only the most recent. \
         IMPORTANT: after any tool runs, ALWAYS reply to the user in a short, natural sentence — \
-        confirm what you did or answer their question. Never end your turn with only a tool call.
+        confirm what you did or answer their question. Never end your turn with only a tool call. \
+        Scheduling: the user's calendar lives in tools. For appointments/meetings/trips, FIRST acknowledge briefly ("let me check your schedule"), then call check_schedule, then create_event. \
+        Pass times as LOCAL ISO datetimes using today's date above (e.g. "tomorrow 3pm" → 2026-06-10T15:00). \
+        If the user gives only a start time, ASK for the end before creating. If a time span is vague ("rest of the week"), ASK whether it starts now or tomorrow; "rest of the night" means until 06:00 the next day. \
+        If create_event reports a conflict, do NOT force it: tell the user what it conflicts with (consider travel/location too — e.g. a meeting in another city during a trip) and ask whether to reschedule, cancel the other, or book anyway. If the user says book anyway, call create_event again with force set to true. \
+        Use query_schedule for "what's on my schedule"; use cancel_events (which only cancels, never deletes) for "cancel my appointments". To-dos without a fixed time (call mom, gym) are not calendar events — don't create_event for them.
         """
     }
 

@@ -23,7 +23,7 @@ struct CheckScheduleTool: AgentTool {
               let e = (o["end"] as? String).flatMap(ScheduleTime.epoch) else {
             return "I need a start and end time (e.g. 2026-06-09T08:00)."
         }
-        await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: "") }
+        await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: "\(ScheduleTime.human(fromEpoch: s))–\(ScheduleTime.human(fromEpoch: e))") }
         let result: String = await {
             guard let m = await mem() else { return "memory unavailable" }
             do {
@@ -67,7 +67,7 @@ struct CreateEventTool: AgentTool {
                                                 location: (location?.isEmpty == false) ? location : nil, force: force)
                 if r.created { return "Scheduled: \(title) (\(ScheduleTime.human(fromEpoch: s)))" }
                 return "NOT scheduled — conflicts with: " + r.conflicts.map(eventLine).joined(separator: "; ")
-                     + ". Ask the user whether to reschedule, cancel the other, or force it."
+                     + ". Ask the user whether to reschedule, cancel the other event, or book it anyway — if they confirm, call create_event again with force=true."
             } catch { return "schedule error: \(error)" }
         }()
         await MainActor.run { ToolActivityRelay.shared.finished(name: Self.name, result: result) }
@@ -89,7 +89,7 @@ struct QueryScheduleTool: AgentTool {
               let t = (o["to"] as? String).flatMap(ScheduleTime.epoch) else {
             return "I need a from/to range (e.g. 2026-06-09 to 2026-06-16)."
         }
-        await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: "") }
+        await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: "\(ScheduleTime.human(fromEpoch: f))–\(ScheduleTime.human(fromEpoch: t))") }
         let result: String = await {
             guard let m = await mem() else { return "memory unavailable" }
             do {

@@ -62,6 +62,17 @@ final class MemoryClient {
         let turnIndex: Int; let createdAt: Double
     }
 
+    struct ScheduleEvent: Decodable, Sendable, Identifiable {
+        let id: String
+        let title: String
+        let start: Double
+        let end: Double
+        let allDay: Bool
+        let location: String?
+        let status: String
+    }
+    struct CreateEventResult: Sendable { let created: Bool; let id: String?; let conflicts: [ScheduleEvent] }
+
     enum ClientError: Error {
         case http(status: Int, message: String)
         case decode(Error)
@@ -162,6 +173,37 @@ final class MemoryClient {
     /// Used for "tell me everything you know about <person>".
     func byEntity(label: String, limit: Int = 100) async throws -> ByEntityResult {
         try await get("/v1/memory/byEntity?label=\(escape(label))&limit=\(limit)")
+    }
+
+    // MARK: schedule (SP1)
+    func checkSchedule(start: Double, end: Double) async throws -> [ScheduleEvent] {
+        struct B: Encodable { let start: Double; let end: Double }
+        struct R: Decodable { let conflicts: [ScheduleEvent] }
+        let r: R = try await post("/v1/schedule/check", B(start: start, end: end))
+        return r.conflicts
+    }
+
+    func createEvent(title: String, start: Double, end: Double, allDay: Bool,
+                     location: String?, force: Bool) async throws -> CreateEventResult {
+        struct B: Encodable { let title: String; let start: Double; let end: Double
+                              let allDay: Bool; let location: String?; let origin: String; let force: Bool }
+        struct R: Decodable { let created: Bool; let id: String?; let conflicts: [ScheduleEvent] }
+        let r: R = try await post("/v1/schedule/create",
+            B(title: title, start: start, end: end, allDay: allDay, location: location, origin: "user", force: force))
+        return CreateEventResult(created: r.created, id: r.id, conflicts: r.conflicts)
+    }
+
+    func scheduleWindow(from: Double, to: Double, includeCancelled: Bool = false) async throws -> [ScheduleEvent] {
+        struct R: Decodable { let events: [ScheduleEvent] }
+        let r: R = try await get("/v1/schedule/window?from=\(from)&to=\(to)&includeCancelled=\(includeCancelled)")
+        return r.events
+    }
+
+    func cancelEvents(ids: [String]?, from: Double?, to: Double?) async throws -> Int {
+        struct B: Encodable { let ids: [String]?; let from: Double?; let to: Double? }
+        struct R: Decodable { let cancelled: Int }
+        let r: R = try await post("/v1/schedule/cancel", B(ids: ids, from: from, to: to))
+        return r.cancelled
     }
 
     // MARK: HTTP helpers

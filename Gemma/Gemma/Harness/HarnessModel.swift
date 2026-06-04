@@ -213,6 +213,10 @@ public final class HarnessModel {
     }
 
     public func runAgentTurn(_ prompt: String) async {
+        // Always (re)build the runtime from current settings so the turn uses the latest chat
+        // provider + API key (read fresh from the Keychain) — independent of when/where the key
+        // was saved in Settings. Cheap: ServerRuntime is stateless.
+        rebuildRuntime()
         surfaceProactive()
         agentRunning = true; defer { agentRunning = false }
         agentLog.append("you: \(prompt)")

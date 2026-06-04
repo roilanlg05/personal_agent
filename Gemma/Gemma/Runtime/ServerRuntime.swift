@@ -53,6 +53,11 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
+                    // Cloud providers need a bearer key. If none is set, fail with a clear,
+                    // actionable message instead of the provider's opaque 403 "not authenticated".
+                    if !provider.kind.isLocalMLX, (provider.apiKey ?? "").isEmpty {
+                        throw RuntimeError.generationFailed("\(provider.kind.displayName): falta la API key — agrégala en Settings → Modelos (y sal del campo para guardarla).")
+                    }
                     var messages: [[String: Any]] = []
                     if let sys = options.systemPrompt, !sys.isEmpty {
                         messages.append(["role": "system", "content": sys])

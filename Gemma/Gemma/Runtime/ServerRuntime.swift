@@ -90,8 +90,13 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
 
                     let (bytes, response) = try await session.bytes(for: req)
                     if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-                        // Surface non-2xx as a clear, provider-prefixed message.
-                        throw RuntimeError.generationFailed(Self.errorMessage(status: http.statusCode, provider: provider))
+                        // Drain the provider's error body — it usually states the exact reason
+                        // (e.g. "model X not found", "free tier does not include …") — and append
+                        // it to the mapped message so the user/log sees the real cause.
+                        var raw = ""
+                        for try await line in bytes.lines { raw += line; if raw.count > 2048 { break } }
+                        let base = Self.errorMessage(status: http.statusCode, provider: provider)
+                        throw RuntimeError.generationFailed(raw.isEmpty ? base : "\(base) — \(raw)")
                     }
 
                     // Parse the OpenAI SSE stream: `data: {chunk}` lines, ending with `data: [DONE]`.

@@ -30,6 +30,16 @@ final class Agent {
     about, call query_schedule with includeCancelled true; they are shown marked "(cancelado)".
     """
 
+    /// Current local date + time, injected per-turn on the message tail (NOT in the static prefix),
+    /// so the model always has the correct "now" to resolve relative dates against.
+    nonisolated static func nowContext(_ date: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = .current
+        f.dateFormat = "yyyy-MM-dd (EEEE) HH:mm"
+        return "Current date and time: \(f.string(from: date)) (local)."
+    }
+
     private let runtime: ToolCallingRuntime
     private let registry: ToolRegistry
     private let recallTail: String
@@ -42,30 +52,35 @@ final class Agent {
         self.wakeContext = wakeContext
     }
 
-    private func systemPrompt() -> String {
-        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd (EEEE)"
-        let today = df.string(from: Date())
-        // Static instructions only — kept byte-stable across turns so the mlx_vlm.server APC
-        // prefix cache reuses its KV (cold start restored from the SSD tier). Per-turn recall and
-        // wakeContext are NOT here; they ride the tail of the user message (see run()).
-        // The date is intentionally kept in the prefix: stable within a day (≤1 cache rebuild/day)
-        // and preserves temporal grounding.
-        return """
-        You are Gemma, a helpful on-device assistant. Today is \(today). You can call tools to get real information. \
-        When a tool is relevant (e.g. the user asks the time), call it instead of guessing. \
-        Answer only what the user asked; do not list unrelated things you remember. \
-        But when several remembered facts match the question (e.g. multiple meetings or events), \
-        mention ALL of them with their dates — never answer with only the most recent. \
-        IMPORTANT: after any tool runs, ALWAYS reply to the user in a short, natural sentence — \
-        confirm what you did or answer their question. Never end your turn with only a tool call. \
-        Scheduling: the user's calendar lives in tools. For appointments/meetings/trips, FIRST acknowledge briefly ("let me check your schedule"), then call check_schedule, then create_event. \
-        Pass times as LOCAL ISO datetimes using today's date above (e.g. "tomorrow 3pm" → 2026-06-10T15:00). \
-        If the user gives only a start time, ASK for the end before creating. If a time span is vague ("rest of the week"), ASK whether it starts now or tomorrow; "rest of the night" means until 06:00 the next day. \
-        If create_event reports a conflict, do NOT force it: tell the user what it conflicts with (consider travel/location too — e.g. a meeting in another city during a trip) and ask whether to reschedule, cancel the other, or book anyway. If the user says book anyway, call create_event again with force set to true. \
-        Use query_schedule for "what's on my schedule"; use cancel_events (which only cancels, never deletes) for "cancel my appointments". To-dos without a fixed time (call mom, gym) are not calendar events — don't create_event for them.
-        \(Self.scheduleConventions)
-        """
-    }
+    /// Fully static system prompt prefix (no date — the current date/time rides the per-turn tail via
+    /// nowContext()). JARVIS persona + anti-invention + concision; schedule conventions appended.
+    nonisolated static let systemPromptText: String = """
+    You are Gemma, the user's personal assistant — in the spirit of JARVIS: composed, precise, \
+    quietly witty, and always a step ahead. Address the user directly, by name when you know it. \
+    Be brief: reply in 1–3 natural sentences. Do not use tables, bulleted or numbered lists, headers, \
+    markdown sections, or emoji unless the user explicitly asks for that format. \
+    Ground everything in your tools and memory. Report ONLY what your tools actually returned. NEVER \
+    invent events, appointments, reminders, results, or capabilities. You have no automatic-rescheduling \
+    feature — to move or cancel something you must use the tools or ask. If you did not call a tool, do \
+    not claim that you did. When a tool is relevant (the time, the user's schedule, etc.), call it \
+    instead of guessing; after a tool runs, ALWAYS reply with a short sentence confirming what you did or \
+    answering — never end a turn with only a tool call. \
+    Answer only what was asked; don't list unrelated things you remember. But when several remembered \
+    facts match the question (e.g. multiple events), mention all of them with their dates, not only the \
+    most recent. \
+    Scheduling: the calendar lives in the tools. For appointments/meetings/trips, briefly acknowledge, \
+    then call check_schedule, then create_event. Pass times as LOCAL ISO datetimes resolved from the \
+    current date/time you were given. If only a start time is given, ask for the end first. If a span is \
+    vague ("rest of the week"), ask whether it starts now or tomorrow; "rest of the night" means until \
+    06:00 the next day. If create_event reports a conflict, do NOT force it — say what it conflicts with \
+    (consider travel/location, e.g. a meeting in another city during a trip) and ask whether to \
+    reschedule, cancel the other, or book anyway; call create_event with force true only after the user \
+    confirms. Use cancel_events (which only cancels, never deletes) for "cancel my appointments". To-dos \
+    without a fixed time (call mom, gym) are not calendar events.
+    \(scheduleConventions)
+    """
+
+    private func systemPrompt() -> String { Self.systemPromptText }
 
     func run(prompt: String, options: GenerationOptions) -> AsyncThrowingStream<AgentEvent, Error> {
         let tools = registry.tools
@@ -78,6 +93,10 @@ final class Agent {
                 if !wakeContext.isEmpty {
                     recallTail = recallTail.isEmpty ? wakeContext : recallTail + "\n\n" + wakeContext
                 }
+                // The current date/time rides the tail (not the static prefix) so the model always has a fresh,
+                // correct "now" to resolve relative dates against, while the prefix stays byte-stable.
+                let nowCtx = Self.nowContext()
+                recallTail = recallTail.isEmpty ? nowCtx : nowCtx + "\n\n" + recallTail
                 var opts = options
                 opts.systemPrompt = systemPrompt()
 

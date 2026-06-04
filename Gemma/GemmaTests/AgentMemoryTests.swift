@@ -53,10 +53,16 @@ final class AgentMemoryTests: XCTestCase {
                        "wakeContext must NOT be in the system prompt")
     }
 
-    func test_noRecall_noWake_leaves_user_prompt_unchanged() async throws {
+    func test_noRecall_noWake_tail_is_nowContext_plus_prompt() async throws {
+        // JARVIS rework: even with no recall/wake, the current date/time always rides the tail
+        // (nowContext()), prepended before the user's message; the user prompt stays at the end.
         let rt = CapturingRuntime()
         let agent = Agent(runtime: rt, registry: ToolRegistry())  // recallTail = "", wakeContext = ""
         for try await _ in agent.run(prompt: "hola", options: GenerationOptions()) {}
-        XCTAssertEqual(rt.capturedUserPrompt, "hola")
+        // Structural assertion (not exact equality vs a freshly-computed nowContext) so a minute
+        // rollover between the agent's call and the assertion can never flake the test.
+        let captured = rt.capturedUserPrompt ?? ""
+        XCTAssertTrue(captured.hasPrefix("Current date and time:"), captured)
+        XCTAssertTrue(captured.hasSuffix("\n\nhola"), captured)
     }
 }

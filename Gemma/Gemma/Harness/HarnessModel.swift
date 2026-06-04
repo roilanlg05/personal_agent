@@ -52,8 +52,8 @@ public final class HarnessModel {
     /// Build the chat provider from settings. `keyLookup` returns the stored API key for a kind
     /// (injected for tests; production passes KeychainStore.shared.get).
     static func chatProvider(keyLookup: (ModelProvider.Kind) -> String?) -> ModelProvider {
-        let kindRaw = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? "local"
-        let kind = ModelProvider.Kind(rawValue: kindRaw) ?? .local
+        let kindRaw = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? ModelProvider.Kind.defaultKind.rawValue
+        let kind = ModelProvider.Kind(rawValue: kindRaw) ?? .defaultKind
         let model = UserDefaults.standard.string(forKey: SettingsKeys.chatModel)
         let key = kind.isLocalMLX ? nil : keyLookup(kind)
         return ModelProvider(kind: kind, model: model, apiKey: key)
@@ -84,12 +84,24 @@ public final class HarnessModel {
         chat == ModelProvider.Kind.local.rawValue || consolidation == ModelProvider.Kind.local.rawValue
     }
 
+    /// True when the given chat-provider raw value uses the local mlx server (nil → cloud default).
+    /// The chat prompt is gated on the local server only in this case. Pure static for testability.
+    nonisolated static func usesLocalServer(_ chatProviderRaw: String?) -> Bool {
+        (chatProviderRaw ?? ModelProvider.Kind.defaultKind.rawValue) == ModelProvider.Kind.local.rawValue
+    }
+
+    /// Whether the current chat provider relies on the local mlx server (drives the prompt's
+    /// readiness gate in `AgentChatView`). Cloud chat never waits on the local server.
+    var chatUsesLocalServer: Bool {
+        Self.usesLocalServer(UserDefaults.standard.string(forKey: SettingsKeys.chatProvider))
+    }
+
     /// Spawn/keep-warm the local mlx server only when a side uses local; otherwise stop it.
     /// No-op under XCTest (mirrors startServer()).
     func refreshLocalModelLifecycle() {
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
-        let chat = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? "local"
-        let cons = UserDefaults.standard.string(forKey: SettingsKeys.consolidationProvider) ?? "local"
+        let chat = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? ModelProvider.Kind.defaultKind.rawValue
+        let cons = UserDefaults.standard.string(forKey: SettingsKeys.consolidationProvider) ?? ModelProvider.Kind.defaultKind.rawValue
         if Self.needsLocalModel(chat: chat, consolidation: cons) {
             Task { await serverManager.start() }
         } else {
@@ -165,8 +177,8 @@ public final class HarnessModel {
     func pushConsolidationConfig() {
         ensureMemory()
         guard let client = memory else { return }
-        let kindRaw = UserDefaults.standard.string(forKey: SettingsKeys.consolidationProvider) ?? "local"
-        let kind = ModelProvider.Kind(rawValue: kindRaw) ?? .local
+        let kindRaw = UserDefaults.standard.string(forKey: SettingsKeys.consolidationProvider) ?? ModelProvider.Kind.defaultKind.rawValue
+        let kind = ModelProvider.Kind(rawValue: kindRaw) ?? .defaultKind
         let model = UserDefaults.standard.string(forKey: SettingsKeys.consolidationModel)
         let provider = ModelProvider(kind: kind, model: model,
                                      apiKey: kind.isLocalMLX ? nil : KeychainStore.shared.get(account: "apiKey.\(kind.rawValue)"))

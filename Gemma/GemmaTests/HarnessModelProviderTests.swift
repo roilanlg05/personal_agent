@@ -23,4 +23,20 @@ final class HarnessModelProviderTests: XCTestCase {
         XCTAssertTrue(HarnessModel.needsLocalModel(chat: "local", consolidation: "local"))
         XCTAssertFalse(HarnessModel.needsLocalModel(chat: "gemini", consolidation: "groq"))
     }
+
+    /// The chat prompt is gated on the LOCAL server only when chat uses the local provider.
+    /// Cloud chat (incl. the new default) has no local server to wait on.
+    func test_usesLocalServer_defaultsToCloud() {
+        XCTAssertTrue(HarnessModel.usesLocalServer("local"))
+        XCTAssertFalse(HarnessModel.usesLocalServer("cerebras"))
+        XCTAssertFalse(HarnessModel.usesLocalServer("groq"))
+        XCTAssertFalse(HarnessModel.usesLocalServer(nil))   // unset → cloud default, no local server
+    }
+
+    /// With no provider settings persisted, the default must be cloud so the local 15GB mlx
+    /// server does NOT spawn by default (it spawns only when "local" is explicitly chosen).
+    func test_defaultProvider_isCloud_soNoLocalSpawnByDefault() {
+        let raw = ModelProvider.Kind.defaultKind.rawValue
+        XCTAssertFalse(HarnessModel.needsLocalModel(chat: raw, consolidation: raw))
+    }
 }

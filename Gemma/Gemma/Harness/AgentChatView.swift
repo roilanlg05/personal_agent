@@ -9,11 +9,14 @@ struct AgentChatView: View {
     @State private var consolidationPollTask: Task<Void, Never>?
 
     private var serverReady: Bool {
+        // Cloud chat providers have no local server to wait on — the prompt is always usable.
+        if !model.chatUsesLocalServer { return true }
         if case .ready = model.serverManager.state { return true }
         return false
     }
 
     @ViewBuilder private var serverBanner: some View {
+        if model.chatUsesLocalServer {
         switch model.serverManager.state {
         case .idle, .starting:
             Label("Iniciando server…", systemImage: "hourglass").foregroundStyle(.secondary)
@@ -34,6 +37,7 @@ struct AgentChatView: View {
                     .textSelection(.enabled).foregroundStyle(.secondary)
                 Button("Reintentar") { model.startServer() }
             }
+        }
         }
     }
 

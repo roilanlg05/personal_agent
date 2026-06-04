@@ -6,7 +6,19 @@ import Foundation
 @MainActor
 final class MemoryClient {
     struct RecallNode: Decodable, Sendable {
-        let kind: String; let label: String; let body: String; let extra: String?
+        let kind: String; let label: String; let body: String; let extra: String?; let tags: [String]
+        init(kind: String, label: String, body: String, extra: String?, tags: [String] = []) {
+            self.kind = kind; self.label = label; self.body = body; self.extra = extra; self.tags = tags
+        }
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            kind  = try c.decode(String.self,    forKey: .kind)
+            label = try c.decode(String.self,    forKey: .label)
+            body  = try c.decode(String.self,    forKey: .body)
+            extra = try c.decodeIfPresent(String.self, forKey: .extra)
+            tags  = (try c.decodeIfPresent([String].self, forKey: .tags)) ?? []
+        }
+        private enum CodingKeys: String, CodingKey { case kind, label, body, extra, tags }
     }
     struct RecentTurn: Decodable, Sendable { let role: String; let text: String }
     struct RecallSummary: Decodable, Sendable {
@@ -141,6 +153,8 @@ final class MemoryClient {
         return r.removed
     }
     /// Returns empty bundle on 5xx/timeout — never throws.
+    /// Note: the server also accepts an optional `tag` filter on recall (SP-B1); the app decodes
+    /// the per-node `tags` but does not yet send a filter — a tag-scoped recall consumer comes later.
     func recall(query: String, scope: String? = nil, limit: Int? = nil, threadId: String? = nil) async throws -> RecallBundle {
         struct B: Encodable { let query: String; let scope: String?; let limit: Int?; let threadId: String? }
         do {

@@ -45,8 +45,8 @@ final class MemoryClientTests: XCTestCase {
         StubProtocol.stub = { req in
             XCTAssertEqual(req.url?.path, "/v1/memory/recall")
             let payload = #"""
-            {"core":[{"kind":"identity","label":"Roilan","body":"el usuario"}],
-             "recall":[{"kind":"preference","label":"sushi","body":"al user le gusta","extra":null}],
+            {"core":[{"kind":"identity","label":"Roilan","body":"el usuario","tags":[]}],
+             "recall":[{"kind":"preference","label":"sushi","body":"al user le gusta","extra":null,"tags":[]}],
              "summaries":[],
              "recentTurns":[]}
             """#.data(using: .utf8)!
@@ -123,5 +123,15 @@ final class MemoryClientTests: XCTestCase {
         XCTAssertEqual(captured?.baseURL, "https://x")
         XCTAssertEqual(captured?.model, "m")
         XCTAssertEqual(captured?.apiKey, "K")
+    }
+
+    func test_recall_node_decodes_tags() async throws {
+        StubProtocol.stub = { req in
+            let payload = #"{"core":[],"recall":[{"kind":"preference","label":"opciones","body":"x","extra":null,"tags":["trading"]}],"summaries":[],"recentTurns":[]}"#.data(using: .utf8)!
+            return (HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil,
+                                    headerFields: ["Content-Type": "application/json"])!, payload)
+        }
+        let bundle = try await makeClient().recall(query: "opciones", scope: nil, limit: nil)
+        XCTAssertEqual(bundle.recall.first?.tags, ["trading"])
     }
 }

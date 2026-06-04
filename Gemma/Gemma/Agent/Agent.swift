@@ -30,6 +30,16 @@ final class Agent {
     about, call query_schedule with includeCancelled true; they are shown marked "(cancelado)".
     """
 
+    /// Current local date + time, injected per-turn on the message tail (NOT in the static prefix),
+    /// so the model always has the correct "now" to resolve relative dates against.
+    nonisolated static func nowContext(_ date: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = .current
+        f.dateFormat = "yyyy-MM-dd (EEEE) HH:mm"
+        return "Current date and time: \(f.string(from: date)) (local)."
+    }
+
     private let runtime: ToolCallingRuntime
     private let registry: ToolRegistry
     private let recallTail: String

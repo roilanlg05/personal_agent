@@ -46,7 +46,8 @@ final class MemoryClientTests: XCTestCase {
             XCTAssertEqual(req.url?.path, "/v1/memory/recall")
             let payload = #"""
             {"core":[{"kind":"identity","label":"Roilan","body":"el usuario"}],
-             "recall":[{"kind":"preference","label":"sushi","body":"al user le gusta","extra":null}]}
+             "recall":[{"kind":"preference","label":"sushi","body":"al user le gusta","extra":null}],
+             "recentTurns":[]}
             """#.data(using: .utf8)!
             return (HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil,
                                     headerFields: ["Content-Type": "application/json"])!, payload)

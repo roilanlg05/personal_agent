@@ -241,7 +241,7 @@ public final class HarnessModel {
         // MemoryClient.recall), so an offline service degrades to "no recall" instead of crashing.
         var recallTail = ""
         if let client {
-            let bundle = (try? await client.recall(query: prompt)) ?? .empty
+            let bundle = (try? await client.recall(query: prompt, threadId: threadId)) ?? .empty
             recallTail = bundle.injectionBlock()
         }
         // Fetch the short-term conversation window over HTTP. Falls back to empty on failure.

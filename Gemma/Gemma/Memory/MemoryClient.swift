@@ -8,9 +8,10 @@ final class MemoryClient {
     struct RecallNode: Decodable, Sendable {
         let kind: String; let label: String; let body: String; let extra: String?
     }
+    struct RecentTurn: Decodable, Sendable { let role: String; let text: String }
     struct RecallBundle: Decodable, Sendable {
-        let core: [RecallNode]; let recall: [RecallNode]
-        static let empty = RecallBundle(core: [], recall: [])
+        let core: [RecallNode]; let recall: [RecallNode]; let recentTurns: [RecentTurn]
+        static let empty = RecallBundle(core: [], recall: [], recentTurns: [])
 
         /// Render this bundle as a compact injection block (empty string if both lists are empty).
         /// Summaries come first so the model gets the gist before individual facts. Mirrors the
@@ -18,7 +19,6 @@ final class MemoryClient {
         /// byte-identical across the M3a refactor (preserves existing snapshot tests).
         func injectionBlock() -> String {
             let merged = recall + core.filter { c in !recall.contains(where: { $0.label == c.label && $0.kind == c.kind }) }
-            guard !merged.isEmpty else { return "" }
             let summaries = merged.filter { $0.kind == "summary" }
             let rest = merged.filter { $0.kind != "summary" }
             let lines = (summaries + rest).map { n -> String in
@@ -29,7 +29,12 @@ final class MemoryClient {
                       let status = obj["status"] as? String else { return base }
                 return base + scheduleStatusSuffix(status)
             }
-            return "What you remember about the user (use if relevant):\n" + lines.joined(separator: "\n")
+            var out = merged.isEmpty ? "" : "What you remember about the user (use if relevant):\n" + lines.joined(separator: "\n")
+            if !recentTurns.isEmpty {
+                let rt = recentTurns.map { "- \($0.role): \($0.text)" }.joined(separator: "\n")
+                out += (out.isEmpty ? "" : "\n\n") + "Recent conversation (other chats):\n" + rt
+            }
+            return out
         }
     }
     struct SaveResult: Decodable, Sendable { let id: String; let mergedInto: String? }
@@ -120,10 +125,10 @@ final class MemoryClient {
         return r.removed
     }
     /// Returns empty bundle on 5xx/timeout — never throws.
-    func recall(query: String, scope: String? = nil, limit: Int? = nil) async throws -> RecallBundle {
-        struct B: Encodable { let query: String; let scope: String?; let limit: Int? }
+    func recall(query: String, scope: String? = nil, limit: Int? = nil, threadId: String? = nil) async throws -> RecallBundle {
+        struct B: Encodable { let query: String; let scope: String?; let limit: Int?; let threadId: String? }
         do {
-            return try await post("/v1/memory/recall", B(query: query, scope: scope, limit: limit))
+            return try await post("/v1/memory/recall", B(query: query, scope: scope, limit: limit, threadId: threadId))
         } catch ClientError.http(let status, _) where (500...599).contains(status) {
             return .empty
         } catch is URLError {

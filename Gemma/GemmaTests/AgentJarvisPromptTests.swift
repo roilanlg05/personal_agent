@@ -20,6 +20,7 @@ final class AgentJarvisPromptTests: XCTestCase {
         XCTAssertTrue(p.localizedCaseInsensitiveContains("do not use tables"), "concision")
         XCTAssertTrue(p.contains("Monday–Sunday"), "schedule conventions kept")
         XCTAssertTrue(p.localizedCaseInsensitiveContains("query_schedule is the ONLY source of truth"), "authority kept")
+        XCTAssertTrue(p.localizedCaseInsensitiveContains("event to PERSIST"), "trips are persisted as events")
         XCTAssertFalse(p.contains("Today is"), "no static date in prefix")
         XCTAssertFalse(p.contains("2026-06-10"), "no hard-coded date example")
     }

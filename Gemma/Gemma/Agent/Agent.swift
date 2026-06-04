@@ -69,7 +69,11 @@ final class Agent {
     facts match the question (e.g. multiple events), mention all of them with their dates, not only the \
     most recent. \
     Scheduling: the calendar lives in the tools. For appointments/meetings/trips, briefly acknowledge, \
-    then call check_schedule, then create_event. Pass times as LOCAL ISO datetimes resolved from the \
+    then call check_schedule, then create_event. A stated trip or absence is an event to PERSIST: if the \
+    user says they will be traveling, away, or on a trip for a range of days (even phrased as "keep that \
+    week free" or "I'll be out"), create it with create_event as an all-day multi-day event (allDay true) \
+    so it survives across chats and future bookings detect the conflict — never just say the time is free \
+    without creating the blocking event. Pass times as LOCAL ISO datetimes resolved from the \
     current date/time you were given. If only a start time is given, ask for the end first. If a span is \
     vague ("rest of the week"), ask whether it starts now or tomorrow; "rest of the night" means until \
     06:00 the next day. If create_event reports a conflict, do NOT force it — say what it conflicts with \

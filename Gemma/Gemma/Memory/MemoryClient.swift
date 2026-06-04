@@ -56,7 +56,6 @@ final class MemoryClient {
     }
     struct SaveResult: Decodable, Sendable { let id: String; let mergedInto: String? }
     struct WindowTurn: Decodable, Sendable { let role: String; let text: String }
-    struct ExpandResult: Decodable, Sendable { let transcript: [WindowTurn]; let summaryLabel: String? }
     struct StateSnapshot: Decodable, Sendable {
         let nodeCount: Int; let transcriptCount: Int; let isRunning: Bool
         let lastCycle: LastCycle?
@@ -151,9 +150,6 @@ final class MemoryClient {
         } catch is URLError {
             return .empty
         }
-    }
-    func expand(topic: String) async throws -> ExpandResult {
-        try await get("/v1/memory/expand?topic=\(escape(topic))")
     }
     func loadMessages(chatId: String, from: Int, to: Int?) async throws -> RangeResult {
         let toq = to.map { "&to=\($0)" } ?? ""

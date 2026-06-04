@@ -24,4 +24,9 @@ final class AgentJarvisPromptTests: XCTestCase {
         XCTAssertFalse(p.contains("Today is"), "no static date in prefix")
         XCTAssertFalse(p.contains("2026-06-10"), "no hard-coded date example")
     }
+
+    func test_prompt_declares_self_is_the_user() {
+        XCTAssertTrue(Agent.systemPromptText.localizedCaseInsensitiveContains("the user you are speaking with"),
+                      Agent.systemPromptText)
+    }
 }

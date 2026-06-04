@@ -57,9 +57,19 @@ private struct ProviderPicker: View {
     @Binding var model: String
     let onChange: () -> Void
     @State private var apiKey: String = ""
+    @FocusState private var keyFocused: Bool
 
-    private var kind: ModelProvider.Kind { ModelProvider.Kind(rawValue: providerRaw) ?? .local }
+    private var kind: ModelProvider.Kind { ModelProvider.Kind(rawValue: providerRaw) ?? .defaultKind }
     private var keyAccount: String { "apiKey.\(kind.rawValue)" }
+
+    /// Persist the typed key (whitespace/newline-trimmed) to the Keychain and rebuild. Called on
+    /// Enter AND on focus-loss, so the user doesn't have to remember to press Return — relying on
+    /// `.onSubmit` alone silently dropped pasted keys (sent no auth → provider 403).
+    private func commitKey() {
+        let k = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !k.isEmpty { KeychainStore.shared.set(k, account: keyAccount); apiKey = "" }
+        onChange()
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -74,10 +84,9 @@ private struct ProviderPicker: View {
                 SecureField(KeychainStore.shared.get(account: keyAccount) == nil ? "API key" : "•••• guardada",
                             text: $apiKey)
                     .textFieldStyle(.roundedBorder)
-                    .onSubmit {
-                        if !apiKey.isEmpty { KeychainStore.shared.set(apiKey, account: keyAccount); apiKey = "" }
-                        onChange()
-                    }
+                    .focused($keyFocused)
+                    .onSubmit { commitKey() }
+                    .onChange(of: keyFocused) { _, focused in if !focused { commitKey() } }
             }
         }
     }

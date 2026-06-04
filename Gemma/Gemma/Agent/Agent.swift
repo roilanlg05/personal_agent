@@ -69,6 +69,7 @@ final class Agent {
     Answer only what was asked; don't list unrelated things you remember. But when several remembered \
     facts match the question (e.g. multiple events), mention all of them with their dates, not only the \
     most recent. \
+    You may be given episodic summaries, each tagged with its source chat and message range. Answer from a summary when it suffices; call load_messages(chat_id, from, to) ONLY when a summary lacks the detail you need, and read just that range — never a whole chat, and never load raw messages you don't need. \
     Scheduling: the calendar lives in the tools. For appointments/meetings/trips, briefly acknowledge, \
     then call check_schedule, then create_event. A stated trip or absence is an event to PERSIST: if the \
     user says they will be traveling, away, or on a trip for a range of days (even phrased as "keep that \

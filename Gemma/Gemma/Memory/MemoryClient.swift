@@ -9,21 +9,23 @@ final class MemoryClient {
         let kind: String; let label: String; let body: String; let extra: String?
     }
     struct RecentTurn: Decodable, Sendable { let role: String; let text: String }
+    struct RecallSummary: Decodable, Sendable {
+        let summaryId: String; let chatId: String; let messageRange: [Int]; let text: String
+    }
+    struct RangeRow: Decodable, Sendable { let seq: Int; let role: String; let text: String }
+    struct RangeResult: Decodable, Sendable { let messages: [RangeRow]; let truncated: Bool }
     struct RecallBundle: Decodable, Sendable {
-        let core: [RecallNode]; let recall: [RecallNode]; let recentTurns: [RecentTurn]
-        static let empty = RecallBundle(core: [], recall: [], recentTurns: [])
+        let core: [RecallNode]; let recall: [RecallNode]; let summaries: [RecallSummary]; let recentTurns: [RecentTurn]
+        static let empty = RecallBundle(core: [], recall: [], summaries: [], recentTurns: [])
 
-        /// Render this bundle as a compact injection block (empty string if both lists are empty).
-        /// Summaries come first so the model gets the gist before individual facts. Mirrors the
-        /// previous in-process `MemoryRetriever.injectionBlock` shape so prompt formatting stays
-        /// byte-identical across the M3a refactor (preserves existing snapshot tests).
+        /// Render this bundle as a compact injection block (empty string if all lists are empty).
+        /// Episodic summaries are rendered after the fact nodes so the model sees them as
+        /// drill-down references. `recentTurns` always appears last.
         func injectionBlock() -> String {
             let all = recall + core.filter { c in !recall.contains(where: { $0.label == c.label && $0.kind == c.kind }) }
             let selfNode = all.first { $0.kind == "self" }
             let merged = all.filter { $0.kind != "self" }
-            let summaries = merged.filter { $0.kind == "summary" }
-            let rest = merged.filter { $0.kind != "summary" }
-            let lines = (summaries + rest).map { n -> String in
+            let lines = merged.map { n -> String in
                 let base = "- [\(n.kind)] \(n.label): \(n.body.isEmpty ? n.label : n.body)"
                 guard n.kind == "event", let extra = n.extra,
                       let data = extra.data(using: .utf8),
@@ -38,6 +40,13 @@ final class MemoryClient {
             if !merged.isEmpty {
                 out += (out.isEmpty ? "" : "\n") + "What you remember about the user (use if relevant):\n" + lines.joined(separator: "\n")
             }
+            if !summaries.isEmpty {
+                let sl = summaries.map { s in
+                    let r = s.messageRange.count >= 2 ? "\(s.messageRange[0])-\(s.messageRange[1])" : "\(s.messageRange.first ?? 0)"
+                    return "- [chat \(s.chatId) · msgs \(r)] \(s.text)"
+                }.joined(separator: "\n")
+                out += (out.isEmpty ? "" : "\n\n") + "Episodic summaries (load the underlying messages only if a summary doesn't answer):\n" + sl
+            }
             if !recentTurns.isEmpty {
                 let rt = recentTurns.map { "- \($0.role): \($0.text)" }.joined(separator: "\n")
                 out += (out.isEmpty ? "" : "\n\n") + "Recent conversation (other chats):\n" + rt
@@ -47,7 +56,6 @@ final class MemoryClient {
     }
     struct SaveResult: Decodable, Sendable { let id: String; let mergedInto: String? }
     struct WindowTurn: Decodable, Sendable { let role: String; let text: String }
-    struct ExpandResult: Decodable, Sendable { let transcript: [WindowTurn]; let summaryLabel: String? }
     struct StateSnapshot: Decodable, Sendable {
         let nodeCount: Int; let transcriptCount: Int; let isRunning: Bool
         let lastCycle: LastCycle?
@@ -143,8 +151,9 @@ final class MemoryClient {
             return .empty
         }
     }
-    func expand(topic: String) async throws -> ExpandResult {
-        try await get("/v1/memory/expand?topic=\(escape(topic))")
+    func loadMessages(chatId: String, from: Int, to: Int?) async throws -> RangeResult {
+        let toq = to.map { "&to=\($0)" } ?? ""
+        return try await get("/v1/transcript/range?chat_id=\(escape(chatId))&from=\(from)\(toq)")
     }
 
     // MARK: consolidation

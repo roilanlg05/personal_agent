@@ -47,6 +47,7 @@ final class MemoryClientTests: XCTestCase {
             let payload = #"""
             {"core":[{"kind":"identity","label":"Roilan","body":"el usuario"}],
              "recall":[{"kind":"preference","label":"sushi","body":"al user le gusta","extra":null}],
+             "summaries":[],
              "recentTurns":[]}
             """#.data(using: .utf8)!
             return (HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil,
@@ -72,6 +73,29 @@ final class MemoryClientTests: XCTestCase {
             return (HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, "{}".data(using: .utf8)!)
         }
         try await makeClient().appendTranscript(threadId: "T", role: "user", text: "hi", turnIndex: 0)
+    }
+
+    func test_recall_decodes_summaries_tier() async throws {
+        StubProtocol.stub = { req in
+            let payload = #"{"core":[],"recall":[],"summaries":[{"summaryId":"s1","chatId":"g7y","messageRange":[21,56],"text":"opciones"}],"recentTurns":[]}"#.data(using: .utf8)!
+            return (HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil,
+                                    headerFields: ["Content-Type": "application/json"])!, payload)
+        }
+        let bundle = try await makeClient().recall(query: "opciones", scope: nil, limit: nil)
+        XCTAssertEqual(bundle.summaries.first?.chatId, "g7y")
+        XCTAssertEqual(bundle.summaries.first?.messageRange, [21, 56])
+    }
+
+    func test_loadMessages_hits_range_endpoint() async throws {
+        StubProtocol.stub = { req in
+            XCTAssertEqual(req.url?.path, "/v1/transcript/range")
+            XCTAssertTrue(req.url?.query?.contains("chat_id=g7y") ?? false)
+            let data = #"{"messages":[{"seq":21,"role":"user","text":"hola"}],"truncated":false}"#.data(using: .utf8)!
+            return (HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil,
+                                    headerFields: ["Content-Type": "application/json"])!, data)
+        }
+        let r = try await makeClient().loadMessages(chatId: "g7y", from: 21, to: 56)
+        XCTAssertEqual(r.messages.first?.text, "hola")
     }
 
     func test_setModelConfig_posts_provider_body() async throws {

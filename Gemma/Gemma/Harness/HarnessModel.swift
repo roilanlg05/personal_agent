@@ -15,7 +15,7 @@ public final class HarnessModel {
     @ObservationIgnored private(set) var settings: GenerationSettings
     /// HTTP client to the Memory Service (Docker). Built once in `ensureMemory()` from
     /// `UserDefaults` (`memoryBaseURL`, `memoryBearerToken`); shared with `MemoryToolbox`
-    /// so tools (Save / Forget / Reflect / Expand) can reach it.
+    /// so tools (Save / Forget / Reflect / LoadMessages) can reach it.
     @ObservationIgnored private(set) var memory: MemoryClient?
     @ObservationIgnored private var lastTurnEndedAt: Double = 0
     private static let wakeGapSeconds: Double = 180   // first turn or a gap > this = a "wake"
@@ -33,7 +33,7 @@ public final class HarnessModel {
         }
         return parts.joined(separator: "\n\n")
     }
-    @ObservationIgnored private let threadId = UUID().uuidString
+    @ObservationIgnored private var threadId = UUID().uuidString
     @ObservationIgnored private var turnIndex = 0
 
     /// Owns the local mlx_vlm server process lifecycle (M2a). Built in init() so its initial
@@ -149,8 +149,8 @@ public final class HarnessModel {
     /// - `memoryBaseURL` (String, default `http://localhost:8081`)
     /// - `memoryBearerToken` (String, default empty)
     ///
-    /// Mirrors the client into `MemoryToolbox.shared.memory` so the four memory tools
-    /// (Save / Forget / Reflect / Expand) can reach the same instance.
+    /// Mirrors the client into `MemoryToolbox.shared.memory` so the memory tools
+    /// (Save / Forget / Reflect / LoadMessages) can reach the same instance.
     func ensureMemory() {
         guard settings.memoryEnabled ?? true else {
             self.memory = nil
@@ -225,7 +225,7 @@ public final class HarnessModel {
         let registry = ToolRegistry()
         registry.register(CurrentTimeTool())
         if client != nil {
-            registry.register(ForgetTool()); registry.register(ReflectTool()); registry.register(ExpandContextTool())
+            registry.register(ForgetTool()); registry.register(ReflectTool()); registry.register(LoadMessagesTool())
             registry.register(SaveMemoryTool())
             registry.register(CheckScheduleTool()); registry.register(CreateEventTool())
             registry.register(QueryScheduleTool()); registry.register(CancelEventsTool())
@@ -233,6 +233,10 @@ public final class HarnessModel {
         let now = Date().timeIntervalSince1970
         let isWake = (lastTurnEndedAt == 0) || (now - lastTurnEndedAt > Self.wakeGapSeconds)
         _ = isWake // followUps / focus are service-driven now (no per-turn HTTP for them in M3a)
+        if ChatSession.shouldStartNewChat(lastActivity: lastTurnEndedAt, now: now) {
+            threadId = UUID().uuidString   // new episode → new chat_id; server restarts seq at 1
+            turnIndex = 0
+        }
         // M3a: focus / pendingFollowUps surfaces would require dedicated endpoints. The
         // service still consolidates in the background; for now wake-context is silent until
         // those endpoints land. Recall (the main signal) still rides the user prompt tail.

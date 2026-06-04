@@ -29,4 +29,9 @@ final class AgentJarvisPromptTests: XCTestCase {
         XCTAssertTrue(Agent.systemPromptText.localizedCaseInsensitiveContains("the user you are speaking with"),
                       Agent.systemPromptText)
     }
+
+    func test_prompt_has_summary_first_drilldown_rule() {
+        XCTAssertTrue(Agent.systemPromptText.localizedCaseInsensitiveContains("load_messages"), Agent.systemPromptText)
+        XCTAssertTrue(Agent.systemPromptText.localizedCaseInsensitiveContains("only when a summary"), Agent.systemPromptText)
+    }
 }

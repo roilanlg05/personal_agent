@@ -1,397 +1,512 @@
-: Opting into experimental APIs....
-I0000 00:00:1780001250.422601   27392 litert_lm_loader.cc:183] LitertLmLoader::Initialize
-I0000 00:00:1780001250.426134   27392 litert_lm_loader.cc:206] mmap_status is ok
-I0000 00:00:1780001250.426200   27392 litert_lm_loader.cc:211] status: OK
-I0000 00:00:1780001250.426214   27392 litert_lm_loader.cc:212] major_version: 1
-I0000 00:00:1780001250.426217   27392 litert_lm_loader.cc:213] minor_version: 5
-I0000 00:00:1780001250.426218   27392 litert_lm_loader.cc:214] patch_version: 0
-I0000 00:00:1780001250.426243   27392 litert_lm_loader.cc:247] section_index: 0
-I0000 00:00:1780001250.426248   27392 litert_lm_loader.cc:248] section_data_type: LlmMetadataProto
-I0000 00:00:1780001250.426270   27392 litert_lm_loader.cc:250] section_begin_offset: 16384
-I0000 00:00:1780001250.426271   27392 litert_lm_loader.cc:251] section_end_offset: 28576
-I0000 00:00:1780001250.426272   27392 litert_lm_loader.cc:247] section_index: 1
-I0000 00:00:1780001250.426273   27392 litert_lm_loader.cc:248] section_data_type: SP_Tokenizer
-I0000 00:00:1780001250.426274   27392 litert_lm_loader.cc:250] section_begin_offset: 32768
-I0000 00:00:1780001250.426275   27392 litert_lm_loader.cc:251] section_end_offset: 4721781
-I0000 00:00:1780001250.426299   27392 litert_lm_loader.cc:100] model_type: tf_lite_embedder
-I0000 00:00:1780001250.426304   27392 litert_lm_loader.cc:247] section_index: 2
-I0000 00:00:1780001250.426305   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.426306   27392 litert_lm_loader.cc:250] section_begin_offset: 4734976
-I0000 00:00:1780001250.426307   27392 litert_lm_loader.cc:251] section_end_offset: 175655560
-I0000 00:00:1780001250.426308   27392 litert_lm_loader.cc:100] model_type: tf_lite_per_layer_embedder
-I0000 00:00:1780001250.426310   27392 litert_lm_loader.cc:247] section_index: 3
-I0000 00:00:1780001250.426311   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.426312   27392 litert_lm_loader.cc:250] section_begin_offset: 175669248
-I0000 00:00:1780001250.426312   27392 litert_lm_loader.cc:251] section_end_offset: 1012447760
-I0000 00:00:1780001250.426313   27392 litert_lm_loader.cc:100] model_type: tf_lite_audio_encoder_hw
-I0000 00:00:1780001250.426324   27392 litert_lm_loader.cc:230] section_backend_constraint: cpu
-I0000 00:00:1780001250.426326   27392 litert_lm_loader.cc:247] section_index: 4
-I0000 00:00:1780001250.426328   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.426328   27392 litert_lm_loader.cc:250] section_begin_offset: 1012449280
-I0000 00:00:1780001250.426329   27392 litert_lm_loader.cc:251] section_end_offset: 1106501560
-I0000 00:00:1780001250.426330   27392 litert_lm_loader.cc:100] model_type: tf_lite_audio_adapter
-I0000 00:00:1780001250.426332   27392 litert_lm_loader.cc:230] section_backend_constraint: cpu
-I0000 00:00:1780001250.426333   27392 litert_lm_loader.cc:247] section_index: 5
-I0000 00:00:1780001250.426334   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.426335   27392 litert_lm_loader.cc:250] section_begin_offset: 1106509824
-I0000 00:00:1780001250.426337   27392 litert_lm_loader.cc:251] section_end_offset: 1122242524
-I0000 00:00:1780001250.426338   27392 litert_lm_loader.cc:100] model_type: tf_lite_end_of_audio
-I0000 00:00:1780001250.426339   27392 litert_lm_loader.cc:247] section_index: 6
-I0000 00:00:1780001250.426340   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.426341   27392 litert_lm_loader.cc:250] section_begin_offset: 1122254848
-I0000 00:00:1780001250.426342   27392 litert_lm_loader.cc:251] section_end_offset: 1122265716
-I0000 00:00:1780001250.426343   27392 litert_lm_loader.cc:100] model_type: tf_lite_vision_encoder
-I0000 00:00:1780001250.426345   27392 litert_lm_loader.cc:234] section_prefer_activation_type: fp16
-I0000 00:00:1780001250.426346   27392 litert_lm_loader.cc:247] section_index: 7
-I0000 00:00:1780001250.426347   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.426348   27392 litert_lm_loader.cc:250] section_begin_offset: 1122271232
-I0000 00:00:1780001250.426350   27392 litert_lm_loader.cc:251] section_end_offset: 1346409168
-I0000 00:00:1780001250.426351   27392 litert_lm_loader.cc:100] model_type: tf_lite_vision_adapter
-I0000 00:00:1780001250.426352   27392 litert_lm_loader.cc:230] section_backend_constraint: cpu
-I0000 00:00:1780001250.426352   27392 litert_lm_loader.cc:247] section_index: 8
-I0000 00:00:1780001250.426354   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.426355   27392 litert_lm_loader.cc:250] section_begin_offset: 1346420736
-I0000 00:00:1780001250.426356   27392 litert_lm_loader.cc:251] section_end_offset: 1354309392
-I0000 00:00:1780001250.426356   27392 litert_lm_loader.cc:100] model_type: tf_lite_end_of_vision
-I0000 00:00:1780001250.426359   27392 litert_lm_loader.cc:247] section_index: 9
-I0000 00:00:1780001250.426360   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.426360   27392 litert_lm_loader.cc:250] section_begin_offset: 1354317824
-I0000 00:00:1780001250.426362   27392 litert_lm_loader.cc:251] section_end_offset: 1354328692
-I0000 00:00:1780001250.426363   27392 litert_lm_loader.cc:100] model_type: tf_lite_prefill_decode
-I0000 00:00:1780001250.426364   27392 litert_lm_loader.cc:234] section_prefer_activation_type: fp16
-I0000 00:00:1780001250.426366   27392 litert_lm_loader.cc:247] section_index: 10
-I0000 00:00:1780001250.426367   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.426368   27392 litert_lm_loader.cc:250] section_begin_offset: 1354334208
-I0000 00:00:1780001250.426370   27392 litert_lm_loader.cc:251] section_end_offset: 3614377584
-I0000 00:00:1780001250.426371   27392 litert_lm_loader.cc:100] model_type: tf_lite_mtp_drafter
-I0000 00:00:1780001250.426372   27392 litert_lm_loader.cc:247] section_index: 11
-I0000 00:00:1780001250.426374   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.426375   27392 litert_lm_loader.cc:250] section_begin_offset: 3614392320
-I0000 00:00:1780001250.426376   27392 litert_lm_loader.cc:251] section_end_offset: 3659518480
-I0000 00:00:1780001250.427698   27392 litert_lm_loader.cc:183] LitertLmLoader::Initialize
-I0000 00:00:1780001250.428698   27392 litert_lm_loader.cc:206] mmap_status is ok
-I0000 00:00:1780001250.428705   27392 litert_lm_loader.cc:211] status: OK
-I0000 00:00:1780001250.428707   27392 litert_lm_loader.cc:212] major_version: 1
-I0000 00:00:1780001250.428708   27392 litert_lm_loader.cc:213] minor_version: 5
-I0000 00:00:1780001250.428709   27392 litert_lm_loader.cc:214] patch_version: 0
-I0000 00:00:1780001250.428711   27392 litert_lm_loader.cc:247] section_index: 0
-I0000 00:00:1780001250.428712   27392 litert_lm_loader.cc:248] section_data_type: LlmMetadataProto
-I0000 00:00:1780001250.428714   27392 litert_lm_loader.cc:250] section_begin_offset: 16384
-I0000 00:00:1780001250.428715   27392 litert_lm_loader.cc:251] section_end_offset: 28576
-I0000 00:00:1780001250.428716   27392 litert_lm_loader.cc:247] section_index: 1
-I0000 00:00:1780001250.428716   27392 litert_lm_loader.cc:248] section_data_type: SP_Tokenizer
-I0000 00:00:1780001250.428717   27392 litert_lm_loader.cc:250] section_begin_offset: 32768
-I0000 00:00:1780001250.428741   27392 litert_lm_loader.cc:251] section_end_offset: 4721781
-I0000 00:00:1780001250.428744   27392 litert_lm_loader.cc:100] model_type: tf_lite_embedder
-I0000 00:00:1780001250.428745   27392 litert_lm_loader.cc:247] section_index: 2
-I0000 00:00:1780001250.428746   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.428747   27392 litert_lm_loader.cc:250] section_begin_offset: 4734976
-I0000 00:00:1780001250.428749   27392 litert_lm_loader.cc:251] section_end_offset: 175655560
-I0000 00:00:1780001250.428750   27392 litert_lm_loader.cc:100] model_type: tf_lite_per_layer_embedder
-I0000 00:00:1780001250.428751   27392 litert_lm_loader.cc:247] section_index: 3
-I0000 00:00:1780001250.428752   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.428753   27392 litert_lm_loader.cc:250] section_begin_offset: 175669248
-I0000 00:00:1780001250.428754   27392 litert_lm_loader.cc:251] section_end_offset: 1012447760
-I0000 00:00:1780001250.428756   27392 litert_lm_loader.cc:100] model_type: tf_lite_audio_encoder_hw
-I0000 00:00:1780001250.428757   27392 litert_lm_loader.cc:230] section_backend_constraint: cpu
-I0000 00:00:1780001250.428758   27392 litert_lm_loader.cc:247] section_index: 4
-I0000 00:00:1780001250.428760   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.428761   27392 litert_lm_loader.cc:250] section_begin_offset: 1012449280
-I0000 00:00:1780001250.428762   27392 litert_lm_loader.cc:251] section_end_offset: 1106501560
-I0000 00:00:1780001250.428763   27392 litert_lm_loader.cc:100] model_type: tf_lite_audio_adapter
-I0000 00:00:1780001250.428764   27392 litert_lm_loader.cc:230] section_backend_constraint: cpu
-I0000 00:00:1780001250.428765   27392 litert_lm_loader.cc:247] section_index: 5
-I0000 00:00:1780001250.428766   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.428768   27392 litert_lm_loader.cc:250] section_begin_offset: 1106509824
-I0000 00:00:1780001250.428769   27392 litert_lm_loader.cc:251] section_end_offset: 1122242524
-I0000 00:00:1780001250.428770   27392 litert_lm_loader.cc:100] model_type: tf_lite_end_of_audio
-I0000 00:00:1780001250.428771   27392 litert_lm_loader.cc:247] section_index: 6
-I0000 00:00:1780001250.428772   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.428773   27392 litert_lm_loader.cc:250] section_begin_offset: 1122254848
-I0000 00:00:1780001250.428774   27392 litert_lm_loader.cc:251] section_end_offset: 1122265716
-I0000 00:00:1780001250.428775   27392 litert_lm_loader.cc:100] model_type: tf_lite_vision_encoder
-I0000 00:00:1780001250.428776   27392 litert_lm_loader.cc:234] section_prefer_activation_type: fp16
-I0000 00:00:1780001250.428777   27392 litert_lm_loader.cc:247] section_index: 7
-I0000 00:00:1780001250.428778   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.428780   27392 litert_lm_loader.cc:250] section_begin_offset: 1122271232
-I0000 00:00:1780001250.428781   27392 litert_lm_loader.cc:251] section_end_offset: 1346409168
-I0000 00:00:1780001250.428782   27392 litert_lm_loader.cc:100] model_type: tf_lite_vision_adapter
-I0000 00:00:1780001250.428783   27392 litert_lm_loader.cc:230] section_backend_constraint: cpu
-I0000 00:00:1780001250.428784   27392 litert_lm_loader.cc:247] section_index: 8
-I0000 00:00:1780001250.428785   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.428786   27392 litert_lm_loader.cc:250] section_begin_offset: 1346420736
-I0000 00:00:1780001250.428787   27392 litert_lm_loader.cc:251] section_end_offset: 1354309392
-I0000 00:00:1780001250.428788   27392 litert_lm_loader.cc:100] model_type: tf_lite_end_of_vision
-I0000 00:00:1780001250.428789   27392 litert_lm_loader.cc:247] section_index: 9
-I0000 00:00:1780001250.428790   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.428791   27392 litert_lm_loader.cc:250] section_begin_offset: 1354317824
-I0000 00:00:1780001250.428792   27392 litert_lm_loader.cc:251] section_end_offset: 1354328692
-I0000 00:00:1780001250.428794   27392 litert_lm_loader.cc:100] model_type: tf_lite_prefill_decode
-I0000 00:00:1780001250.428795   27392 litert_lm_loader.cc:234] section_prefer_activation_type: fp16
-I0000 00:00:1780001250.428796   27392 litert_lm_loader.cc:247] section_index: 10
-I0000 00:00:1780001250.428796   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.428798   27392 litert_lm_loader.cc:250] section_begin_offset: 1354334208
-I0000 00:00:1780001250.428799   27392 litert_lm_loader.cc:251] section_end_offset: 3614377584
-I0000 00:00:1780001250.428800   27392 litert_lm_loader.cc:100] model_type: tf_lite_mtp_drafter
-I0000 00:00:1780001250.428801   27392 litert_lm_loader.cc:247] section_index: 11
-I0000 00:00:1780001250.428802   27392 litert_lm_loader.cc:248] section_data_type: TFLiteModel
-I0000 00:00:1780001250.428803   27392 litert_lm_loader.cc:250] section_begin_offset: 3614392320
-I0000 00:00:1780001250.428804   27392 litert_lm_loader.cc:251] section_end_offset: 3659518480
-I0000 00:00:1780001250.429310   27392 engine_impl.cc:252] New model files have LlmModelType, loading tokenizer asynchronously
-I0000 00:00:1780001250.429381   27392 engine_settings.cc:101] The Main backend constraint is not set.
-I0000 00:00:1780001250.429401   27392 engine_settings.cc:436] The validated engine settings: EngineSettings: 
-  MainExecutorSettings: backend: GPU
-backend_config:
-max_top_k: 1
+# Cognitive Search + Persistent Memory Architecture (Jarvis-Style Assistant)
 
-max_tokens: 4096
-activation_data_type: FLOAT16
-max_num_images: 0
-lora_rank: 0
-cache_dir: /private/var/mobile/Containers/Data/Application/F559B7ED-1A12-4086-A80F-8791E1C215C3/tmp/
-cache_file: Not set
-litert_dispatch_lib_dir: Not set
-model_assets: model_path: /var/mobile/Containers/Data/Application/F559B7ED-1A12-4086-A80F-8791E1C215C3/Documents/Models/gemma-4-E4B-it.litertlm
-fake_weights_mode: FAKE_WEIGHTS_NONE
+## Objetivo del sistema
 
-advanced_settings: prefill_batch_sizes: []
-num_output_candidates: 1
-configure_magic_numbers: true
-verify_magic_numbers: false
-clear_kv_cache_before_prefill: true
-num_logits_to_print_after_decode: 0
-gpu_madvise_original_shared_tensors: true
-is_benchmark: false
-preferred_device_substr: 
-num_threads_to_upload: -1
-num_threads_to_compile: -1
-convert_weights_on_gpu: true
-wait_for_weights_conversion_complete_in_benchmark: true
-optimize_shader_compilation: true
-cache_compiled_shaders_only: false
-share_constant_tensors: true
-sampler_handles_input: true
-allow_src_quantized_fc_conv_ops: true
-hint_waiting_for_completion: false
-gpu_context_low_priority: Not set
-enable_speculative_decoding: false
-disable_delegate_clustering: true
-hint_kernel_batch_size: Not set
+Construir un asistente persistente tipo Jarvis que:
 
-  LlmMetadata: MessageLite at 0x16d7a90a0  BenchmarkParams: Not set
-  VisionExecutorSettings: Not set
-  AudioExecutorSettings: Not set
-  ParallelFileSectionLoading: true
-  SingleThreadedExecution: false
-I0000 00:00:1780001250.433392   27392 model_resources_litert_lm.cc:67] model_type: TF_LITE_PREFILL_DECODE
-I0000 00:00:1780001250.433424   27392 model_resources_litert_lm.cc:68] litert model size: 2260043376
-INFO: [environment.cc:30] Creating LiteRT environment with options
-WARNING: [npu_registry.cc:34] NPU accelerator could not be loaded and registered: kLiteRtStatusErrorInvalidArgument.
-INFO: [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x105599ce0, name=GPU Metal
-INFO: [gpu_registry.cc:87] Statically linked GPU accelerator registered.
-INFO: [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x10559b780, name=CpuAccelerator
-INFO: [cpu_registry.cc:42] CPU accelerator registered.
-I0000 00:00:1780001250.550714   27392 llm_executor_settings_utils.cc:179] Setting serialization dir: /private/var/mobile/Containers/Data/Application/F559B7ED-1A12-4086-A80F-8791E1C215C3/tmp/
-INFO: [magic_number_utils.cc:97] Loaded: num_subgraphs=1340, num_signatures=4
-INFO: [magic_number_utils.cc:105]   signature=decode, subgraph_index=0, num_tensors=3514, num_inputs=53, num_outputs=50, num_ops=2712
-INFO: [magic_number_utils.cc:105]   signature=prefill_1024, subgraph_index=1, num_tensors=2309, num_inputs=53, num_outputs=48, num_ops=1773
-INFO: [magic_number_utils.cc:105]   signature=prefill_128, subgraph_index=2, num_tensors=2309, num_inputs=53, num_outputs=48, num_ops=1773
-INFO: [magic_number_utils.cc:105]   signature=verify, subgraph_index=3, num_tensors=3606, num_inputs=53, num_outputs=50, num_ops=2801
-INFO: [magic_number_utils.cc:109] Magic number configs: num_configs=1
-INFO: [magic_number_utils.cc:116]   config[0]: magic_number=32003, target_number=4096, signature_prefix=null
-INFO: [magic_number_utils.cc:425] 577 tensors of signature decode have been updated for magic number  32003 to target number 4096
-INFO: [magic_number_utils.cc:425] 426 tensors of signature prefill_1024 have been updated for magic number  32003 to target number 4096
-INFO: [magic_number_utils.cc:425] 426 tensors of signature prefill_128 have been updated for magic number  32003 to target number 4096
-INFO: [magic_number_utils.cc:425] 581 tensors of signature verify have been updated for magic number  32003 to target number 4096
-INFO: [compiled_model.cc:733] Flatbuffer model initialized directly from incoming litert model.
-Initialized TensorFlow Lite runtime.
-INFO: Initialized TensorFlow Lite runtime.
-I0000 00:00:1780001250.983670   27392 delegate_metal.mm:88] Created a Metal device.
-INFO: [environment.cc:41] Adding options to the existing LiteRT environment
-INFO: [gpu_environment.cc:364] Failed to create OpenCL context.
-INFO: [gpu_environment.cc:371] Created Metal device from provided device id
-INFO: [gpu_environment.h:155] Created LiteRT GpuEnvironment.
-INFO: [environment.cc:41] Adding options to the existing LiteRT environment
-I0000 00:00:1780001251.045296   27392 delegate_kernel.cc:297] Total 50 external tensors are used for delegate inputs and outputs
-I0000 00:00:1780001251.045334   27392 delegate_kernel.cc:813] Initializing Metal-based API from serialized data.
-I0000 00:00:1780001251.293689   27392 delegate_kernel.cc:713] Initialized InferenceContext from serialized data.
-I0000 00:00:1780001251.303343   27392 delegate_kernel.cc:297] Total 49 external tensors are used for delegate inputs and outputs
-I0000 00:00:1780001251.303355   27392 delegate_kernel.cc:813] Initializing Metal-based API from serialized data.
-I0000 00:00:1780001251.475806   27392 delegate_kernel.cc:713] Initialized InferenceContext from serialized data.
-I0000 00:00:1780001251.484732   27392 delegate_kernel.cc:297] Total 49 external tensors are used for delegate inputs and outputs
-I0000 00:00:1780001251.484742   27392 delegate_kernel.cc:813] Initializing Metal-based API from serialized data.
-I0000 00:00:1780001251.653154   27392 delegate_kernel.cc:713] Initialized InferenceContext from serialized data.
-I0000 00:00:1780001251.667313   27392 delegate_kernel.cc:297] Total 50 external tensors are used for delegate inputs and outputs
-I0000 00:00:1780001251.667328   27392 delegate_kernel.cc:813] Initializing Metal-based API from serialized data.
-I0000 00:00:1780001251.901995   27392 delegate_kernel.cc:713] Initialized InferenceContext from serialized data.
-INFO: [environment.cc:30] Creating LiteRT environment with options
-WARNING: [npu_registry.cc:34] NPU accelerator could not be loaded and registered: kLiteRtStatusErrorInvalidArgument.
-INFO: [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x41a09b1e0, name=GPU Metal
-INFO: [gpu_registry.cc:87] Statically linked GPU accelerator registered.
-INFO: [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x41a09b240, name=CpuAccelerator
-INFO: [cpu_registry.cc:42] CPU accelerator registered.
-I0000 00:00:1780001251.930112   27392 model_resources_litert_lm.cc:67] model_type: TF_LITE_END_OF_AUDIO
-I0000 00:00:1780001251.930123   27392 model_resources_litert_lm.cc:68] litert model size: 10868
-I0000 00:00:1780001251.930144   27392 model_resources_litert_lm.cc:67] model_type: TF_LITE_END_OF_VISION
-I0000 00:00:1780001251.930146   27392 model_resources_litert_lm.cc:68] litert model size: 10868
-I0000 00:00:1780001251.930749   27392 model_resources_litert_lm.cc:67] model_type: TF_LITE_EMBEDDER
-I0000 00:00:1780001251.930753   27392 model_resources_litert_lm.cc:68] litert model size: 170920584
-INFO: [magic_number_utils.cc:97] Loaded: num_subgraphs=1, num_signatures=1
-INFO: [magic_number_utils.cc:105]   signature=embedder, subgraph_index=0, num_tensors=16, num_inputs=1, num_outputs=1, num_ops=8
-INFO: [magic_number_utils.cc:109] Magic number configs: num_configs=1
-INFO: [magic_number_utils.cc:116]   config[0]: magic_number=32003, target_number=4096, signature_prefix=null
-INFO: [compiled_model.cc:733] Flatbuffer model initialized directly from incoming litert model.
-Created TensorFlow Lite XNNPACK delegate for CPU.
-INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
-I0000 00:00:1780001251.931528   27392 embedding_lookup_text.cc:303] EmbeddingLookupText::Initialize Creating input buffers
-I0000 00:00:1780001251.931539   27392 embedding_lookup_text.cc:342] EmbeddingLookupText initialized: signature=embedder, rank=3, floats_per_token=2560
-INFO: [magic_number_utils.cc:97] Loaded: num_subgraphs=1, num_signatures=1
-INFO: [magic_number_utils.cc:105]   signature=eoi, subgraph_index=0, num_tensors=1, num_inputs=0, num_outputs=1, num_ops=0
-INFO: [magic_number_utils.cc:109] Magic number configs: num_configs=1
-INFO: [magic_number_utils.cc:116]   config[0]: magic_number=32003, target_number=4096, signature_prefix=null
-INFO: [compiled_model.cc:733] Flatbuffer model initialized directly from incoming litert model.
-INFO: [compiled_model.cc:1511] Tracked constant output tensor eoi_embedding with locked address
-INFO: [magic_number_utils.cc:97] Loaded: num_subgraphs=1, num_signatures=1
-INFO: [magic_number_utils.cc:105]   signature=eoa, subgraph_index=0, num_tensors=1, num_inputs=0, num_outputs=1, num_ops=0
-INFO: [magic_number_utils.cc:109] Magic number configs: num_configs=1
-INFO: [magic_number_utils.cc:116]   config[0]: magic_number=32003, target_number=4096, signature_prefix=null
-INFO: [compiled_model.cc:733] Flatbuffer model initialized directly from incoming litert model.
-INFO: [compiled_model.cc:1511] Tracked constant output tensor eoa_embedding with locked address
-I0000 00:00:1780001251.934034   27392 model_resources_litert_lm.cc:67] model_type: TF_LITE_PER_LAYER_EMBEDDER
-I0000 00:00:1780001251.934041   27392 model_resources_litert_lm.cc:68] litert model size: 836778512
-INFO: [magic_number_utils.cc:97] Loaded: num_subgraphs=1, num_signatures=1
-INFO: [magic_number_utils.cc:105]   signature=per_layer_embedder, subgraph_index=0, num_tensors=97, num_inputs=1, num_outputs=1, num_ops=49
-INFO: [magic_number_utils.cc:109] Magic number configs: num_configs=1
-INFO: [magic_number_utils.cc:116]   config[0]: magic_number=32003, target_number=4096, signature_prefix=null
-INFO: [compiled_model.cc:733] Flatbuffer model initialized directly from incoming litert model.
-I0000 00:00:1780001251.951596   27392 embedding_lookup_text.cc:303] EmbeddingLookupText::Initialize Creating input buffers
-I0000 00:00:1780001251.951619   27392 embedding_lookup_text.cc:342] EmbeddingLookupText initialized: signature=per_layer_embedder, rank=4, floats_per_token=10752
-I0000 00:00:1780001251.951735   27392 engine_settings.cc:101] The Main backend constraint is not set.
-I0000 00:00:1780001251.951743   27392 engine_settings.cc:436] The validated engine settings: EngineSettings: 
-  MainExecutorSettings: backend: GPU
-backend_config:
-max_top_k: 1
+- responda extremadamente rápido,
+- mantenga continuidad real,
+- recuerde preferencias, hábitos y contexto,
+- haga research de manera incremental,
+- use modelos relativamente pequeños y baratos,
+- y escale sin depender de contextos gigantes.
 
-max_tokens: 4096
-activation_data_type: FLOAT16
-max_num_images: 0
-lora_rank: 0
-cache_dir: /private/var/mobile/Containers/Data/Application/F559B7ED-1A12-4086-A80F-8791E1C215C3/tmp/
-cache_file: Not set
-litert_dispatch_lib_dir: Not set
-model_assets: model_path: /var/mobile/Containers/Data/Application/F559B7ED-1A12-4086-A80F-8791E1C215C3/Documents/Models/gemma-4-E4B-it.litertlm
-fake_weights_mode: FAKE_WEIGHTS_NONE
+La idea principal NO es crear el modelo “más inteligente” del mundo, sino el sistema cognitivo más eficiente y persistente.
 
-advanced_settings: prefill_batch_sizes: []
-num_output_candidates: 1
-configure_magic_numbers: true
-verify_magic_numbers: false
-clear_kv_cache_before_prefill: true
-num_logits_to_print_after_decode: 0
-gpu_madvise_original_shared_tensors: true
-is_benchmark: false
-preferred_device_substr: 
-num_threads_to_upload: -1
-num_threads_to_compile: -1
-convert_weights_on_gpu: true
-wait_for_weights_conversion_complete_in_benchmark: true
-optimize_shader_compilation: true
-cache_compiled_shaders_only: false
-share_constant_tensors: true
-sampler_handles_input: true
-allow_src_quantized_fc_conv_ops: true
-hint_waiting_for_completion: false
-gpu_context_low_priority: Not set
-enable_speculative_decoding: false
-disable_delegate_clustering: true
-hint_kernel_batch_size: Not set
+---
 
-  LlmMetadata: MessageLite at 0x16d7a90a0  BenchmarkParams: Not set
-  VisionExecutorSettings: Not set
-  AudioExecutorSettings: Not set
-  ParallelFileSectionLoading: true
-  SingleThreadedExecution: false
-I0000 00:00:1780001251.951953   27392 threadpool.cc:41] ThreadPool 'engine': Running up to 1 threads.
-I0000 00:00:1780001251.953640   27392 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001251.953647   27392 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001255.152782   28025 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001255.152858   28025 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001255.158868   27129 threadpool.cc:96] ThreadPool 'engine': Created a worker thread since all 0 worker threads are (supposed to be) busy.
-I0000 00:00:1780001255.712304   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001255.712318   28076 session_basic.cc:515] RunDecodeAsync
-W0000 00:00:1780001255.822920   28076 sampler_factory.cc:529] Metal sampler not available, falling back to statically linked C API: UNAVAILABLE: ERROR: [third_party/odml/litert_lm/runtime/components/sampler_factory.cc:294]
-└ Could not load shared library libLiteRtTopKMetalSampler.dylib: dlopen(libLiteRtTopKMetalSampler.dylib, 0x0005): tried: '/usr/lib/system/introspection/libLiteRtTopKMetalSampler.dylib' (no such file, not in dyld cache), 'libLiteRtTopKMetalSampler.dylib' (no such file), '/private/preboot/Cryptexes/OSlibLiteRtTopKMetalSampler.dylib' (no such file), '/usr/lib/swift/libLiteRtTopKMetalSampler.dylib' (no such file, not in dyld cache), '/private/preboot/Cryptexes/OS/usr/lib/swift/libLiteRtTopKMetalSampler.dylib' (no such file), '/private/var/containers/Bundle/Application/AB6A6F0A-06BD-42DF-94AB-1B101420C9DA/Gemma.app/Frameworks/libLiteRtTopKMetalSampler.dylib' (no such file), '/private/var/containers/Bundle/Application/AB6A6F0A-06BD-42DF-94AB-1B101420C9DA/Gemma.app/Frameworks/CLiteRTLM.framework/Frameworks/libLiteRtTopKMetalSampler.dylib' (no such file), '/private/var/containers/Bundle/Application/AB6A6F0A-06BD-42DF-94AB-1B101420C9DA/Gemma.app/libLiteRtTopKMetalSampler.dylib' (no such file), '/Users/hashdown/Library/Developer/Xcode/DerivedData/Gemma-fhkhkwclxwiayzhhtiumfbahjisz/Build/Products/Debug-iphoneos/PackageFrameworks/libLiteRtTopKMetalSampler.dylib' (no such file), '/private/preboot/Cryptexes/OS/Users/hashdown/Library/Developer/Xcode/DerivedData/Gemma-fhkhkwclxwiayzhhtiumfbahjisz/Build/Products/Debug-iphoneos/PackageFrameworks/libLiteRtTopKMetalSampler.dylib' (no such file), '/private/var/containers/Bundle/Application/AB6A6F0A-06BD-42DF-94AB-1B101420C9DA/Gemma.app/Frameworks/libLiteRtTopKMetalSampler.dylib' (no such file), '/usr/lib/libLiteRtTopKMetalSampler.dylib' (no such file, not in dyld cache), 'libLiteRtTopKMetalSampler.dylib' (no such file).
-=== Source Location Trace: ===
-./third_party/odml/litert/litert/cc/litert_macros.h:573
-I0000 00:00:1780001255.822976   28076 sampler_factory.cc:537] Statically linked LiteRtTopKMetalSampler C API.
-I0000 00:00:1780001256.332753   28025 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001256.332769   28025 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001256.846815   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001256.846830   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001257.719599   28025 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001257.719616   28025 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001258.234716   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001258.234729   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001259.995445   28000 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001259.995464   28000 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001260.514477   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001260.514492   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001261.349693   28025 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001261.349710   28025 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001261.862370   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001261.862388   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001263.511298   28053 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001263.511315   28053 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001264.025205   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001264.025220   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001264.683216   28025 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001264.683233   28025 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001265.197092   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001265.197106   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001275.604171   28000 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001275.604188   28000 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001276.118421   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001276.118439   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001276.663426   28000 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001276.663444   28000 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001277.182236   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001277.182248   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001280.312630   28000 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001280.312648   28000 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001280.855260   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001280.855273   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001317.577371   28025 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001317.577457   28025 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001318.698009   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001318.698029   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001321.571509   28025 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001321.571551   28025 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001322.414054   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001322.414073   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001372.948546   27392 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001372.948629   27392 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001374.142610   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001374.142632   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001389.885506   27392 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001389.885588   27392 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001391.043203   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001391.043222   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001400.955709   28025 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001400.955776   28025 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001405.688184   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001405.688203   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001410.542868   28025 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001410.542887   28025 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001413.940742   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001413.940757   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001417.523116   27392 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001417.523135   27392 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001422.274929   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001422.274951   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001426.768962   27392 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001426.768993   27392 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001432.713955   28076 session_basic.cc:395] RunPrefillAsync status: OK
-I0000 00:00:1780001432.713992   28076 session_basic.cc:515] RunDecodeAsync
-I0000 00:00:1780001436.337742   28025 model_data_processor_factory.cc:422] Creating Gemma4DataProcessor
-W0000 00:00:1780001436.337794   28025 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
-I0000 00:00:1780001436.355815   27129 stb_image_preprocessor.cc:84] Resize image from 32x32 to 768x768 which will result in 2304 patches to fit the max_num_patches: 2520 limit.
+# Filosofía central
+
+## El LLM NO es la memoria
+
+El modelo debe funcionar como:
+
+- CPU cognitiva,
+- motor conversacional,
+- intérprete de intención,
+- sintetizador,
+- planner rápido.
+
+La memoria real vive fuera del contexto:
+
+- graphs,
+- embeddings,
+- summaries,
+- metadata,
+- episodic memory,
+- knowledge stores.
+
+---
+
+# Principio clave
+
+## Contexto pequeño + memoria externa grande
+
+En vez de enviar:
+
+- miles de mensajes,
+- documentos completos,
+- o investigaciones enteras,
+
+el sistema envía:
+
+- pequeños summaries,
+- facts relevantes,
+- working state,
+- y retrieval selectivo.
+
+Esto reduce:
+
+- latencia,
+- tokens,
+- costo,
+- degradación del reasoning,
+- y alucinaciones.
+
+---
+
+# Arquitectura Cognitiva
+
+## FAST BRAIN (tiempo real)
+
+Responsable de:
+
+- conversación,
+- tool calling,
+- respuestas rápidas,
+- interacción por voz,
+- ejecución inmediata.
+
+### Contexto típico
+
+- últimos 10–20 mensajes,
+- estado actual,
+- tools disponibles,
+- summary incremental pequeño.
+
+### Características
+
+- ultra rápido,
+- baja latencia,
+- contexto mínimo,
+- inferencia barata.
+
+---
+
+## SLOW BRAIN (background cognition)
+
+Responsable de:
+
+- consolidación de memoria,
+- extracción de insights,
+- embeddings,
+- clustering,
+- entity extraction,
+- graph linking,
+- identity modeling,
+- research synthesis.
+
+Corre:
+- en background,
+- asíncronamente,
+- sin bloquear conversación.
+
+---
+
+# Capas de Memoria
+
+---
+
+## CAPA 1 — Raw Message Store
+
+Fuente de verdad absoluta.
+
+Nunca se borra.
+
+json {   "message_id": "...",   "chat_id": "...",   "index": 42,   "text": "...",   "timestamp": "..." } 
+
+---
+
+## CAPA 2 — Episodic Summaries
+
+Summaries de segmentos pequeños de conversación.
+
+NO son memoria permanente.
+Sirven para navegación rápida.
+
+json {   "summary_id": "...",   "chat_id": "...",   "message_range": [21,56],   "summary": "..." } 
+
+---
+
+## CAPA 3 — Atomic Memories
+
+Insights específicos extraídos de conversaciones.
+
+Ejemplos:
+
+- preferencias,
+- hábitos,
+- relaciones,
+- emociones,
+- intereses,
+- patrones.
+
+json {   "memory_id": "...",   "type": "preference",   "content": "Usuario prefiere opciones semanales",   "confidence": 0.91,   "sources": [...] } 
+
+---
+
+## CAPA 4 — Consolidated Identity
+
+Conocimiento persistente y estable del usuario.
+
+Ejemplos:
+
+- “Trader de opciones”
+- “Prefiere camping”
+- “Tiene reuniones frecuentes los lunes”
+
+json {   "identity_trait": "...",   "confidence": 0.95 } 
+
+---
+
+# Concepto importante
+
+## El sistema NO resume conversaciones
+
+El sistema EXTRAE memorias.
+
+Una conversación larga puede contener:
+
+- múltiples preferencias,
+- emociones,
+- entidades,
+- decisiones,
+- facts,
+- patrones.
+
+Por eso:
+
+text 1 conversación ≠ 1 memoria 
+
+---
+
+# Retrieval Pipeline
+
+## Paso 1
+
+Consultar memoria persistente.
+
+---
+
+## Paso 2
+
+Consultar memorias relevantes recientes.
+
+---
+
+## Paso 3
+
+Consultar summaries episódicos.
+
+---
+
+## Paso 4
+
+Solo si hace falta:
+cargar mensajes originales específicos.
+
+---
+
+# Message Ranges
+
+Los summaries deben guardar:
+
+- chat_id,
+- rango de mensajes,
+- referencias al origen.
+
+Ejemplo:
+
+json {   "chat_id": "...",   "messages": [21,56] } 
+
+Esto permite:
+
+- navegación determinística,
+- recuperación precisa,
+- evitar cargar chats completos.
+
+---
+
+# Research Architecture
+
+## Problema tradicional
+
+Muchos agentes hacen:
+
+text search → dump gigantesco de texto → prompt enorme → reasoning degradado 
+
+Esto:
+- consume demasiados tokens,
+- degrada atención,
+- aumenta latencia.
+
+---
+
+# Solución
+
+## Research incremental + cognitive compression
+
+El sistema:
+
+1. busca información,
+2. chunkifica,
+3. resume localmente,
+4. extrae entidades,
+5. crea relaciones,
+6. actualiza graph,
+7. sintetiza incrementalmente.
+
+---
+
+# Flujo ideal de Research
+
+## CAPA 1 — Raw Research Chunks
+
+Texto original.
+
+json {   "chunk_id": "...",   "text": "...",   "source": "..." } 
+
+---
+
+## CAPA 2 — Chunk Summaries
+
+Resumen local pequeño.
+
+json {   "chunk_id": "...",   "summary": "...",   "entities": [...] } 
+
+---
+
+## CAPA 3 — Research Graph
+
+Relaciones semánticas.
+
+Ejemplo:
+
+text lift → aerodynamics wing → airflow airplane → thrust 
+
+---
+
+## CAPA 4 — Working Summary
+
+Estado cognitivo comprimido.
+
+NO reemplaza la memoria estructurada.
+
+Solo mantiene:
+- progreso,
+- contexto actual,
+- dirección del reasoning.
+
+---
+
+## CAPA 5 — Final Synthesis
+
+El modelo genera:
+- reporte,
+- explicación,
+- conclusión,
+- plan,
+- análisis.
+
+---
+
+# Cognitive Compression
+
+El sistema NO memoriza texto completo.
+
+Construye:
+
+- abstracciones,
+- conceptos,
+- relaciones,
+- modelos mentales,
+- knowledge graphs.
+
+Esto es más parecido a cómo humanos investigan.
+
+---
+
+# Importante
+
+## Nunca reemplazar la fuente original
+
+Evitar:
+
+text summary del summary del summary 
+
+Porque produce:
+- degradación,
+- pérdida de detalles,
+- errores acumulativos.
+
+Siempre conservar:
+- chunks originales,
+- sources,
+- citations,
+- references.
+
+---
+
+# Dos capas distintas de conocimiento
+
+## Semantic Understanding
+
+Para razonar.
+
+Ejemplo:
+
+text “La sustentación ocurre por diferencia de presión.” 
+
+---
+
+## Evidence Layer
+
+Para verificar.
+
+Ejemplo:
+
+json {   "source": "...",   "chunk_id": "...",   "excerpt": "..." } 
+
+---
+
+# Research incremental
+
+Cada iteración NO debe reenviar todo el contexto.
+
+En vez de:
+
+text old_context + new_context + everything again 
+
+hacer:
+
+text working_summary + nuevos findings 
+
+Esto reduce muchísimo tokens.
+
+---
+
+# Contexto ideal del LLM
+
+El contexto debe ser pequeño.
+
+Idealmente:
+
+- objetivo actual,
+- summary incremental,
+- facts relevantes,
+- últimos mensajes,
+- tools disponibles.
+
+Nada más.
+
+---
+
+# Qué hace que el sistema se sienta inteligente
+
+NO:
+- benchmarks,
+- matemáticas avanzadas,
+- coding extremo.
+
+Sino:
+
+- continuidad,
+- velocidad,
+- memoria,
+- personalización,
+- contexto,
+- preferencias,
+- anticipación.
+
+---
+
+# Idea fundamental
+
+## El modelo pequeño NO necesita recordar
+
+Porque el sistema recuerda por él.
+
+La arquitectura completa es la inteligencia:
+
+text LLM + Memory + Retrieval + Tools + Background cognition + State management 
+
+---
+
+# Optimización de tokens
+
+La arquitectura puede consumir más tokens inicialmente por:
+
+- chunking,
+- embeddings,
+- summaries,
+- extracción.
+
+Pero a largo plazo consume MENOS porque:
+
+- reutiliza conocimiento,
+- reutiliza summaries,
+- evita relectura completa,
+- evita contextos gigantes.
+
+---
+
+# Principios críticos
+
+## 1. Contexto pequeño siempre
+
+El contexto es working memory, no almacenamiento.
+
+---
+
+## 2. Retrieval selectivo
+
+Traer solo lo relevante.
+
+---
+
+## 3. Persistencia estructurada
+
+Memoria fuera del prompt.
+
+---
+
+## 4. Background cognition
+
+Consolidar después, no durante conversación.
+
+---
+
+## 5. Semantic abstraction
+
+Trabajar con conceptos, no texto bruto.
+
+---
+
+## 6. Traceability
+
+Toda abstracción debe poder volver a su fuente.
+
+---
+
+# Resultado final esperado
+
+Un asistente que:
+
+- responde casi instantáneamente,
+- mantiene continuidad real,
+- aprende hábitos,
+- recuerda preferencias,
+- investiga incrementalmente,
+- usa poca inferencia,
+- escala bien,
+- y se siente más humano porque funciona más parecido a una cognición humana real.

@@ -16,4 +16,13 @@ final class ModelProviderTests: XCTestCase {
         XCTAssertFalse(ModelProvider.Kind.gemini.isLocalMLX)
         XCTAssertFalse(ModelProvider.Kind.groq.isLocalMLX)
     }
+
+    /// gpt-oss-120b is the chosen model; both Cerebras and Groq default to it (provider-correct id).
+    /// The default provider is cloud (Cerebras) so the local mlx server doesn't spawn by default.
+    func test_gptOss120b_defaults_and_defaultKindIsCloud() {
+        XCTAssertEqual(ModelProvider.Kind.cerebras.defaultModel, "gpt-oss-120b")
+        XCTAssertEqual(ModelProvider.Kind.groq.defaultModel, "openai/gpt-oss-120b")
+        XCTAssertEqual(ModelProvider.Kind.defaultKind, .cerebras)
+        XCTAssertFalse(ModelProvider.Kind.defaultKind.isLocalMLX)
+    }
 }

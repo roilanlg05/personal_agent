@@ -6,6 +6,10 @@ struct ModelProvider: Equatable, Sendable {
         case local, gemini, cerebras, groq
         var id: String { rawValue }
 
+        /// Default provider when nothing is persisted. Cloud (not local) so the 15GB mlx server
+        /// does NOT spawn by default — it spawns only when the user explicitly picks "local".
+        static var defaultKind: Kind { .cerebras }
+
         var displayName: String {
             switch self {
             case .local: return "Gemma local (mlx)"
@@ -32,8 +36,8 @@ struct ModelProvider: Equatable, Sendable {
             switch self {
             case .local: return "unsloth/gemma-4-26b-a4b-it-UD-MLX-4bit"
             case .gemini: return "gemini-2.5-flash"
-            case .cerebras: return "llama-3.3-70b"
-            case .groq: return "llama-3.3-70b-versatile"
+            case .cerebras: return "gpt-oss-120b"
+            case .groq: return "openai/gpt-oss-120b"
             }
         }
     }

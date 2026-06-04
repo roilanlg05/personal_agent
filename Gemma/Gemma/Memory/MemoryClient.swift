@@ -129,12 +129,14 @@ final class MemoryClient {
 
     // MARK: consolidation
     func consolidationTurnEnd(threadId: String) async throws {
-        struct B: Encodable { let threadId: String }
-        let _: EmptyOK = try await post("/v1/consolidation/turn-end", B(threadId: threadId))
+        struct B: Encodable { let threadId: String; let timezone: String }
+        let _: EmptyOK = try await post("/v1/consolidation/turn-end",
+                                        B(threadId: threadId, timezone: TimeZone.current.identifier))
     }
     func reflect() async throws -> String? {
+        struct B: Encodable { let timezone: String }
         struct R: Decodable { let cycleId: String }
-        let r: R = try await post("/v1/consolidation/reflect", EmptyBody())
+        let r: R = try await post("/v1/consolidation/reflect", B(timezone: TimeZone.current.identifier))
         return r.cycleId.isEmpty ? nil : r.cycleId
     }
     func state() async throws -> StateSnapshot { try await get("/v1/consolidation/state") }

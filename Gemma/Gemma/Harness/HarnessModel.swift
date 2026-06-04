@@ -105,6 +105,8 @@ public final class HarnessModel {
     public func startServer() {
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         refreshLocalModelLifecycle()
+        // Sync the consolidation provider config to the i3 at launch (same XCTest guard above).
+        pushConsolidationConfig()
     }
 
     /// Terminate the owned server (called on app quit).
@@ -156,6 +158,22 @@ public final class HarnessModel {
         MemoryToolbox.shared.memory = client
         MemoryToolbox.shared.reflectionRequest = { [weak client] in
             Task { _ = try? await client?.reflect() }
+        }
+    }
+
+    /// Push the consolidation provider config to the i3 (key included, over the authed channel).
+    func pushConsolidationConfig() {
+        ensureMemory()
+        guard let client = memory else { return }
+        let kindRaw = UserDefaults.standard.string(forKey: SettingsKeys.consolidationProvider) ?? "local"
+        let kind = ModelProvider.Kind(rawValue: kindRaw) ?? .local
+        let model = UserDefaults.standard.string(forKey: SettingsKeys.consolidationModel)
+        let provider = ModelProvider(kind: kind, model: model,
+                                     apiKey: kind.isLocalMLX ? nil : KeychainStore.shared.get(account: "apiKey.\(kind.rawValue)"))
+        Task {
+            try? await client.setModelConfig(provider: kind.rawValue,
+                                              baseURL: provider.baseURL.absoluteString,
+                                              model: provider.model, apiKey: provider.apiKey)
         }
     }
 

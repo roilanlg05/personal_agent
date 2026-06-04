@@ -78,12 +78,33 @@ public final class HarnessModel {
         }
     }
 
+    /// Returns true when at least one side (chat or consolidation) uses the local mlx model,
+    /// meaning the 15 GB mlx server must be running. Pure static for testability.
+    nonisolated static func needsLocalModel(chat: String, consolidation: String) -> Bool {
+        chat == ModelProvider.Kind.local.rawValue || consolidation == ModelProvider.Kind.local.rawValue
+    }
+
+    /// Spawn/keep-warm the local mlx server only when a side uses local; otherwise stop it.
+    /// No-op under XCTest (mirrors startServer()).
+    func refreshLocalModelLifecycle() {
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        let chat = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? "local"
+        let cons = UserDefaults.standard.string(forKey: SettingsKeys.consolidationProvider) ?? "local"
+        if Self.needsLocalModel(chat: chat, consolidation: cons) {
+            Task { await serverManager.start() }
+        } else {
+            serverManager.stop()
+        }
+    }
+
     /// Launch/attach the server and start keeping it warm. Safe to call again (Retry).
     /// No-op under XCTest: the unit-test host launches this app, and we must NOT spawn the
     /// real 15GB mlx-lm server on every test run (it would load after the run and orphan).
+    /// Spawn decision is gated on `needsLocalModel`: if both chat and consolidation are cloud,
+    /// the server is stopped instead of started (default settings = both local → unchanged).
     public func startServer() {
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
-        Task { await serverManager.start() }
+        refreshLocalModelLifecycle()
     }
 
     /// Terminate the owned server (called on app quit).

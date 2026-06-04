@@ -16,4 +16,11 @@ final class HarnessModelProviderTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: SettingsKeys.chatProvider)
         UserDefaults.standard.removeObject(forKey: SettingsKeys.chatModel)
     }
+
+    func test_needsLocalModel_trueIfEitherSideLocal() {
+        XCTAssertTrue(HarnessModel.needsLocalModel(chat: "local", consolidation: "gemini"))
+        XCTAssertTrue(HarnessModel.needsLocalModel(chat: "groq", consolidation: "local"))
+        XCTAssertTrue(HarnessModel.needsLocalModel(chat: "local", consolidation: "local"))
+        XCTAssertFalse(HarnessModel.needsLocalModel(chat: "gemini", consolidation: "groq"))
+    }
 }

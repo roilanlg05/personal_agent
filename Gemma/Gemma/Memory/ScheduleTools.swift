@@ -4,9 +4,19 @@ private func mem() async -> MemoryClient? { await MemoryToolbox.shared.memory }
 private func obj(_ argsJSON: String) -> [String: Any] {
     (try? JSONSerialization.jsonObject(with: Data(argsJSON.utf8))) as? [String: Any] ?? [:]
 }
+/// Human suffix for a schedule event status. Active ("scheduled"/nil) → "". Shared by the
+/// schedule tools and the recall injection block so cancelled events are never shown as active.
+func scheduleStatusSuffix(_ status: String?) -> String {
+    switch status {
+    case "cancelled": return " (cancelado)"
+    case "done": return " (hecho)"
+    default: return ""
+    }
+}
+
 private func eventLine(_ e: MemoryClient.ScheduleEvent) -> String {
     let loc = (e.location?.isEmpty == false) ? " @ \(e.location!)" : ""
-    return "\(e.title): \(ScheduleTime.human(fromEpoch: e.start))–\(ScheduleTime.human(fromEpoch: e.end))\(loc)"
+    return "\(e.title): \(ScheduleTime.human(fromEpoch: e.start))–\(ScheduleTime.human(fromEpoch: e.end))\(loc)\(scheduleStatusSuffix(e.status))"
 }
 
 /// check_schedule — read-only: are there conflicts in [start,end)?
@@ -82,6 +92,7 @@ struct QueryScheduleTool: AgentTool {
     static let parameters: [AgentToolParam] = [
         AgentToolParam(name: "from", type: .string, description: "Local ISO datetime/date for the window start.", required: true),
         AgentToolParam(name: "to", type: .string, description: "Local ISO datetime/date for the window end.", required: true),
+        AgentToolParam(name: "includeCancelled", type: .boolean, description: "true to also list cancelled/past events (shown marked '(cancelado)'). Default false — the normal agenda excludes them.", required: false),
     ]
     func run(argsJSON: String) async -> String {
         let o = obj(argsJSON)
@@ -89,11 +100,12 @@ struct QueryScheduleTool: AgentTool {
               let t = (o["to"] as? String).flatMap(ScheduleTime.epoch) else {
             return "I need a from/to range (e.g. 2026-06-09 to 2026-06-16)."
         }
+        let includeCancelled = (o["includeCancelled"] as? Bool) ?? false
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: "\(ScheduleTime.human(fromEpoch: f))–\(ScheduleTime.human(fromEpoch: t))") }
         let result: String = await {
             guard let m = await mem() else { return "memory unavailable" }
             do {
-                let evs = try await m.scheduleWindow(from: f, to: t, includeCancelled: false)
+                let evs = try await m.scheduleWindow(from: f, to: t, includeCancelled: includeCancelled)
                 return evs.isEmpty ? "Nothing scheduled in that range." : evs.map(eventLine).joined(separator: "; ")
             } catch { return "schedule error: \(error)" }
         }()

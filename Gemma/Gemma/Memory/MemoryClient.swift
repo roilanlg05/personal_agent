@@ -21,7 +21,14 @@ final class MemoryClient {
             guard !merged.isEmpty else { return "" }
             let summaries = merged.filter { $0.kind == "summary" }
             let rest = merged.filter { $0.kind != "summary" }
-            let lines = (summaries + rest).map { "- [\($0.kind)] \($0.label): \($0.body.isEmpty ? $0.label : $0.body)" }
+            let lines = (summaries + rest).map { n -> String in
+                let base = "- [\(n.kind)] \(n.label): \(n.body.isEmpty ? n.label : n.body)"
+                guard n.kind == "event", let extra = n.extra,
+                      let data = extra.data(using: .utf8),
+                      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let status = obj["status"] as? String else { return base }
+                return base + scheduleStatusSuffix(status)
+            }
             return "What you remember about the user (use if relevant):\n" + lines.joined(separator: "\n")
         }
     }

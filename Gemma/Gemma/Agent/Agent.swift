@@ -16,6 +16,20 @@ public enum AgentEvent: Sendable {
 /// background consolidation, and the caller appends the turn to the Memory Service.
 @MainActor
 final class Agent {
+    /// Schedule conventions injected into the system prompt. Static (date-independent) so it is
+    /// testable and stays byte-stable for the server prefix cache.
+    nonisolated static let scheduleConventions = """
+    Time conventions: a week runs Monday–Sunday; the working week runs Monday–Friday. \
+    "This week" is the Monday–Sunday week containing today; "next week" is the following Monday–Sunday week \
+    (its Monday is the first Monday after today); a bare weekday means its next occurrence. \
+    ALWAYS resolve any relative term to an absolute date (yyyy-MM-dd) from today's date BEFORE calling a \
+    schedule tool — never pass terms like "next week" to a tool. \
+    For "what's on my schedule / this week / next week", query_schedule is the ONLY source of truth: call it \
+    with the resolved range and report exactly what it returns; never list events from memory as if active, \
+    and if it returns nothing, say there is nothing. To show cancelled/past events the user explicitly asks \
+    about, call query_schedule with includeCancelled true; they are shown marked "(cancelado)".
+    """
+
     private let runtime: ToolCallingRuntime
     private let registry: ToolRegistry
     private let recallTail: String
@@ -49,6 +63,7 @@ final class Agent {
         If the user gives only a start time, ASK for the end before creating. If a time span is vague ("rest of the week"), ASK whether it starts now or tomorrow; "rest of the night" means until 06:00 the next day. \
         If create_event reports a conflict, do NOT force it: tell the user what it conflicts with (consider travel/location too — e.g. a meeting in another city during a trip) and ask whether to reschedule, cancel the other, or book anyway. If the user says book anyway, call create_event again with force set to true. \
         Use query_schedule for "what's on my schedule"; use cancel_events (which only cancels, never deletes) for "cancel my appointments". To-dos without a fixed time (call mom, gym) are not calendar events — don't create_event for them.
+        \(Self.scheduleConventions)
         """
     }
 

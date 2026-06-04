@@ -8,25 +8,36 @@ import Foundation
 /// (Gemma's thought channel) is kept separate by the server and is NOT surfaced as the answer.
 final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable {
     nonisolated let identifier = "mlx-server"
-    let baseURL: URL
-    let model: String
+    let provider: ModelProvider
+    var baseURL: URL { provider.baseURL }
+    var model: String { provider.model }
     let session: URLSession
     /// When false, we send `chat_template_kwargs: {"enable_thinking": false}` so the model skips
     /// its hidden chain-of-thought. Measured ~48x latency win (43s -> 0.9s for "hola") with an
     /// identical answer; tool-calling and memory recall still work. Toggle to true to re-enable.
+    /// Only sent to local mlx — cloud providers reject `chat_template_kwargs`.
     let enableThinking: Bool
     let generationTimeout: Duration
 
-    init(baseURL: URL = URL(string: "http://localhost:8080")!,
-         model: String = "unsloth/gemma-4-26b-a4b-it-UD-MLX-4bit",
+    init(provider: ModelProvider = ModelProvider(kind: .local),
          session: URLSession = .shared,
          enableThinking: Bool = false,
          generationTimeout: Duration = .seconds(120)) {
-        self.baseURL = baseURL
-        self.model = model
+        self.provider = provider
         self.session = session
         self.enableThinking = enableThinking
         self.generationTimeout = generationTimeout
+    }
+
+    /// Maps a non-2xx HTTP status to a clear Spanish, provider-prefixed message.
+    static func errorMessage(status: Int, provider: ModelProvider) -> String {
+        let p = provider.kind.displayName
+        switch status {
+        case 401: return "\(p): API key inválida o ausente."
+        case 403: return "\(p): acceso denegado (revisa la API key/permisos)."
+        case 429: return "\(p): rate limit — intenta de nuevo en un momento."
+        default:  return "\(p): error HTTP \(status)."
+        }
     }
 
     func isLoaded() async -> Bool { true }
@@ -57,26 +68,30 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                         "max_tokens": options.maxTokens,
                         "temperature": options.temperature,
                         "stream": true,   // SSE: tokens arrive incrementally so the UI can render live.
-                        // Skip the model's hidden chain-of-thought (~48x faster; see `enableThinking`).
-                        "chat_template_kwargs": ["enable_thinking": enableThinking],
                     ]
+                    // Skip the model's hidden chain-of-thought (~48x faster; see `enableThinking`).
+                    // Cloud providers reject this kwarg, so only send it to local mlx.
+                    if provider.kind.isLocalMLX {
+                        body["chat_template_kwargs"] = ["enable_thinking": enableThinking]
+                    }
                     if !tools.isEmpty {
                         body["tools"] = tools.map { type(of: $0).functionSpec }
                     }
 
-                    var req = URLRequest(url: baseURL.appendingPathComponent("v1/chat/completions"))
+                    var req = URLRequest(url: baseURL.appendingPathComponent("chat/completions"))
                     req.httpMethod = "POST"
                     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     req.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                    if let key = provider.apiKey, !key.isEmpty {
+                        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+                    }
                     req.httpBody = try JSONSerialization.data(withJSONObject: body)
                     req.timeoutInterval = Double(generationTimeout.components.seconds)
 
                     let (bytes, response) = try await session.bytes(for: req)
                     if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-                        // Drain the body for a useful error, then surface non-2xx.
-                        var raw = ""
-                        for try await line in bytes.lines { raw += line; if raw.count > 1024 { break } }
-                        throw RuntimeError.generationFailed("server returned HTTP \(http.statusCode): \(raw.isEmpty ? "<no body>" : raw)")
+                        // Surface non-2xx as a clear, provider-prefixed message.
+                        throw RuntimeError.generationFailed(Self.errorMessage(status: http.statusCode, provider: provider))
                     }
 
                     // Parse the OpenAI SSE stream: `data: {chunk}` lines, ending with `data: [DONE]`.
@@ -116,8 +131,13 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                         text: GemmaToolCallParser.strip(visible),
                         metrics: .init(tokensGenerated: 0, elapsedSeconds: 0, timeToFirstTokenSeconds: 0, peakResidentMemoryBytes: 0, draftAcceptanceRate: nil))))
                     continuation.finish()
+                } catch let e as RuntimeError {
+                    // Already a clear, provider-prefixed message (e.g. the non-2xx mapping) — pass through.
+                    continuation.finish(throwing: e)
                 } catch {
-                    continuation.finish(throwing: RuntimeError.generationFailed("server error: \(error)"))
+                    let p = provider.kind.displayName
+                    let msg = (error is URLError) ? "\(p): sin conexión." : "\(p): \(error.localizedDescription)"
+                    continuation.finish(throwing: RuntimeError.generationFailed(msg))
                 }
             }
             continuation.onTermination = { _ in task.cancel() }

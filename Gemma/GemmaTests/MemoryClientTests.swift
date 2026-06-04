@@ -72,4 +72,31 @@ final class MemoryClientTests: XCTestCase {
         }
         try await makeClient().appendTranscript(threadId: "T", role: "user", text: "hi", turnIndex: 0)
     }
+
+    func test_setModelConfig_posts_provider_body() async throws {
+        struct Body: Decodable { let provider: String; let baseURL: String; let model: String; let apiKey: String? }
+        nonisolated(unsafe) var captured: Body?
+        StubProtocol.stub = { req in
+            XCTAssertEqual(req.httpMethod, "POST")
+            XCTAssertTrue(req.url?.path.hasSuffix("/v1/config/model") ?? false, "path was \(req.url?.path ?? "nil")")
+            // URLProtocol strips httpBody onto httpBodyStream — read from there.
+            let data = req.httpBody ?? req.httpBodyStream.map { stream in
+                stream.open(); defer { stream.close() }
+                var d = Data(); var buf = [UInt8](repeating: 0, count: 1024)
+                while stream.hasBytesAvailable {
+                    let n = stream.read(&buf, maxLength: buf.count)
+                    if n <= 0 { break }
+                    d.append(buf, count: n)
+                }
+                return d
+            } ?? Data()
+            captured = try? JSONDecoder().decode(Body.self, from: data)
+            return (HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data())
+        }
+        try await makeClient().setModelConfig(provider: "gemini", baseURL: "https://x", model: "m", apiKey: "K")
+        XCTAssertEqual(captured?.provider, "gemini")
+        XCTAssertEqual(captured?.baseURL, "https://x")
+        XCTAssertEqual(captured?.model, "m")
+        XCTAssertEqual(captured?.apiKey, "K")
+    }
 }

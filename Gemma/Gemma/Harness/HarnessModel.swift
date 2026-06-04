@@ -49,25 +49,64 @@ public final class HarnessModel {
         keepResident ? residentWiredLimitBytes : 0
     }
 
+    /// Build the chat provider from settings. `keyLookup` returns the stored API key for a kind
+    /// (injected for tests; production passes KeychainStore.shared.get).
+    static func chatProvider(keyLookup: (ModelProvider.Kind) -> String?) -> ModelProvider {
+        let kindRaw = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? "local"
+        let kind = ModelProvider.Kind(rawValue: kindRaw) ?? .local
+        let model = UserDefaults.standard.string(forKey: SettingsKeys.chatModel)
+        let key = kind.isLocalMLX ? nil : keyLookup(kind)
+        return ModelProvider(kind: kind, model: model, apiKey: key)
+    }
+
+    /// Rebuild the chat runtime from current settings (called when chat settings change).
+    func rebuildRuntime() {
+        let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
+        self.runtime = RuntimeFactory.make(provider)
+    }
+
     public init() {
         var cfg = ServerConfig.default
         cfg.wiredLimitBytes = Self.wiredLimitBytes(
             keepResident: UserDefaults.standard.bool(forKey: SettingsKeys.keepModelResident))
         self.serverManager = ServerManager(config: cfg)
         self.settings = settingsStore.load()
-        self.runtime = ServerRuntime()
+        self.runtime = RuntimeFactory.make(Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") }))
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.stopServer() }
         }
     }
 
+    /// Returns true when at least one side (chat or consolidation) uses the local mlx model,
+    /// meaning the 15 GB mlx server must be running. Pure static for testability.
+    nonisolated static func needsLocalModel(chat: String, consolidation: String) -> Bool {
+        chat == ModelProvider.Kind.local.rawValue || consolidation == ModelProvider.Kind.local.rawValue
+    }
+
+    /// Spawn/keep-warm the local mlx server only when a side uses local; otherwise stop it.
+    /// No-op under XCTest (mirrors startServer()).
+    func refreshLocalModelLifecycle() {
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        let chat = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? "local"
+        let cons = UserDefaults.standard.string(forKey: SettingsKeys.consolidationProvider) ?? "local"
+        if Self.needsLocalModel(chat: chat, consolidation: cons) {
+            Task { await serverManager.start() }
+        } else {
+            serverManager.stop()
+        }
+    }
+
     /// Launch/attach the server and start keeping it warm. Safe to call again (Retry).
     /// No-op under XCTest: the unit-test host launches this app, and we must NOT spawn the
     /// real 15GB mlx-lm server on every test run (it would load after the run and orphan).
+    /// Spawn decision is gated on `needsLocalModel`: if both chat and consolidation are cloud,
+    /// the server is stopped instead of started (default settings = both local → unchanged).
     public func startServer() {
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
-        Task { await serverManager.start() }
+        refreshLocalModelLifecycle()
+        // Sync the consolidation provider config to the i3 at launch (same XCTest guard above).
+        pushConsolidationConfig()
     }
 
     /// Terminate the owned server (called on app quit).
@@ -119,6 +158,22 @@ public final class HarnessModel {
         MemoryToolbox.shared.memory = client
         MemoryToolbox.shared.reflectionRequest = { [weak client] in
             Task { _ = try? await client?.reflect() }
+        }
+    }
+
+    /// Push the consolidation provider config to the i3 (key included, over the authed channel).
+    func pushConsolidationConfig() {
+        ensureMemory()
+        guard let client = memory else { return }
+        let kindRaw = UserDefaults.standard.string(forKey: SettingsKeys.consolidationProvider) ?? "local"
+        let kind = ModelProvider.Kind(rawValue: kindRaw) ?? .local
+        let model = UserDefaults.standard.string(forKey: SettingsKeys.consolidationModel)
+        let provider = ModelProvider(kind: kind, model: model,
+                                     apiKey: kind.isLocalMLX ? nil : KeychainStore.shared.get(account: "apiKey.\(kind.rawValue)"))
+        Task {
+            try? await client.setModelConfig(provider: kind.rawValue,
+                                              baseURL: provider.baseURL.absoluteString,
+                                              model: provider.model, apiKey: provider.apiKey)
         }
     }
 

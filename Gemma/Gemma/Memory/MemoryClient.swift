@@ -208,6 +208,15 @@ final class MemoryClient {
         return r.cancelled
     }
 
+    // MARK: model config (consolidation provider, pushed to the i3)
+    func setModelConfig(provider: String, baseURL: String, model: String, apiKey: String?) async throws {
+        struct B: Encodable { let provider: String; let baseURL: String; let model: String; let apiKey: String? }
+        let _: EmptyOK = try await post("/v1/config/model",
+                                        B(provider: provider, baseURL: baseURL, model: model, apiKey: apiKey))
+    }
+    struct ModelConfigInfo: Decodable, Sendable { let provider: String; let baseURL: String; let model: String; let hasKey: Bool }
+    func modelConfig() async throws -> ModelConfigInfo { try await get("/v1/config/model") }
+
     // MARK: HTTP helpers
     private struct EmptyOK: Decodable {}
     private struct EmptyBody: Encodable {}

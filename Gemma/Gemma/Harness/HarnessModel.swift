@@ -33,7 +33,7 @@ public final class HarnessModel {
         }
         return parts.joined(separator: "\n\n")
     }
-    @ObservationIgnored private let threadId = UUID().uuidString
+    @ObservationIgnored private var threadId = UUID().uuidString
     @ObservationIgnored private var turnIndex = 0
 
     /// Owns the local mlx_vlm server process lifecycle (M2a). Built in init() so its initial
@@ -233,6 +233,10 @@ public final class HarnessModel {
         let now = Date().timeIntervalSince1970
         let isWake = (lastTurnEndedAt == 0) || (now - lastTurnEndedAt > Self.wakeGapSeconds)
         _ = isWake // followUps / focus are service-driven now (no per-turn HTTP for them in M3a)
+        if ChatSession.shouldStartNewChat(lastActivity: lastTurnEndedAt, now: now) {
+            threadId = UUID().uuidString   // new episode → new chat_id; server restarts seq at 1
+            turnIndex = 0
+        }
         // M3a: focus / pendingFollowUps surfaces would require dedicated endpoints. The
         // service still consolidates in the background; for now wake-context is silent until
         // those endpoints land. Recall (the main signal) still rides the user prompt tail.

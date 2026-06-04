@@ -14,7 +14,7 @@ struct SaveMemoryTool: AgentTool {
     static let parameters: [AgentToolParam] = [
         AgentToolParam(name: "entity", type: .string, description: "Short canonical noun/name to remember, e.g. \"sushi\", \"Juan\". Not a sentence.", required: true),
         AgentToolParam(name: "detail", type: .string, description: "Optional free context, e.g. \"likes it a lot\", \"friend, works with the user\".", required: false),
-        AgentToolParam(name: "kind", type: .string, description: "One of: person, place, preference, fact.", required: false),
+        AgentToolParam(name: "kind", type: .string, description: "One of: self (the user's own name/identity), person, place, preference, fact.", required: false),
         AgentToolParam(name: "permanent", type: .boolean, description: "true if this is permanent identity (name, lifelong facts).", required: false),
     ]
 

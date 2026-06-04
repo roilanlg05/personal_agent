@@ -18,7 +18,9 @@ final class MemoryClient {
         /// previous in-process `MemoryRetriever.injectionBlock` shape so prompt formatting stays
         /// byte-identical across the M3a refactor (preserves existing snapshot tests).
         func injectionBlock() -> String {
-            let merged = recall + core.filter { c in !recall.contains(where: { $0.label == c.label && $0.kind == c.kind }) }
+            let all = recall + core.filter { c in !recall.contains(where: { $0.label == c.label && $0.kind == c.kind }) }
+            let selfNode = all.first { $0.kind == "self" }
+            let merged = all.filter { $0.kind != "self" }
             let summaries = merged.filter { $0.kind == "summary" }
             let rest = merged.filter { $0.kind != "summary" }
             let lines = (summaries + rest).map { n -> String in
@@ -29,7 +31,13 @@ final class MemoryClient {
                       let status = obj["status"] as? String else { return base }
                 return base + scheduleStatusSuffix(status)
             }
-            var out = merged.isEmpty ? "" : "What you remember about the user (use if relevant):\n" + lines.joined(separator: "\n")
+            var out = ""
+            if let s = selfNode, !s.label.isEmpty {
+                out = "You are speaking with \(s.label) (the user)." + (s.body.isEmpty ? "" : " \(s.body)\(s.body.hasSuffix(".") ? "" : ".")")
+            }
+            if !merged.isEmpty {
+                out += (out.isEmpty ? "" : "\n") + "What you remember about the user (use if relevant):\n" + lines.joined(separator: "\n")
+            }
             if !recentTurns.isEmpty {
                 let rt = recentTurns.map { "- \($0.role): \($0.text)" }.joined(separator: "\n")
                 out += (out.isEmpty ? "" : "\n\n") + "Recent conversation (other chats):\n" + rt

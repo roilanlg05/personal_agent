@@ -42,4 +42,19 @@ final class RecallInjectionTests: XCTestCase {
     func test_empty_bundle_is_empty() {
         XCTAssertEqual(MemoryClient.RecallBundle(core: [], recall: [], recentTurns: []).injectionBlock(), "")
     }
+
+    func test_self_node_renders_as_you_first() {
+        let bundle = MemoryClient.RecallBundle(
+            core: [MemoryClient.RecallNode(kind: "self", label: "Roilan", body: "", extra: nil),
+                   MemoryClient.RecallNode(kind: "preference", label: "sushi", body: "le gusta", extra: nil)],
+            recall: [], recentTurns: [])
+        let block = bundle.injectionBlock()
+        XCTAssertTrue(block.contains("You are speaking with Roilan (the user)."), block)
+        XCTAssertFalse(block.contains("- [self]"), "self must not render as a generic fact line")
+        // self sentence comes before the remembered-facts section
+        let selfRange = block.range(of: "You are speaking with Roilan")
+        let factsRange = block.range(of: "What you remember about the user")
+        XCTAssertNotNil(selfRange); XCTAssertNotNil(factsRange)
+        if let s = selfRange, let f = factsRange { XCTAssertTrue(s.lowerBound < f.lowerBound) }
+    }
 }

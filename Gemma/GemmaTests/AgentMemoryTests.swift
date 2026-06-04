@@ -59,6 +59,10 @@ final class AgentMemoryTests: XCTestCase {
         let rt = CapturingRuntime()
         let agent = Agent(runtime: rt, registry: ToolRegistry())  // recallTail = "", wakeContext = ""
         for try await _ in agent.run(prompt: "hola", options: GenerationOptions()) {}
-        XCTAssertEqual(rt.capturedUserPrompt, Agent.nowContext() + "\n\n" + "hola")
+        // Structural assertion (not exact equality vs a freshly-computed nowContext) so a minute
+        // rollover between the agent's call and the assertion can never flake the test.
+        let captured = rt.capturedUserPrompt ?? ""
+        XCTAssertTrue(captured.hasPrefix("Current date and time:"), captured)
+        XCTAssertTrue(captured.hasSuffix("\n\nhola"), captured)
     }
 }

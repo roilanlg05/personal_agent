@@ -93,6 +93,10 @@ final class Agent {
                 if !wakeContext.isEmpty {
                     recallTail = recallTail.isEmpty ? wakeContext : recallTail + "\n\n" + wakeContext
                 }
+                // The current date/time rides the tail (not the static prefix) so the model always has a fresh,
+                // correct "now" to resolve relative dates against, while the prefix stays byte-stable.
+                let nowCtx = Self.nowContext()
+                recallTail = recallTail.isEmpty ? nowCtx : nowCtx + "\n\n" + recallTail
                 var opts = options
                 opts.systemPrompt = systemPrompt()
 

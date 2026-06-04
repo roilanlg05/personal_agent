@@ -49,13 +49,29 @@ public final class HarnessModel {
         keepResident ? residentWiredLimitBytes : 0
     }
 
+    /// Build the chat provider from settings. `keyLookup` returns the stored API key for a kind
+    /// (injected for tests; production passes KeychainStore.shared.get).
+    static func chatProvider(keyLookup: (ModelProvider.Kind) -> String?) -> ModelProvider {
+        let kindRaw = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? "local"
+        let kind = ModelProvider.Kind(rawValue: kindRaw) ?? .local
+        let model = UserDefaults.standard.string(forKey: SettingsKeys.chatModel)
+        let key = kind.isLocalMLX ? nil : keyLookup(kind)
+        return ModelProvider(kind: kind, model: model, apiKey: key)
+    }
+
+    /// Rebuild the chat runtime from current settings (called when chat settings change).
+    func rebuildRuntime() {
+        let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
+        self.runtime = RuntimeFactory.make(provider)
+    }
+
     public init() {
         var cfg = ServerConfig.default
         cfg.wiredLimitBytes = Self.wiredLimitBytes(
             keepResident: UserDefaults.standard.bool(forKey: SettingsKeys.keepModelResident))
         self.serverManager = ServerManager(config: cfg)
         self.settings = settingsStore.load()
-        self.runtime = ServerRuntime()
+        self.runtime = RuntimeFactory.make(Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") }))
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.stopServer() }

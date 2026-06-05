@@ -202,6 +202,9 @@ final class MemoryClient {
     // MARK: hub navigation (Phase 2)
     struct ByHubResult: Decodable, Sendable { let nodes: [Node]; let kind: String; let total: Int }
     struct ByEntityResult: Decodable, Sendable { let nodes: [Node]; let entity: String; let total: Int }
+    struct TopicNode: Decodable, Sendable { let kind: String; let label: String; let body: String }
+    struct TopicResult: Decodable, Sendable { let tag: String; let nodes: [TopicNode] }
+    struct WhyResult: Decodable, Sendable { let insight: String; let sources: [TopicNode] }
 
     /// All members of the `<kind>` hub. `status` filters `extra.status`; `sortByDate`
     /// orders by `extra.date` ascending. Used for "list my pending tasks ordered by date"
@@ -218,6 +221,23 @@ final class MemoryClient {
     /// Used for "tell me everything you know about <person>".
     func byEntity(label: String, limit: Int = 100) async throws -> ByEntityResult {
         try await get("/v1/memory/byEntity?label=\(escape(label))&limit=\(limit)")
+    }
+
+    /// All tag strings known to the memory service.
+    func memoryTags() async throws -> [String] {
+        struct R: Decodable { let tags: [String] }
+        let r: R = try await get("/v1/memory/tags")
+        return r.tags
+    }
+
+    /// All nodes tagged with `topic`.
+    func recallByTopic(topic: String, limit: Int = 100) async throws -> TopicResult {
+        try await get("/v1/memory/by_topic?topic=\(escape(topic))&limit=\(limit)")
+    }
+
+    /// Evidence behind a claim — the nodes that support or refute it.
+    func why(claim: String) async throws -> WhyResult {
+        try await get("/v1/memory/why?claim=\(escape(claim))")
     }
 
     // MARK: schedule (SP1)

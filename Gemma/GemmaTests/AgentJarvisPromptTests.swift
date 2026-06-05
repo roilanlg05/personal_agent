@@ -34,4 +34,11 @@ final class AgentJarvisPromptTests: XCTestCase {
         XCTAssertTrue(Agent.systemPromptText.localizedCaseInsensitiveContains("load_messages"), Agent.systemPromptText)
         XCTAssertTrue(Agent.systemPromptText.localizedCaseInsensitiveContains("only when a summary"), Agent.systemPromptText)
     }
+
+    func test_prompt_mentions_topic_and_why_tools() {
+        let p = Agent.systemPromptText
+        XCTAssertTrue(p.localizedCaseInsensitiveContains("recall_by_topic"), p)
+        XCTAssertTrue(p.localizedCaseInsensitiveContains("why(claim"), p)   // the tool-call form, not the word
+        XCTAssertTrue(p.localizedCaseInsensitiveContains("list_topics"), p)
+    }
 }

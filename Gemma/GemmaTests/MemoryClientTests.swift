@@ -134,4 +134,25 @@ final class MemoryClientTests: XCTestCase {
         let bundle = try await makeClient().recall(query: "opciones", scope: nil, limit: nil)
         XCTAssertEqual(bundle.recall.first?.tags, ["trading"])
     }
+
+    func test_memoryTags_recallByTopic_why_decode() async throws {
+        StubProtocol.stub = { req in
+            let path = req.url?.path ?? ""
+            let json: String
+            switch path {
+            case "/v1/memory/tags":     json = #"{"tags":["salud","trading"]}"#
+            case "/v1/memory/by_topic": json = #"{"tag":"trading","nodes":[{"kind":"preference","label":"calls","body":"x"}]}"#
+            case "/v1/memory/why":      json = #"{"insight":"trades options","sources":[{"kind":"preference","label":"calls","body":"x"}]}"#
+            default: json = "{}"
+            }
+            return (HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!, json.data(using: .utf8)!)
+        }
+        let c = makeClient()
+        let tags = try await c.memoryTags()
+        XCTAssertEqual(tags, ["salud", "trading"])
+        let topic = try await c.recallByTopic(topic: "trading")
+        XCTAssertEqual(topic.tag, "trading"); XCTAssertEqual(topic.nodes.first?.label, "calls")
+        let why = try await c.why(claim: "trades options")
+        XCTAssertEqual(why.insight, "trades options"); XCTAssertEqual(why.sources.first?.label, "calls")
+    }
 }

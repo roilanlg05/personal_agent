@@ -229,6 +229,7 @@ public final class HarnessModel {
             registry.register(SaveMemoryTool())
             registry.register(CheckScheduleTool()); registry.register(CreateEventTool())
             registry.register(QueryScheduleTool()); registry.register(CancelEventsTool())
+            registry.register(ListTopicsTool()); registry.register(RecallByTopicTool()); registry.register(WhyTool())
         }
         let now = Date().timeIntervalSince1970
         let isWake = (lastTurnEndedAt == 0) || (now - lastTurnEndedAt > Self.wakeGapSeconds)

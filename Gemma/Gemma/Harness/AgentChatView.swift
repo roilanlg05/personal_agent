@@ -142,15 +142,33 @@ struct AgentChatView: View {
         }
     }
 
+    private var voiceIcon: String {
+        switch model.voice.state {
+        case .idle:      return "mic"
+        case .recording: return "stop.circle.fill"
+        case .sending:   return "ellipsis"
+        case .playing:   return "speaker.wave.2.fill"
+        }
+    }
+
     private var inputBar: some View {
         HStack(spacing: 8) {
+            Button(action: { model.voice.toggleRecording() }) {
+                Image(systemName: voiceIcon)
+                    .foregroundStyle(model.voice.state == .recording ? .red : .primary)
+            }
+            .buttonStyle(.borderless)
+            .disabled(model.agentRunning || model.voice.state == .sending || model.voice.state == .playing)
+            .help(model.voice.state == .recording ? "Detener y enviar" : "Hablar con Gemma")
+
             TextField("Message Gemma…", text: $input)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(send)
-                .disabled(model.agentRunning || !serverReady)
+                .disabled(model.agentRunning || !serverReady || model.voice.state != .idle)
             Button("Send", action: send)
                 .keyboardShortcut(.return, modifiers: [])
-                .disabled(model.agentRunning || !serverReady || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(model.agentRunning || !serverReady || model.voice.state != .idle
+                          || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding()
     }

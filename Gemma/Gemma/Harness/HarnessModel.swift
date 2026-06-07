@@ -180,12 +180,25 @@ public final class HarnessModel {
         }
     }
 
+    /// Resolve the voice base URL: the explicit `voiceBaseURL` if set, otherwise the Memory host
+    /// on port 8082 (voice + memory live on the same i3, so voice auto-follows the Memory URL —
+    /// avoids the localhost default failing when Memory points at the i3).
+    nonisolated static func voiceURLString(explicit: String, memory: String) -> String {
+        let e = explicit.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !e.isEmpty { return e }
+        guard var comps = URLComponents(string: memory) else { return "http://localhost:8082" }
+        comps.port = 8082
+        return comps.string ?? "http://localhost:8082"
+    }
+
     /// Build (or rebuild) the voice client from `UserDefaults`. Reuses the memory bearer token
-    /// (the i3 voice service shares it). Key: `voiceBaseURL` (default `http://localhost:8082`).
+    /// (the i3 voice service shares it). `voiceBaseURL` (optional) overrides; empty → derive from
+    /// `memoryBaseURL` on port 8082.
     func ensureVoice() {
-        let urlString = UserDefaults.standard.string(forKey: "voiceBaseURL") ?? "http://localhost:8082"
+        let explicit = UserDefaults.standard.string(forKey: "voiceBaseURL") ?? ""
+        let memory = UserDefaults.standard.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
         let token = UserDefaults.standard.string(forKey: "memoryBearerToken") ?? ""
-        guard let baseURL = URL(string: urlString) else { return }
+        guard let baseURL = URL(string: Self.voiceURLString(explicit: explicit, memory: memory)) else { return }
         voice.configure(baseURL: baseURL, token: token)
     }
 

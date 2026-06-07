@@ -17,6 +17,8 @@ public final class HarnessModel {
     /// `UserDefaults` (`memoryBaseURL`, `memoryBearerToken`); shared with `MemoryToolbox`
     /// so tools (Save / Forget / Reflect / LoadMessages) can reach it.
     @ObservationIgnored private(set) var memory: MemoryClient?
+    /// In-app voice: records mic audio, sends it to the i3 voice service, plays the reply.
+    @ObservationIgnored let voice = VoiceController(recorder: AudioRecorder())
     @ObservationIgnored private var lastTurnEndedAt: Double = 0
     private static let wakeGapSeconds: Double = 180   // first turn or a gap > this = a "wake"
 
@@ -34,6 +36,8 @@ public final class HarnessModel {
         return parts.joined(separator: "\n\n")
     }
     @ObservationIgnored private var threadId = UUID().uuidString
+    /// The chat thread id voice turns join (same episode as typed chat).
+    var currentThreadId: String { threadId }
     @ObservationIgnored private var turnIndex = 0
 
     /// Owns the local mlx_vlm server process lifecycle (M2a). Built in init() so its initial
@@ -76,6 +80,9 @@ public final class HarnessModel {
                                                object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.stopServer() }
         }
+        voice.appendLine = { [weak self] line in self?.agentLog.append(line) }
+        voice.threadId = { [weak self] in self?.currentThreadId ?? "voice" }
+        ensureVoice()
     }
 
     /// Returns true when at least one side (chat or consolidation) uses the local mlx model,
@@ -171,6 +178,15 @@ public final class HarnessModel {
         MemoryToolbox.shared.reflectionRequest = { [weak client] in
             Task { _ = try? await client?.reflect() }
         }
+    }
+
+    /// Build (or rebuild) the voice client from `UserDefaults`. Reuses the memory bearer token
+    /// (the i3 voice service shares it). Key: `voiceBaseURL` (default `http://localhost:8082`).
+    func ensureVoice() {
+        let urlString = UserDefaults.standard.string(forKey: "voiceBaseURL") ?? "http://localhost:8082"
+        let token = UserDefaults.standard.string(forKey: "memoryBearerToken") ?? ""
+        guard let baseURL = URL(string: urlString) else { return }
+        voice.configure(baseURL: baseURL, token: token)
     }
 
     /// Push the consolidation provider config to the i3 (key included, over the authed channel).

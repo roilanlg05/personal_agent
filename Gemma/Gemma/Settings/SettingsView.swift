@@ -7,7 +7,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.keepModelResident) private var keepResident = false
     @AppStorage("memoryBaseURL") private var memoryBaseURL: String = "http://localhost:8081"
     @AppStorage("memoryBearerToken") private var memoryBearerToken: String = ""
-    @AppStorage("voiceBaseURL") private var voiceBaseURL: String = "http://localhost:8082"
+    @AppStorage("voiceBaseURL") private var voiceBaseURL: String = ""
     @AppStorage(SettingsKeys.chatProvider) private var chatProvider = "local"
     @AppStorage(SettingsKeys.chatModel) private var chatModel = ""
     @AppStorage(SettingsKeys.consolidationProvider) private var consolidationProvider = "local"
@@ -46,14 +46,15 @@ struct SettingsView: View {
             .onChange(of: memoryBaseURL) { _, _ in model.ensureMemory() }
             .onChange(of: memoryBearerToken) { _, _ in model.ensureMemory() }
             Section("Voice Service") {
-                TextField("Voice base URL", text: $voiceBaseURL)
+                TextField("Voice base URL (opcional)", text: $voiceBaseURL)
                     .textFieldStyle(.roundedBorder)
-                    .help("Servicio de voz en el i3 (puerto 8082). Usa el mismo bearer token que Memory.")
-                Text("Default: http://localhost:8082. Apúntalo al i3 como el Memory Service.")
+                    .help("Override del servicio de voz. Vacío = usa el host de Memory en el puerto 8082.")
+                Text("Vacío → deriva del Memory Service en :8082 (mismo i3). Usa el mismo bearer token.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
             .onChange(of: voiceBaseURL) { _, _ in model.ensureVoice() }
+            .onChange(of: memoryBaseURL) { _, _ in model.ensureVoice() }
             .onChange(of: memoryBearerToken) { _, _ in model.ensureVoice() }
         }
         .formStyle(.grouped)

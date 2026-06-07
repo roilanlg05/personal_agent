@@ -39,4 +39,19 @@ final class HarnessModelTests: XCTestCase {
         let urlString = UserDefaults.standard.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
         XCTAssertEqual(URL(string: urlString)?.host, "localhost")
     }
+
+    func test_voiceURL_derivesFromMemoryHost_whenUnset() {
+        XCTAssertEqual(HarnessModel.voiceURLString(explicit: "", memory: "http://192.168.1.50:8081"),
+                       "http://192.168.1.50:8082")
+    }
+
+    func test_voiceURL_derivesPort_whenMemoryHasNoExplicitPort() {
+        XCTAssertEqual(HarnessModel.voiceURLString(explicit: "  ", memory: "http://i3.local"),
+                       "http://i3.local:8082")
+    }
+
+    func test_voiceURL_usesExplicit_whenSet() {
+        XCTAssertEqual(HarnessModel.voiceURLString(explicit: "http://other:9000", memory: "http://192.168.1.50:8081"),
+                       "http://other:9000")
+    }
 }

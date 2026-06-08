@@ -19,6 +19,8 @@ public final class HarnessModel {
     @ObservationIgnored private(set) var memory: MemoryClient?
     /// In-app voice: records mic audio, sends it to the i3 voice service, plays the reply.
     @ObservationIgnored let voice = VoiceController(recorder: AudioRecorder())
+    /// Always-listening "Hey Jarvis". Built lazily (loads ONNX models) so a load failure doesn't crash init.
+    @ObservationIgnored private(set) var wake: WakeListener?
     @ObservationIgnored private var lastTurnEndedAt: Double = 0
     private static let wakeGapSeconds: Double = 180   // first turn or a gap > this = a "wake"
 
@@ -189,6 +191,25 @@ public final class HarnessModel {
         guard var comps = URLComponents(string: memory) else { return "http://localhost:8082" }
         comps.port = 8082
         return comps.string ?? "http://localhost:8082"
+    }
+
+    /// Build the wake listener (loads the ONNX models). On failure, leaves `wake == nil` (toggle stays off).
+    func ensureWake() {
+        guard wake == nil else { return }
+        guard let detector = try? WakeWordDetector() else {
+            agentLog.append("voice: wake word no disponible (no pude cargar el modelo).")
+            return
+        }
+        self.wake = WakeListener(detector: detector) { [weak self] wav in
+            guard let self else { return }
+            Task { @MainActor in
+                await self.voice.send(wav)                       // POST -> append you:/gemma: -> start playback
+                while self.voice.state != .idle {               // wait for playback to FINISH before re-arming
+                    try? await Task.sleep(for: .milliseconds(150))
+                }
+                self.wake?.notePlaybackFinished()               // re-arm (also covered by WakeListener's 30s watchdog)
+            }
+        }
     }
 
     /// Build (or rebuild) the voice client from `UserDefaults`. Reuses the memory bearer token

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0DA5A0010000000000000003 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 0DA5A0010000000000000002 /* GRDB */; };
 		0DA5A0010000000000000004 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 0DA5A0010000000000000005 /* GRDB */; };
+		0DA5A0020000000000000004 /* onnxruntime in Frameworks */ = {isa = PBXBuildFile; productRef = 0DA5A0020000000000000002 /* onnxruntime */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -60,6 +61,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0DA5A0010000000000000003 /* GRDB in Frameworks */,
+				0DA5A0020000000000000004 /* onnxruntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -113,6 +115,7 @@
 			name = Gemma;
 			packageProductDependencies = (
 				0DA5A0010000000000000002 /* GRDB */,
+				0DA5A0020000000000000002 /* onnxruntime */,
 			);
 			productName = Gemma;
 			productReference = 0D5284F72FC7D2190028A19E /* Gemma.app */;
@@ -172,6 +175,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				0DA5A0010000000000000001 /* XCRemoteSwiftPackageReference "GRDB" */,
+				0DA5A0020000000000000001 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0D5284F82FC7D2190028A19E /* Products */;
@@ -487,6 +491,14 @@
 				minimumVersion = 7.0.0;
 			};
 		};
+		0DA5A0020000000000000001 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/microsoft/onnxruntime-swift-package-manager";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.17.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -499,6 +511,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0DA5A0010000000000000001 /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
+		};
+		0DA5A0020000000000000002 /* onnxruntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0DA5A0020000000000000001 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */;
+			productName = onnxruntime;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

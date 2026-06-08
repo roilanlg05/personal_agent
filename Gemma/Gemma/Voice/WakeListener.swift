@@ -74,7 +74,9 @@ final class WakeListener {
             if detector.process(frame: frame) > 0.5 {
                 detector.reset()
                 captured = []
-                endpointer = EnergyEndpointer(frameMs: 80, silenceMs: 800, minSpeechMs: 300)
+                // 1500 ms trailing silence so natural mid-sentence pauses (e.g. "…tomorrow … from
+                // 10 to 11 …") don't end the turn early and truncate the utterance.
+                endpointer = EnergyEndpointer(frameMs: 80, silenceMs: 1500, minSpeechMs: 300)
                 state = .capturing
             }
         case .capturing:

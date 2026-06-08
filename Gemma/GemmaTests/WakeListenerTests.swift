@@ -24,7 +24,7 @@ final class WakeListenerTests: XCTestCase {
 
         // speak a bit then go silent -> endpointer fires -> a WAV is produced and sent
         for _ in 0..<5 { wl.feedFrameForTest(Array(repeating: 0.2, count: 1280)) }   // speech
-        for _ in 0..<14 { wl.feedFrameForTest(Array(repeating: 0.0, count: 1280)) }  // silence
+        for _ in 0..<20 { wl.feedFrameForTest(Array(repeating: 0.0, count: 1280)) }  // silence (>1500ms = 18+ frames)
         XCTAssertEqual(sent.count, 1, "one utterance WAV should be sent")
         XCTAssertEqual(Array(sent.first!.prefix(4)), Array("RIFF".utf8))             // valid WAV
         XCTAssertEqual(wl.state, .busy)                                              // busy until playback done

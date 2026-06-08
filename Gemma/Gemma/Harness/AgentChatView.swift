@@ -105,6 +105,21 @@ struct AgentChatView: View {
                 // In-window shortcut to the Settings scene (also at ⌘, / Gemma → Settings…).
                 SettingsLink { Label("Settings", systemImage: "gear") }
             }
+            ToolbarItem {
+                Button {
+                    model.ensureWake()
+                    Task {
+                        if model.wake?.state == .off { await model.wake?.enable() }
+                        else { model.wake?.disable() }
+                    }
+                } label: {
+                    let on = model.wake != nil && model.wake?.state != .off
+                    Label(on ? "Escuchando" : "Hey Jarvis",
+                          systemImage: on ? "ear.badge.checkmark" : "ear")
+                        .foregroundStyle(on ? .green : .secondary)
+                }
+                .help("Activar/desactivar escucha continua \u{201C}Hey Jarvis\u{201D}")
+            }
         }
         .sheet(isPresented: $model.showMemory) {
             NavigationStack {
@@ -158,7 +173,8 @@ struct AgentChatView: View {
                     .foregroundStyle(model.voice.state == .recording ? .red : .primary)
             }
             .buttonStyle(.borderless)
-            .disabled(model.agentRunning || model.voice.state == .sending || model.voice.state == .playing)
+            .disabled(model.agentRunning || model.voice.state == .sending || model.voice.state == .playing
+                      || model.wake?.state == .capturing || model.wake?.state == .busy)   // don't fight a wake turn
             .help(model.voice.state == .recording ? "Detener y enviar" : "Hablar con Gemma")
 
             TextField("Message Gemma…", text: $input)

@@ -173,7 +173,8 @@ struct AgentChatView: View {
                     .foregroundStyle(model.voice.state == .recording ? .red : .primary)
             }
             .buttonStyle(.borderless)
-            .disabled(model.agentRunning || model.voice.state == .sending || model.voice.state == .playing)
+            .disabled(model.agentRunning || model.voice.state == .sending || model.voice.state == .playing
+                      || model.wake?.state == .capturing || model.wake?.state == .busy)   // don't fight a wake turn
             .help(model.voice.state == .recording ? "Detener y enviar" : "Hablar con Gemma")
 
             TextField("Message Gemma…", text: $input)

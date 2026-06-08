@@ -210,6 +210,8 @@ public final class HarnessModel {
                 self.wake?.notePlaybackFinished()               // re-arm (also covered by WakeListener's 30s watchdog)
             }
         }
+        // Mutual exclusion with manual tap-to-talk: don't act on the wake word while a voice turn is active.
+        self.wake?.isVoiceBusy = { [weak self] in self?.voice.state != .idle }
     }
 
     /// Build (or rebuild) the voice client from `UserDefaults`. Reuses the memory bearer token

@@ -14,6 +14,10 @@ final class WakeListener {
 
     @ObservationIgnored private let detector: WakeDetecting
     @ObservationIgnored private let sendWav: (Data) -> Void
+    /// Injected by the owner: true while a voice turn (manual tap-to-talk OR a reply playing) is in
+    /// progress. While true we don't act on the wake word — keeps wake + manual mic mutually exclusive
+    /// and avoids detecting Gemma's own speech.
+    @ObservationIgnored var isVoiceBusy: () -> Bool = { false }
     @ObservationIgnored private var engine: AVAudioEngine?
     @ObservationIgnored private var frameTask: Task<Void, Never>?           // drains the tap stream on MainActor, in order
     @ObservationIgnored private var frameContinuation: AsyncStream<[Float]>.Continuation?
@@ -66,6 +70,7 @@ final class WakeListener {
     private func handle(frame: [Float]) {
         switch state {
         case .listening:
+            guard !isVoiceBusy() else { return }   // a manual turn / playback is active — don't detect
             if detector.process(frame: frame) > 0.5 {
                 detector.reset()
                 captured = []

@@ -27,5 +27,19 @@ final class WakeListenerTests: XCTestCase {
         for _ in 0..<14 { wl.feedFrameForTest(Array(repeating: 0.0, count: 1280)) }  // silence
         XCTAssertEqual(sent.count, 1, "one utterance WAV should be sent")
         XCTAssertEqual(Array(sent.first!.prefix(4)), Array("RIFF".utf8))             // valid WAV
+        XCTAssertEqual(wl.state, .busy)                                              // busy until playback done
+        wl.notePlaybackFinished()                                                   // owner re-arms after playback
+        XCTAssertEqual(wl.state, .listening)
+    }
+
+    func test_does_not_detect_while_voice_busy() async {
+        let det = FakeDetector()
+        det.nextScore = 0.9                                  // would fire if processed
+        let wl = WakeListener(detector: det, sendWav: { _ in })
+        wl.isVoiceBusy = { true }                            // a manual turn is in progress
+        wl.beginListeningForTest()
+        wl.feedFrameForTest(Array(repeating: 0.2, count: 1280))
+        XCTAssertEqual(wl.state, .listening, "must not start capturing while a voice turn is active")
+        XCTAssertEqual(det.resetCount, 0)
     }
 }

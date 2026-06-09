@@ -85,6 +85,57 @@ struct CreateEventTool: AgentTool {
     }
 }
 
+/// update_event — edit an existing event in place (time/title/location); never cancel+recreate.
+struct UpdateEventTool: AgentTool {
+    static let name = "update_event"
+    static let description = "Edit an EXISTING calendar event in place — change its time, title, or location. Never cancel+recreate to make a change. Identify it by its CURRENT start (the time the user named) plus title when known."
+    static let parameters: [AgentToolParam] = [
+        AgentToolParam(name: "start", type: .string, description: "The event's CURRENT local ISO start (the time the user referred to), e.g. 2099-06-09T15:00.", required: true),
+        AgentToolParam(name: "title", type: .string, description: "The event's current title, to disambiguate if several share that time.", required: false),
+        AgentToolParam(name: "newStart", type: .string, description: "New local ISO start, if moving the event.", required: false),
+        AgentToolParam(name: "newEnd", type: .string, description: "New local ISO end, if changing the end.", required: false),
+        AgentToolParam(name: "newTitle", type: .string, description: "New title, if renaming.", required: false),
+        AgentToolParam(name: "location", type: .string, description: "New place (empty string clears it).", required: false),
+        AgentToolParam(name: "allDay", type: .boolean, description: "true/false to change all-day.", required: false),
+        AgentToolParam(name: "force", type: .boolean, description: "true to apply despite a conflict with a DIFFERENT event (only after the user confirms).", required: false),
+    ]
+    func run(argsJSON: String) async -> String {
+        let o = obj(argsJSON)
+        guard let s = (o["start"] as? String).flatMap(ScheduleTime.epoch) else {
+            return "Which event? Tell me the time of the event you want to change (e.g. 2099-06-09T15:00)."
+        }
+        let title = (o["title"] as? String)?.trimmingCharacters(in: .whitespaces)
+        let newStart = (o["newStart"] as? String).flatMap(ScheduleTime.epoch)
+        let newEnd = (o["newEnd"] as? String).flatMap(ScheduleTime.epoch)
+        let newTitle = (o["newTitle"] as? String)?.trimmingCharacters(in: .whitespaces)
+        let location = o["location"] as? String
+        let allDay = o["allDay"] as? Bool
+        let force = (o["force"] as? Bool) ?? false
+        await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: title ?? ScheduleTime.human(fromEpoch: s)) }
+        let result: String = await {
+            guard let m = await mem() else { return "memory unavailable" }
+            do {
+                let r = try await m.updateEvent(start: s, title: (title?.isEmpty == false) ? title : nil,
+                                                newStart: newStart, newEnd: newEnd,
+                                                newTitle: (newTitle?.isEmpty == false) ? newTitle : nil,
+                                                location: location, allDay: allDay, force: force)
+                if r.notFound { return "I couldn't find that event — want me to check your schedule?" }
+                if !r.ambiguous.isEmpty {
+                    return "I found more than one event around then: " + r.ambiguous.map(eventLine).joined(separator: "; ") + ". Which one?"
+                }
+                if !r.updated {
+                    return "NOT changed — the new time conflicts with: " + r.conflicts.map(eventLine).joined(separator: "; ")
+                         + ". Ask the user whether to reschedule, cancel the other event, or keep it anyway — if they confirm, call update_event again with force=true."
+                }
+                if let e = r.event { return "Updated: \(eventLine(e))" }
+                return "Updated the event."
+            } catch { return "schedule error: \(error)" }
+        }()
+        await MainActor.run { ToolActivityRelay.shared.finished(name: Self.name, result: result) }
+        return result
+    }
+}
+
 /// query_schedule — list events in a window.
 struct QueryScheduleTool: AgentTool {
     static let name = "query_schedule"

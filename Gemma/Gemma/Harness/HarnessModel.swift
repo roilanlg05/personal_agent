@@ -281,6 +281,7 @@ public final class HarnessModel {
             registry.register(SaveMemoryTool())
             registry.register(CheckScheduleTool()); registry.register(CreateEventTool())
             registry.register(QueryScheduleTool()); registry.register(CancelEventsTool())
+            registry.register(UpdateEventTool())
             registry.register(ListTopicsTool()); registry.register(RecallByTopicTool()); registry.register(WhyTool())
         }
         let now = Date().timeIntervalSince1970

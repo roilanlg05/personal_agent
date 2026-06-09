@@ -40,5 +40,6 @@ final class AgentJarvisPromptTests: XCTestCase {
         XCTAssertTrue(p.localizedCaseInsensitiveContains("recall_by_topic"), p)
         XCTAssertTrue(p.localizedCaseInsensitiveContains("why(claim"), p)   // the tool-call form, not the word
         XCTAssertTrue(p.localizedCaseInsensitiveContains("list_topics"), p)
+        XCTAssertTrue(p.localizedCaseInsensitiveContains("update_event"), p)
     }
 }

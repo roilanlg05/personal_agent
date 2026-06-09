@@ -59,4 +59,44 @@ final class MemoryClientScheduleTests: XCTestCase {
         let conflicts = try await c.checkSchedule(start: 1500, end: 1600)
         XCTAssertEqual(conflicts.first?.title, "Gym")
     }
+
+    func test_updateEvent_decodes_updated_event() async throws {
+        StubURLProtocol.routes = ["/v1/schedule/update":
+            (200, #"{"updated":true,"event":{"id":"x","title":"meeting","start":9000,"end":9600,"allDay":false,"location":"Miami","status":"scheduled"}}"#)]
+        let c = makeClient()
+        let r = try await c.updateEvent(start: 9000, title: "meeting", newStart: nil, newEnd: nil,
+                                        newTitle: nil, location: "Miami", allDay: nil, force: false)
+        XCTAssertTrue(r.updated)
+        XCTAssertEqual(r.event?.location, "Miami")
+    }
+
+    func test_updateEvent_decodes_notFound() async throws {
+        StubURLProtocol.routes = ["/v1/schedule/update": (200, #"{"updated":false,"notFound":true}"#)]
+        let c = makeClient()
+        let r = try await c.updateEvent(start: 1, title: nil, newStart: nil, newEnd: nil,
+                                        newTitle: nil, location: nil, allDay: nil, force: false)
+        XCTAssertFalse(r.updated)
+        XCTAssertTrue(r.notFound)
+    }
+
+    func test_updateEvent_decodes_conflicts() async throws {
+        StubURLProtocol.routes = ["/v1/schedule/update":
+            (200, #"{"updated":false,"conflicts":[{"id":"d","title":"dentist","start":3000,"end":3600,"allDay":false,"status":"scheduled"}]}"#)]
+        let c = makeClient()
+        let r = try await c.updateEvent(start: 9000, title: "meeting", newStart: 3000, newEnd: 3600,
+                                        newTitle: nil, location: nil, allDay: nil, force: false)
+        XCTAssertFalse(r.updated)
+        XCTAssertEqual(r.conflicts.first?.title, "dentist")
+    }
+
+    func test_updateEvent_decodes_ambiguous() async throws {
+        StubURLProtocol.routes = ["/v1/schedule/update":
+            (200, #"{"updated":false,"ambiguous":[{"id":"a","title":"sync","start":4000,"end":4600,"allDay":false,"status":"scheduled"},{"id":"b","title":"sync","start":8000,"end":8600,"allDay":false,"status":"scheduled"}]}"#)]
+        let c = makeClient()
+        let r = try await c.updateEvent(start: 6000, title: "sync", newStart: nil, newEnd: nil,
+                                        newTitle: nil, location: "X", allDay: nil, force: false)
+        XCTAssertFalse(r.updated)
+        XCTAssertEqual(r.ambiguous.count, 2)
+        XCTAssertEqual(r.ambiguous.first?.title, "sync")
+    }
 }

@@ -112,6 +112,13 @@ final class MemoryClient {
         let status: String
     }
     struct CreateEventResult: Sendable { let created: Bool; let id: String?; let conflicts: [ScheduleEvent] }
+    struct UpdateEventResult: Sendable {
+        let updated: Bool
+        let event: ScheduleEvent?
+        let conflicts: [ScheduleEvent]
+        let notFound: Bool
+        let ambiguous: [ScheduleEvent]
+    }
 
     enum ClientError: Error {
         case http(status: Int, message: String)
@@ -269,6 +276,19 @@ final class MemoryClient {
         struct R: Decodable { let cancelled: Int }
         let r: R = try await post("/v1/schedule/cancel", B(ids: ids, from: from, to: to))
         return r.cancelled
+    }
+
+    func updateEvent(start: Double, title: String?, newStart: Double?, newEnd: Double?,
+                     newTitle: String?, location: String?, allDay: Bool?, force: Bool) async throws -> UpdateEventResult {
+        struct B: Encodable { let start: Double; let title: String?; let newStart: Double?; let newEnd: Double?
+                              let newTitle: String?; let location: String?; let allDay: Bool?; let force: Bool }
+        struct R: Decodable { let updated: Bool; let event: ScheduleEvent?; let conflicts: [ScheduleEvent]?
+                              let notFound: Bool?; let ambiguous: [ScheduleEvent]? }
+        let r: R = try await post("/v1/schedule/update",
+            B(start: start, title: title, newStart: newStart, newEnd: newEnd, newTitle: newTitle,
+              location: location, allDay: allDay, force: force))
+        return UpdateEventResult(updated: r.updated, event: r.event, conflicts: r.conflicts ?? [],
+                                 notFound: r.notFound ?? false, ambiguous: r.ambiguous ?? [])
     }
 
     // MARK: model config (consolidation provider, pushed to the i3)

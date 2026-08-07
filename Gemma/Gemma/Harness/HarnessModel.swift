@@ -67,6 +67,18 @@ public final class HarnessModel {
         return ModelProvider(kind: kind, model: model, apiKey: key)
     }
 
+    var currentProviderKind: ModelProvider.Kind {
+        let raw = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? ModelProvider.Kind.defaultKind.rawValue
+        return ModelProvider.Kind(rawValue: raw) ?? .defaultKind
+    }
+
+    var isMissingApiKey: Bool {
+        let kind = currentProviderKind
+        guard !kind.isLocalMLX else { return false }
+        let key = KeychainStore.shared.get(account: "apiKey.\(kind.rawValue)")
+        return key == nil || key?.isEmpty == true
+    }
+
     /// Rebuild the chat runtime from current settings (called when chat settings change).
     func rebuildRuntime() {
         let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })

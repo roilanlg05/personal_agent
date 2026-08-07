@@ -75,8 +75,32 @@ struct AgentChatView: View {
         }
     }
 
+    @ViewBuilder private var apiKeyBanner: some View {
+        if model.isMissingApiKey {
+            HStack(spacing: 8) {
+                Image(systemName: "key.fill")
+                    .foregroundStyle(.orange)
+                Text("Falta la API Key de \(model.currentProviderKind.displayName).")
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Button("Configurar") {
+                    showSettingsSheet = true
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+            .padding(10)
+            .background(Color.orange.opacity(0.15))
+            .cornerRadius(8)
+            .padding(.horizontal)
+            .padding(.top, 4)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
+            apiKeyBanner
             serverBanner
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal).padding(.top, 8)
@@ -94,6 +118,37 @@ struct AgentChatView: View {
         .onDisappear { consolidationPollTask?.cancel() }
         .animation(.easeInOut(duration: 0.25), value: consolidationState?.isRunning)
         .toolbar {
+            #if os(iOS)
+            ToolbarItem(placement: .topBarLeading) {
+                Button { model.showMemory = true } label: {
+                    Label("Memory", systemImage: "brain")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { model.consolidateNow() } label: {
+                    Label("Consolidar", systemImage: "moon.zzz")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showSettingsSheet = true } label: {
+                    Label("Settings", systemImage: "gear")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    model.ensureWake()
+                    Task {
+                        if model.wake?.state == .off { await model.wake?.enable() }
+                        else { model.wake?.disable() }
+                    }
+                } label: {
+                    let on = model.wake != nil && model.wake?.state != .off
+                    Label(on ? "Escuchando" : "Hey Jarvis",
+                          systemImage: on ? "ear.badge.checkmark" : "ear")
+                        .foregroundStyle(on ? .green : .secondary)
+                }
+            }
+            #else
             ToolbarItem {
                 Button { model.consolidateNow() } label: {
                     Label("Consolidar", systemImage: "moon.zzz")
@@ -104,18 +159,9 @@ struct AgentChatView: View {
                     Label("Memory", systemImage: "brain")
                 }
             }
-            #if os(macOS)
             ToolbarItem {
-                // In-window shortcut to the Settings scene (also at ⌘, / Gemma → Settings…).
                 SettingsLink { Label("Settings", systemImage: "gear") }
             }
-            #elseif os(iOS)
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showSettingsSheet = true } label: {
-                    Label("Settings", systemImage: "gear")
-                }
-            }
-            #endif
             ToolbarItem {
                 Button {
                     model.ensureWake()
@@ -131,6 +177,7 @@ struct AgentChatView: View {
                 }
                 .help("Activar/desactivar escucha continua \u{201C}Hey Jarvis\u{201D}")
             }
+            #endif
         }
         .sheet(isPresented: $model.showMemory) {
             NavigationStack {

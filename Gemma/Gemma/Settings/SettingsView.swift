@@ -58,8 +58,17 @@ struct SettingsView: View {
             .onChange(of: memoryBearerToken) { _, _ in model.ensureVoice() }
         }
         .formStyle(.grouped)
+        #if os(macOS)
         .frame(width: 420)
+        #endif
         .padding()
+        .onAppear {
+            #if os(iOS)
+            if memoryBaseURL == "http://localhost:8081" {
+                memoryBaseURL = "http://192.168.1.50:8081"
+            }
+            #endif
+        }
     }
 }
 

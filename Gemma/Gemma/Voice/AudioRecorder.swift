@@ -19,6 +19,11 @@ final class AudioRecorder: Recording, @unchecked Sendable {
     }
 
     func start() throws {
+        #if os(iOS)
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+        try? session.setActive(true)
+        #endif
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("gemma-voice-\(UUID().uuidString).wav")
         let settings: [String: Any] = [

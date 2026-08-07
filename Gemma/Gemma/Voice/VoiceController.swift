@@ -81,6 +81,11 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
     }
 
     private func play(_ audio: Data) {
+        #if os(iOS)
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default, options: [.defaultToSpeaker])
+        try? session.setActive(true)
+        #endif
         do {
             let p = try AVAudioPlayer(data: audio)
             p.delegate = self

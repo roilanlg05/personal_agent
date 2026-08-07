@@ -1,6 +1,8 @@
-import Foundation
-import Observation
+#if os(macOS)
 import AppKit
+#elseif os(iOS)
+import UIKit
+#endif
 
 @Observable
 @MainActor
@@ -78,10 +80,17 @@ public final class HarnessModel {
         self.serverManager = ServerManager(config: cfg)
         self.settings = settingsStore.load()
         self.runtime = RuntimeFactory.make(Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") }))
+        #if os(macOS)
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.stopServer() }
         }
+        #elseif os(iOS)
+        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification,
+                                               object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.stopServer() }
+        }
+        #endif
         voice.appendLine = { [weak self] line in self?.agentLog.append(line) }
         voice.threadId = { [weak self] in self?.currentThreadId ?? "voice" }
         ensureVoice()

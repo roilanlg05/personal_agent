@@ -8,8 +8,10 @@ struct GemmaApp: App {
         WindowGroup {
             HarnessView(model: model)
         }
+        #if os(macOS)
         Settings {
             SettingsView(model: model)
         }
+        #endif
     }
 }

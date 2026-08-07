@@ -23,7 +23,7 @@ nonisolated func launchArguments(for config: ServerConfig) -> [String] {
 
 /// Single-quote a string for safe interpolation into a `/bin/sh` command.
 /// Wraps in `'...'` and escapes embedded single quotes as `'\''`.
-private func shQuote(_ s: String) -> String {
+nonisolated private func shQuote(_ s: String) -> String {
     "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
 }
 
@@ -40,6 +40,7 @@ nonisolated func watchdogScript(binPath: String, args: [String], parentPID: Int3
     """
 }
 
+#if os(macOS)
 /// Owns the spawned server process (python → `serve_mlx_vlm.py` → `mlx_vlm.server`). Captures a
 /// tail of stderr for diagnostics and fires `onExit` if the process dies on its own.
 nonisolated final class RealServerProcessHandle: ServerProcessHandle, @unchecked Sendable {
@@ -94,3 +95,13 @@ nonisolated final class RealServerProcessLauncher: ServerProcessLauncher {
         return handle
     }
 }
+#else
+nonisolated final class RealServerProcessLauncher: ServerProcessLauncher {
+    func launch(_ config: ServerConfig) throws -> ServerProcessHandle {
+        struct UnsupportedError: Error, LocalizedError {
+            var errorDescription: String? { "iOS does not support spawning local model processes. Select a cloud model or remote server in Settings." }
+        }
+        throw UnsupportedError()
+    }
+}
+#endif

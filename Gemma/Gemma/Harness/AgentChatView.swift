@@ -7,6 +7,7 @@ struct AgentChatView: View {
     @State private var input: String = ""
     @State private var consolidationState: MemoryClient.StateSnapshot?
     @State private var consolidationPollTask: Task<Void, Never>?
+    @State private var showSettingsSheet: Bool = false
 
     private var serverReady: Bool {
         // Cloud chat providers have no local server to wait on — the prompt is always usable.
@@ -86,7 +87,9 @@ struct AgentChatView: View {
             Divider()
             inputBar
         }
+        #if os(macOS)
         .frame(minWidth: 560, minHeight: 420)
+        #endif
         .task { startConsolidationPoll() }
         .onDisappear { consolidationPollTask?.cancel() }
         .animation(.easeInOut(duration: 0.25), value: consolidationState?.isRunning)
@@ -101,10 +104,18 @@ struct AgentChatView: View {
                     Label("Memory", systemImage: "brain")
                 }
             }
+            #if os(macOS)
             ToolbarItem {
                 // In-window shortcut to the Settings scene (also at ⌘, / Gemma → Settings…).
                 SettingsLink { Label("Settings", systemImage: "gear") }
             }
+            #elseif os(iOS)
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showSettingsSheet = true } label: {
+                    Label("Settings", systemImage: "gear")
+                }
+            }
+            #endif
             ToolbarItem {
                 Button {
                     model.ensureWake()
@@ -135,6 +146,14 @@ struct AgentChatView: View {
                 .toolbar { Button("Done") { model.showMemory = false } }
             }
         }
+        #if os(iOS)
+        .sheet(isPresented: $showSettingsSheet) {
+            NavigationStack {
+                SettingsView(model: model)
+                    .toolbar { Button("Done") { showSettingsSheet = false } }
+            }
+        }
+        #endif
         .task { model.ensureMemory() }
     }
 

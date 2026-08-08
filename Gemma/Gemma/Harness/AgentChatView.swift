@@ -75,8 +75,10 @@ struct AgentChatView: View {
         }
     }
 
+    @State private var isApiKeyBannerDismissed: Bool = false
+
     @ViewBuilder private var apiKeyBanner: some View {
-        if model.isMissingApiKey {
+        if model.isMissingApiKey && !isApiKeyBannerDismissed {
             HStack(spacing: 8) {
                 Image(systemName: "key.fill")
                     .foregroundStyle(.orange)
@@ -89,6 +91,13 @@ struct AgentChatView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
+                Button {
+                    isApiKeyBannerDismissed = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
             }
             .padding(10)
             .background(Color.orange.opacity(0.15))

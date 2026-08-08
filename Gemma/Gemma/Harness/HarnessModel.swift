@@ -73,6 +73,7 @@ public final class HarnessModel {
     }
 
     var isMissingApiKey: Bool {
+        guard !chatUsesLocalServer else { return false }
         let kind = currentProviderKind
         guard !kind.isLocalMLX else { return false }
         let key = KeychainStore.shared.get(account: "apiKey.\(kind.rawValue)")

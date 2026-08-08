@@ -152,8 +152,9 @@ struct AgentChatView: View {
                     }
                 } label: {
                     let on = model.wake != nil && model.wake?.state != .off
-                    Label(on ? "Escuchando" : "Hey Jarvis",
-                          systemImage: on ? "ear.badge.checkmark" : "ear")
+                    let isCustom = model.wakeDetector?.useCustomWakeWord == true
+                    let title = on ? "Escuchando" : (isCustom ? "Voz activa" : "Hey Jarvis")
+                    Label(title, systemImage: on ? "ear.badge.checkmark" : "ear")
                         .foregroundStyle(on ? .green : .secondary)
                 }
             }
@@ -180,11 +181,12 @@ struct AgentChatView: View {
                     }
                 } label: {
                     let on = model.wake != nil && model.wake?.state != .off
-                    Label(on ? "Escuchando" : "Hey Jarvis",
-                          systemImage: on ? "ear.badge.checkmark" : "ear")
+                    let isCustom = model.wakeDetector?.useCustomWakeWord == true
+                    let title = on ? "Escuchando" : (isCustom ? "Activación por voz" : "Hey Jarvis")
+                    Label(title, systemImage: on ? "ear.badge.checkmark" : "ear")
                         .foregroundStyle(on ? .green : .secondary)
                 }
-                .help("Activar/desactivar escucha continua \u{201C}Hey Jarvis\u{201D}")
+                .help("Activar/desactivar escucha continua")
             }
             #endif
         }

@@ -111,6 +111,12 @@ public final class HarnessModel {
         voice.appendLine = { [weak self] line in self?.agentLog.append(line) }
         voice.threadId = { [weak self] in self?.currentThreadId ?? "voice" }
         ensureVoice()
+        if UserDefaults.standard.bool(forKey: "useWakeWord") {
+            ensureWake()
+            Task { @MainActor in
+                await self.wake?.enable()
+            }
+        }
     }
 
     /// Returns true when at least one side (chat or consolidation) uses the local mlx model,

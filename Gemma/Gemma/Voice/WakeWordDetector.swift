@@ -104,8 +104,10 @@ final class WakeWordDetector: WakeDetecting {
         let lastEmbs = Array(embBuffer.suffix(wakeWindowSize))
 
         if useCustomWakeWord {
-            return scoreCustomWakeWord(lastEmbs)
+            return scoreCustomWakeWord()
         } else {
+            guard embBuffer.count >= wakeWindowSize else { return 0 }
+            let lastEmbs = Array(embBuffer.suffix(wakeWindowSize))
             return runWake(lastEmbs) ?? 0
         }
     }
@@ -219,35 +221,41 @@ final class WakeWordDetector: WakeDetecting {
         return embs
     }
 
-    private func scoreCustomWakeWord(_ embeddings: [[Float]]) -> Float {
+    private func scoreCustomWakeWord() -> Float {
         guard !enrolledTemplates.isEmpty, !voiceSignature.isEmpty else { return 0 }
 
-        // 1. Voice Signature Match (Speaker Verification)
-        // Average embedding of the current sliding window
-        var currentAvg = [Float](repeating: 0, count: 96)
-        for emb in embeddings {
-            for i in 0..<96 { currentAvg[i] += emb[i] }
-        }
-        for i in 0..<96 { currentAvg[i] /= Float(embeddings.count) }
+        var maxScore: Float = 0
 
-        let speakerSim = cosineSimilarity(currentAvg, voiceSignature)
-        // Require similarity >= 0.83 to match user's voice (prevents other people/TV triggering)
-        guard speakerSim >= 0.83 else { return 0 }
-
-        // 2. Phrase Match (Dynamic Time Warping)
-        var minDistance: Float = Float.infinity
         for template in enrolledTemplates {
-            let dist = dtwDistance(embeddings, template)
-            if dist < minDistance { minDistance = dist }
+            let m = template.count
+            guard embBuffer.count >= m else { continue }
+            let window = Array(embBuffer.suffix(m))
+
+            // 1. Voice Signature Match (Speaker Verification)
+            var currentAvg = [Float](repeating: 0, count: 96)
+            for emb in window {
+                for i in 0..<96 { currentAvg[i] += emb[i] }
+            }
+            for i in 0..<96 { currentAvg[i] /= Float(m) }
+
+            let speakerSim = cosineSimilarity(currentAvg, voiceSignature)
+            // Lower threshold to 0.76 to accommodate real-world variance on mobile mics
+            guard speakerSim >= 0.76 else { continue }
+
+            // 2. Phrase Match (Dynamic Time Warping)
+            let dist = dtwDistance(window, template)
+
+            // Map DTW distance to score in [0, 1]
+            let maxAcceptableDistance: Float = 0.45
+            let phraseScore = max(0.0, 1.0 - (dist / maxAcceptableDistance))
+
+            let finalScore = phraseScore * speakerSim
+            if finalScore > maxScore {
+                maxScore = finalScore
+            }
         }
 
-        // Map DTW distance (average cost per frame) to score in [0, 1]
-        // Cosine distance range is [0, 2]. Distance <= 0.40 is a high quality match.
-        let maxAcceptableDistance: Float = 0.45
-        let phraseScore = max(0.0, 1.0 - (minDistance / maxAcceptableDistance))
-
-        // Return combined score
-        return phraseScore * speakerSim
+        return maxScore
     }
 
     // MARK: - Dynamic Time Warping (DTW) & Cosine Math

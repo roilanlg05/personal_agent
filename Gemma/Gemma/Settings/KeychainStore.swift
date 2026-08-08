@@ -18,9 +18,16 @@ struct KeychainStore {
         q[kSecReturnData as String] = true
         q[kSecMatchLimit as String] = kSecMatchLimitOne
         var out: CFTypeRef?
-        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess,
-              let data = out as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        if SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess,
+           let data = out as? Data,
+           let str = String(data: data, encoding: .utf8),
+           !str.isEmpty {
+            return str
+        }
+        if let fallback = UserDefaults.standard.string(forKey: "keychain_fallback.\(account)"), !fallback.isEmpty {
+            return fallback
+        }
+        return nil
     }
 
     func set(_ value: String, account: String) {
@@ -29,9 +36,11 @@ struct KeychainStore {
         var q = query(account)
         q[kSecValueData as String] = data
         SecItemAdd(q as CFDictionary, nil)
+        UserDefaults.standard.set(value, forKey: "keychain_fallback.\(account)")
     }
 
     func delete(account: String) {
         SecItemDelete(query(account) as CFDictionary)
+        UserDefaults.standard.removeObject(forKey: "keychain_fallback.\(account)")
     }
 }

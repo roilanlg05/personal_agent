@@ -60,7 +60,7 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
         Task { await send(wav) }
     }
 
-    func send(_ wav: Data) async {
+    func send(_ wav: Data, isPassive: Bool = false) async {
         guard let client else {
             appendLine("voice: configura la URL del servicio de voz en Ajustes.")
             state = .idle
@@ -68,7 +68,12 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
         }
         do {
             let reply = try await client.turn(wav: wav, threadId: threadId(),
-                                              timezone: TimeZone.current.identifier)
+                                              timezone: TimeZone.current.identifier,
+                                              isPassive: isPassive)
+            if reply.audio.isEmpty {
+                state = .idle
+                return
+            }
             appendLine("you: \(reply.sttText)")
             appendLine("gemma: \(reply.replyText)")
             play(reply.audio)

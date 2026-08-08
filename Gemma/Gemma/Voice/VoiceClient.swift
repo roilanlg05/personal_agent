@@ -16,7 +16,7 @@ enum VoiceError: Error, Equatable {
 
 /// Abstraction so VoiceController can be unit-tested with a fake.
 protocol VoiceTurning: Sendable {
-    func turn(wav: Data, threadId: String, timezone: String) async throws -> VoiceReply
+    func turn(wav: Data, threadId: String, timezone: String, isPassive: Bool) async throws -> VoiceReply
 }
 
 /// HTTP client to the i3 voice service. Mirrors MemoryClient (baseURL + bearer + injectable session).
@@ -32,7 +32,7 @@ struct VoiceClient: VoiceTurning {
         self.session = session
     }
 
-    func turn(wav: Data, threadId: String, timezone: String) async throws -> VoiceReply {
+    func turn(wav: Data, threadId: String, timezone: String, isPassive: Bool = false) async throws -> VoiceReply {
         let boundary = "Boundary-\(UUID().uuidString)"
         var body = Data()
         func append(_ s: String) { body.append(s.data(using: .utf8)!) }
@@ -55,6 +55,9 @@ struct VoiceClient: VoiceTurning {
         req.httpMethod = "POST"
         req.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
         req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        if isPassive {
+            req.setValue("true", forHTTPHeaderField: "X-Voice-Passive")
+        }
         req.httpBody = body
         req.timeoutInterval = 180
 
@@ -62,6 +65,9 @@ struct VoiceClient: VoiceTurning {
         guard let http = resp as? HTTPURLResponse else { throw VoiceError.invalidResponse }
         func header(_ key: String) -> String? {
             http.value(forHTTPHeaderField: key)?.removingPercentEncoding
+        }
+        if http.statusCode == 204 {
+            return VoiceReply(audio: Data(), sttText: header("X-STT-Text") ?? "", replyText: "")
         }
         if http.statusCode == 400 { throw VoiceError.silence }
         guard (200..<300).contains(http.statusCode) else {

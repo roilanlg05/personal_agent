@@ -242,10 +242,10 @@ public final class HarnessModel {
             agentLog.append("voice: wake word no disponible (no pude cargar el modelo).")
             return
         }
-        self.wake = WakeListener(detector: detector) { [weak self] wav in
+        self.wake = WakeListener(detector: detector) { [weak self] wav, isPassive in
             guard let self else { return }
             Task { @MainActor in
-                await self.voice.send(wav)                       // POST -> append you:/gemma: -> start playback
+                await self.voice.send(wav, isPassive: isPassive)                       // POST -> append you:/gemma: -> start playback
                 while self.voice.state != .idle {               // wait for playback to FINISH before re-arming
                     try? await Task.sleep(for: .milliseconds(150))
                 }

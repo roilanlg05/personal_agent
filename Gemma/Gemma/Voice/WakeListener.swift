@@ -13,7 +13,8 @@ final class WakeListener {
     private(set) var state: WakeState = .off
 
     @ObservationIgnored var detector: WakeDetecting
-    @ObservationIgnored private let sendWav: (Data) -> Void
+    @ObservationIgnored private let sendWav: (Data, Bool) -> Void
+    @ObservationIgnored private var currentTurnIsPassive = false
     /// Injected by the owner: true while a voice turn (manual tap-to-talk OR a reply playing) is in
     /// progress. While true we don't act on the wake word — keeps wake + manual mic mutually exclusive
     /// and avoids detecting Gemma's own speech.
@@ -29,7 +30,7 @@ final class WakeListener {
     @ObservationIgnored private let frameSamples = 1280
     @ObservationIgnored private let maxUtteranceSamples = 16000 * 15   // 15 s cap
 
-    init(detector: WakeDetecting, sendWav: @escaping (Data) -> Void) {
+    init(detector: WakeDetecting, sendWav: @escaping (Data, Bool) -> Void) {
         self.detector = detector
         self.sendWav = sendWav
     }
@@ -71,13 +72,22 @@ final class WakeListener {
         switch state {
         case .listening:
             guard !isVoiceBusy() else { return }   // a manual turn / playback is active — don't detect
-            if detector.process(frame: frame) > 0.5 {
+            let rms = EnergyEndpointer.rms(frame)
+            let score = detector.process(frame: frame)
+            
+            if score > 0.5 {
                 detector.reset()
                 captured = []
-                // 1500 ms trailing silence so natural mid-sentence pauses (e.g. "…tomorrow … from
-                // 10 to 11 …") don't end the turn early and truncate the utterance.
                 endpointer = EnergyEndpointer(frameMs: 80, silenceMs: 1500, minSpeechMs: 300)
                 state = .capturing
+                currentTurnIsPassive = false
+            } else if rms >= 0.012 {
+                // Background speech detected (but did not match user's custom wake signature) -> passive capture
+                detector.reset()
+                captured = []
+                endpointer = EnergyEndpointer(frameMs: 80, silenceMs: 1500, minSpeechMs: 300)
+                state = .capturing
+                currentTurnIsPassive = true
             }
         case .capturing:
             captured.append(contentsOf: frame)
@@ -100,7 +110,7 @@ final class WakeListener {
                         let wav = Self.makeWav(captured, sampleRate: Int(sampleRate))
                         state = .busy
                         startBusyWatchdog()
-                        sendWav(wav)
+                        sendWav(wav, currentTurnIsPassive)
                     } else {
                         print("WAKE: Captured audio discarded as silence/noise (top30 average RMS = \(top30Average))")
                         state = .listening

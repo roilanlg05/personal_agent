@@ -39,7 +39,16 @@ public final class HarnessModel {
         }
         return parts.joined(separator: "\n\n")
     }
-    @ObservationIgnored private var threadId = "main"
+    /// The active episode thread id. Persisted in UserDefaults so it survives app restarts.
+    /// Starts as a UUID (never "main") so each installation has its own scoped thread from day one.
+    @ObservationIgnored private var threadId: String = {
+        if let saved = UserDefaults.standard.string(forKey: "activeThreadId"), !saved.isEmpty {
+            return saved
+        }
+        let fresh = UUID().uuidString
+        UserDefaults.standard.set(fresh, forKey: "activeThreadId")
+        return fresh
+    }()
     /// The chat thread id voice turns join (same episode as typed chat).
     var currentThreadId: String { threadId }
     var wakeDetector: WakeDetecting? {
@@ -340,6 +349,7 @@ public final class HarnessModel {
         _ = isWake // followUps / focus are service-driven now (no per-turn HTTP for them in M3a)
         if ChatSession.shouldStartNewChat(lastActivity: lastTurnEndedAt, now: now) {
             threadId = UUID().uuidString   // new episode → new chat_id; server restarts seq at 1
+            UserDefaults.standard.set(threadId, forKey: "activeThreadId")
             turnIndex = 0
         }
         // M3a: focus / pendingFollowUps surfaces would require dedicated endpoints. The

@@ -6,7 +6,7 @@ struct SettingsView: View {
     let model: HarnessModel
     @AppStorage(SettingsKeys.keepModelResident) private var keepResident = false
     @AppStorage("memoryBaseURL") private var memoryBaseURL: String = "http://localhost:8081"
-    @AppStorage("memoryBearerToken") private var memoryBearerToken: String = ""
+    @AppStorage("memoryBearerToken") private var memoryBearerToken: String = "replace-me-with-a-long-random-string"
     @AppStorage("voiceBaseURL") private var voiceBaseURL: String = ""
     @AppStorage(SettingsKeys.chatProvider) private var chatProvider = "local"
     @AppStorage(SettingsKeys.chatModel) private var chatModel = ""

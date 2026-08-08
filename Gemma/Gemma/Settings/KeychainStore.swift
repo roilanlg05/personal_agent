@@ -24,10 +24,6 @@ struct KeychainStore {
            !str.isEmpty {
             return str
         }
-        if let cloudKey = NSUbiquitousKeyValueStore.default.string(forKey: account), !cloudKey.isEmpty {
-            set(cloudKey, account: account)
-            return cloudKey
-        }
         if let fallback = UserDefaults.standard.string(forKey: "keychain_fallback.\(account)"), !fallback.isEmpty {
             return fallback
         }
@@ -41,14 +37,10 @@ struct KeychainStore {
         q[kSecValueData as String] = data
         SecItemAdd(q as CFDictionary, nil)
         UserDefaults.standard.set(value, forKey: "keychain_fallback.\(account)")
-        NSUbiquitousKeyValueStore.default.set(value, forKey: account)
-        NSUbiquitousKeyValueStore.default.synchronize()
     }
 
     func delete(account: String) {
         SecItemDelete(query(account) as CFDictionary)
         UserDefaults.standard.removeObject(forKey: "keychain_fallback.\(account)")
-        NSUbiquitousKeyValueStore.default.removeObject(forKey: account)
-        NSUbiquitousKeyValueStore.default.synchronize()
     }
 }

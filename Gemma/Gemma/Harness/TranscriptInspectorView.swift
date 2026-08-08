@@ -1,15 +1,18 @@
 import SwiftUI
 
-/// Read-only view of the raw conversation log (the N4 substrate), newest-first. Separate from
-/// the knowledge graph/list tabs (which show distilled memory only). Reads from the Memory
-/// Service over HTTP (`/v1/transcript/recent`).
+/// Read-only view of the raw conversation log, newest-first.
+/// Reads from the Memory Service over HTTP (`/v1/transcript/recent`).
 struct TranscriptInspectorView: View {
     let client: MemoryClient?
     @State private var rows: [MemoryClient.TranscriptRow] = []
+    @State private var errorMessage: String? = nil
 
     var body: some View {
         Group {
-            if rows.isEmpty {
+            if let err = errorMessage {
+                ContentUnavailableView("Error de conexión", systemImage: "exclamationmark.triangle",
+                                       description: Text(err))
+            } else if rows.isEmpty {
                 ContentUnavailableView("Sin conversación", systemImage: "text.bubble",
                                        description: Text("Aún no hay turnos guardados en el transcript."))
             } else {
@@ -22,9 +25,19 @@ struct TranscriptInspectorView: View {
                 }
             }
         }
-        .task {
-            guard let client else { return }
-            rows = (try? await client.transcriptRecent(limit: 200)) ?? []
+        .task { await reload() }
+    }
+
+    private func reload() async {
+        guard let client else {
+            errorMessage = "Servicio de memoria no inicializado."
+            return
+        }
+        do {
+            rows = try await client.transcriptRecent(limit: 200)
+            errorMessage = nil
+        } catch {
+            errorMessage = "No se pudo obtener el transcript de \(client.baseURL.absoluteString): \(error.localizedDescription)"
         }
     }
 }

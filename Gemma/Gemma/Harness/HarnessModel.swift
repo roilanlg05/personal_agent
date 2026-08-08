@@ -195,7 +195,11 @@ public final class HarnessModel {
             UserDefaults.standard.set(urlString, forKey: "memoryBaseURL")
         }
         #endif
-        let token = UserDefaults.standard.string(forKey: "memoryBearerToken") ?? ""
+        var token = UserDefaults.standard.string(forKey: "memoryBearerToken") ?? ""
+        if token.isEmpty {
+            token = "replace-me-with-a-long-random-string"
+            UserDefaults.standard.set(token, forKey: "memoryBearerToken")
+        }
         guard let baseURL = URL(string: urlString) else {
             self.memory = nil
             MemoryToolbox.shared.memory = nil

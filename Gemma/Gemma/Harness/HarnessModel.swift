@@ -39,7 +39,7 @@ public final class HarnessModel {
         }
         return parts.joined(separator: "\n\n")
     }
-    @ObservationIgnored private var threadId = UUID().uuidString
+    @ObservationIgnored private var threadId = "main"
     /// The chat thread id voice turns join (same episode as typed chat).
     var currentThreadId: String { threadId }
     @ObservationIgnored private var turnIndex = 0

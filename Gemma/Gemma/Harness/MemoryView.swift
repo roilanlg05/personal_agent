@@ -6,13 +6,8 @@ import SwiftUI
 struct MemoryView: View {
     let client: MemoryClient?
 
-    private enum Mode: String, CaseIterable {
-        case grafo3d = "Grafo 3D"
-        case grafo2d = "Grafo 2D"
-        case lista = "Lista"
-        case transcript = "Transcript"
-    }
-    @State private var mode: Mode = .grafo3d
+    private enum Mode: String, CaseIterable { case lista = "Lista", grafo = "Grafo", transcript = "Transcript" }
+    @State private var mode: Mode = .lista
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,9 +19,8 @@ struct MemoryView: View {
             .padding(8)
             Divider()
             switch mode {
-            case .grafo3d: MemoryGraph3DView(client: client)
-            case .grafo2d: MemoryGraphView(client: client)
             case .lista: MemoryInspectorView(client: client)
+            case .grafo: MemoryGraphView(client: client)
             case .transcript: TranscriptInspectorView(client: client)
             }
         }

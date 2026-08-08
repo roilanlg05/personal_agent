@@ -29,6 +29,10 @@ final class WakeListener {
     @ObservationIgnored private let sampleRate = 16000.0
     @ObservationIgnored private let frameSamples = 1280
     @ObservationIgnored private let maxUtteranceSamples = 16000 * 15   // 15 s cap
+    /// Consecutive high-energy frames required before starting a passive capture.
+    /// At 80ms/frame this is ~400ms of sustained speech — filters out sniffs, claps, clicks.
+    @ObservationIgnored private var passiveEnergyStreak = 0
+    @ObservationIgnored private let passiveStreakRequired = 5  // 5 × 80ms = 400ms sustained
 
     init(detector: WakeDetecting, sendWav: @escaping (Data, Bool) -> Void) {
         self.detector = detector
@@ -71,23 +75,33 @@ final class WakeListener {
     private func handle(frame: [Float]) {
         switch state {
         case .listening:
-            guard !isVoiceBusy() else { return }   // a manual turn / playback is active — don't detect
+            guard !isVoiceBusy() else { passiveEnergyStreak = 0; return }   // a manual turn / playback is active
             let rms = EnergyEndpointer.rms(frame)
             let score = detector.process(frame: frame)
-            
+
             if score > 0.5 {
+                // User said the wake phrase — active turn
                 detector.reset()
                 captured = []
+                passiveEnergyStreak = 0
                 endpointer = EnergyEndpointer(frameMs: 80, silenceMs: 1500, minSpeechMs: 300)
                 state = .capturing
                 currentTurnIsPassive = false
             } else if rms >= 0.012 {
-                // Background speech detected (but did not match user's custom wake signature) -> passive capture
-                detector.reset()
-                captured = []
-                endpointer = EnergyEndpointer(frameMs: 80, silenceMs: 1500, minSpeechMs: 300)
-                state = .capturing
-                currentTurnIsPassive = true
+                // Possible background speech — require sustained energy across multiple frames
+                // to filter out transient noise (sniffs, throat clears, keyboard clicks, etc.)
+                passiveEnergyStreak += 1
+                if passiveEnergyStreak >= passiveStreakRequired {
+                    detector.reset()
+                    captured = []
+                    passiveEnergyStreak = 0
+                    endpointer = EnergyEndpointer(frameMs: 80, silenceMs: 1500, minSpeechMs: 300)
+                    state = .capturing
+                    currentTurnIsPassive = true
+                }
+            } else {
+                // Energy dropped below threshold — reset streak counter
+                passiveEnergyStreak = 0
             }
         case .capturing:
             captured.append(contentsOf: frame)

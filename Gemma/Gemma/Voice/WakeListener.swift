@@ -83,11 +83,28 @@ final class WakeListener {
             captured.append(contentsOf: frame)
             let done = endpointer?.update(frame: frame) ?? true
             if done || captured.count >= maxUtteranceSamples {
-                if captured.count >= frameSamples * 4 {        // discard too-short captures
-                    let wav = Self.makeWav(captured, sampleRate: Int(sampleRate))
-                    state = .busy
-                    startBusyWatchdog()
-                    sendWav(wav)
+                if captured.count >= frameSamples * 4 {
+                    // Check if the captured audio contains actual speech by checking top-30% loudest frames
+                    var frameRMS: [Float] = []
+                    var idx = 0
+                    while idx + 1280 <= captured.count {
+                        let chunk = Array(captured[idx..<idx+1280])
+                        frameRMS.append(EnergyEndpointer.rms(chunk))
+                        idx += 1280
+                    }
+                    frameRMS.sort()
+                    let top30Count = max(1, Int(Double(frameRMS.count) * 0.3))
+                    let top30Average = frameRMS.suffix(top30Count).reduce(0, +) / Float(top30Count)
+                    
+                    if top30Average >= 0.012 { // Min energy threshold for speech (ignores typing/throat clearing)
+                        let wav = Self.makeWav(captured, sampleRate: Int(sampleRate))
+                        state = .busy
+                        startBusyWatchdog()
+                        sendWav(wav)
+                    } else {
+                        print("WAKE: Captured audio discarded as silence/noise (top30 average RMS = \(top30Average))")
+                        state = .listening
+                    }
                 } else {
                     state = .listening
                 }

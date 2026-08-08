@@ -73,6 +73,11 @@ final class WakeWordDetector: WakeDetecting {
     // MARK: - WakeDetecting
 
     func process(frame: [Float]) -> Float {
+        // Skip silent live frames early to prevent noise buffer buildup
+        let sumSq = frame.reduce(0) { $0 + $1 * $1 }
+        let rms = sqrt(sumSq / Float(frame.count))
+        guard rms >= 0.003 else { return 0 }
+
         // ── Step 1: melspectrogram ─────────────────────────────────────────────
         guard let rawMel = runMelspec(frame) else { return 0 }
 
@@ -176,18 +181,31 @@ final class WakeWordDetector: WakeDetecting {
         }
         for i in 0..<96 { signature[i] /= Float(allEmbeddings.count) }
 
+        // Compute training similarity threshold to auto-calibrate verification
+        var similarities: [Float] = []
+        for template in allTemplates {
+            var tempAvg = [Float](repeating: 0, count: 96)
+            for emb in template {
+                for i in 0..<96 { tempAvg[i] += emb[i] }
+            }
+            for i in 0..<96 { tempAvg[i] /= Float(template.count) }
+            similarities.append(cosineSimilarity(tempAvg, signature))
+        }
+        let avgSimilarity = similarities.reduce(0, +) / Float(similarities.count)
+
         // 2. Save everything to UserDefaults
         let encoder = JSONEncoder()
         if let encTemplates = try? encoder.encode(allTemplates),
            let encSig = try? encoder.encode(signature) {
             UserDefaults.standard.set(encTemplates, forKey: "customWakeTemplates")
             UserDefaults.standard.set(encSig, forKey: "customVoiceSignature")
+            UserDefaults.standard.set(avgSimilarity, forKey: "customVoiceSimilarityThreshold")
             UserDefaults.standard.set(true, forKey: "useCustomWakeWord")
 
             self.enrolledTemplates = allTemplates
             self.voiceSignature = signature
             self.useCustomWakeWord = true
-            print("WAKE ENROLL SUCCESS: Saved templates and signature.")
+            print("WAKE ENROLL SUCCESS: Saved templates and signature. Avg similarity: \(avgSimilarity)")
         } else {
             throw NSError(domain: "WakeWordDetector", code: 4, userInfo: [NSLocalizedDescriptionKey: "No se pudieron guardar las huellas de voz."])
         }
@@ -234,6 +252,9 @@ final class WakeWordDetector: WakeDetecting {
         guard !enrolledTemplates.isEmpty, !voiceSignature.isEmpty else { return 0 }
 
         var maxScore: Float = 0
+        let baseThreshold = UserDefaults.standard.float(forKey: "customVoiceSimilarityThreshold")
+        // Require similarity to be within S_train - 0.05. Fall back to 0.88.
+        let threshold = baseThreshold > 0 ? (baseThreshold - 0.05) : 0.88
 
         for (idx, template) in enrolledTemplates.enumerated() {
             let m = template.count

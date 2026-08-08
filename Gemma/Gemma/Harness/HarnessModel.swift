@@ -42,6 +42,10 @@ public final class HarnessModel {
     @ObservationIgnored private var threadId = "main"
     /// The chat thread id voice turns join (same episode as typed chat).
     var currentThreadId: String { threadId }
+    var wakeDetector: WakeDetecting? {
+        ensureWake()
+        return wake?.detector
+    }
     @ObservationIgnored private var turnIndex = 0
 
     /// Owns the local mlx_vlm server process lifecycle (M2a). Built in init() so its initial

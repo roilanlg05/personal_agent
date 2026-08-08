@@ -12,6 +12,9 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.chatModel) private var chatModel = ""
     @AppStorage(SettingsKeys.consolidationProvider) private var consolidationProvider = "local"
     @AppStorage(SettingsKeys.consolidationModel) private var consolidationModel = ""
+    @AppStorage("useWakeWord") private var useWakeWord = false
+    @AppStorage("useCustomWakeWord") private var useCustomWakeWord = false
+    @State private var showEnrollment = false
 
     var body: some View {
         Form {
@@ -56,6 +59,45 @@ struct SettingsView: View {
             .onChange(of: voiceBaseURL) { _, _ in model.ensureVoice() }
             .onChange(of: memoryBaseURL) { _, _ in model.ensureVoice() }
             .onChange(of: memoryBearerToken) { _, _ in model.ensureVoice() }
+            
+            Section("Wake Word (Activación por voz)") {
+                Toggle("Habilitar activación por voz", isOn: $useWakeWord)
+                    .onChange(of: useWakeWord) { _, enabled in
+                        Task {
+                            if enabled {
+                                await model.wake?.enable()
+                            } else {
+                                model.wake?.disable()
+                            }
+                        }
+                    }
+                
+                if let detector = model.wakeDetector {
+                    Toggle("Usar frase y voz personalizada", isOn: $useCustomWakeWord)
+                        .disabled(!detector.useCustomWakeWord)
+                        .onChange(of: useCustomWakeWord) { _, val in
+                            detector.loadCustomWakeWord()
+                        }
+                    
+                    Button(detector.useCustomWakeWord ? "Volver a entrenar voz" : "Configurar frase y voz propia") {
+                        showEnrollment = true
+                    }
+                    
+                    if detector.useCustomWakeWord {
+                        Button("Restablecer a default (Hey Jarvis)") {
+                            detector.clearCustomWakeWord()
+                            useCustomWakeWord = false
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.red)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showEnrollment) {
+            if let detector = model.wakeDetector {
+                WakeWordEnrollmentView(detector: detector)
+            }
         }
         .formStyle(.grouped)
         #if os(macOS)

@@ -12,7 +12,7 @@ final class WakeListener {
     enum WakeState: Equatable { case off, listening, capturing, busy }
     private(set) var state: WakeState = .off
 
-    @ObservationIgnored private let detector: WakeDetecting
+    @ObservationIgnored var detector: WakeDetecting
     @ObservationIgnored private let sendWav: (Data) -> Void
     /// Injected by the owner: true while a voice turn (manual tap-to-talk OR a reply playing) is in
     /// progress. While true we don't act on the wake word — keeps wake + manual mic mutually exclusive

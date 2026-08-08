@@ -99,17 +99,19 @@ final class WakeWordDetector: WakeDetecting {
             embBuffer.removeFirst(embBuffer.count - embBufferMaxLen)
         }
 
-        // ── Step 6: run wake model or custom matching when we have ≥ 16 embeddings
-        guard embBuffer.count >= wakeWindowSize else { return 0 }
-        let lastEmbs = Array(embBuffer.suffix(wakeWindowSize))
-
+        // ── Step 6: run wake model or custom matching
+        let score: Float
         if useCustomWakeWord {
-            return scoreCustomWakeWord()
+            score = scoreCustomWakeWord()
         } else {
             guard embBuffer.count >= wakeWindowSize else { return 0 }
             let lastEmbs = Array(embBuffer.suffix(wakeWindowSize))
-            return runWake(lastEmbs) ?? 0
+            score = runWake(lastEmbs) ?? 0
         }
+        if score > 0.05 {
+            print("WAKE SCORE: \(score) (useCustomWakeWord=\(useCustomWakeWord))")
+        }
+        return score
     }
 
     func reset() {
@@ -120,7 +122,9 @@ final class WakeWordDetector: WakeDetecting {
     // MARK: - Custom Wake Word & Speaker Verification Implementation
 
     func loadCustomWakeWord() {
-        if UserDefaults.standard.bool(forKey: "useCustomWakeWord"),
+        let isCustom = UserDefaults.standard.bool(forKey: "useCustomWakeWord")
+        print("WAKE LOAD: useCustomWakeWord in UserDefaults is \(isCustom)")
+        if isCustom,
            let data = UserDefaults.standard.data(forKey: "customWakeTemplates"),
            let templates = try? JSONDecoder().decode([[[Float]]].self, from: data),
            let sigData = UserDefaults.standard.data(forKey: "customVoiceSignature"),
@@ -128,8 +132,10 @@ final class WakeWordDetector: WakeDetecting {
             self.enrolledTemplates = templates
             self.voiceSignature = signature
             self.useCustomWakeWord = true
+            print("WAKE LOAD SUCCESS: Loaded \(templates.count) templates. Voice signature norm = \(sqrt(signature.reduce(0) { $0 + $1 * $1 }))")
         } else {
             self.useCustomWakeWord = false
+            print("WAKE LOAD FALLBACK: Using default Hey Jarvis.")
         }
     }
 
@@ -140,18 +146,20 @@ final class WakeWordDetector: WakeDetecting {
         self.enrolledTemplates = []
         self.voiceSignature = []
         self.useCustomWakeWord = false
+        print("WAKE CLEAR: Reset custom settings.")
     }
 
     func enroll(recordings: [Data]) throws {
         var allTemplates: [[[Float]]] = []
         var allEmbeddings: [[Float]] = []
 
-        for data in recordings {
+        for (idx, data) in recordings.enumerated() {
             let samples = Self.pcm16ToFloat(data)
             let embs = extractEmbeddings(from: samples)
+            print("WAKE ENROLL: Recording \(idx) samples=\(samples.count) embeddings=\(embs.count)")
             // Require at least 2 embeddings to avoid failure on quiet or short clips
             guard embs.count >= 2 else {
-                throw NSError(domain: "WakeWordDetector", code: 2, userInfo: [NSLocalizedDescriptionKey: "Grabación muy corta o silenciosa. Por favor habla claro y mantén la app abierta."])
+                throw NSError(domain: "WakeWordDetector", code: 2, userInfo: [NSLocalizedDescriptionKey: "Grabación \(idx + 1) muy corta o silenciosa. Por favor habla claro y mantén la app abierta."])
             }
             allTemplates.append(embs)
             allEmbeddings.append(contentsOf: embs)
@@ -179,6 +187,7 @@ final class WakeWordDetector: WakeDetecting {
             self.enrolledTemplates = allTemplates
             self.voiceSignature = signature
             self.useCustomWakeWord = true
+            print("WAKE ENROLL SUCCESS: Saved templates and signature.")
         } else {
             throw NSError(domain: "WakeWordDetector", code: 4, userInfo: [NSLocalizedDescriptionKey: "No se pudieron guardar las huellas de voz."])
         }
@@ -226,7 +235,7 @@ final class WakeWordDetector: WakeDetecting {
 
         var maxScore: Float = 0
 
-        for template in enrolledTemplates {
+        for (idx, template) in enrolledTemplates.enumerated() {
             let m = template.count
             guard embBuffer.count >= m else { continue }
             let window = Array(embBuffer.suffix(m))
@@ -239,9 +248,7 @@ final class WakeWordDetector: WakeDetecting {
             for i in 0..<96 { currentAvg[i] /= Float(m) }
 
             let speakerSim = cosineSimilarity(currentAvg, voiceSignature)
-            // Lower threshold to 0.76 to accommodate real-world variance on mobile mics
-            guard speakerSim >= 0.76 else { continue }
-
+            
             // 2. Phrase Match (Dynamic Time Warping)
             let dist = dtwDistance(window, template)
 
@@ -250,6 +257,9 @@ final class WakeWordDetector: WakeDetecting {
             let phraseScore = max(0.0, 1.0 - (dist / maxAcceptableDistance))
 
             let finalScore = phraseScore * speakerSim
+            
+            print("WAKE DIAG [Template \(idx)]: speakerSim=\(speakerSim), dtwDist=\(dist), phraseScore=\(phraseScore), finalScore=\(finalScore)")
+            
             if finalScore > maxScore {
                 maxScore = finalScore
             }

@@ -188,7 +188,13 @@ public final class HarnessModel {
             MemoryToolbox.shared.reflectionRequest = nil
             return
         }
-        let urlString = UserDefaults.standard.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
+        var urlString = UserDefaults.standard.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
+        #if os(iOS)
+        if urlString == "http://localhost:8081" || urlString.isEmpty {
+            urlString = "http://192.168.1.50:8081"
+            UserDefaults.standard.set(urlString, forKey: "memoryBaseURL")
+        }
+        #endif
         let token = UserDefaults.standard.string(forKey: "memoryBearerToken") ?? ""
         guard let baseURL = URL(string: urlString) else {
             self.memory = nil

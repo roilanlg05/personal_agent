@@ -189,7 +189,9 @@ struct AgentChatView: View {
                                                description: Text("Memory is disabled or not yet initialized. Send a message with memory enabled, then reopen."))
                     }
                 }
+                #if os(macOS)
                 .frame(minWidth: 420, minHeight: 360)
+                #endif
                 .toolbar { Button("Done") { model.showMemory = false } }
             }
         }

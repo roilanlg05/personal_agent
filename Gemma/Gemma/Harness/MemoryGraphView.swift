@@ -118,8 +118,8 @@ struct MemoryGraphView: View {
         let previous = canvasSize
         canvasSize = newSize
 
-        if previous == .zero {
-            if positions.isEmpty { recomputeLayout() }
+        if previous == .zero || positions.isEmpty {
+            if !nodes.isEmpty { recomputeLayout() }
         } else if newSize != previous {
             rescalePositions(from: previous, to: newSize)
         }

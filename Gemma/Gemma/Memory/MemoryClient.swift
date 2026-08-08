@@ -313,16 +313,21 @@ final class MemoryClient {
         URL(string: path, relativeTo: baseURL) ?? baseURL.appendingPathComponent(path)
     }
 
+    private var effectiveToken: String {
+        let t = bearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? "replace-me-with-a-long-random-string" : t
+    }
+
     private func get<R: Decodable>(_ path: String) async throws -> R {
         var req = URLRequest(url: makeURL(path))
-        req.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(effectiveToken)", forHTTPHeaderField: "Authorization")
         req.timeoutInterval = 8
         return try await execute(req)
     }
     private func post<B: Encodable, R: Decodable>(_ path: String, _ body: B) async throws -> R {
         var req = URLRequest(url: makeURL(path))
         req.httpMethod = "POST"
-        req.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(effectiveToken)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONEncoder().encode(body)
         req.timeoutInterval = 8

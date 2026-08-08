@@ -147,9 +147,9 @@ final class WakeWordDetector: WakeDetecting {
         for data in recordings {
             let samples = Self.pcm16ToFloat(data)
             let embs = extractEmbeddings(from: samples)
-            // Require at least 4 embeddings to avoid garbage/short clips
-            guard embs.count >= 4 else {
-                throw NSError(domain: "WakeWordDetector", code: 2, userInfo: [NSLocalizedDescriptionKey: "Grabación muy corta o con mucho silencio. Habla de forma clara."])
+            // Require at least 2 embeddings to avoid failure on quiet or short clips
+            guard embs.count >= 2 else {
+                throw NSError(domain: "WakeWordDetector", code: 2, userInfo: [NSLocalizedDescriptionKey: "Grabación muy corta o silenciosa. Por favor habla claro y mantén la app abierta."])
             }
             allTemplates.append(embs)
             allEmbeddings.append(contentsOf: embs)
@@ -195,7 +195,7 @@ final class WakeWordDetector: WakeDetecting {
             // Skip low-energy silence frames (RMS threshold)
             let sumSq = chunk.reduce(0) { $0 + $1 * $1 }
             let rms = sqrt(sumSq / Float(chunk.count))
-            guard rms >= 0.008 else { continue }
+            guard rms >= 0.001 else { continue }
 
             if let rawMel = runMelspec(chunk) {
                 let normMel = rawMel.map { $0 / 10.0 + 2.0 }

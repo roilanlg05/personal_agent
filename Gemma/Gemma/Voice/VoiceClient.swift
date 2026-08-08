@@ -6,6 +6,9 @@ struct VoiceReply: Sendable {
     let audio: Data
     let sttText: String
     let replyText: String
+    /// True when the server detected a closure phrase ("that's all", "ok", "gracias", etc.).
+    /// The caller should disable wake listening after playback finishes.
+    let shouldStop: Bool
 }
 
 enum VoiceError: Error, Equatable {
@@ -67,12 +70,13 @@ struct VoiceClient: VoiceTurning {
             http.value(forHTTPHeaderField: key)?.removingPercentEncoding
         }
         if http.statusCode == 204 {
-            return VoiceReply(audio: Data(), sttText: header("X-STT-Text") ?? "", replyText: "")
+            return VoiceReply(audio: Data(), sttText: header("X-STT-Text") ?? "", replyText: "", shouldStop: false)
         }
         if http.statusCode == 400 { throw VoiceError.silence }
         guard (200..<300).contains(http.statusCode) else {
             throw VoiceError.http(status: http.statusCode, reply: header("X-Reply-Text"))
         }
-        return VoiceReply(audio: data, sttText: header("X-STT-Text") ?? "", replyText: header("X-Reply-Text") ?? "")
+        let shouldStop = header("X-Voice-Action") == "stop"
+        return VoiceReply(audio: data, sttText: header("X-STT-Text") ?? "", replyText: header("X-Reply-Text") ?? "", shouldStop: shouldStop)
     }
 }

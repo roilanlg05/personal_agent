@@ -15,6 +15,9 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
     @ObservationIgnored var appendLine: (String) -> Void = { _ in }
     @ObservationIgnored var threadId: () -> String = { "voice" }
     @ObservationIgnored private var player: AVAudioPlayer?
+    /// Called after playback finishes if the server detected a closure phrase.
+    /// Wired by HarnessModel to disable the wake word listener.
+    @ObservationIgnored var onStopRequested: (() -> Void)?
 
     init(recorder: Recording) {
         self.recorder = recorder
@@ -60,6 +63,9 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
         Task { await send(wav) }
     }
 
+    /// Pending stop requested by server's termination phrase detection.
+    @ObservationIgnored private var pendingStop = false
+
     func send(_ wav: Data, isPassive: Bool = false) async {
         guard let client else {
             appendLine("voice: configura la URL del servicio de voz en Ajustes.")
@@ -74,13 +80,16 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
                 state = .idle
                 return
             }
-            appendLine("you: \(reply.sttText)")
-            appendLine("gemma: \(reply.replyText)")
+            if !isPassive {
+                appendLine("you: \(reply.sttText)")
+                appendLine("gemma: \(reply.replyText)")
+            }
+            pendingStop = reply.shouldStop
             play(reply.audio)
         } catch VoiceError.silence {
             state = .idle   // nothing heard — don't clutter the chat
         } catch {
-            appendLine("voice: \(error)")
+            if !isPassive { appendLine("voice: \(error)") }
             state = .idle
         }
     }
@@ -106,6 +115,10 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
         Task { @MainActor in
             self.player = nil
             self.state = .idle
+            if self.pendingStop {
+                self.pendingStop = false
+                self.onStopRequested?()
+            }
         }
     }
 }

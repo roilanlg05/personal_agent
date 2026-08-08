@@ -252,6 +252,15 @@ public final class HarnessModel {
                 self.wake?.notePlaybackFinished()               // re-arm (also covered by WakeListener's 30s watchdog)
             }
         }
+        // Disable wake listener when the user says a termination phrase ("that's all", "ok", "gracias", etc.)
+        self.voice.onStopRequested = { [weak self] in
+            guard let self else { return }
+            Task { @MainActor in
+                self.wake?.disable()
+                UserDefaults.standard.set(false, forKey: "useWakeWord")
+                self.agentLog.append("gemma: escucha desactivada. Dime 'Hey Gemma' cuando me necesites de nuevo.")
+            }
+        }
         // Mutual exclusion with manual tap-to-talk: don't act on the wake word while a voice turn is active.
         self.wake?.isVoiceBusy = { [weak self] in self?.voice.state != .idle }
     }

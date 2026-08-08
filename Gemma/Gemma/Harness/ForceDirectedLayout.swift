@@ -130,3 +130,123 @@ struct ForceDirectedLayout {
         return out
     }
 }
+
+import SceneKit
+
+private struct Vector3D {
+    var x: Float
+    var y: Float
+    var z: Float
+}
+
+extension ForceDirectedLayout {
+    /// Lay out `nodeIDs` connected by `edges` in 3D space (`SCNVector3`) for SceneKit 3D graph rendering.
+    static func layout3D(nodeIDs: [String],
+                         edges: [(String, String)],
+                         boundingRadius: Float = 15.0,
+                         iterations: Int = 300) -> [String: SCNVector3] {
+        let n = nodeIDs.count
+        guard n > 0 else { return [:] }
+        if n == 1 { return [nodeIDs[0]: SCNVector3(0, 0, 0)] }
+
+        var indexOf: [String: Int] = [:]
+        for (i, id) in nodeIDs.enumerated() { indexOf[id] = i }
+
+        // Seed 3D nodes evenly on a 3D Fibonacci sphere
+        let goldenRatio: Float = 1.6180339887
+        var pos: [Vector3D] = nodeIDs.enumerated().map { i, _ in
+            let fi = Float(i)
+            let fn = Float(n)
+            let theta = 2.0 * Float.pi * fi / goldenRatio
+            let phi = acos(1.0 - 2.0 * (fi + 0.5) / fn)
+            let r = boundingRadius * 0.4
+            let sinPhi = sin(phi)
+            let cosPhi = cos(phi)
+            let cosTheta = cos(theta)
+            let sinTheta = sin(theta)
+            let vx = r * sinPhi * cosTheta
+            let vy = r * sinPhi * sinTheta
+            let vz = r * cosPhi
+            return Vector3D(x: vx, y: vy, z: vz)
+        }
+
+        let edgePairs: [(Int, Int)] = edges.compactMap { e in
+            guard let a = indexOf[e.0], let b = indexOf[e.1], a != b else { return nil }
+            return (a, b)
+        }
+
+        let k = boundingRadius / pow(Float(n), 1.0 / 3.0)
+        let kSquared = k * k
+        var temperature = boundingRadius * 0.2
+        let cooling = pow(Float(0.01), 1.0 / Float(max(iterations, 1)))
+
+        for _ in 0..<iterations {
+            var disp = [Vector3D](repeating: Vector3D(x: 0, y: 0, z: 0), count: n)
+
+            // Repulsion (3D)
+            for i in 0..<n {
+                for j in (i + 1)..<n {
+                    var dx = pos[i].x - pos[j].x
+                    var dy = pos[i].y - pos[j].y
+                    var dz = pos[i].z - pos[j].z
+                    var dist = sqrt(dx * dx + dy * dy + dz * dz)
+                    if dist < 0.01 {
+                        dx = Float((i % 5) - 2) * 0.05 + 0.01
+                        dy = Float((j % 5) - 2) * 0.05 + 0.01
+                        dz = Float((i + j) % 5 - 2) * 0.05 + 0.01
+                        dist = max(sqrt(dx * dx + dy * dy + dz * dz), 0.01)
+                    }
+                    let force = kSquared / dist
+                    let fx = (dx / dist) * force
+                    let fy = (dy / dist) * force
+                    let fz = (dz / dist) * force
+                    disp[i].x += fx; disp[i].y += fy; disp[i].z += fz
+                    disp[j].x -= fx; disp[j].y -= fy; disp[j].z -= fz
+                }
+            }
+
+            // Attraction along edges (3D)
+            for (a, b) in edgePairs {
+                let dx = pos[a].x - pos[b].x
+                let dy = pos[a].y - pos[b].y
+                let dz = pos[a].z - pos[b].z
+                let dist = max(sqrt(dx * dx + dy * dy + dz * dz), 0.01)
+                let force = (dist * dist) / k
+                let fx = (dx / dist) * force
+                let fy = (dy / dist) * force
+                let fz = (dz / dist) * force
+                disp[a].x -= fx; disp[a].y -= fy; disp[a].z -= fz
+                disp[b].x += fx; disp[b].y += fy; disp[b].z += fz
+            }
+
+            // Apply displacement with temperature cap & mild centering
+            for i in 0..<n {
+                let dx = disp[i].x
+                let dy = disp[i].y
+                let dz = disp[i].z
+                let mag = max(sqrt(dx * dx + dy * dy + dz * dz), 0.01)
+                let limited = min(mag, temperature)
+                var x = pos[i].x + (dx / mag) * limited
+                var y = pos[i].y + (dy / mag) * limited
+                var z = pos[i].z + (dz / mag) * limited
+
+                x *= 0.98
+                y *= 0.98
+                z *= 0.98
+
+                pos[i] = Vector3D(x: x, y: y, z: z)
+            }
+            temperature *= cooling
+        }
+
+        var out: [String: SCNVector3] = [:]
+        for (i, id) in nodeIDs.enumerated() {
+            let p = pos[i]
+            let vx = p.x.isFinite ? p.x : 0
+            let vy = p.y.isFinite ? p.y : 0
+            let vz = p.z.isFinite ? p.z : 0
+            out[id] = SCNVector3(vx, vy, vz)
+        }
+        return out
+    }
+}

@@ -199,7 +199,7 @@ private struct MemoryNodeMarker: View {
 }
 
 /// Side panel showing the selected node's details.
-private struct MemoryGraphDetailPanel: View {
+struct MemoryGraphDetailPanel: View {
     let node: MemoryClient.Node
     let onClose: () -> Void
 

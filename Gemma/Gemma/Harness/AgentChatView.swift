@@ -179,22 +179,36 @@ struct AgentChatView: View {
             }
             #endif
         }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $model.showMemory) {
+            NavigationStack {
+                Group {
+                    if let client = model.memoryClient() {
+                        MemoryView(client: client)
+                    } else {
+                        ContentUnavailableView("Sin servicio de memoria", systemImage: "brain",
+                                               description: Text("La memoria no está inicializada o está desactivada."))
+                    }
+                }
+                .toolbar { Button("Cerrar") { model.showMemory = false } }
+            }
+        }
+        #else
         .sheet(isPresented: $model.showMemory) {
             NavigationStack {
                 Group {
                     if let client = model.memoryClient() {
                         MemoryView(client: client)
                     } else {
-                        ContentUnavailableView("No memory client", systemImage: "brain",
-                                               description: Text("Memory is disabled or not yet initialized. Send a message with memory enabled, then reopen."))
+                        ContentUnavailableView("Sin servicio de memoria", systemImage: "brain",
+                                               description: Text("La memoria no está inicializada o está desactivada."))
                     }
                 }
-                #if os(macOS)
-                .frame(minWidth: 420, minHeight: 360)
-                #endif
-                .toolbar { Button("Done") { model.showMemory = false } }
+                .frame(minWidth: 800, minHeight: 600)
+                .toolbar { Button("Cerrar") { model.showMemory = false } }
             }
         }
+        #endif
         #if os(iOS)
         .sheet(isPresented: $showSettingsSheet) {
             NavigationStack {

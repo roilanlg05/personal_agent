@@ -63,10 +63,11 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 ## Task 3: Fix existing memory merge, promotion and retrieval fidelity
 
 **Repo:** backend.
-**Files:** modify MemoryCore `MemoryStore+Dedup.swift`, `Decay.swift`, `MemoryRetriever.swift`, `MemoryStore.swift`, relevant existing tests; add `MemoryIntegrityTests.swift`.
-**Interfaces:** Existing public merge signatures remain; returned ID is canonical. New `MemoryMergeResult`/internal helper may preserve conflict/correction metadata until claims store arrives; summaries must keep body and source range from one consistent revision. Injection carries useful origin/confidence/date with compact labels.
+**Files:** modify MemoryCore `MemoryStore+Dedup.swift`, `Decay.swift`, `MemoryRetriever.swift`, `MemoryStore.swift`, `MemoryStore+Vector.swift`, `MemoryConsolidationEngine.swift` promotion paths, relevant existing tests; add `MemoryIntegrityTests.swift`.
+**Interfaces:** Existing public merge signatures remain; returned ID is canonical. New `MemoryMergeResult`/internal helper may preserve conflict/correction metadata until claims store arrives; summaries must keep body and source range from one consistent revision. Injection carries useful origin/confidence/date and subject/owner with compact labels and a neutral heading; unresolved alternatives remain visibly unresolved.
 - [ ] RED: changed nonempty detail is not silently ignored; summary text/source range remain coherent; three repeated model inferences do not become identity; exact-label subject collisions stay distinct; deleted vectors do not crowd live top-k; confidence survives rendering.
 - [ ] Implement source-aware faithful correction or explicit conflict; keep stable IDs, prevent automatic promotion, remove stale search entries on deletion and rank live candidates. Do not force every identity node to decay away; separate deliberate revision from salience.
+- [ ] Also remove model permanent:true and reflection cluster-count promotion into identity; cover actual consolidation paths with synthetic runtime tests.
 - [ ] GREEN: dedup/retriever/decay/core tests and compatibility suite. Document altered old expectations when they encode the defective promotion policy.
 - [ ] Self-review and commit.
 
@@ -74,7 +75,7 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 
 **Repo:** backend.
 **Files:** add MemoryCore `BrainStore.swift`, `BrainStore+Evidence.swift`, `BrainStore+Claims.swift`, `BrainStore+Projection.swift`; modify MemoryStore migrations; add `BrainStoreTests.swift`.
-**Interfaces:** `BrainStore(store: MemoryStore)`; `recordEvidence(_:idempotencyKey:) throws -> BrainEvidence`; `commit(_ request: BrainCommitRequest) throws -> BrainCommitResult`; `claims(subject:asOf:scope:) throws -> [BrainClaim]`; `revision() throws -> Int64`. Commit uses expectedRevision, independent evidence IDs and one transaction; results distinguish committed/idempotent/conflict. Persist source spans, claim revisions and supersession/contradiction links. Project authorized current claims into legacy nodes with explicit claim IDs/source refs. Keep legacy unknown-provenance data unverified rather than fabricating references.
+**Interfaces:** `BrainStore(store: MemoryStore)`; `recordEvidence(_:idempotencyKey:) throws -> BrainEvidence`; `commit(_ request: BrainCommitRequest) throws -> BrainCommitResult`; `claims(subject:asOf:scope:) throws -> [BrainClaim]`; `revision() throws -> Int64`. Commit uses expectedRevision, independent evidence IDs and one transaction; results distinguish committed/idempotent/conflict. Persist source spans, claim revisions and supersession/contradiction links. Project authorized current claims into legacy nodes with explicit claim IDs/source refs. Keep legacy unknown-provenance data unverified rather than fabricating references. Carry Task3 Node.extra mergeConflicts and memoryEvidenceUpdatedAt forward; a verified correction cannot be contradicted by an old legacy projection or unresolved alternative presented as current truth.
 - [ ] RED: reopen DB and retrieve history; reusing an idempotency key cannot duplicate evidence; same key/different body conflicts; stale expected revision conflicts; missing/out-of-scope evidence is rejected; same subject/predicate correction preserves old as-of history.
 - [ ] Implement additive schema/migrations and transactional API with foreign-key-equivalent checks. No vectors/model calls inside a DB transaction. Evidence roots, not summaries of roots, count as independent support.
 - [ ] GREEN: new tests plus migration/legacy-node compatibility.
@@ -84,7 +85,7 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 
 **Repo:** backend.
 **Files:** add `BrainStore+Retraction.swift`, `BrainRetractionService.swift`, `BrainRetractionTests.swift`; modify MemoryStore delete/lookup, transcript, vector/tag/graph and legacy memory/inspector query paths as needed.
-**Interfaces:** `BrainRetractionService.forget(scope: BrainForgetScope, expectedRevision: Int64, operationID: String) throws -> BrainForgetReceipt`; `applyExclusions(_ receipts: [BrainForgetReceipt]) throws` before restored reads; closure includes source-derived claims, summaries and procedure/affect references. Receipt reports revision and affected IDs without forgotten content. Persistent exclusion markers prevent reingestion from stale inputs/backups within controlled storage.
+**Interfaces:** `BrainRetractionService.forget(scope: BrainForgetScope, expectedRevision: Int64, operationID: String) throws -> BrainForgetReceipt`; `applyExclusions(_ receipts: [BrainForgetReceipt]) throws` before restored reads; closure includes source-derived claims, summaries and procedure/affect references. Receipt reports revision and affected IDs without forgotten content. Persistent exclusion markers prevent reingestion from stale inputs/backups within controlled storage. Purge withdrawn content also from legacy Node.extra mergeConflicts and any derived profile, not only the canonical body or a filtered search view.
 - [ ] RED: forget then legacy recall/core/FTS/vector/expand/range/why/graph cannot expose withdrawn content; reconsolidation cannot recreate it; evidence correction invalidates dependent conclusions; retraction idempotent; restoration procedure applies exclusions before reads; unrelated records remain.
 - [ ] Implement transitive invalidation and necessary purging; separate source retention/deletion from ordinary salience decay. Failures remain observable, never claim complete erasure after partial writes. Do not erase encrypted connection-service credentials via personal-memory scopes.
 - [ ] GREEN: retraction + all touched endpoint/core tests; use only synthetic DBs.
@@ -99,6 +100,8 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 - [ ] Implement typed failure propagation, transactional phase receipts, segment-sized generation and source-bound claims. Resolve relative dates from source timestamps/timezone, not consolidation wall-clock. Raw legacy transcripts may be adapted into evidence with deterministic IDs and no invented speaker attribution.
 - [ ] GREEN: engine, scheduler, transcript and new failure-injection tests. Ensure no existing fake runtime response is mistaken for test of semantic accuracy.
 - [ ] Self-review and commit.
+
+- [ ] Validate the existing kind:self → upsertSelf extraction path against original speaker, actual assertion and access scope; quoted/hypothetical/proposed model outputs cannot rewrite confirmed user/agent identity. Task3 fixes repetition/permanent/cluster promotion only; this source-bound validator remains mandatory here.
 
 ## Task 7: Immediate turn learning and durable retry contract
 

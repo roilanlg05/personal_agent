@@ -352,6 +352,18 @@ Los conocimientos generales del modelo se distinguirán de conocimientos persona
 
 Las memorias autobiográficas del agente registrarán acciones reales y límites conocidos. Una tarea planeada no se registrará como una experiencia completada. Los cambios de identidad y de procedimientos tendrán revisión, versión y reversión.
 
+### Gustos, preferencias comparativas e intención del momento
+
+Ampliación solicitada por el usuario durante la implementación. Un gusto describe agrado o desagrado por una entidad o atributo; una preferencia describe una elección relativa entre alternativas bajo un criterio y un contexto. Se pueden disfrutar dos actividades y preferir una a la otra; gustar de un juego concreto no demuestra preferir su género. El registro conserva dominio, sujeto, objetivo, polaridad, alternativas comparadas cuando existan, criterio, contexto, fuente, vigencia y si fue declarado o inferido. No se inventará una comparación que el usuario no expresó.
+
+Una petición puntual, una reproducción, una propuesta aceptada, un salto de canción y una declaración como «me gusta» son evidencias diferentes. Pedir un artista una vez aporta una elección contextual; por sí solo no confirma un gusto permanente. «Esta vez quiero otra cosa» cambia la intención actual y no borra un gusto anterior. Las señales implícitas pueden sugerir candidatos inciertos, sin promociones automáticas por repetición ni reforzamiento basado en las propias recomendaciones del agente. Una corrección explícita prevalece con historial y revisión.
+
+La recuperación para herramientas devolverá gustos y preferencias por separado, contexto, procedencia, incertidumbre y huecos de información. Si falta información, el agente hará una pregunta breve que ayude a decidir; género y artista son aclaraciones posibles, no un cuestionario obligatorio. Con información suficiente podrá ofrecer algo conocido o variedad. No repetirá siempre la última elección y no convertirá una ausencia de respuesta en aceptación. El alcance es general: música, juegos, comida, actividades y otros dominios usan el mismo contrato.
+
+Memoria y catálogo externo tienen autoridades distintas: la memoria fundamenta lo que sabe del usuario; una búsqueda o herramienta verifica artistas, disponibilidad y contenido actual de una lista. Una playlist no se afirmará adecuada por contener todos los artistas sin verificarlo. El perfil puede orientar búsqueda y selección, pero no concede permisos ni demuestra que una reproducción se ejecutó. Reproducción/búsqueda reales, conectores y UX se integrarán en el trabajo de herramientas de la app; este cerebro aporta el perfil y la política compartidos. Los ejemplos del usuario son hipotéticos de diseño, no datos personales confirmados.
+
+Casos de aceptación: gusto sin comparación; comparación entre actividades; artista elegido una vez; petición explícita «me gusta»; varios gustos simultáneos; preferencia por género sin inferir gusto por todos sus artistas/juegos; cambio solo por hoy; desagrado y corrección; silencio; selección motivada por otra persona; disponibilidad de catálogo desconocida; sugerencia propia que no cuenta como evidencia independiente; olvido que retira también el perfil derivado. Cada caso conserva fuentes y se prueba sin datos reales.
+
 **Operaciones comunes del cerebro.**
 
 | Operación propuesta | Responsabilidad |
@@ -362,6 +374,7 @@ Las memorias autobiográficas del agente registrarán acciones reales y límites
 | `commit_updates` | Validar y confirmar cambios con una revisión monotónica de memoria. |
 | `record_outcome` | Registrar qué se intentó, qué devolvieron las herramientas y qué se verificó. |
 | `get_identity` | Recuperar identidad estable, carácter pertinente y autobiografía relevante. |
+| `get_taste_profile` | Recuperar gustos, preferencias comparativas e intención contextual sin convertir decisiones puntuales en rasgos. |
 | `get_affective_context` | Entregar señales transitorias y preferencias de trato, con incertidumbre. |
 | `revise` | Corregir una afirmación y revisar los derivados afectados. |
 | `forget` | Aplicar el alcance de borrado o exclusión a fuentes, derivados, índices y cachés controlados. |

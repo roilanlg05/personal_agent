@@ -53,8 +53,8 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 ## Task 2: Shared provider-neutral brain contract and conversation policy
 
 **Repo:** backend; app linking comes in Task 15.
-**Files:** create `memory-service/Sources/BrainContract/` focused files `Evidence.swift`, `Claims.swift`, `Turns.swift`, `Context.swift`, `Identity.swift`, `Affect.swift`, `Experience.swift`, `Prospective.swift`, `Capabilities.swift`, `ConversationPolicy.swift`; add BrainContract library/product and `BrainContractTests` in Package.swift; MemoryCore and MemoryService may depend on it.
-**Interfaces:** All wire types Codable/Equatable/Sendable, epoch-seconds Double timestamps and Int64 revisions. Types: BrainEvidence, BrainClaim, BrainClaimUpdate, BrainCommitRequest/Result, BrainTurnRequest/Result, BrainContextRequest/Bundle, BrainContextBudget, BrainIdentity, BrainAffectHypothesis, BrainOutcome, BrainProcedure, BrainProspectiveCandidate, BrainModelCapabilities, BrainForgetScope/Receipt and BrainTurnCompletion. Requests include schemaVersion=1 and stable client operation IDs; decoders default new optional fields safely. Claim fields: id/revision/subject/predicate/value/modality/status/validFrom/validTo/recordedAt/evidenceIDs/supersedesID. Modes distinguish asserted, negated, proposed, hypothetical and inferred. Evidence fields preserve source kind, speaker, thread, observedAt, recordedAt, optional span and access scope. Persistence state is committed or pending. Capabilities declare context/output budgets, tools, structured output, images and tokenizer-estimate policy. Context bundle owns rendered per-turn context, recent message units, source references, revision and shared policy revision.
+**Files:** create `memory-service/Sources/BrainContract/` focused files `Evidence.swift`, `Claims.swift`, `Turns.swift`, `Context.swift`, `Identity.swift`, `Affect.swift`, `Experience.swift`, `Prospective.swift`, `TastePreferences.swift`, `Capabilities.swift`, `ConversationPolicy.swift`; add BrainContract library/product and `BrainContractTests` in Package.swift; MemoryCore and MemoryService may depend on it.
+**Interfaces:** All wire types Codable/Equatable/Sendable, epoch-seconds Double timestamps and Int64 revisions. Types: BrainEvidence, BrainClaim, BrainClaimUpdate, BrainCommitRequest/Result, BrainTurnRequest/Result, BrainContextRequest/Bundle, BrainContextBudget, BrainIdentity, BrainAffectHypothesis, BrainOutcome, BrainProcedure, BrainProspectiveCandidate, BrainModelCapabilities, BrainForgetScope/Receipt, BrainTurnCompletion and BrainTasteRecord/Profile. Taste records distinguish liking/disliking from comparative preference, preserve compared alternatives/criterion/context/evidence and explicit-vs-inferred status; a one-time selection is contextual evidence, not a confirmed enduring taste. Requests include schemaVersion=1 and stable client operation IDs; decoders default new optional fields safely. Claim fields: id/revision/subject/predicate/value/modality/status/validFrom/validTo/recordedAt/evidenceIDs/supersedesID. Modes distinguish asserted, negated, proposed, hypothetical and inferred. Evidence fields preserve source kind, speaker, thread, observedAt, recordedAt, optional span and access scope. Persistence state is committed or pending. Capabilities declare context/output budgets, tools, structured output, images and tokenizer-estimate policy. Context bundle owns rendered per-turn context, recent message units, source references, revision and shared policy revision.
 - [ ] RED: round-trip all wire types; legacy optional-field payloads; unknown schema rejection; negative budgets; distinct user/agent IDs; policy has truthful identity, optional questions and no mandatory acknowledgment/rigid sentence count.
 - [ ] Implement narrow types, validation and one versioned canonical policy in the contract target. No model names or DB dependency in this layer.
 - [ ] GREEN: contract tests and existing service tests; verify iOS-compatible target imports.
@@ -133,10 +133,12 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 ## Task 10: Tentative affective context and honest interaction state
 
 **Repo:** backend.
-**Files:** add `AffectiveContextService.swift`, `AffectiveContextStore.swift`, tests and context integration.
+**Files:** add `AffectiveContextService.swift`, `AffectiveContextStore.swift`, `TastePreferenceService.swift`, `TastePreferenceStore.swift`, focused tests and context integration.
 **Interfaces:** `observe(turnID:now:) async throws -> [BrainAffectHypothesis]`; `context(threadID:now:) throws`; `correct(hypothesisID:operationID:correction:)`; explicit expressed conversation preferences use claims, inferred affect expires at session end or short configurable TTL. Interaction state uses source-bound focus/interest/tension without moral scores or manipulative needs.
 - [ ] RED: 'mi amigo está triste', 'no estoy enfadado', quotation, hypothetical, sarcasm and short neutral reply do not become confirmed user mood; explicit self-report stays attributed; ambiguity abstains; correction wins; expiration/restart and lack of longitudinal consent prevent permanent inferred traits.
 - [ ] Implement validated model-generated candidates with evidence and subject/qualification checks; do not claim semantic understanding from keyword-only rules. Store inferred state separately from durable identity and expose natural-tone guidance only when warranted. Add 'hoy no quiero consejos' respect and no retaliation/neediness policy tests.
+- [ ] RED/GREEN taste/preference behavior: likes/dislikes remain separate from comparative choices; source-bound profiles preserve domain, targets, alternatives, criterion, context, explicit/inferred status and current intent. Test music/games/activity examples as synthetic scenarios, one-time selection vs explicit liking, several simultaneous tastes, temporary variety vs durable correction, third-party choice, no self-echo reinforcement, and forget invalidation.
+- [ ] Implement `TastePreferenceService.profile(subject:domain:context:now:) throws -> BrainTasteProfile` over versioned claims/evidence; changes use validated BrainCommitRequest. Unknown or sparse profiles expose missing information, not invented defaults. Shared policy permits a useful brief clarification, familiar choices or variety; no mandatory two-question script, no unverified catalog or playback claim. This task owns memory/profile guidance, not playback/search connectors being developed separately.
 - [ ] GREEN: affect/context/forget suites. Report semantic accuracy as unmeasured without real held-out model evaluation.
 - [ ] Self-review and commit.
 
@@ -180,6 +182,8 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 - [ ] GREEN: full backend suite, including old contract tests and new brain lifecycle endpoints.
 - [ ] Self-review and commit.
 
+- [ ] Add authenticated read-only `/v1/brain/tastes/profile` backed by TastePreferenceService, enforcing subject/access scope and returning separate tastes/comparisons, sources, contextual intent and missing information. Writes remain versioned claim commits; no playback endpoint is implied.
+
 ## Task 15: Native app shared contract, capabilities and immediate learning
 
 **Repo:** app; depends on backend Task 14.
@@ -189,6 +193,8 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 - [ ] Integrate begin/context/outcome/assistant lifecycle, truthful pending state and retries; use canonical conversation policy with native tool addenda. Preserve voice/passive behavior and exact detail `load_messages`. Capture tool outcomes when actually executed, not only if final model succeeds. No automatic model switching or external calls with user secrets in tests.
 - [ ] GREEN: focused app suites, then full macOS app suite and iOS compilation. Keep all existing Safari/AtoZ functionality unchanged.
 - [ ] Self-review and commit.
+
+- [ ] Expose the generic taste-profile DTO and shared clarification/variety policy to native memory/tool context; preserve Gemini’s separately developed tools and use capability checks. Do not implement or claim music playback/catalog integration in this memory task. Test sparse profile, temporary intent and legacy-service fallback.
 
 ## Task 16: Embedding versioning and model portability gates
 
@@ -210,3 +216,5 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 - [ ] Run full backend tests, shared contract tests, app tests, iOS build, privacy/retraction/migration tests and diff checks after final changes. Inspect requirements coverage and resolve real gaps with reviewed fixes.
 - [ ] Update graph index for changed code and record baseline/implementation commit ranges in both repos. Do not deploy, migrate live DB, merge or push automatically.
 - [ ] Obtain whole-change review packages for both repos; fix required issues through one controlled reviewed wave; hand off branches, verification and remaining research/product limitations accurately.
+
+Additional Task 17 acceptance coverage: exercise tastes vs comparative preferences across two domains, one-off and third-party selections, temporary changes, corrections, forget closure and unavailable catalog/playback without making model-quality claims from structured fixtures alone.

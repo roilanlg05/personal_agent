@@ -26,3 +26,6 @@ gemma-memory/
 
 # graphify dated snapshots can exceed GitHub 100MB — do not commit the generated graph.json blobs
 graphify-out/2026-06-04/
+
+# Isolated development worktrees
+.worktrees/

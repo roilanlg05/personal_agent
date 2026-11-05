@@ -14,11 +14,21 @@ enum ScheduleTime {
 
     /// Parse "yyyy-MM-dd'T'HH:mm" (or with space, or date-only → midnight) in local time → epoch.
     static func epoch(fromISO s: String) -> Double? {
+        epoch(fromISO: s, endOfDayIfDateOnly: false)
+    }
+
+    /// Parse "yyyy-MM-dd'T'HH:mm" (or with space, or date-only → midnight or end of day) in local time → epoch.
+    static func epoch(fromISO s: String, endOfDayIfDateOnly: Bool) -> Double? {
         let t = s.trimmingCharacters(in: .whitespaces)
-        for fmt in ["yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd HH:mm", "yyyy-MM-dd'T'HH:mm:ss"] {
+        for fmt in ["yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd HH:mm", "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd HH:mm:ss"] {
             if let d = df(fmt).date(from: t) { return d.timeIntervalSince1970 }
         }
-        if let d = df("yyyy-MM-dd").date(from: t) { return d.timeIntervalSince1970 } // date-only → 00:00
+        if let d = ISO8601DateFormatter().date(from: t) {
+            return d.timeIntervalSince1970
+        }
+        if let d = df("yyyy-MM-dd").date(from: t) {
+            return d.timeIntervalSince1970 + (endOfDayIfDateOnly ? 86399 : 0)
+        }
         return nil
     }
 

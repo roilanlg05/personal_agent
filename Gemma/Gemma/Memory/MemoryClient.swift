@@ -41,9 +41,14 @@ final class MemoryClient {
                 let base = "- [\(n.kind)] \(n.label): \(n.body.isEmpty ? n.label : n.body)"
                 guard n.kind == "event", let extra = n.extra,
                       let data = extra.data(using: .utf8),
-                      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let status = obj["status"] as? String else { return base }
-                return base + scheduleStatusSuffix(status)
+                      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return base }
+                let status = obj["status"] as? String
+                let endAt = obj["endAt"] as? Double
+                var suffix = scheduleStatusSuffix(status)
+                if let endAt, endAt <= Date().timeIntervalSince1970, status != "cancelled" {
+                    suffix += " (ya finalizó / pasado)"
+                }
+                return base + suffix
             }
             var out = ""
             if let s = selfNode, !s.label.isEmpty {
@@ -130,10 +135,17 @@ final class MemoryClient {
     let bearerToken: String
     private let session: URLSession
 
-    init(baseURL: URL, bearerToken: String, session: URLSession = .shared) {
+    init(baseURL: URL, bearerToken: String, session: URLSession? = nil) {
         self.baseURL = baseURL
         self.bearerToken = bearerToken
-        self.session = session
+        if let session {
+            self.session = session
+        } else {
+            let config = URLSessionConfiguration.default
+            config.timeoutIntervalForRequest = 5.0
+            config.timeoutIntervalForResource = 8.0
+            self.session = URLSession(configuration: config)
+        }
     }
 
     // MARK: transcript

@@ -7,6 +7,16 @@ struct GemmaApp: App {
     var body: some Scene {
         WindowGroup {
             HarnessView(model: model)
+                .task {
+                    await AtoZSessionManager.shared.syncSessionFromServer()
+                }
+                .onOpenURL { url in
+                    if url.scheme == "gemma" {
+                        Task {
+                            await AtoZSessionManager.shared.syncSessionFromServer()
+                        }
+                    }
+                }
         }
         #if os(macOS)
         Settings {

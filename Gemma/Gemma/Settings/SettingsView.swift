@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// macOS Settings (⌘,). M2c-1 hosts the "keep model resident" toggle; later M2c slices add
 /// host/port/model and image options here.
@@ -8,13 +9,26 @@ struct SettingsView: View {
     @AppStorage("memoryBaseURL") private var memoryBaseURL: String = "http://localhost:8081"
     @AppStorage("memoryBearerToken") private var memoryBearerToken: String = "replace-me-with-a-long-random-string"
     @AppStorage("voiceBaseURL") private var voiceBaseURL: String = ""
+    #if os(iOS)
+    @AppStorage(SettingsKeys.chatProvider) private var chatProvider = "onDevice"
+    #else
     @AppStorage(SettingsKeys.chatProvider) private var chatProvider = "local"
+    #endif
     @AppStorage(SettingsKeys.chatModel) private var chatModel = ""
     @AppStorage(SettingsKeys.consolidationProvider) private var consolidationProvider = "local"
     @AppStorage(SettingsKeys.consolidationModel) private var consolidationModel = ""
     @AppStorage("useWakeWord") private var useWakeWord = false
     @AppStorage("useCustomWakeWord") private var useCustomWakeWord = false
+    @AppStorage("modelTemperature") private var temperature: Double = 0.2
+    @AppStorage("modelMaxTokens") private var maxOutputTokens: Int = 2048
+    @AppStorage(AtoZSettingsKeys.enabled) private var atozEnabled = true
+    @AppStorage(AtoZSettingsKeys.dryRun) private var atozDryRun = false
+    @AppStorage(AtoZSettingsKeys.addShiftAuthorized) private var atozAddShiftAuthorized = true
+    @AppStorage(AtoZSettingsKeys.suspended) private var atozSuspended = false
+    @AppStorage(AtoZSettingsKeys.suspendedReason) private var atozSuspendedReason = ""
+    @ObservedObject private var atozSession = AtoZSessionManager.shared
     @State private var showEnrollment = false
+    @State private var showAtoZLogin = false
 
     var body: some View {
         Form {
@@ -25,6 +39,38 @@ struct SettingsView: View {
                                onChange: { model.pushConsolidationConfig(); model.refreshLocalModelLifecycle() })
                 Text("El chat usa el modelo elegido en este Mac. La consolidación corre en el i3 con su propio modelo. Las API keys se guardan cifradas.")
                     .font(.footnote).foregroundStyle(.secondary)
+            }
+            Section("Parámetros del Modelo") {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Temperatura")
+                        Spacer()
+                        Text(String(format: "%.2f", temperature))
+                            .monospacedDigit()
+                            .fontWeight(.medium)
+                            .foregroundStyle(.tint)
+                    }
+                    Slider(value: $temperature, in: 0.05...1.0, step: 0.05) {
+                        Text("Temperatura")
+                    } minimumValueLabel: {
+                        Text("0.05 (Preciso)").font(.caption2).foregroundStyle(.secondary)
+                    } maximumValueLabel: {
+                        Text("1.0 (Creativo)").font(.caption2).foregroundStyle(.secondary)
+                    }
+                    Text(temperature <= 0.35 ? "Baja: respuestas exactas, directas y sin invenciones." :
+                         temperature <= 0.7 ? "Equilibrada: conversación natural y fluida." :
+                         "Alta: máxima creatividad y variedad (puede inventar más).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+
+                Picker("Longitud máxima de respuesta", selection: $maxOutputTokens) {
+                    Text("Corta (~512)").tag(512)
+                    Text("Media (~1024)").tag(1024)
+                    Text("Larga (~2048)").tag(2048)
+                    Text("Máxima (~4096)").tag(4096)
+                }
             }
             Section("Servidor") {
                 Toggle("Mantener el modelo en memoria", isOn: $keepResident)
@@ -93,6 +139,81 @@ struct SettingsView: View {
                     }
                 }
             }
+
+            Section("Amazon A to Z") {
+                Toggle("Habilitar integración", isOn: $atozEnabled)
+
+                if atozEnabled {
+                    HStack {
+                        Text("Estado de sesión:")
+                        Spacer()
+                        if atozSession.isLoggedIn {
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Label("Activa", systemImage: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                if let msg = atozSession.syncStatusMessage {
+                                    Text(msg).font(.caption2).foregroundColor(.secondary)
+                                }
+                            }
+                        } else {
+                            HStack(spacing: 8) {
+                                if atozSession.isSyncing {
+                                    ProgressView().controlSize(.small)
+                                }
+                                Label("No iniciada", systemImage: "xmark.circle")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+
+                    if atozSession.isLoggedIn {
+                        Button("Cerrar sesión (Borrar de memoria y servidor)") {
+                            atozSession.clearSession()
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.red)
+                    } else {
+                        HStack {
+                            Button("Iniciar sesión en A to Z...") {
+                                showAtoZLogin = true
+                            }
+                            Spacer()
+                            Button("Sincronizar del Servidor") {
+                                Task {
+                                    await atozSession.syncSessionFromServer()
+                                }
+                            }
+                            .buttonStyle(.borderless)
+                            .font(.caption)
+                        }
+                    }
+
+                    Toggle("Modo simulado (Dry Run)", isOn: $atozDryRun)
+                    Text("En modo simulado, Gemma valida los turnos pero no envía mutaciones de aceptación a Amazon.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    Toggle("Autorización de aceptación de turnos", isOn: $atozAddShiftAuthorized)
+                    Text("Solo habilitar si tienes autorización expresa para solicitar turnos automáticamente. Requiere confirmación explícita antes de cualquier acción.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    if atozSuspended {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label("Acceso suspendido: \(atozSuspendedReason)", systemImage: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                            Button("Reactivar acceso") {
+                                AtoZSettings.clearSuspension()
+                            }
+                            .font(.caption)
+                        }
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showAtoZLogin) {
+            AtoZLoginSheet()
         }
         .sheet(isPresented: $showEnrollment) {
             if let detector = model.wakeDetector {
@@ -106,10 +227,15 @@ struct SettingsView: View {
         .padding()
         .onAppear {
             #if os(iOS)
-            if memoryBaseURL == "http://localhost:8081" {
-                memoryBaseURL = "http://192.168.1.50:8081"
+            if memoryBaseURL == "http://localhost:8081" || memoryBaseURL == "http://192.168.1.50:8081" {
+                memoryBaseURL = "http://100.91.174.81:8081"
             }
             #endif
+            Task {
+                if !atozSession.isLoggedIn {
+                    await atozSession.syncSessionFromServer()
+                }
+            }
         }
     }
 }
@@ -120,6 +246,8 @@ private struct ProviderPicker: View {
     @Binding var model: String
     let onChange: () -> Void
     @State private var apiKey: String = ""
+    @State private var showFilePicker: Bool = false
+    @State private var importError: String?
     @FocusState private var keyFocused: Bool
 
     private var kind: ModelProvider.Kind { ModelProvider.Kind(rawValue: providerRaw) ?? .defaultKind }
@@ -139,17 +267,62 @@ private struct ProviderPicker: View {
             Picker(title, selection: $providerRaw) {
                 ForEach(ModelProvider.Kind.allCases) { Text($0.displayName).tag($0.rawValue) }
             }
-            .onChange(of: providerRaw) { _, _ in apiKey = ""; onChange() }
-            TextField("Modelo (\(kind.defaultModel))", text: $model)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit(onChange)
-            if !kind.isLocalMLX {
-                SecureField(KeychainStore.shared.get(account: keyAccount) == nil ? "API key" : "•••• guardada",
-                            text: $apiKey)
+            .onChange(of: providerRaw) { _, newRaw in
+                if let newKind = ModelProvider.Kind(rawValue: newRaw) {
+                    model = newKind.defaultModel
+                }
+                apiKey = ""
+                onChange()
+            }
+
+            if kind == .onDevice {
+                let detected = LlamaCppRuntime.defaultModelURL()
+                HStack(spacing: 8) {
+                    Image(systemName: detected != nil ? "cpu" : "exclamationmark.triangle")
+                        .foregroundStyle(detected != nil ? .green : .orange)
+                    Text(detected?.lastPathComponent ?? "Ningún modelo .gguf cargado")
+                        .font(.caption)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer()
+                    Button("Elegir .gguf") {
+                        showFilePicker = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                }
+                .fileImporter(
+                    isPresented: $showFilePicker,
+                    allowedContentTypes: [.data, UTType(filenameExtension: "gguf") ?? .data]
+                ) { result in
+                    switch result {
+                    case .success(let url):
+                        do {
+                            let imported = try LlamaCppRuntime.importModel(from: url)
+                            model = imported.lastPathComponent
+                            onChange()
+                        } catch {
+                            importError = error.localizedDescription
+                        }
+                    case .failure(let err):
+                        importError = err.localizedDescription
+                    }
+                }
+                if let err = importError {
+                    Text("Error al importar: \(err)").font(.caption2).foregroundStyle(.red)
+                }
+            } else {
+                TextField("Modelo (\(kind.defaultModel))", text: $model)
                     .textFieldStyle(.roundedBorder)
-                    .focused($keyFocused)
-                    .onSubmit { commitKey() }
-                    .onChange(of: keyFocused) { _, focused in if !focused { commitKey() } }
+                    .onSubmit(onChange)
+                if !kind.isLocalMLX {
+                    SecureField(KeychainStore.shared.get(account: keyAccount) == nil ? "API key" : "•••• guardada",
+                                text: $apiKey)
+                        .textFieldStyle(.roundedBorder)
+                        .focused($keyFocused)
+                        .onSubmit { commitKey() }
+                        .onChange(of: keyFocused) { _, focused in if !focused { commitKey() } }
+                }
             }
         }
     }

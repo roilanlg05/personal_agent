@@ -4,6 +4,8 @@
 >
 > **Fuente de verdad de la visión:** `docs/initial_idea.txt`. La sección _Matriz de cobertura_ al final mapea CADA capacidad de ese archivo a un spec, para garantizar que nada se omitió.
 
+> **Ampliación de diseño, 2026-11-05:** la sección 8 concreta iniciativa conversacional y seguimiento proactivo. La memoria y sus contratos se detallan en el [plan del cerebro](../plans/2026-11-05-cerebro-gemma.md). Los estados fechados en mayo se conservan como historia del proyecto; esta ampliación no declara implementadas las funciones nuevas.
+
 ---
 
 ## 1. Identidad del proyecto
@@ -97,10 +99,10 @@ S1 se ejecutó como una serie de planes (tags `s1-plan1-*` … `s1-plan3c-mtp-re
 
 | Spec | Título | Cubre | Depende de |
 |---|---|---|---|
-| **S11** | Memoria v2 (episódica + narrativa) | memoria episódica humana, timelines, daily graph + meta-graph cross-day, episodios (#"Japan Planning"), importance scoring (#22), soft confidence (#12), multi-step memory linking (#15), daily summary (#25), compresión (#9), compactación en background, emotional timelines, hábitos, **continuidad narrativa** | S5, S0 |
+| **S11** | Memoria v2 (episódica + narrativa) | memoria episódica humana, timelines, daily graph + meta-graph cross-day, episodios (#"Japan Planning"), importance scoring (#22), soft confidence (#12), multi-step memory linking (#15), daily summary (#25), compresión (#9), compactación en background, emotional timelines, hábitos, **continuidad narrativa**, memoria prospectiva y estados de tareas con evidencia; ampliación en el plan del cerebro | S5, S0 |
 | **S12** | Personalidad y voz dinámica | personalidad persistente (#7: humor/estilo/expresiones), dynamic voice style (#24: rápido/relajado/serio/nocturno), emotion tagging (#14: estrés/prisa/cansancio/entusiasmo), frases cortas dinámicas (#3: "voy viendo eso", "un momento") | S2, S4, S5 |
 | **S13** | Context awareness + focus mode | sensores #5 (hora, ubicación, batería, calendario, velocidad del carro, audífonos); focus mode #19 (trabajo/manejo/descanso → verbosity/velocidad/tipo de respuesta) | S4 |
-| **S14** | Proactividad & ambient | modo proactivo #11 ("tráfico hacia el aeropuerto, sal 15 min antes"; "batería baja + reunión pronto"), ambient memory #8 (música, lugares, apps, hábitos; **con permisos**), background task memory #16 ("recuérdame cuando bajen los vuelos"), alertas iniciadas por el agente sin que el usuario hable ("va a llover") | S0, S11, S13, CC1 |
+| **S14** | Iniciativa conversacional, seguimiento y alertas | Conversaciones iniciadas por el agente, dudas con fuente, temas pertinentes, aprendizajes comprobados, recordatorios y seguimiento de tareas; integra modo proactivo #11, background task memory #16 y ambient autorizado #8. Diseño vigente en §8. | Base: S4, S11, S12. Contexto y canales: S0, S6, S13, CC1 según capacidad. |
 
 ### Fase 3 · Expansión (cada uno es grande)
 
@@ -269,3 +271,78 @@ S1 (runtime) ──► S4 (agente+tools) ──► S6/S7/S8/S9/S10  (Fase 1)
 - **Estado (2026-05-28):** **S1 ejecutado en su rama LiteRT-LM** (runtime GPU on-device, harness, Settings, benchmark, decisión MTP=off — ver §3.1 y `01-s1-runtime-report.md`). **S1.1 abierta** (llama.cpp + GGUF uncensored para la decisión runtime/modelo, mmap, energía, imagen). **S0 no iniciado** (debía correr en paralelo en Fase 0).
 - **Próximo paso (opciones):** (a) **S1.1** para cerrar la decisión runtime/modelo y la imagen multimodal; (b) **S0** spike de background iOS; (c) avanzar a **S4** con la rama LiteRT-LM ya medida (la decisión final de runtime/modelo sigue pendiente en S1.1).
 - **Orden de Fase 0 (elegido):** S1 → S4 → S2 → S3, con **S0 en paralelo** como investigación, y **S5 al final** de la fase.
+
+
+## 8. Ampliación de diseño: iniciativa conversacional y seguimiento (2026-11-05)
+
+Esta sección pertenece al producto completo. La parte de memoria vive en el [plan del cerebro de Gemma](../plans/2026-11-05-cerebro-gemma.md): tareas, dudas, fuentes, estados e historial. Aquí se define cómo Gemma puede iniciar una conversación sin esperar a que el usuario envíe el primer mensaje. Son requisitos propuestos, no procesos activados por modificar este documento.
+
+**Experiencia buscada.** Gemma puede volver a una duda real sobre algo hablado, compartir una reflexión o aprendizaje comprobado, proponer un tema relacionado con intereses conocidos, seguir un compromiso y comunicar una actualización útil. Puede iniciar un intercambio social breve aunque no exista una tarea que resolver. No tiene que interrumpir ni inventar que estuvo pensando continuamente para tener iniciativa.
+
+Ejemplos de tono —hipotéticos, no hechos o mensajes enviados—: «Al revisar lo que hablamos del viaje, vi dos fechas distintas. ¿Cuál dejamos?»; «Encontré una explicación que conecta con lo del juego del otro día»; «Me dijiste que hoy querías llamar. ¿Pudiste hacerlo o lo dejamos para otro momento?». Cada afirmación sobre una revisión, descubrimiento o estado requiere el trabajo o la evidencia correspondiente.
+
+**Qué puede originar una iniciativa.**
+
+| Origen | Condición de elegibilidad |
+|---|---|
+| Duda al revisar recuerdos | Sigue sin resolverse tras buscar en las fuentes y aclararla aporta algo. |
+| Reflexión o aprendizaje | El trabajo terminó realmente; la conclusión se distingue de una hipótesis y no se compartió ya. |
+| Interés conversacional | Existe relación con intereses conocidos o temas abiertos; la propuesta es opcional y tiene sentido en ese momento. |
+| Tarea o compromiso | Existe una tarea aceptada o un recordatorio autorizado; el último estado requiere revisión. |
+| Actualización externa | Un conector autorizado aporta información suficientemente reciente, como tiempo, calendario o estado de una tarea. |
+| Vuelta a una conversación | Hay un hilo que merece retomarse y el usuario no pidió dejarlo. |
+
+No hay obligación de llenar silencios ni una cuota de mensajes que el sistema deba producir. La curiosidad es una capacidad conversacional, no una necesidad que el usuario deba satisfacer.
+
+**Ciclo de iniciativa.** Un acontecimiento, revisión programada o resultado de un trabajo puede producir un candidato. El candidato se vincula a su fuente y revisión. Después se comprueba si sigue siendo válido, si ya se trató, si el usuario pidió aplazarlo y si es buen momento. El sistema puede enviarlo, agruparlo con otros, dejarlo para la próxima apertura o descartarlo. La respuesta vuelve al estado de tareas o memoria que corresponda.
+
+La generación de candidatos, la elección de oportunidad y la entrega son componentes distintos. Repetir una reflexión no permite crear el mismo pendiente indefinidamente. Si varias iniciativas compiten, se selecciona una o se ofrece una síntesis breve según importancia y preferencias. Una intervención social puede ser valiosa sin competir como si fuera una alerta urgente.
+
+**Actividad de fondo eficiente.** Se diseñará un coordinador persistente orientado a eventos: fin de una conversación, nueva evidencia, una fecha de revisión o un cambio recibido de un conector. Las comprobaciones temporales usan una cola de próximos trabajos, índices y reintentos con espera progresiva. No se recorrerá todo el grafo ni se consultará al modelo continuamente para preguntar si hay algo que decir.
+
+Las reflexiones periódicas podrán explorar dudas y conexiones, con presupuesto de trabajo, registros de ejecución y una salida válida de «no hay nada nuevo». Las consultas externas solo se realizarán mediante conectores autorizados, con sus límites. El mensaje que comparte un aprendizaje no precederá a la comprobación necesaria para poder llamarlo aprendizaje.
+
+Mientras la app está activa, Gemma puede crear un turno iniciado por ella en el chat. Un borrador no se guarda como mensaje entregado. El usuario puede responder, interrumpir o seguir otro tema sin verse obligado a completar un cuestionario.
+
+Para trabajo persistente fuera de la app se evaluará el coordinador en el servicio ya existente de HomeLab. El teléfono recibirá las actualizaciones mediante mecanismos compatibles con iOS; el diseño no presupone que un modelo pueda seguir ejecutándose indefinidamente en segundo plano. La planificación del sistema operativo y las autorizaciones condicionan el comportamiento real. Véanse [estrategias de segundo plano de Apple](https://developer.apple.com/documentation/backgroundtasks/choosing-background-strategies-for-your-app) y [autorización de notificaciones](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/requestauthorization(options:completionhandler:)).
+
+**Cuándo y por dónde hablar.** La iniciativa respetará el modo de conversación, pausas como «espera», franjas de descanso, las preferencias de frecuencia y el estado de foco disponible. Si falta contexto, una curiosidad o una pregunta no urgente puede esperar a la app; la falta de sensores no se resuelve suponiendo que el usuario está disponible.
+
+Texto en la app, notificación y voz son canales diferentes. Una notificación no abre por sí sola una sesión de voz. Hablar por voz exige una sesión y condiciones autorizadas. La pantalla bloqueada usará contenido discreto para asuntos personales. Las iniciativas se dirigen al usuario dueño; no autorizan mensajes a sus contactos.
+
+El usuario podrá ajustar qué clases de iniciativa acepta y en qué canales: conversación social, dudas, seguimiento y avisos. Podrá decir «luego», «hoy no», «de este tema no me preguntes» o pausar las iniciativas. El sistema conservará ese alcance sin confundir una pausa con una tarea realizada. Las excepciones para avisos realmente urgentes requerirán políticas explícitas y fuentes adecuadas; no dependen solo del tono emocional inferido.
+
+La frecuencia inicial será conservadora y ajustable, y se fijará tras pruebas de uso. La ausencia de respuesta reduce la insistencia de los mensajes no urgentes y puede agrupar pendientes, pero no se convierte en una conclusión sobre el ánimo del usuario. No se optimizará el mecanismo para maximizar interacción ni para crear dependencia.
+
+**Seguimiento de tareas.** Cada tipo de tarea tendrá una fuente operativa: el almacén de tareas para las creadas en Gemma, o el conector correspondiente para las gestionadas fuera. La memoria conserva referencias, observaciones e historia y consulta el estado vigente antes de proponer un seguimiento. Las afirmaciones del usuario se registran con su procedencia; no se exige una verificación externa inexistente para aceptar «ya lo hice» en una tarea cotidiana.
+
+Se priorizan actualizaciones recibidas por eventos cuando estén disponibles. Las revisiones periódicas se limitan a tareas abiertas, datos desactualizados y asuntos cuya próxima revisión corresponda. La periodicidad será configurable por fuente y relevancia. Los errores de conexión mantienen la incertidumbre; no se presentan como comprobaciones completadas.
+
+Antes de entregar un seguimiento se vuelve a consultar su revisión: si la tarea se cerró, se canceló o se aplazó, se retira el aviso que ya no proceda. Un aviso entregado, una fecha vencida o el silencio no cambian el estado a realizado. Los detalles de transición, evidencia y conflicto están en el plan de memoria.
+
+El cierre del día será una opción de uso, no un interrogatorio obligatorio sobre todas las tareas. El sistema puede agrupar algunos asuntos pertinentes y omitir los ya resueltos o aplazados. Una tarea sin fecha no recibe una fecha inventada para justificar recordatorios.
+
+**Entrega e interrupciones consistentes.** Una bandeja de salida persistente separará candidatos, mensajes preparados y entregas. Cada iniciativa tendrá una clave idempotente, revisión de origen, estado, caducidad y posible aplazamiento. La reconexión, dos dispositivos o un reintento no deberían mostrar repetidamente el mismo mensaje. La entrega de una notificación, su lectura y la resolución del asunto se almacenan como hechos diferentes cuando esas señales estén disponibles.
+
+Un trabajo vencido no provoca una ráfaga de avisos antiguos al reconectar. Se reevalúa su utilidad actual. Si una intervención queda fuera de tiempo, puede caducar sin desaparecer del historial operativo. No se promete entrega exactamente una vez en todos los transportes; se diseñan deduplicación y conciliación para los canales controlados.
+
+**Estado actual frente a lo propuesto.** Existen consolidación y nodos de dudas y seguimientos. En la app revisada, `HarnessModel.surfaceProactive()` está desactivado con una nota de endpoints pendientes. La existencia de esos nodos no demuestra que el usuario reciba iniciativas autónomas. El diseño M2b-3 de mayo describe principalmente seguimiento al volver el usuario; esta ampliación añade la capacidad separada de iniciar un intercambio sin una entrada suya.
+
+En la terminología histórica, «conscious resume» se entenderá como reanudación de trabajo persistido y recuperación de su contexto. No acredita conciencia subjetiva ni pensamiento continuo durante la inactividad.
+
+**Entregas de S14.**
+
+| Paso | Entrega | Comprobación de cierre |
+|---|---|---|
+| S14-A | Contrato con memoria y candidatos versionados; modo de simulación sin envío. | Candidatos apoyados en fuentes; resueltos y duplicados se excluyen. |
+| S14-B | Inicio de conversación dentro de la app y respuesta del usuario. | Un evento puede iniciar un turno sin un mensaje previo del usuario; pausa e interrupción funcionan. |
+| S14-C | Seguimiento de tareas y conciliación con fuentes. | No se inventan cierres, no se reabren tareas por un resumen antiguo y se toleran observaciones fuera de orden. |
+| S14-D | Coordinador persistente, recuperación de fallos y bandeja de salida. | Reinicio, reconexión y concurrencia no producen ráfagas ni duplicados visibles en los casos ensayados. |
+| S14-E | Canales fuera de la app y permisos de plataforma. | Comportamiento verificado en iPhone físico, incluidos permisos denegados, sin red y app en segundo plano. |
+| S14-F | Adaptación de frecuencia, contexto y conectores nuevos. | Evaluación de pertinencia e interrupción mejora sin aumentar errores de memoria o avisos obsoletos. |
+
+Las integraciones de tiempo, tráfico u otras fuentes pueden añadirse después sin bloquear las dudas, reflexiones e iniciativas conversacionales de la primera versión. La visión continua no es necesaria para esta capacidad.
+
+**Casos mínimos de aceptación.** Duda ya contestada en otro episodio; aprendizaje generado pero sin verificar; usuario ocupado; silencio; «espera»; «luego»; tarea marcada realizada antes de entregar el aviso; recordatorio entregado sin tarea hecha; tarea sin fecha; usuario que pide no seguir un tema; fuente externa atrasada; dos dispositivos; pérdida de conectividad; reinicio; varios trabajos vencidos; información meteorológica antigua; y un tema social apropiado que inicia una conversación sin una tarea instrumental.
+
+Se medirán iniciativas pertinentes, interrupciones no deseadas, repetición, antigüedad de los datos, estados de tarea erróneos, latencia de actualización y aceptación explícita del usuario. El número de mensajes enviados no será una métrica de éxito.

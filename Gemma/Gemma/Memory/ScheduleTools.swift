@@ -16,7 +16,9 @@ func scheduleStatusSuffix(_ status: String?) -> String {
 
 private func eventLine(_ e: MemoryClient.ScheduleEvent) -> String {
     let loc = (e.location?.isEmpty == false) ? " @ \(e.location!)" : ""
-    return "\(e.title): \(ScheduleTime.human(fromEpoch: e.start))–\(ScheduleTime.human(fromEpoch: e.end))\(loc)\(scheduleStatusSuffix(e.status))"
+    let now = Date().timeIntervalSince1970
+    let pastSuffix = (e.end <= now && e.status != "cancelled") ? " (ya finalizó / pasado)" : ""
+    return "\(e.title): \(ScheduleTime.human(fromEpoch: e.start))–\(ScheduleTime.human(fromEpoch: e.end))\(loc)\(scheduleStatusSuffix(e.status))\(pastSuffix)"
 }
 
 /// check_schedule — read-only: are there conflicts in [start,end)?
@@ -38,7 +40,15 @@ struct CheckScheduleTool: AgentTool {
             guard let m = await mem() else { return "memory unavailable" }
             do {
                 let c = try await m.checkSchedule(start: s, end: e)
-                return c.isEmpty ? "No conflicts." : "Conflicts: " + c.map(eventLine).joined(separator: "; ")
+                var conflictStrings: [String] = c.map(eventLine)
+
+                let nodesResp = try? await m.nodes(limit: 50, offset: 0, kind: nil)
+                if let nodes = nodesResp?.nodes {
+                    let routineConflicts = RoutineHelper.findRoutineConflicts(startEpoch: s, endEpoch: e, nodes: nodes)
+                    conflictStrings.append(contentsOf: routineConflicts)
+                }
+
+                return conflictStrings.isEmpty ? "No conflicts." : "Conflicts: " + conflictStrings.joined(separator: "; ")
             } catch { return "schedule error: \(error)" }
         }()
         await MainActor.run { ToolActivityRelay.shared.finished(name: Self.name, result: result) }
@@ -73,6 +83,16 @@ struct CreateEventTool: AgentTool {
         let result: String = await {
             guard let m = await mem() else { return "memory unavailable" }
             do {
+                if !force {
+                    let nodesResp = try? await m.nodes(limit: 50, offset: 0, kind: nil)
+                    if let nodes = nodesResp?.nodes {
+                        let routineConflicts = RoutineHelper.findRoutineConflicts(startEpoch: s, endEpoch: e, nodes: nodes)
+                        if !routineConflicts.isEmpty {
+                            return "NOT scheduled — conflicts with: " + routineConflicts.joined(separator: "; ")
+                                 + ". Avísale al usuario sobre este conflicto de horario/rutina y pregúntale si desea otro horario o agendarlo de todos modos reemplazando su rutina (force=true)."
+                        }
+                    }
+                }
                 let r = try await m.createEvent(title: title, start: s, end: e, allDay: allDay,
                                                 location: (location?.isEmpty == false) ? location : nil, force: force)
                 if r.created { return "Scheduled: \(title) (\(ScheduleTime.human(fromEpoch: s)))" }
@@ -139,17 +159,20 @@ struct UpdateEventTool: AgentTool {
 /// query_schedule — list events in a window.
 struct QueryScheduleTool: AgentTool {
     static let name = "query_schedule"
-    static let description = "List the user's events between two local ISO datetimes (use this for \"what's on my schedule this week\"). Pass dates like 2026-06-09 or 2026-06-09T00:00."
+    static let description = "List events in a local ISO datetime window. To search relative times for today: morning is 00:00 to 12:00, afternoon is 12:00 to 18:00, evening/night is 18:00 to 23:59, all day is 00:00 to 23:59. For upcoming or remaining events of today, pass from=<current time> to=23:59. Always pass local ISO datetimes with the current date."
     static let parameters: [AgentToolParam] = [
-        AgentToolParam(name: "from", type: .string, description: "Local ISO datetime/date for the window start.", required: true),
-        AgentToolParam(name: "to", type: .string, description: "Local ISO datetime/date for the window end.", required: true),
+        AgentToolParam(name: "from", type: .string, description: "Local ISO datetime window start (e.g. 2026-11-03T00:00 or 2026-11-03T12:00).", required: true),
+        AgentToolParam(name: "to", type: .string, description: "Local ISO datetime window end (e.g. 2026-11-03T12:00 or 2026-11-03T23:59).", required: true),
         AgentToolParam(name: "includeCancelled", type: .boolean, description: "true to also list cancelled/past events (shown marked '(cancelado)'). Default false — the normal agenda excludes them.", required: false),
     ]
     func run(argsJSON: String) async -> String {
         let o = obj(argsJSON)
-        guard let f = (o["from"] as? String).flatMap(ScheduleTime.epoch),
-              let t = (o["to"] as? String).flatMap(ScheduleTime.epoch) else {
+        guard let f = (o["from"] as? String).flatMap({ ScheduleTime.epoch(fromISO: $0, endOfDayIfDateOnly: false) }),
+              var t = (o["to"] as? String).flatMap({ ScheduleTime.epoch(fromISO: $0, endOfDayIfDateOnly: true) }) else {
             return "I need a from/to range (e.g. 2026-06-09 to 2026-06-16)."
+        }
+        if t <= f {
+            t = f + 86400
         }
         let includeCancelled = (o["includeCancelled"] as? Bool) ?? false
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: "\(ScheduleTime.human(fromEpoch: f))–\(ScheduleTime.human(fromEpoch: t))") }

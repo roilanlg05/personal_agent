@@ -4,13 +4,31 @@ import AppKit
 import UIKit
 #endif
 
+public struct ChatLogEntry: Identifiable, Sendable, Equatable {
+    public let id: String
+    public var role: String // "you", "gemma", "tool", "system", "error"
+    public var text: String
+    public var thought: String?
+    public var isThoughtExpanded: Bool = false
+
+    public init(id: String = UUID().uuidString, role: String, text: String, thought: String? = nil, isThoughtExpanded: Bool = false) {
+        self.id = id
+        self.role = role
+        self.text = text
+        self.thought = thought
+        self.isThoughtExpanded = isThoughtExpanded
+    }
+}
+
 @Observable
 @MainActor
 public final class HarnessModel {
-    public var agentLog: [String] = []
+    public var agentLog: [ChatLogEntry] = []
     public var agentRunning: Bool = false
     public var showMemory: Bool = false
     var hasProactive: Bool = false
+
+    @ObservationIgnored private var currentTurnTask: Task<Void, Never>?
 
     @ObservationIgnored private var runtime: ModelRuntime & ToolCallingRuntime
     @ObservationIgnored private let settingsStore = SettingsStore()
@@ -23,7 +41,7 @@ public final class HarnessModel {
     @ObservationIgnored let voice = VoiceController(recorder: AudioRecorder())
     /// Always-listening "Hey Jarvis". Built lazily (loads ONNX models) so a load failure doesn't crash init.
     @ObservationIgnored private(set) var wake: WakeListener?
-    @ObservationIgnored private var lastTurnEndedAt: Double = 0
+    @ObservationIgnored private var lastTurnEndedAt: Double = UserDefaults.standard.double(forKey: "lastTurnEndedAt")
     private static let wakeGapSeconds: Double = 180   // first turn or a gap > this = a "wake"
 
     /// Build the per-turn "wake context" appended to the system prompt: what the agent was
@@ -73,16 +91,26 @@ public final class HarnessModel {
     /// Build the chat provider from settings. `keyLookup` returns the stored API key for a kind
     /// (injected for tests; production passes KeychainStore.shared.get).
     static func chatProvider(keyLookup: (ModelProvider.Kind) -> String?) -> ModelProvider {
-        let kindRaw = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? ModelProvider.Kind.defaultKind.rawValue
-        let kind = ModelProvider.Kind(rawValue: kindRaw) ?? .defaultKind
+        #if os(iOS)
+        let defaultKind = ModelProvider.Kind.onDevice
+        #else
+        let defaultKind = ModelProvider.Kind.defaultKind
+        #endif
+        let kindRaw = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? defaultKind.rawValue
+        let kind = ModelProvider.Kind(rawValue: kindRaw) ?? defaultKind
         let model = UserDefaults.standard.string(forKey: SettingsKeys.chatModel)
         let key = kind.isLocalMLX ? nil : keyLookup(kind)
         return ModelProvider(kind: kind, model: model, apiKey: key)
     }
 
     var currentProviderKind: ModelProvider.Kind {
-        let raw = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? ModelProvider.Kind.defaultKind.rawValue
-        return ModelProvider.Kind(rawValue: raw) ?? .defaultKind
+        #if os(iOS)
+        let defaultKind = ModelProvider.Kind.onDevice
+        #else
+        let defaultKind = ModelProvider.Kind.defaultKind
+        #endif
+        let raw = UserDefaults.standard.string(forKey: SettingsKeys.chatProvider) ?? defaultKind.rawValue
+        return ModelProvider.Kind(rawValue: raw) ?? defaultKind
     }
 
     var isMissingApiKey: Bool {
@@ -97,6 +125,8 @@ public final class HarnessModel {
     func rebuildRuntime() {
         let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
         self.runtime = RuntimeFactory.make(provider)
+        self.isPreheated = false
+        preheatRuntime()
     }
 
     public init() {
@@ -117,13 +147,35 @@ public final class HarnessModel {
             MainActor.assumeIsolated { self?.stopServer() }
         }
         #endif
-        voice.appendLine = { [weak self] line in self?.agentLog.append(line) }
+        voice.appendLine = { [weak self] line in self?.agentLog.append(ChatLogEntry(role: "system", text: line)) }
         voice.threadId = { [weak self] in self?.currentThreadId ?? "voice" }
         ensureVoice()
         if UserDefaults.standard.bool(forKey: "useWakeWord") {
             ensureWake()
             Task { @MainActor in
                 await self.wake?.enable()
+            }
+        }
+        preheatRuntime()
+    }
+
+    private var isPreheating: Bool = false
+    private var isPreheated: Bool = false
+
+    /// Pre-warm local model on launch so user gets instant zero-cold-start replies
+    public func preheatRuntime() {
+        guard !isPreheating && !isPreheated else { return }
+        isPreheating = true
+        Task(priority: .utility) { [weak self] in
+            guard let self else { return }
+            defer { self.isPreheating = false }
+            if let llama = self.runtime as? LlamaCppRuntime {
+                do {
+                    try await llama.preheat()
+                    self.isPreheated = true
+                } catch {
+                    print("[LlamaRuntime] Aviso precalentamiento: \(error.localizedDescription)")
+                }
             }
         }
     }
@@ -186,7 +238,9 @@ public final class HarnessModel {
     func memoryClient() -> MemoryClient? { memory }
 
     private func makeGenerationOptions(history: [ChatMessage] = []) -> GenerationOptions {
-        GenerationOptions(maxTokens: settings.maxOutputTokens, temperature: settings.temperature,
+        let maxTokens = UserDefaults.standard.object(forKey: "modelMaxTokens") as? Int ?? max(settings.maxOutputTokens, 2048)
+        let temp = UserDefaults.standard.object(forKey: "modelTemperature") as? Double ?? 0.2
+        return GenerationOptions(maxTokens: maxTokens, temperature: temp,
                           topP: settings.topP, topK: settings.topK,
                           systemPrompt: settings.systemPrompt.isEmpty ? nil : settings.systemPrompt,
                           history: history)
@@ -210,8 +264,8 @@ public final class HarnessModel {
         }
         var urlString = UserDefaults.standard.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
         #if os(iOS)
-        if urlString == "http://localhost:8081" || urlString.isEmpty {
-            urlString = "http://192.168.1.50:8081"
+        if urlString == "http://localhost:8081" || urlString == "http://192.168.1.50:8081" || urlString.isEmpty {
+            urlString = "http://100.91.174.81:8081"
             UserDefaults.standard.set(urlString, forKey: "memoryBaseURL")
         }
         #endif
@@ -248,7 +302,7 @@ public final class HarnessModel {
     func ensureWake() {
         guard wake == nil else { return }
         guard let detector = try? WakeWordDetector() else {
-            agentLog.append("voice: wake word no disponible (no pude cargar el modelo).")
+            agentLog.append(ChatLogEntry(role: "system", text: "voice: wake word no disponible (no pude cargar el modelo)."))
             return
         }
         self.wake = WakeListener(detector: detector) { [weak self] wav, isPassive in
@@ -267,7 +321,7 @@ public final class HarnessModel {
             Task { @MainActor in
                 self.wake?.disable()
                 UserDefaults.standard.set(false, forKey: "useWakeWord")
-                self.agentLog.append("gemma: escucha desactivada. Dime 'Hey Gemma' cuando me necesites de nuevo.")
+                self.agentLog.append(ChatLogEntry(role: "gemma", text: "escucha desactivada. Dime 'Hey Gemma' cuando me necesites de nuevo."))
             }
         }
         // Mutual exclusion with manual tap-to-talk: don't act on the wake word while a voice turn is active.
@@ -324,26 +378,46 @@ public final class HarnessModel {
         // service so the harness can surface them again without GRDB access.
     }
 
+    public func startAgentTurn(_ prompt: String) {
+        currentTurnTask?.cancel()
+        currentTurnTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.runAgentTurn(prompt)
+        }
+    }
+
+    public func cancelAgentTurn() {
+        currentTurnTask?.cancel()
+        currentTurnTask = nil
+        agentRunning = false
+        agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
+    }
+
     public func runAgentTurn(_ prompt: String) async {
-        // Always (re)build the runtime from current settings so the turn uses the latest chat
-        // provider + API key (read fresh from the Keychain) — independent of when/where the key
-        // was saved in Settings. Cheap: ServerRuntime is stateless.
-        rebuildRuntime()
+        let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
+        if !(self.runtime is LlamaCppRuntime && provider.kind == .onDevice) {
+            self.runtime = RuntimeFactory.make(provider)
+        }
         surfaceProactive()
         agentRunning = true; defer { agentRunning = false }
-        agentLog.append("you: \(prompt)")
+        agentLog.append(ChatLogEntry(role: "you", text: prompt))
         ensureMemory()
         let client = memory
         let registry = ToolRegistry()
         registry.register(CurrentTimeTool())
         if client != nil {
             registry.register(ForgetTool()); registry.register(ReflectTool()); registry.register(LoadMessagesTool())
-            registry.register(SaveMemoryTool())
+            registry.register(SaveMemoryTool()); registry.register(SearchMemoryTool())
             registry.register(CheckScheduleTool()); registry.register(CreateEventTool())
             registry.register(QueryScheduleTool()); registry.register(CancelEventsTool())
             registry.register(UpdateEventTool())
+            registry.register(CreateTaskTool()); registry.register(ListTasksTool()); registry.register(DeleteTaskTool())
             registry.register(ListTopicsTool()); registry.register(RecallByTopicTool()); registry.register(WhyTool())
+            registry.register(SetRoutineTool()); registry.register(ListRoutinesTool())
         }
+        registry.register(ListAvailableShiftsTool())
+        registry.register(AddShiftTool())
+        registry.register(DropShiftTool())
         let now = Date().timeIntervalSince1970
         let isWake = (lastTurnEndedAt == 0) || (now - lastTurnEndedAt > Self.wakeGapSeconds)
         _ = isWake // followUps / focus are service-driven now (no per-turn HTTP for them in M3a)
@@ -352,10 +426,26 @@ public final class HarnessModel {
             UserDefaults.standard.set(threadId, forKey: "activeThreadId")
             turnIndex = 0
         }
-        // M3a: focus / pendingFollowUps surfaces would require dedicated endpoints. The
-        // service still consolidates in the background; for now wake-context is silent until
-        // those endpoints land. Recall (the main signal) still rides the user prompt tail.
-        let wakeContext = ""
+        let wakeContext: String = {
+            guard lastTurnEndedAt > 0 else {
+                return "Last interaction with user: none recorded (first interaction or new session)."
+            }
+            let elapsedSec = now - lastTurnEndedAt
+            let timeDesc: String
+            if elapsedSec < 120 {
+                timeDesc = "about 1-2 minutes ago (just now, ongoing conversation)"
+            } else if elapsedSec < 3600 {
+                let mins = max(1, Int(round(elapsedSec / 60)))
+                timeDesc = "\(mins) minute\(mins == 1 ? "" : "s") ago"
+            } else if elapsedSec < 86400 {
+                let hours = Int(round(elapsedSec / 3600))
+                timeDesc = "\(hours) hour\(hours == 1 ? "" : "s") ago"
+            } else {
+                let days = Int(round(elapsedSec / 86400))
+                timeDesc = "\(days) day\(days == 1 ? "" : "s") ago"
+            }
+            return "Last interaction with user: \(timeDesc)."
+        }()
         // Build recallTail via HTTP. recall() returns .empty on transport failure (see
         // MemoryClient.recall), so an offline service degrades to "no recall" instead of crashing.
         var recallTail = ""
@@ -371,35 +461,92 @@ public final class HarnessModel {
         }()
         let agent = Agent(runtime: runtime, registry: registry, recallTail: recallTail, wakeContext: wakeContext)
         var answer = ""
-        var streamingIdx: Int? = nil   // index of the live "gemma: …" line being streamed into
+        var finalAssistantText = ""
+        var currentThought = ""
+        var activeGemmaIdx: Int? = nil
+
         do {
             for try await event in agent.run(prompt: prompt, options: makeGenerationOptions(history: history)) {
                 switch event {
+                case .thought(let th):
+                    currentThought += th
+                    if let idx = activeGemmaIdx {
+                        agentLog[idx].thought = currentThought
+                    } else {
+                        agentLog.append(ChatLogEntry(role: "gemma", text: "", thought: currentThought))
+                        activeGemmaIdx = agentLog.count - 1
+                    }
                 case .token(let t):
                     answer += t
-                    // Render tokens live: append the assistant line on the first token, then grow it.
-                    if let i = streamingIdx { agentLog[i] = "gemma: \(answer)" }
-                    else { agentLog.append("gemma: \(answer)"); streamingIdx = agentLog.count - 1 }
-                case .toolCallStarted(let n, _): agentLog.append("🔧 \(n)…")
-                case .toolCallFinished(let n, let r): agentLog.append("🔧 \(n) ✓ \(r)")
-                case .completed:
-                    // If nothing streamed (e.g. dummy runtime / empty answer), show it once now.
-                    if streamingIdx == nil, !answer.isEmpty { agentLog.append("gemma: \(answer)") }
-                case .failed(let m): agentLog.append("[error: \(m)]")
+                    finalAssistantText = answer
+                    let stripped = GemmaToolCallParser.strip(answer)
+                    let trimmed = stripped.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty && trimmed != "<|" && !trimmed.hasPrefix("<|") {
+                        if let idx = activeGemmaIdx {
+                            agentLog[idx].text = stripped
+                        } else {
+                            agentLog.append(ChatLogEntry(role: "gemma", text: stripped, thought: currentThought.isEmpty ? nil : currentThought))
+                            activeGemmaIdx = agentLog.count - 1
+                        }
+                    }
+                case .toolCallStarted(let n, _):
+                    if let idx = activeGemmaIdx {
+                        // A tool call has started: any text streamed prior to this tool call
+                        // was an internal tool invocation fragment and must never remain as user answer.
+                        if agentLog[idx].thought?.isEmpty ?? true {
+                            agentLog.remove(at: idx)
+                        } else {
+                            agentLog[idx].text = ""
+                        }
+                    }
+                    agentLog.append(ChatLogEntry(role: "tool", text: "🔧 \(n)…"))
+                    activeGemmaIdx = nil
+                    currentThought = ""
+                    answer = ""
+                    finalAssistantText = ""
+                case .toolCallFinished(let n, let r):
+                    agentLog.append(ChatLogEntry(role: "tool", text: "🔧 \(n) ✓ \(r)"))
+                    activeGemmaIdx = nil
+                    currentThought = ""
+                    answer = ""
+                    finalAssistantText = ""
+                case .completed(let res):
+                    let chosen = !res.text.isEmpty ? res.text : answer
+                    let stripped = GemmaToolCallParser.strip(chosen)
+                    finalAssistantText = stripped
+                    if let idx = activeGemmaIdx {
+                        agentLog[idx].text = stripped
+                    } else if !stripped.isEmpty {
+                        agentLog.append(ChatLogEntry(role: "gemma", text: stripped))
+                    }
+                case .failed(let m):
+                    agentLog.append(ChatLogEntry(role: "error", text: m))
                 }
             }
-        } catch { agentLog.append("[error: \(error)]") }
+        } catch is CancellationError {
+            if let idx = activeGemmaIdx {
+                let current = agentLog[idx].text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if current.isEmpty && (agentLog[idx].thought?.isEmpty ?? true) {
+                    agentLog.remove(at: idx)
+                }
+            }
+        } catch {
+            agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
+        }
         // Append both turns to the transcript over HTTP. Failures are silent (service-down
         // shouldn't crash a successful turn — the user can see Gemma's reply).
         if let client {
             try? await client.appendTranscript(threadId: threadId, role: "user", text: prompt, turnIndex: turnIndex)
-            if !answer.isEmpty {
-                try? await client.appendTranscript(threadId: threadId, role: "assistant", text: answer, turnIndex: turnIndex)
+            let cleanForTranscript = GemmaToolCallParser.strip(finalAssistantText)
+            if !cleanForTranscript.isEmpty {
+                try? await client.appendTranscript(threadId: threadId, role: "assistant", text: cleanForTranscript, turnIndex: turnIndex)
             }
             turnIndex += 1
             // Signal the service to arm its consolidation timers. Fire-and-forget.
             try? await client.consolidationTurnEnd(threadId: threadId)
         }
-        lastTurnEndedAt = Date().timeIntervalSince1970
+        let finishedNow = Date().timeIntervalSince1970
+        lastTurnEndedAt = finishedNow
+        UserDefaults.standard.set(finishedNow, forKey: "lastTurnEndedAt")
     }
 }

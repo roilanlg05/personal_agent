@@ -11,9 +11,9 @@ final class VoiceControllerTests: XCTestCase {
         func stop() -> Data? { wav }
     }
     final class FakeTurning: VoiceTurning, @unchecked Sendable {
-        var reply = VoiceReply(audio: Data(), sttText: "hola", replyText: "qué tal")  // empty audio → play() no-ops to idle
+        var reply = VoiceReply(audio: Data([0x52, 0x49, 0x46, 0x46]), sttText: "hola", replyText: "qué tal", shouldStop: false)  // non-empty audio so text appends; play() fails safely to idle
         var error: Error?
-        func turn(wav: Data, threadId: String, timezone: String) async throws -> VoiceReply {
+        func turn(wav: Data, threadId: String, timezone: String, isPassive: Bool) async throws -> VoiceReply {
             if let error { throw error }
             return reply
         }

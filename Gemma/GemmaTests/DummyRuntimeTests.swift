@@ -23,6 +23,7 @@ final class DummyRuntimeTests: XCTestCase {
         for try await event in stream {
             switch event {
             case .token(let t): tokens.append(t)
+            case .thought: break
             case .completed(let result): finalResult = result
             case .toolCallStarted, .toolCallFinished: break
             }

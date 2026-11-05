@@ -34,6 +34,7 @@ final class WakeWordDetectorTests: XCTestCase {
 
     func test_detects_hey_jarvis_above_threshold() async throws {
         let d = try WakeWordDetector()
+        d.clearCustomWakeWord()
         let s = maxScore(try samples("hey_jarvis"), d)
         print("hey_jarvis max score = \(s)")
         XCTAssertGreaterThan(s, 0.5, "hey_jarvis should score > 0.5, got \(s)")

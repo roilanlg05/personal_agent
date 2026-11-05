@@ -29,3 +29,7 @@ graphify-out/2026-06-04/
 
 # Isolated development worktrees
 .worktrees/
+
+# Local read-only build inputs and isolated build outputs
+Gemma/Gemma/Frameworks
+.build/

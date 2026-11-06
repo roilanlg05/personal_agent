@@ -60,11 +60,35 @@ final class BrowserInspectionToolsTests: XCTestCase {
     }
 
     func test_wait_timeout_from_the_cli_is_refused_not_error() async throws {
-        let out = await BrowserWaitTool(service: svc(#"{"success":false,"data":null,"error":"Timeout 25000ms exceeded waiting for text \"Listo\""}"#))
+        // Cadena de agent-browser 0.41.2 verificada en vivo contra el binario. La que estaba
+        // antes aquí ("Timeout 25000ms exceeded waiting for text ...") no la emite el CLI:
+        // era un mock afirmando su propia ficción en la suite que fija un mapeo real.
+        let out = await BrowserWaitTool(service: svc(#"{"success":false,"data":null,"error":"Wait timed out after 25000ms"}"#))
             .run(argsJSON: #"{"text":"Listo"}"#)
         let json = try parse(out)
         XCTAssertEqual(json["status"] as? String, "refused")
-        XCTAssertTrue((json["message"] as? String ?? "").contains("Timeout"))
+        XCTAssertTrue((json["message"] as? String ?? "").contains("timed out"))
+    }
+
+    /// `is Bool` es verdadero para un `NSNumber` que vale 0 o 1 (`JSONSerialization` puentea
+    /// los números como `NSNumber`), así que la guarda anterior descartaba en silencio un
+    /// `{"milliseconds":1}` bien formado y la herramienta respondía «recibí 0 criterios».
+    func test_wait_accepts_the_numbers_zero_and_one_but_still_rejects_a_boolean() async throws {
+        for ms in [0, 1] {
+            let mock = MockAgentBrowserInvoker.succeeding(stdout: okEmpty)
+            let out = await BrowserWaitTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma"))
+                .run(argsJSON: "{\"milliseconds\":\(ms)}")
+            XCTAssertEqual(try parse(out)["status"] as? String, "success", "\(ms) ms")
+            XCTAssertEqual(mock.receivedArguments.first,
+                           ["--session", "gemma", "wait", "\(ms)", "--json"], "\(ms) ms")
+        }
+        for boolean in ["true", "false"] {
+            let mock = MockAgentBrowserInvoker.succeeding(stdout: okEmpty)
+            let out = await BrowserWaitTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma"))
+                .run(argsJSON: "{\"milliseconds\":\(boolean)}")
+            XCTAssertEqual(try parse(out)["status"] as? String, "error", boolean)
+            XCTAssertTrue(mock.receivedArguments.isEmpty, "un booleano no debe llegar al CLI: \(boolean)")
+        }
     }
 
     func test_wait_refuses_a_flag_shaped_text_as_an_argument_error() async throws {
@@ -105,6 +129,31 @@ final class BrowserInspectionToolsTests: XCTestCase {
         let out = await BrowserGetTool(service: svc(#"{"success":true,"data":{"count":7},"error":null}"#))
             .run(argsJSON: #"{"what":"count","selector":"li"}"#)
         XCTAssertEqual(try parse(out)["value"] as? Int, 7)
+    }
+
+    /// `get text` sobre un contenedor devolvía la página entera con `truncated: false`: el
+    /// tope era solo para 'html', y leer la página con `get text` es la vía obvia del modelo.
+    func test_get_text_and_value_over_the_limit_are_truncated_and_say_how_to_narrow() async throws {
+        let long = String(repeating: "a", count: 20_000)
+        for what in ["text", "value"] {
+            let stdout = #"{"success":true,"data":{"\#(what)":"\#(long)"},"error":null}"#
+            let out = await BrowserGetTool(service: svc(stdout))
+                .run(argsJSON: #"{"what":"\#(what)","selector":"body"}"#)
+            let json = try parse(out)
+            XCTAssertEqual((json["value"] as? String)?.count, BrowserGetTool.contentLimit, what)
+            XCTAssertEqual(json["truncated"] as? Bool, true, what)
+            XCTAssertTrue((json["message"] as? String ?? "").contains("selector"),
+                          "la nota debe decir cómo acotar: \(json["message"] ?? "nil")")
+        }
+    }
+
+    /// Un valor que cabe no se marca como recortado ni arrastra la nota.
+    func test_get_text_under_the_limit_is_not_marked_truncated() async throws {
+        let out = await BrowserGetTool(service: svc(#"{"success":true,"data":{"text":"Hola"},"error":null}"#))
+            .run(argsJSON: #"{"what":"text","selector":"@e1"}"#)
+        let json = try parse(out)
+        XCTAssertEqual(json["truncated"] as? Bool, false)
+        XCTAssertNil(json["message"])
     }
 
     func test_get_empty_text_is_no_content() async throws {

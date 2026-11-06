@@ -50,7 +50,11 @@ public final class BrowserWaitTool: AgentTool, Sendable {
         if let selector = AgentBrowserToolOutput.nonEmpty(args["selector"]) {
             criteria.append(("selector", selector, [selector]))
         }
-        if let ms = args["milliseconds"] as? NSNumber, !(args["milliseconds"] is Bool) {
+        // `is Bool` NO sirve aquí: `JSONSerialization` puentea los números como `NSNumber`,
+        // y un `NSNumber` que vale 0 o 1 satisface `is Bool`, así que descartaba en silencio
+        // un `{"milliseconds":1}` bien formado. El booleano de verdad llega como `CFBoolean`.
+        if let ms = args["milliseconds"] as? NSNumber,
+           CFGetTypeID(ms as CFTypeRef) != CFBooleanGetTypeID() {
             guard ms.doubleValue >= 0, ms.doubleValue.isFinite else {
                 return AgentBrowserToolOutput.invalidArguments("'milliseconds' debe ser un número positivo.")
             }
@@ -76,16 +80,21 @@ public final class BrowserWaitTool: AgentTool, Sendable {
 /// Lee un dato concreto de la página abierta (texto, HTML, valor, título, URL o recuento).
 public final class BrowserGetTool: AgentTool, Sendable {
     public static let name = "browser_get"
-    public static let htmlLimit = 8_000
+    /// Tope de los campos que pueden traer un bloque de página entero.
+    public static let contentLimit = 8_000
+    /// Qué valores de `what` se recortan. `title` y `url` son cortos por construcción.
+    static let clippedWhat: Set<String> = ["text", "html", "value"]
     public static let timeout: TimeInterval = 30
     /// Lista cerrada de lo que se puede leer; cada nombre es también la clave de `data`.
     static let allowedWhat = ["text", "html", "value", "title", "url", "count"]
 
     public static let description = """
     Lee un dato concreto de la página abierta en el navegador del agente. 'what' elige \
-    qué: 'text' (texto de un elemento), 'html' (HTML de un elemento, recortado a \
-    \(htmlLimit) caracteres), 'value' (valor de un campo), 'title' (título de la \
-    página), 'url' (URL actual) o 'count' (cuántos elementos coinciden con el selector). \
+    qué: 'text' (texto de un elemento), 'html' (HTML de un elemento), 'value' (valor de \
+    un campo), 'title' (título de la página), 'url' (URL actual) o 'count' (cuántos \
+    elementos coinciden con el selector). 'text', 'html' y 'value' se recortan a \
+    \(contentLimit) caracteres: si 'truncated' es true no leíste el dato entero, así que \
+    acota con un 'selector' más concreto en vez de darlo por completo. \
     'text', 'html', 'value' y 'count' necesitan 'selector' (referencia '@eN' o selector \
     CSS); 'title' y 'url' no. Sirve para comprobar el resultado de una acción sin pedir \
     un snapshot completo. Estados: 'success' (el dato va en 'value'; 'truncated' indica \
@@ -139,13 +148,17 @@ public final class BrowserGetTool: AgentTool, Sendable {
             return AgentBrowserToolOutput.noContent("La página no devolvió ningún '\(what)'.",
                                                     extra: ["what": what])
         }
-        let clipped = what == "html" ? AgentBrowserToolOutput.truncate(text, limit: Self.htmlLimit) : (text, false)
+        // El tope vale para los tres campos que pueden traer página entera, no solo para
+        // 'html': un 'get text' sobre un contenedor vuelca la página igual que el HTML.
+        let clipped = Self.clippedWhat.contains(what)
+            ? AgentBrowserToolOutput.truncate(text, limit: Self.contentLimit)
+            : (text, false)
         return ToolJSONOutput.object([
             "status": "success",
             "what": what,
             "value": clipped.0,
             "truncated": clipped.1,
-            "message": clipped.1 ? "El HTML se recortó a \(Self.htmlLimit) caracteres. Acota con 'selector'." : nil,
+            "message": clipped.1 ? "El '\(what)' se recortó a \(Self.contentLimit) caracteres. Acota con 'selector'." : nil,
             "content_is_untrusted": true
         ])
     }

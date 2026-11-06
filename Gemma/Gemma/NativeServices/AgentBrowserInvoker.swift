@@ -142,12 +142,45 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
         return path.hasPrefix("/") ? path : nil
     }
 
-    /// Lanza el proceso y espera, con plazo máximo.
+    /// Acumula lo que va saliendo de una tubería y recuerda si llegó EOF.
+    private final class PipeCollector: @unchecked Sendable {
+        private let lock = NSLock()
+        private var data = Data()
+        private var reachedEOF = false
+
+        func attach(to handle: FileHandle) {
+            handle.readabilityHandler = { [self] handle in
+                let chunk = handle.availableData
+                lock.lock()
+                if chunk.isEmpty { reachedEOF = true } else { data.append(chunk) }
+                lock.unlock()
+                // Sin esto el manejador se dispararía sin parar tras el EOF.
+                if chunk.isEmpty { handle.readabilityHandler = nil }
+            }
+        }
+
+        var isAtEOF: Bool { lock.lock(); defer { lock.unlock() }; return reachedEOF }
+        var text: String { lock.lock(); defer { lock.unlock() }; return String(decoding: data, as: UTF8.self) }
+    }
+
+    /// Tiempo que se espera, tras salir el hijo, a que lleguen los últimos bytes.
+    private static let drainGrace: TimeInterval = 0.5
+    /// Tiempo que se da al hijo para morir con SIGTERM antes de enviarle SIGKILL.
+    private static let killGrace: TimeInterval = 2
+
+    private enum Outcome { case exited, timedOut }
+
+    /// Lanza el proceso y espera, con plazo máximo para TODA la llamada.
     ///
-    /// Misma estructura que `CLIShortcutRunner.runProcess`: las tuberías se vacían mientras
-    /// el hijo sigue vivo (una salida mayor que el búfer de ~64 KiB lo bloquearía al
-    /// escribir y nunca terminaría), la espera no bloquea ningún hilo del ejecutor, y al
-    /// agotarse el plazo se termina el proceso.
+    /// Misma idea que `CLIShortcutRunner.runProcess` (tuberías vaciadas mientras el hijo
+    /// vive, espera sin bloquear hilos del ejecutor), pero sin ninguna espera no acotada:
+    /// - La salida se recoge con `readabilityHandler` y no con `readDataToEndOfFile`, que
+    ///   solo vuelve cuando se cierran TODOS los extremos de escritura. Si el CLI deja un
+    ///   demonio con las tuberías heredadas, el EOF no llega nunca aunque él haya salido.
+    ///   Tras la salida del hijo se espera `drainGrace` al EOF y se devuelve lo recogido.
+    /// - Al vencer el plazo se devuelve `.timedOut` en ese mismo instante, sin esperar a la
+    ///   muerte del hijo (un `withTaskGroup` esperaría a un hijo que ignore SIGTERM). Se
+    ///   envía SIGTERM y, si sigue vivo tras `killGrace`, SIGKILL.
     private static func run(executable: String, arguments: [String],
                             environment: [String: String], timeout: TimeInterval) async
         -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
@@ -160,55 +193,61 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
         process.standardOutput = outPipe
         process.standardError = errPipe
 
+        let out = PipeCollector()
+        let err = PipeCollector()
+        out.attach(to: outPipe.fileHandleForReading)
+        err.attach(to: errPipe.fileHandleForReading)
+
         do {
             try process.run()
         } catch {
+            outPipe.fileHandleForReading.readabilityHandler = nil
+            errPipe.fileHandleForReading.readabilityHandler = nil
             return .failure(.launchFailed(error.localizedDescription))
         }
 
-        let outData = Task.detached { outPipe.fileHandleForReading.readDataToEndOfFile() }
-        let errData = Task.detached { errPipe.fileHandleForReading.readDataToEndOfFile() }
-
-        // Se marca antes de terminar el proceso: terminarlo hace que la espera de salida
-        // también acabe, y de otro modo no habría forma fiable de saber cuál ganó.
-        let timeoutFlag = SingleUseFlag()
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await waitForExit(process) }
-            group.addTask {
+        let outcome: Outcome = await withCheckedContinuation { continuation in
+            // Quien llegue primero (salida o plazo) reanuda; el otro no hace nada.
+            let decided = SingleUseFlag()
+            let deadline = Task {
                 try? await Task.sleep(nanoseconds: UInt64(max(0, timeout) * 1_000_000_000))
-                guard !Task.isCancelled, timeoutFlag.testAndSet() else { return }
-                // Se termina aquí y no después del grupo: el grupo no devuelve hasta que
-                // acaban todos sus hijos y la espera de salida no es cancelable, así que
-                // el plazo no cortaría nada hasta que el proceso acabara por su cuenta.
+                guard !Task.isCancelled, decided.testAndSet() else { return }
                 process.terminate()
+                let pid = process.processIdentifier
+                Task.detached {
+                    try? await Task.sleep(nanoseconds: UInt64(killGrace * 1_000_000_000))
+                    if process.isRunning { kill(pid, SIGKILL) }
+                }
+                continuation.resume(returning: .timedOut)
             }
-            _ = await group.next()
-            // Cancela la espera dormida si el proceso acabó antes del plazo.
-            group.cancelAll()
-        }
-
-        // `testAndSet` es `true` solo si el plazo nunca llegó a marcar la bandera.
-        guard timeoutFlag.testAndSet() else {
-            return .failure(.timedOut(seconds: timeout))
-        }
-
-        let out = String(decoding: await outData.value, as: UTF8.self)
-        let err = String(decoding: await errData.value, as: UTF8.self)
-        return .success(AgentBrowserInvocation(exitCode: process.terminationStatus,
-                                               standardOutput: out, standardError: err))
-    }
-
-    /// Espera la salida del proceso sin bloquear ningún hilo del ejecutor.
-    private static func waitForExit(_ process: Process) async {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            let resumed = SingleUseFlag()
-            process.terminationHandler = { _ in
-                if resumed.testAndSet() { continuation.resume() }
+            let onExit: @Sendable () -> Void = {
+                Task {
+                    // Los últimos bytes pueden llegar un instante después de la salida.
+                    let limit = ContinuousClock.now + .seconds(drainGrace)
+                    while !(out.isAtEOF && err.isAtEOF), ContinuousClock.now < limit {
+                        try? await Task.sleep(nanoseconds: 10_000_000)
+                    }
+                    guard decided.testAndSet() else { return }
+                    deadline.cancel()
+                    continuation.resume(returning: .exited)
+                }
             }
+            process.terminationHandler = { _ in onExit() }
             // Si ya había terminado antes de instalar el manejador, este no se llama.
-            if !process.isRunning, resumed.testAndSet() {
-                continuation.resume()
-            }
+            if !process.isRunning { onExit() }
+        }
+
+        // Se desengancha pase lo que pase: tras un plazo vencido no debe seguir acumulando.
+        outPipe.fileHandleForReading.readabilityHandler = nil
+        errPipe.fileHandleForReading.readabilityHandler = nil
+
+        switch outcome {
+        case .timedOut:
+            return .failure(.timedOut(seconds: timeout))
+        case .exited:
+            return .success(AgentBrowserInvocation(exitCode: process.terminationStatus,
+                                                   standardOutput: out.text,
+                                                   standardError: err.text))
         }
     }
 }

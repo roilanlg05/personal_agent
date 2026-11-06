@@ -87,10 +87,52 @@ final class AgentBrowserInvokerTests: XCTestCase {
         XCTAssertGreaterThan(run.standardOutput.count, 200_000)
     }
 
+    /// Mide también el plazo: devolver `.timedOut` tarde (esperando a que el hijo acabe
+    /// solo) era el fallo original, y el resultado por sí solo no lo delata.
     func test_invoker_times_out_and_reports_it() async {
         let invoker = ProcessAgentBrowserInvoker(binaryPath: "/bin/sleep")
+        let start = ContinuousClock.now
         let result = await invoker.invoke(arguments: ["5"], timeout: 0.3)
+        let elapsed = ContinuousClock.now - start
         guard case .failure(.timedOut) = result else { return XCTFail("got: \(result)") }
+        XCTAssertLessThan(elapsed, .seconds(2))
+    }
+
+    /// Un hijo que ignora SIGTERM (un CLI de Node con su propio manejador) no debe
+    /// dejar la llamada colgada: `invoke` vuelve en torno al plazo, y el hijo acaba
+    /// muriendo por SIGKILL tras el periodo de gracia.
+    func test_invoker_returns_at_the_deadline_and_kills_a_child_that_ignores_sigterm() async throws {
+        let pidFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ab-pid-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: pidFile) }
+        let invoker = ProcessAgentBrowserInvoker(binaryPath: "/bin/sh")
+        let start = ContinuousClock.now
+        let result = await invoker.invoke(
+            arguments: ["-c", "echo $$ > '\(pidFile.path)'; trap '' TERM; while :; do sleep 1; done"],
+            timeout: 0.5)
+        let elapsed = ContinuousClock.now - start
+        guard case .failure(.timedOut) = result else { return XCTFail("got: \(result)") }
+        XCTAssertLessThan(elapsed, .seconds(2))
+
+        let pid = try XCTUnwrap(Int32(try String(contentsOf: pidFile, encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines)))
+        // Gracia de SIGKILL (2 s) más margen.
+        try await Task.sleep(nanoseconds: 3_000_000_000)
+        XCTAssertNotEqual(kill(pid, 0), 0, "el hijo sigue vivo tras el SIGKILL")
+    }
+
+    /// El padre sale y deja un nieto con las tuberías abiertas (un demonio del navegador):
+    /// no llega EOF, pero la llamada no debe esperarlo y debe conservar la salida.
+    func test_invoker_returns_when_a_daemon_keeps_the_pipes_open() async throws {
+        let invoker = ProcessAgentBrowserInvoker(binaryPath: "/bin/sh")
+        let start = ContinuousClock.now
+        let result = await invoker.invoke(
+            arguments: ["-c", "echo listo; sleep 5 & exit 0"], timeout: 10)
+        let elapsed = ContinuousClock.now - start
+        let run = try XCTUnwrap(try? result.get())
+        XCTAssertEqual(run.exitCode, 0)
+        XCTAssertEqual(run.standardOutput.trimmingCharacters(in: .whitespacesAndNewlines), "listo")
+        XCTAssertLessThan(elapsed, .seconds(2))
     }
 
     func test_mock_records_arguments_and_returns_programmed_result() async throws {

@@ -141,5 +141,41 @@ final class AgentBrowserInvokerTests: XCTestCase {
         XCTAssertEqual(try result.get().standardOutput, "{}")
         XCTAssertEqual(mock.receivedArguments, [["open", "https://x"]])
     }
+
+    /// La spec §6.1 dice de la búsqueda que «se resuelve una vez y se recuerda». No lo hacía:
+    /// `locateBinary()` corría en cada `invoke`.
+    func test_invoker_resolves_the_binary_only_once_across_calls() async {
+        let probed = Mutex<[String]>([])
+        let invoker = ProcessAgentBrowserInvoker(
+            binaryPath: "/bin/echo",
+            environment: [:],
+            isExecutable: { path in probed.write { $0.append(path) }; return path == "/bin/echo" },
+            shellLookup: { nil })
+        _ = await invoker.invoke(arguments: ["uno"], timeout: 10)
+        let afterFirst = probed.read { $0.count }
+        _ = await invoker.invoke(arguments: ["dos"], timeout: 10)
+        XCTAssertEqual(afterFirst, 1, "la primera llamada acierta con la ruta explícita")
+        XCTAssertEqual(probed.read { $0.count }, afterFirst,
+                       "la segunda llamada volvió a resolver: \(probed.read { $0 })")
+    }
+
+    /// El negativo es el caso que de verdad importa: sin memoria, cada llamada caía hasta
+    /// `/bin/sh -lc "command -v agent-browser"`, que carga el perfil de login completo del
+    /// usuario y tiene sus propios 5 s FUERA del plazo del llamante.
+    func test_invoker_does_not_reprobe_the_shell_after_a_missing_binary() async {
+        let shellLookups = Mutex(0)
+        let invoker = ProcessAgentBrowserInvoker(
+            binaryPath: nil,
+            environment: [:],
+            isExecutable: { _ in false },
+            shellLookup: { shellLookups.write { $0 += 1 }; return nil })
+        let first = await invoker.invoke(arguments: ["--version"], timeout: 5)
+        let second = await invoker.invoke(arguments: ["--version"], timeout: 5)
+        guard case .failure(.binaryNotFound) = first, case .failure(.binaryNotFound) = second else {
+            return XCTFail("ambas llamadas deben seguir reportando binaryNotFound: \(first), \(second)")
+        }
+        XCTAssertEqual(shellLookups.read { $0 }, 1, "el respaldo por shell se repitió")
+    }
 }
 #endif
+

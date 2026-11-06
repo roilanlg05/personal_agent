@@ -78,6 +78,7 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
     private let environment: [String: String]
     private let isExecutable: @Sendable (String) -> Bool
     private let shellLookup: @Sendable () async -> String?
+    private let resolution = ResolutionMemo()
 
     /// Los cierres inyectables existen para controlar el descubrimiento en pruebas;
     /// en producción se usan los valores por defecto.
@@ -106,12 +107,79 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
             if let explicitPath { searched.insert(explicitPath, at: 0) }
             return .failure(.binaryNotFound(searchedPaths: searched))
         }
-        return await Self.run(executable: binary, arguments: arguments,
-                              environment: Self.childEnvironment(from: environment),
-                              timeout: timeout)
+        let result = await Self.run(executable: binary, arguments: arguments,
+                                    environment: Self.childEnvironment(from: environment),
+                                    timeout: timeout)
+        // Si la ruta recordada ya no se puede lanzar (desinstalaron el binario con la app
+        // abierta), se olvida: así la llamada siguiente vuelve a buscar y puede volver a
+        // reportar `binaryNotFound`, que es el estado accionable, en vez de `launchFailed`.
+        if case .failure(.launchFailed) = result { resolution.forget() }
+        return result
+    }
+
+    /// Recuerda lo que resolvió `discoverBinary()` entre llamadas.
+    ///
+    /// La spec §6.1 dice de la búsqueda que «se resuelve una vez y se recuerda». Con el
+    /// binario presente, repetirla son tres `stat` baratos y da igual; con el binario
+    /// ausente —el caso para el que existe el objetivo 5— cada llamada caía hasta
+    /// `/bin/sh -lc "command -v agent-browser"`, que carga el perfil de login completo del
+    /// usuario y está acotado por sus propios 5 s, FUERA del plazo del llamante: un modelo
+    /// que prueba tres herramientas antes de rendirse se gastaba 15 s en lanzar shells.
+    private final class ResolutionMemo: @unchecked Sendable {
+        /// Cuánto se recuerda un resultado negativo. No es para siempre: instalar el binario
+        /// con la app abierta debe acabar surtiendo efecto sin reiniciarla.
+        static let missingTTL: TimeInterval = 60
+
+        enum Lookup {
+            /// Ruta ya resuelta: se recuerda mientras viva el invocador.
+            case found(String)
+            /// Se buscó hace poco y no había nada; no merece la pena volver a sondear.
+            case missing
+            /// Nunca se buscó, o el negativo ya caducó.
+            case unknown
+        }
+
+        private let lock = NSLock()
+        private var path: String?
+        private var missingUntil: ContinuousClock.Instant?
+
+        func lookup() -> Lookup {
+            lock.lock(); defer { lock.unlock() }
+            if let path { return .found(path) }
+            if let missingUntil, ContinuousClock.now < missingUntil { return .missing }
+            return .unknown
+        }
+
+        func remember(_ resolved: String?) {
+            lock.lock(); defer { lock.unlock() }
+            path = resolved
+            missingUntil = resolved == nil ? ContinuousClock.now + .seconds(Self.missingTTL) : nil
+        }
+
+        /// Olvida lo recordado: la llamada siguiente vuelve a buscar.
+        func forget() {
+            lock.lock(); defer { lock.unlock() }
+            path = nil
+            missingUntil = nil
+        }
     }
 
     private func locateBinary() async -> String? {
+        switch resolution.lookup() {
+        case .found(let path): return path
+        case .missing: return nil
+        case .unknown: break
+        }
+        // El cerrojo no se sostiene a través del `await`: dos llamadas simultáneas pueden
+        // buscar las dos y escribir el mismo resultado. Es idempotente y preferible a
+        // serializar las invocaciones detrás de una búsqueda.
+        let discovered = await discoverBinary()
+        resolution.remember(discovered)
+        return discovered
+    }
+
+    /// La búsqueda en sí: ruta explícita, luego las rutas fijas, y el shell como último recurso.
+    private func discoverBinary() async -> String? {
         if let explicitPath, isExecutable(explicitPath) { return explicitPath }
         if let found = AgentBrowserBinary.resolve(environment: environment,
                                                   isExecutable: isExecutable) {

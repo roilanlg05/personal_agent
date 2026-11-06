@@ -12,7 +12,8 @@ public final class BrowserOpenTool: AgentTool, Sendable {
     la página: después usa browser_snapshot para ver sus elementos. Para solo leer el \
     texto de una página usa read_webpage, que es más rápido. Solo admite URLs http y \
     https. Estados: 'success' (la página cargó; 'title' y 'url' dicen dónde terminó), \
-    \(AgentBrowserToolOutput.statesSentence) \(AgentBrowserToolOutput.honestyNotice)
+    \(AgentBrowserToolOutput.statesSentence) \(AgentBrowserToolOutput.honestyNotice) \
+    \(AgentBrowserToolOutput.untrustedContentNotice)
     """
     public static let parameters: [AgentToolParam] = [
         AgentToolParam(name: "url", type: .string, description: "URL completa a abrir, con http:// o https:// (ej. 'https://example.com')", required: true)
@@ -45,10 +46,14 @@ public final class BrowserOpenTool: AgentTool, Sendable {
         }
 
         let fields = AgentBrowserService.fields(data)
+        // El 'title' lo controla quien sirve la página, igual que su texto: lleva la marca
+        // como cualquier otro texto derivado de una página, y llega justo cuando el modelo
+        // está decidiendo qué hacer a continuación.
         return ToolJSONOutput.object([
             "status": "success",
             "title": fields["title"] as? String,
-            "url": fields["url"] as? String ?? url
+            "url": fields["url"] as? String ?? url,
+            "content_is_untrusted": true
         ])
     }
 }

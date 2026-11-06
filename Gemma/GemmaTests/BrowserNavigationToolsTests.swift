@@ -24,6 +24,15 @@ final class BrowserNavigationToolsTests: XCTestCase {
         XCTAssertEqual(json["url"] as? String, "https://a.test/")
     }
 
+    /// El `title` lo controla quien sirve la página, igual que su texto, y llega justo cuando
+    /// el modelo decide qué hacer a continuación: es la única cadena de página que volvía sin
+    /// la marca, y el valor de la marca es que no tenga excepciones.
+    func test_open_marks_the_page_title_as_untrusted_content() async throws {
+        let out = await BrowserOpenTool(service: svc(#"{"success":true,"data":{"title":"Ejemplo","url":"https://a.test/"},"error":null}"#))
+            .run(argsJSON: #"{"url":"https://a.test"}"#)
+        XCTAssertEqual(try parse(out)["content_is_untrusted"] as? Bool, true)
+    }
+
     func test_open_uses_the_gemma_session() async {
         let mock = MockAgentBrowserInvoker.succeeding(stdout: #"{"success":true,"data":{"title":"T","url":"u"},"error":null}"#)
         _ = await BrowserOpenTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma"))
@@ -153,7 +162,12 @@ final class BrowserNavigationToolsTests: XCTestCase {
             XCTAssertTrue(d.contains(AgentBrowserToolOutput.honestyNotice))
         }
         XCTAssertTrue(BrowserSnapshotTool.description.contains("'no_content'"))
-        XCTAssertTrue(BrowserSnapshotTool.description.contains(AgentBrowserToolOutput.untrustedContentNotice))
+        // Regla de la spec §6.3: toda herramienta que devuelva texto de página lleva el aviso.
+        // browser_open devuelve el 'title', así que también le toca.
+        for d in [BrowserSnapshotTool.description, BrowserOpenTool.description] {
+            XCTAssertTrue(d.contains(AgentBrowserToolOutput.untrustedContentNotice),
+                          "falta el aviso de inyección en: \(d.prefix(60))")
+        }
         XCTAssertTrue(BrowserSnapshotTool.description.contains("@e"))
         XCTAssertTrue(BrowserSnapshotTool.description.contains("navegación"))
     }

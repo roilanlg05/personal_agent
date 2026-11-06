@@ -153,6 +153,9 @@ final class Agent {
     - Notes Flow: \
     You have `create_note(title, content, tags, open_notes_app)` and `search_notes(query)`. \
     When the user asks to take a note (e.g. "anótame esto", "crea una nota"): call `create_note(title: ..., content: ...)` immediately. It saves the note in Gemma, copies it to the clipboard, and opens the Notes app so the user can paste it.
+    - Web Flow: \
+    `web_search` only FINDS URLs and short snippets; `read_webpage(url)` reads the WHOLE page. When a search snippet is not enough to answer, call `read_webpage` on the best result BEFORE answering — do not guess from snippets. \
+    For tasks that need interacting with a page rather than reading it (forms, logins, buttons, results that appear after a click), use the loop: `browser_open(url)` → `browser_snapshot` (lists the elements with `@eN` references) → act on an `@eN` reference with `browser_click`, `browser_fill` or `browser_press` → `browser_snapshot` again to see the new state. The `@eN` references change after every action, so NEVER reuse an old one. Call `browser_close` when done.
     \(scheduleConventions)
     """
 

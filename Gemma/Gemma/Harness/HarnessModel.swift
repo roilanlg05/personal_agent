@@ -406,6 +406,31 @@ public final class HarnessModel {
         agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
     }
 
+    #if os(macOS)
+    /// Registra en `registry` las nueve herramientas de navegador (`read_webpage` y `browser_*`).
+    /// Comparten una única instancia de `AgentBrowserService`, y por tanto la misma sesión de
+    /// `agent-browser`. Es la única ruta de registro: `runAgentTurn` y `browserToolRegistry()` la usan.
+    static func registerBrowserTools(into registry: ToolRegistry) {
+        let service = AgentBrowserService()
+        registry.register(ReadWebpageTool(service: service))
+        registry.register(BrowserOpenTool(service: service))
+        registry.register(BrowserSnapshotTool(service: service))
+        registry.register(BrowserClickTool(service: service))
+        registry.register(BrowserFillTool(service: service))
+        registry.register(BrowserPressTool(service: service))
+        registry.register(BrowserWaitTool(service: service))
+        registry.register(BrowserGetTool(service: service))
+        registry.register(BrowserCloseTool(service: service))
+    }
+
+    /// Registro con solo las herramientas de navegador, para poder probarlas sin arrancar un turno.
+    static func browserToolRegistry() -> ToolRegistry {
+        let registry = ToolRegistry()
+        registerBrowserTools(into: registry)
+        return registry
+    }
+    #endif
+
     public func runAgentTurn(_ prompt: String) async {
         let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
         if !(self.runtime is LlamaCppRuntime && provider.kind == .onDevice) {
@@ -450,6 +475,9 @@ public final class HarnessModel {
         registry.register(GetDeviceStatusTool())
         registry.register(OpenAppTool())
         registry.register(WebSearchTool())
+        #if os(macOS)
+        Self.registerBrowserTools(into: registry)
+        #endif
         registry.register(GetWeatherTool())
         registry.register(GetForecastTool())
         registry.register(CreateAlarmTool())

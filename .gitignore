@@ -29,3 +29,6 @@ graphify-out/2026-06-04/
 
 # Isolated development worktrees
 .worktrees/
+
+# Scratch de subagent-driven-development (no versionar)
+.superpowers/

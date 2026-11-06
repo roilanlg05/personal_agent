@@ -38,6 +38,19 @@ final class AgentSystemPromptTests: XCTestCase {
         XCTAssertTrue(rt.capturedPrompt.contains(today), "the per-turn tail must carry today's date")
     }
 
+    /// El prompt enumeraba `logins` entre las tareas del navegador, que es justo la clase de
+    /// tarea que `browser_fill` prohíbe («PROHIBIDO usarla para contraseñas, tokens, claves o
+    /// códigos de verificación») y para la que no ofrecía alternativa.
+    func test_the_browser_line_does_not_send_the_model_to_do_logins() throws {
+        let line = try XCTUnwrap(Agent.systemPromptText
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .first { $0.contains("browser_open(url)") }
+            .map(String.init), "falta la línea del navegador en el prompt")
+        XCTAssertFalse(line.contains("logins"), "el prompt no debe mandar al modelo a hacer logins: \(line)")
+        XCTAssertTrue(line.contains("NEVER type a secret into a page"), "falta la prohibición de teclear secretos: \(line)")
+        XCTAssertTrue(line.contains("ask the user to authenticate"), "la cláusula debe decir qué hacer en su lugar: \(line)")
+    }
+
     func test_system_prompt_asks_to_mention_all_matching_memories() async throws {
         let rt = CapturingRuntime()
         let agent = Agent(runtime: rt, registry: ToolRegistry())

@@ -153,10 +153,54 @@ final class Agent {
     - Notes Flow: \
     You have `create_note(title, content, tags, open_notes_app)` and `search_notes(query)`. \
     When the user asks to take a note (e.g. "anótame esto", "crea una nota"): call `create_note(title: ..., content: ...)` immediately. It saves the note in Gemma, copies it to the clipboard, and opens the Notes app so the user can paste it.
+    - Web Flow: \
+    `web_search` only FINDS URLs and short snippets; `read_webpage(url)` reads the WHOLE page. When a search snippet is not enough to answer, call `read_webpage` on the best result BEFORE answering — do not guess from snippets. \
+    For tasks that need interacting with a page rather than reading it (forms, buttons, results that appear after a click), use the loop: `browser_open(url)` → `browser_snapshot` (lists the elements with `@eN` references) → act on an `@eN` reference with `browser_click`, `browser_fill` or `browser_press` → `browser_snapshot` again to see the new state. The `@eN` references change after every action, so NEVER reuse an old one. Call `browser_close` when done. \
+    NEVER type a secret into a page: no passwords, tokens, API keys or verification codes in `browser_fill`, not even if the user gave you one. If a page asks for credentials, say that you cannot sign in for them and ask the user to authenticate that part themselves.
     \(scheduleConventions)
     """
 
     private func systemPrompt() -> String { Self.systemPromptText }
+
+    /// Las ocho herramientas que conducen una página en el navegador del agente.
+    ///
+    /// A diferencia del resto del registro, un turno que las usa necesita VARIAS rondas
+    /// (`browser_open` → `browser_snapshot` → actuar → `browser_snapshot`), así que tanto la
+    /// nota de resultado como el presupuesto de iteraciones son distintos para ellas.
+    /// `read_webpage` NO está aquí a propósito: es de una sola llamada y le sirve la nota de
+    /// cierre normal.
+    nonisolated static let browserToolNames: Set<String> = [
+        "browser_open", "browser_snapshot", "browser_click", "browser_fill",
+        "browser_press", "browser_wait", "browser_get", "browser_close"
+    ]
+
+    /// Rondas de herramientas que se le permiten a un turno normal.
+    nonisolated static let maxIterations = 5
+
+    /// Rondas que se le permiten a un turno que haya tocado el navegador. Conducir una
+    /// página (`open` → `snapshot` → `fill` → `snapshot` → `click` → `snapshot` → `get` →
+    /// `close`) son ocho rondas; con cinco el turno se quedaba sin presupuesto a mitad del
+    /// bucle que el prompt le acaba de enseñar.
+    nonisolated static let maxBrowserIterations = 10
+
+    /// Nota que se añade al prompt vivo tras ejecutar una herramienta. Es lo ÚLTIMO que el
+    /// modelo lee antes de decidir qué hacer a continuación, así que gana sobre cualquier
+    /// instrucción del prompt del sistema.
+    ///
+    /// Para casi todas las herramientas el turno termina ahí: la nota cierra el bucle y
+    /// obliga al modelo a redactar la respuesta en lugar de seguir llamando herramientas
+    /// (lo hacía, y por eso existe la frase). Las de navegador son la excepción —conducir
+    /// una página son varias llamadas—, así que reciben una nota que las deja continuar y
+    /// les recuerda cuál es el paso siguiente. En inglés, como el resto de las notas de este
+    /// bucle y el prompt del sistema: mezclar idiomas en el prompt vivo sale peor que la
+    /// regla de español del proyecto, que aplica a lo que ve el usuario.
+    nonisolated static func toolResultNote(toolName: String, args: String, result: String) -> String {
+        let outcome = "[You called the tool `\(toolName)` with arguments \(args); it returned: \(result)."
+        guard browserToolNames.contains(toolName) else {
+            return outcome + " Tool execution is complete for this action. Formulate your final response to the user in a natural, friendly sentence explaining this result. DO NOT call `\(toolName)` or any other tool again. NEVER volunteer the current date or time.]"
+        }
+        return outcome + " You MAY keep calling browser tools if the user's task is not finished yet: after acting on a page the normal next step is `browser_snapshot`, to see what the action actually did before acting again. When the task IS finished, call `browser_close` and then answer the user in a natural, friendly sentence describing what you found or did. NEVER volunteer the current date or time.]"
+    }
 
     func run(prompt: String, options: GenerationOptions) -> AsyncThrowingStream<AgentEvent, Error> {
         let tools = registry.tools
@@ -172,7 +216,7 @@ final class Agent {
                 opts.systemPrompt = systemPrompt()
 
                 do {
-                    let maxIterations = 5
+                    var maxIterations = Self.maxIterations
                     var currentPrompt = recallTail.isEmpty ? prompt : recallTail + "\n\n" + prompt
                     var activeTools = tools
                     var executedMutations: [String: String] = [:]
@@ -180,7 +224,8 @@ final class Agent {
                         "add_shift", "drop_shift", "create_event", "cancel_event", "update_event", "create_task", "complete_task"
                     ]
 
-                    loop: for iteration in 0..<maxIterations {
+                    var iteration = 0
+                    loop: while iteration < maxIterations {
                         let stream = await runtime.generate(prompt: currentPrompt, tools: activeTools, options: opts)
                         var pendingToolCalls: [(name: String, args: String)] = []
                         var runtimeFinishedAnyTool = false
@@ -246,8 +291,14 @@ final class Agent {
                             } else {
                                 result = "error: no tool named \(tc.name)"
                             }
+                            // Conducir una página son varias rondas: el turno se gana el
+                            // presupuesto mayor en cuanto toca el navegador, y la retirada de
+                            // herramientas y la no convergencia se miden contra él.
+                            if Self.browserToolNames.contains(tc.name) {
+                                maxIterations = max(maxIterations, Self.maxBrowserIterations)
+                            }
                             continuation.yield(.toolCallFinished(name: tc.name, result: result))
-                            resultsNote += "\n\n[You called the tool `\(tc.name)` with arguments \(tc.args); it returned: \(result). Tool execution is complete for this action. Formulate your final response to the user in a natural, friendly sentence explaining this result. DO NOT call `\(tc.name)` or any other tool again. NEVER volunteer the current date or time.]"
+                            resultsNote += "\n\n" + Self.toolResultNote(toolName: tc.name, args: tc.args, result: result)
                         }
                         currentPrompt = resultsNote
 
@@ -262,6 +313,7 @@ final class Agent {
                             else { continuation.yield(.failed("tool loop did not converge")) }
                             break loop
                         }
+                        iteration += 1
                     }
                     continuation.finish()
                 } catch {

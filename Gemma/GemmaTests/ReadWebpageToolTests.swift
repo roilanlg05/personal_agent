@@ -67,12 +67,27 @@ final class ReadWebpageToolTests: XCTestCase {
         let json = try parse(out)
         XCTAssertEqual((json["content"] as? String)?.count, 12_000)
         XCTAssertEqual(json["truncated"] as? Bool, true)
+        // «and says so»: la bandera sola no le dice al modelo qué puede hacer. La nota tiene
+        // que nombrar las dos maneras de acotar, que es lo único que está en su mano.
+        let message = json["message"] as? String ?? ""
+        XCTAssertTrue(message.contains("outline"), "la nota debe nombrar 'outline': \(message)")
+        XCTAssertTrue(message.contains("filter"), "la nota debe nombrar 'filter': \(message)")
+    }
+
+    func test_content_under_the_limit_carries_no_truncation_note() async throws {
+        let out = await tool(#"{"success":true,"data":{"content":"corto"},"error":null}"#)
+            .run(argsJSON: #"{"url":"https://a.test"}"#)
+        let json = try parse(out)
+        XCTAssertEqual(json["truncated"] as? Bool, false)
+        XCTAssertNil(json["message"])
     }
 
     func test_cli_truncation_flag_is_propagated() async throws {
-        let out = await tool(#"{"success":true,"data":{"content":"corto","truncated":true},"error":null}"#)
-            .run(argsJSON: #"{"url":"https://a.test"}"#)
-        XCTAssertEqual(try parse(out)["truncated"] as? Bool, true)
+        let json = try parse(await tool(#"{"success":true,"data":{"content":"corto","truncated":true},"error":null}"#)
+            .run(argsJSON: #"{"url":"https://a.test"}"#))
+        XCTAssertEqual(json["truncated"] as? Bool, true)
+        // Para el modelo es el mismo hecho: hay más página que la que está leyendo.
+        XCTAssertTrue((json["message"] as? String ?? "").contains("outline"))
     }
 
     func test_outline_and_filter_reach_the_cli() async {

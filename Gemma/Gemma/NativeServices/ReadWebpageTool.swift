@@ -74,13 +74,19 @@ public final class ReadWebpageTool: AgentTool, Sendable {
         }
 
         let clipped = AgentBrowserToolOutput.truncate(content, limit: Self.contentLimit)
+        // El propio CLI puede haber recortado antes de llegar aquí, y para el modelo es el
+        // mismo hecho: hay más página de la que está leyendo.
+        let truncated = clipped.truncated || (fields["truncated"] as? Bool ?? false)
         return ToolJSONOutput.object([
             "status": "success",
             "url": url,
             "final_url": fields["finalUrl"] as? String,
             "http_status": (fields["status"] as? NSNumber)?.intValue,
             "content": clipped.text,
-            "truncated": clipped.truncated || (fields["truncated"] as? Bool ?? false),
+            "truncated": truncated,
+            "message": truncated
+                ? "La página es más larga de lo que cabe: el texto se recortó a \(Self.contentLimit) caracteres. Para ver el resto, vuelve a leerla con 'outline' (solo los títulos) o con 'filter' (solo las partes que mencionen un texto)."
+                : nil,
             "content_is_untrusted": true
         ])
     }

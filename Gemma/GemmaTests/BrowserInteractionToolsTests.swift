@@ -51,7 +51,7 @@ final class BrowserInteractionToolsTests: XCTestCase {
         let mock = MockAgentBrowserInvoker.succeeding(stdout: okEmpty)
         let out = await BrowserClickTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma"))
             .run(argsJSON: #"{"selector":"--json"}"#)
-        XCTAssertEqual(try parse(out)["status"] as? String, "refused")
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
         XCTAssertTrue(mock.receivedArguments.isEmpty)
     }
 
@@ -80,7 +80,7 @@ final class BrowserInteractionToolsTests: XCTestCase {
         let mock = MockAgentBrowserInvoker.succeeding(stdout: okFilled)
         let t = BrowserFillTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma"))
         let json = try parse(await t.run(argsJSON: #"{"selector":"@e2","text":"--json"}"#))
-        XCTAssertEqual(json["status"] as? String, "refused")
+        XCTAssertEqual(json["status"] as? String, "error")
         XCTAssertTrue(mock.receivedArguments.isEmpty,
                       "el CLI se comería --json como flag y rellenaría el campo vacío reportando éxito")
     }
@@ -89,7 +89,7 @@ final class BrowserInteractionToolsTests: XCTestCase {
         let mock = MockAgentBrowserInvoker.succeeding(stdout: okFilled)
         let t = BrowserFillTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma"))
         let json = try parse(await t.run(argsJSON: #"{"selector":"--session","text":"hola"}"#))
-        XCTAssertEqual(json["status"] as? String, "refused")
+        XCTAssertEqual(json["status"] as? String, "error")
         XCTAssertTrue(mock.receivedArguments.isEmpty)
     }
 
@@ -154,7 +154,7 @@ final class BrowserInteractionToolsTests: XCTestCase {
         let mock = MockAgentBrowserInvoker.succeeding(stdout: okEmpty)
         let out = await BrowserPressTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma"))
             .run(argsJSON: #"{"key":"--json"}"#)
-        XCTAssertEqual(try parse(out)["status"] as? String, "refused")
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
         XCTAssertTrue(mock.receivedArguments.isEmpty)
     }
 

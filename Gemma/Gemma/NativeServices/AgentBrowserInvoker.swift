@@ -258,6 +258,8 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
 public final class MockAgentBrowserInvoker: AgentBrowserInvoking, @unchecked Sendable {
     public var nextResult: Result<AgentBrowserInvocation, AgentBrowserInvocationFailure>
     public private(set) var receivedArguments: [[String]] = []
+    /// Plazo recibido en cada llamada, en el mismo orden que `receivedArguments`.
+    public private(set) var receivedTimeouts: [TimeInterval] = []
 
     public init(nextResult: Result<AgentBrowserInvocation, AgentBrowserInvocationFailure>) {
         self.nextResult = nextResult
@@ -272,6 +274,7 @@ public final class MockAgentBrowserInvoker: AgentBrowserInvoking, @unchecked Sen
     public func invoke(arguments: [String], timeout: TimeInterval) async
         -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
         receivedArguments.append(arguments)
+        receivedTimeouts.append(timeout)
         return nextResult
     }
 }

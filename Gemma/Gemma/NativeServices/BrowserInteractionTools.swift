@@ -6,23 +6,6 @@ import Foundation
 /// página, así que ninguna lleva el aviso de contenido no confiable.
 private enum InteractionSupport {
     static let timeout: TimeInterval = 30
-
-    /// Mensaje de rechazo cuando un argumento sería absorbido por el parseador de flags
-    /// del CLI. El CLI no tiene separador `--`, y además daría el fallo por bueno.
-    static func flagRefusal(parameter: String, value: String) -> String {
-        ToolJSONOutput.object([
-            "status": "refused",
-            "message": "El navegador no puede recibir '\(value)' como '\(parameter)': su interfaz de "
-                + "línea de comandos lo interpretaría como una opción propia y daría por hecha una "
-                + "acción que no ocurrió. No se ejecutó nada; usa otro valor."
-        ])
-    }
-
-    static func nonEmpty(_ value: Any?) -> String? {
-        guard let text = value as? String,
-              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
-        return text
-    }
 }
 
 /// Hace clic en un elemento de la página abierta.
@@ -51,11 +34,11 @@ public final class BrowserClickTool: AgentTool, Sendable {
 
     public func run(argsJSON: String) async -> String {
         let args = AgentBrowserToolOutput.parseArguments(argsJSON)
-        guard let selector = InteractionSupport.nonEmpty(args["selector"]) else {
-            return AgentBrowserToolOutput.invalidArguments("Se requiere 'selector' (una referencia '@eN' o un selector CSS).")
+        guard let selector = AgentBrowserToolOutput.nonEmpty(args["selector"]) else {
+            return AgentBrowserToolOutput.invalidArguments(AgentBrowserToolOutput.missingSelectorMessage)
         }
         if AgentBrowserToolOutput.looksLikeCLIFlag(selector) {
-            return InteractionSupport.flagRefusal(parameter: "selector", value: selector)
+            return AgentBrowserToolOutput.flagRefusal(parameter: "selector", value: selector)
         }
 
         let outcome = await service.run(command: ["click", selector], sessioned: true, timeout: Self.timeout)
@@ -78,7 +61,7 @@ public final class BrowserFillTool: AgentTool, Sendable {
     que lo haga o que te indique cómo proceder; nunca inventes credenciales. No envía el \
     formulario: para eso usa browser_click o browser_press con Enter. El navegador no \
     puede recibir como texto o selector valores idénticos a sus propias opciones (por \
-    ejemplo '--json'): en ese caso devuelve 'refused'. Estados: 'success' (el campo se \
+    ejemplo '--json'): en ese caso devuelve 'error'. Estados: 'success' (el campo se \
     rellenó), \(AgentBrowserToolOutput.statesSentence) \(AgentBrowserToolOutput.honestyNotice)
     """
     public static let parameters: [AgentToolParam] = [
@@ -94,8 +77,8 @@ public final class BrowserFillTool: AgentTool, Sendable {
 
     public func run(argsJSON: String) async -> String {
         let args = AgentBrowserToolOutput.parseArguments(argsJSON)
-        guard let selector = InteractionSupport.nonEmpty(args["selector"]) else {
-            return AgentBrowserToolOutput.invalidArguments("Se requiere 'selector' (una referencia '@eN' o un selector CSS).")
+        guard let selector = AgentBrowserToolOutput.nonEmpty(args["selector"]) else {
+            return AgentBrowserToolOutput.invalidArguments(AgentBrowserToolOutput.missingSelectorMessage)
         }
         // Ausente es un error de argumentos; vacío es válido (vaciar el campo).
         guard let text = args["text"] as? String else {
@@ -103,10 +86,10 @@ public final class BrowserFillTool: AgentTool, Sendable {
         }
         // El CLI se come estos valores como flags y aun así reporta éxito.
         if AgentBrowserToolOutput.looksLikeCLIFlag(text) {
-            return InteractionSupport.flagRefusal(parameter: "text", value: text)
+            return AgentBrowserToolOutput.flagRefusal(parameter: "text", value: text)
         }
         if AgentBrowserToolOutput.looksLikeCLIFlag(selector) {
-            return InteractionSupport.flagRefusal(parameter: "selector", value: selector)
+            return AgentBrowserToolOutput.flagRefusal(parameter: "selector", value: selector)
         }
 
         let outcome = await service.run(command: ["fill", selector, text], sessioned: true, timeout: Self.timeout)
@@ -140,11 +123,11 @@ public final class BrowserPressTool: AgentTool, Sendable {
 
     public func run(argsJSON: String) async -> String {
         let args = AgentBrowserToolOutput.parseArguments(argsJSON)
-        guard let key = InteractionSupport.nonEmpty(args["key"]) else {
+        guard let key = AgentBrowserToolOutput.nonEmpty(args["key"]) else {
             return AgentBrowserToolOutput.invalidArguments("Se requiere 'key' (ej. 'Enter' o 'Control+a').")
         }
         if AgentBrowserToolOutput.looksLikeCLIFlag(key) {
-            return InteractionSupport.flagRefusal(parameter: "key", value: key)
+            return AgentBrowserToolOutput.flagRefusal(parameter: "key", value: key)
         }
 
         let outcome = await service.run(command: ["press", key], sessioned: true, timeout: Self.timeout)

@@ -92,6 +92,26 @@ public enum AgentBrowserToolOutput {
         ToolJSONOutput.object(["status": "error", "message": message])
     }
 
+    /// `status: error` para un argumento que el parseador de flags del CLI absorbería. El CLI
+    /// no tiene separador `--`, y con `fill` además daría por buena una acción que no ocurrió.
+    /// Es `error` y no `refused`: el argumento se descarta aquí, nunca llegó al navegador, y
+    /// volver a mirar la página no lo arregla; hay que cambiar el valor.
+    public static func flagRefusal(parameter: String, value: String) -> String {
+        invalidArguments("El navegador no puede recibir '\(value)' como '\(parameter)': su interfaz de "
+            + "línea de comandos lo interpretaría como una opción propia y daría por hecha una "
+            + "acción que no ocurrió. No se ejecutó nada; usa otro valor.")
+    }
+
+    /// El valor si es una cadena con algo más que espacios; `nil` en otro caso.
+    public static func nonEmpty(_ value: Any?) -> String? {
+        guard let text = value as? String,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return text
+    }
+
+    /// Error de argumentos común a las herramientas que actúan sobre un elemento.
+    public static let missingSelectorMessage = "Se requiere 'selector' (una referencia '@eN' o un selector CSS)."
+
     /// Recorta a `limit` caracteres. `truncated` indica si se perdió texto.
     public static func truncate(_ text: String, limit: Int) -> (text: String, truncated: Bool) {
         guard text.count > limit else { return (text, false) }
@@ -107,9 +127,13 @@ public enum AgentBrowserToolOutput {
         return true
     }
 
+    /// Flags de `agent-browser` 0.41.2 que su parseador absorbería si llegaran como valor
+    /// posicional. Esta lista sigue las opciones de esa versión del CLI: hay que revisarla
+    /// al actualizarlo.
     private static let cliFlags: Set<String> = [
         "--json", "--session", "--timeout", "-i", "-s", "-u", "-c", "--full", "--delta",
-        "--outline", "--filter", "--raw", "--new-tab", "--clear"
+        "--outline", "--filter", "--raw", "--new-tab", "--clear",
+        "--human", "--enable", "--cdp", "--auto-connect", "--engine", "--restore", "--ref"
     ]
 
     /// `true` si el argumento sería absorbido por el parseador de flags del CLI.

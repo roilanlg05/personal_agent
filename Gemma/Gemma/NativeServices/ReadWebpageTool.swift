@@ -35,8 +35,7 @@ public final class ReadWebpageTool: AgentTool, Sendable {
     }
 
     public func run(argsJSON: String) async -> String {
-        let args = (argsJSON.data(using: .utf8)
-            .flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]) ?? [:]
+        let args = AgentBrowserToolOutput.parseArguments(argsJSON)
 
         guard let rawURL = args["url"] as? String,
               !rawURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -60,11 +59,10 @@ public final class ReadWebpageTool: AgentTool, Sendable {
         }
 
         let outcome = await service.run(command: command, sessioned: false, timeout: Self.timeout)
-        if let failure = AgentBrowserToolOutput.failureJSON(outcome, extra: ["url": url]) {
-            return failure
-        }
-        guard let data = AgentBrowserToolOutput.okData(outcome) else {
-            return AgentBrowserToolOutput.invalidArguments("Estado inesperado del navegador.")
+        let data: Data
+        switch AgentBrowserToolOutput.resolve(outcome, extra: ["url": url]) {
+        case .failure(let json): return json
+        case .data(let ok): data = ok
         }
 
         let fields = AgentBrowserService.fields(data)

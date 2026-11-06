@@ -2,12 +2,6 @@ import Foundation
 
 #if os(macOS)
 
-private let statesSentence = """
-'refused' (el navegador rechazó la operación; el motivo va en 'message'), \
-'not_available' (el navegador del agente no está instalado; 'message' dice cómo \
-instalarlo) y 'error' (argumento inválido o fallo inesperado).
-"""
-
 /// Navega la sesión del navegador del agente a una URL.
 public final class BrowserOpenTool: AgentTool, Sendable {
     public static let name = "browser_open"
@@ -18,7 +12,7 @@ public final class BrowserOpenTool: AgentTool, Sendable {
     la página: después usa browser_snapshot para ver sus elementos. Para solo leer el \
     texto de una página usa read_webpage, que es más rápido. Solo admite URLs http y \
     https. Estados: 'success' (la página cargó; 'title' y 'url' dicen dónde terminó), \
-    \(statesSentence) \(AgentBrowserToolOutput.honestyNotice)
+    \(AgentBrowserToolOutput.statesSentence) \(AgentBrowserToolOutput.honestyNotice)
     """
     public static let parameters: [AgentToolParam] = [
         AgentToolParam(name: "url", type: .string, description: "URL completa a abrir, con http:// o https:// (ej. 'https://example.com')", required: true)
@@ -31,8 +25,7 @@ public final class BrowserOpenTool: AgentTool, Sendable {
     }
 
     public func run(argsJSON: String) async -> String {
-        let args = (argsJSON.data(using: .utf8)
-            .flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]) ?? [:]
+        let args = AgentBrowserToolOutput.parseArguments(argsJSON)
 
         guard let rawURL = args["url"] as? String,
               !rawURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -45,11 +38,10 @@ public final class BrowserOpenTool: AgentTool, Sendable {
         }
 
         let outcome = await service.run(command: ["open", url], sessioned: true, timeout: Self.timeout)
-        if let failure = AgentBrowserToolOutput.failureJSON(outcome, extra: ["url": url]) {
-            return failure
-        }
-        guard let data = AgentBrowserToolOutput.okData(outcome) else {
-            return AgentBrowserToolOutput.invalidArguments("Estado inesperado del navegador.")
+        let data: Data
+        switch AgentBrowserToolOutput.resolve(outcome, extra: ["url": url]) {
+        case .failure(let json): return json
+        case .data(let ok): data = ok
         }
 
         let fields = AgentBrowserService.fields(data)
@@ -79,7 +71,7 @@ public final class BrowserSnapshotTool: AgentTool, Sendable {
     Estados: 'success' (el árbol va en 'snapshot'; 'element_count' cuenta las \
     referencias; 'truncated' indica si se recortó y entonces conviene acotar con \
     'selector'), 'no_content' (la página no tiene elementos que mostrar: dilo tal \
-    cual), \(statesSentence) Si no hay página abierta, usa browser_open primero. \
+    cual), \(AgentBrowserToolOutput.statesSentence) Si no hay página abierta, usa browser_open primero. \
     \(AgentBrowserToolOutput.honestyNotice) \(AgentBrowserToolOutput.untrustedContentNotice)
     """
     public static let parameters: [AgentToolParam] = [
@@ -94,8 +86,7 @@ public final class BrowserSnapshotTool: AgentTool, Sendable {
     }
 
     public func run(argsJSON: String) async -> String {
-        let args = (argsJSON.data(using: .utf8)
-            .flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]) ?? [:]
+        let args = AgentBrowserToolOutput.parseArguments(argsJSON)
 
         var command = ["snapshot"]
         if args["interactive_only"] as? Bool ?? true { command.append("-i") }
@@ -109,11 +100,10 @@ public final class BrowserSnapshotTool: AgentTool, Sendable {
         }
 
         let outcome = await service.run(command: command, sessioned: true, timeout: Self.timeout)
-        if let failure = AgentBrowserToolOutput.failureJSON(outcome) {
-            return failure
-        }
-        guard let data = AgentBrowserToolOutput.okData(outcome) else {
-            return AgentBrowserToolOutput.invalidArguments("Estado inesperado del navegador.")
+        let data: Data
+        switch AgentBrowserToolOutput.resolve(outcome) {
+        case .failure(let json): return json
+        case .data(let ok): data = ok
         }
 
         let fields = AgentBrowserService.fields(data)
@@ -146,7 +136,7 @@ public final class BrowserCloseTool: AgentTool, Sendable {
     public static let description = """
     Cierra el navegador del agente y termina la sesión; las referencias '@eN' dejan de \
     valer. Úsalo cuando termines de navegar. Estados: 'success' (el navegador se \
-    cerró), \(statesSentence) \(AgentBrowserToolOutput.honestyNotice)
+    cerró), \(AgentBrowserToolOutput.statesSentence) \(AgentBrowserToolOutput.honestyNotice)
     """
     public static let parameters: [AgentToolParam] = []
 
@@ -158,9 +148,7 @@ public final class BrowserCloseTool: AgentTool, Sendable {
 
     public func run(argsJSON: String) async -> String {
         let outcome = await service.run(command: ["close"], sessioned: true, timeout: Self.timeout)
-        if let failure = AgentBrowserToolOutput.failureJSON(outcome) {
-            return failure
-        }
+        if case .failure(let json) = AgentBrowserToolOutput.resolve(outcome) { return json }
         return ToolJSONOutput.object(["status": "success", "message": "Navegador cerrado."])
     }
 }

@@ -27,16 +27,23 @@ public enum AgentBrowserToolOutput {
     public static let honestyNotice =
         "Nunca presentes un estado distinto de 'success' como información obtenida de la web."
 
-    /// Traduce un outcome no-exitoso al JSON de estado. `nil` cuando es `.ok`.
-    /// `extra` se mezcla en el objeto (por ejemplo la URL pedida); las claves de estado
-    /// (`status`, `message`) siempre prevalecen sobre él.
-    public static func failureJSON(_ outcome: AgentBrowserOutcome,
-                                   extra: [String: Any?] = [:]) -> String? {
+    /// Resultado de interpretar un `AgentBrowserOutcome`: o los datos del éxito, o el JSON
+    /// de estado ya terminado. Cada herramienta lo resuelve con un único `switch`.
+    public enum Resolution {
+        case data(Data)
+        case failure(String)
+    }
+
+    /// Traduce un outcome a datos (si fue `.ok`) o al JSON de estado del fallo.
+    /// `extra` se mezcla en el objeto de fallo (por ejemplo la URL pedida); las claves de
+    /// estado (`status`, `message`) siempre prevalecen sobre él.
+    public static func resolve(_ outcome: AgentBrowserOutcome,
+                               extra: [String: Any?] = [:]) -> Resolution {
         let status: String
         let message: String
         switch outcome {
-        case .ok:
-            return nil
+        case .ok(let data):
+            return .data(data)
         case .refused(let text):
             status = "refused"
             message = text
@@ -56,15 +63,20 @@ public enum AgentBrowserToolOutput {
         var fields = extra
         fields["status"] = status
         fields["message"] = message
-        return ToolJSONOutput.object(fields)
+        return .failure(ToolJSONOutput.object(fields))
     }
 
-    /// Los datos de un outcome `.ok`; `nil` para cualquier otro caso. Se usa junto a
-    /// `failureJSON`: éste cubre los fallos y `okData` desempaqueta el éxito, sin ramas
-    /// muertas que etiqueten mal un caso futuro del enum.
-    public static func okData(_ outcome: AgentBrowserOutcome) -> Data? {
-        if case .ok(let data) = outcome { return data }
-        return nil
+    /// Las dos frases de estados que comparten todas las descripciones salvo `read_webpage`.
+    public static let statesSentence = """
+    'refused' (el navegador rechazó la operación; el motivo va en 'message'), \
+    'not_available' (el navegador del agente no está instalado; 'message' dice cómo \
+    instalarlo) y 'error' (argumento inválido o fallo inesperado).
+    """
+
+    /// Decodifica los argumentos JSON de una herramienta; `[:]` si no son un objeto válido.
+    public static func parseArguments(_ argsJSON: String) -> [String: Any] {
+        (argsJSON.data(using: .utf8)
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]) ?? [:]
     }
 
     /// JSON de `status: no_content`: la operación funcionó pero no hay nada que reportar.

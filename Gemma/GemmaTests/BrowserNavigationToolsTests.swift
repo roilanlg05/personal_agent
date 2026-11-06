@@ -80,6 +80,14 @@ final class BrowserNavigationToolsTests: XCTestCase {
         XCTAssertEqual(args.firstIndex(of: "-s").map { args[$0 + 1] }, "#main")
     }
 
+    func test_snapshot_rejects_a_selector_the_cli_would_eat_as_a_flag() async throws {
+        let mock = MockAgentBrowserInvoker.succeeding(stdout: #"{"success":true,"data":{"snapshot":"x","refs":{}},"error":null}"#)
+        let out = await BrowserSnapshotTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma"))
+            .run(argsJSON: #"{"selector":"--json"}"#)
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertTrue(mock.receivedArguments.isEmpty)
+    }
+
     func test_empty_snapshot_is_no_content() async throws {
         let out = await BrowserSnapshotTool(service: svc(#"{"success":true,"data":{"snapshot":"","refs":{}},"error":null}"#))
             .run(argsJSON: #"{}"#)

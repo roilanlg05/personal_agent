@@ -59,6 +59,22 @@ public enum AgentBrowserToolOutput {
         return ToolJSONOutput.object(fields)
     }
 
+    /// Los datos de un outcome `.ok`; `nil` para cualquier otro caso. Se usa junto a
+    /// `failureJSON`: éste cubre los fallos y `okData` desempaqueta el éxito, sin ramas
+    /// muertas que etiqueten mal un caso futuro del enum.
+    public static func okData(_ outcome: AgentBrowserOutcome) -> Data? {
+        if case .ok(let data) = outcome { return data }
+        return nil
+    }
+
+    /// JSON de `status: no_content`: la operación funcionó pero no hay nada que reportar.
+    public static func noContent(_ message: String, extra: [String: Any?] = [:]) -> String {
+        var fields = extra
+        fields["status"] = "no_content"
+        fields["message"] = message
+        return ToolJSONOutput.object(fields)
+    }
+
     /// JSON de `status: error` para un argumento que falta o es inválido.
     public static func invalidArguments(_ message: String) -> String {
         ToolJSONOutput.object(["status": "error", "message": message])

@@ -63,16 +63,16 @@ public final class ReadWebpageTool: AgentTool, Sendable {
         if let failure = AgentBrowserToolOutput.failureJSON(outcome, extra: ["url": url]) {
             return failure
         }
-        guard case .ok(let data) = outcome else { return AgentBrowserToolOutput.invalidArguments("Estado inesperado.") }
+        guard let data = AgentBrowserToolOutput.okData(outcome) else {
+            return AgentBrowserToolOutput.invalidArguments("Estado inesperado del navegador.")
+        }
 
         let fields = AgentBrowserService.fields(data)
         let content = fields["content"] as? String ?? ""
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return ToolJSONOutput.object([
-                "status": "no_content",
-                "url": url,
-                "message": "La página cargó pero no devolvió texto legible. No tengo contenido que reportar."
-            ])
+            return AgentBrowserToolOutput.noContent(
+                "La página cargó pero no devolvió texto legible. No tengo contenido que reportar.",
+                extra: ["url": url])
         }
 
         let clipped = AgentBrowserToolOutput.truncate(content, limit: Self.contentLimit)

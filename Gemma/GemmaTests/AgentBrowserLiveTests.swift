@@ -5,7 +5,8 @@ import XCTest
 
 /// Invoca el binario `agent-browser` de verdad, sin mocks. Desactivada por omisión
 /// para que la suite normal nunca lance Chrome ni toque la red:
-///   GEMMA_LIVE_BROWSER=1 xcodebuild test … -only-testing:GemmaTests/AgentBrowserLiveTests
+/// (xcodebuild solo reenvía al proceso de pruebas las variables con prefijo TEST_RUNNER_.)
+///   TEST_RUNNER_GEMMA_LIVE_BROWSER=1 xcodebuild test … -only-testing:GemmaTests/AgentBrowserLiveTests
 @MainActor
 final class AgentBrowserLiveTests: XCTestCase {
 

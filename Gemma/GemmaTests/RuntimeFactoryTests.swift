@@ -12,4 +12,9 @@ final class RuntimeFactoryTests: XCTestCase {
         let r = RuntimeFactory.make(ModelProvider(kind: .local))
         XCTAssertEqual(r.identifier, "mlx-server")
     }
+
+    func test_make_onDeviceProvider_returnsLlamaCppRuntime() async {
+        let r = RuntimeFactory.make(ModelProvider(kind: .onDevice))
+        XCTAssertEqual(r.identifier, "llamacpp-metal")
+    }
 }

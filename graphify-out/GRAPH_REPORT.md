@@ -1,16 +1,16 @@
-# Graph Report - personal_agent  (2026-06-04)
+# Graph Report - personal_agent  (2026-11-06)
 
 ## Corpus Check
-- 142 files · ~187,391 words
+- 352 files · ~1,133,505 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 11790 nodes · 11276 edges · 1478 communities (980 shown, 498 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 225 edges (avg confidence: 0.8)
+- 15309 nodes · 18349 edges · 1664 communities (1123 shown, 541 thin omitted)
+- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 1457 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `607d590c`
+- Built from commit: `00fecc65`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -289,43 +289,139 @@
 - [[_COMMUNITY_Community 273|Community 273]]
 - [[_COMMUNITY_Community 274|Community 274]]
 - [[_COMMUNITY_Community 275|Community 275]]
+- [[_COMMUNITY_Community 276|Community 276]]
+- [[_COMMUNITY_Community 278|Community 278]]
 - [[_COMMUNITY_Community 279|Community 279]]
 - [[_COMMUNITY_Community 280|Community 280]]
+- [[_COMMUNITY_Community 281|Community 281]]
+- [[_COMMUNITY_Community 282|Community 282]]
+- [[_COMMUNITY_Community 283|Community 283]]
+- [[_COMMUNITY_Community 284|Community 284]]
+- [[_COMMUNITY_Community 285|Community 285]]
 - [[_COMMUNITY_Community 286|Community 286]]
+- [[_COMMUNITY_Community 287|Community 287]]
+- [[_COMMUNITY_Community 288|Community 288]]
 - [[_COMMUNITY_Community 289|Community 289]]
+- [[_COMMUNITY_Community 290|Community 290]]
 - [[_COMMUNITY_Community 291|Community 291]]
+- [[_COMMUNITY_Community 292|Community 292]]
+- [[_COMMUNITY_Community 293|Community 293]]
+- [[_COMMUNITY_Community 294|Community 294]]
+- [[_COMMUNITY_Community 295|Community 295]]
 - [[_COMMUNITY_Community 296|Community 296]]
+- [[_COMMUNITY_Community 297|Community 297]]
+- [[_COMMUNITY_Community 298|Community 298]]
+- [[_COMMUNITY_Community 299|Community 299]]
+- [[_COMMUNITY_Community 300|Community 300]]
+- [[_COMMUNITY_Community 301|Community 301]]
+- [[_COMMUNITY_Community 302|Community 302]]
 - [[_COMMUNITY_Community 303|Community 303]]
 - [[_COMMUNITY_Community 304|Community 304]]
+- [[_COMMUNITY_Community 305|Community 305]]
+- [[_COMMUNITY_Community 306|Community 306]]
+- [[_COMMUNITY_Community 307|Community 307]]
+- [[_COMMUNITY_Community 308|Community 308]]
+- [[_COMMUNITY_Community 309|Community 309]]
+- [[_COMMUNITY_Community 310|Community 310]]
 - [[_COMMUNITY_Community 311|Community 311]]
 - [[_COMMUNITY_Community 312|Community 312]]
+- [[_COMMUNITY_Community 313|Community 313]]
 - [[_COMMUNITY_Community 314|Community 314]]
 - [[_COMMUNITY_Community 315|Community 315]]
+- [[_COMMUNITY_Community 316|Community 316]]
 - [[_COMMUNITY_Community 317|Community 317]]
 - [[_COMMUNITY_Community 319|Community 319]]
 - [[_COMMUNITY_Community 320|Community 320]]
+- [[_COMMUNITY_Community 321|Community 321]]
+- [[_COMMUNITY_Community 322|Community 322]]
+- [[_COMMUNITY_Community 323|Community 323]]
+- [[_COMMUNITY_Community 324|Community 324]]
+- [[_COMMUNITY_Community 325|Community 325]]
+- [[_COMMUNITY_Community 326|Community 326]]
+- [[_COMMUNITY_Community 327|Community 327]]
+- [[_COMMUNITY_Community 328|Community 328]]
+- [[_COMMUNITY_Community 329|Community 329]]
 - [[_COMMUNITY_Community 330|Community 330]]
 - [[_COMMUNITY_Community 331|Community 331]]
+- [[_COMMUNITY_Community 332|Community 332]]
+- [[_COMMUNITY_Community 333|Community 333]]
+- [[_COMMUNITY_Community 334|Community 334]]
 - [[_COMMUNITY_Community 335|Community 335]]
+- [[_COMMUNITY_Community 336|Community 336]]
+- [[_COMMUNITY_Community 337|Community 337]]
+- [[_COMMUNITY_Community 338|Community 338]]
+- [[_COMMUNITY_Community 340|Community 340]]
+- [[_COMMUNITY_Community 341|Community 341]]
+- [[_COMMUNITY_Community 343|Community 343]]
+- [[_COMMUNITY_Community 344|Community 344]]
+- [[_COMMUNITY_Community 345|Community 345]]
 - [[_COMMUNITY_Community 346|Community 346]]
 - [[_COMMUNITY_Community 347|Community 347]]
+- [[_COMMUNITY_Community 348|Community 348]]
+- [[_COMMUNITY_Community 349|Community 349]]
+- [[_COMMUNITY_Community 350|Community 350]]
+- [[_COMMUNITY_Community 351|Community 351]]
+- [[_COMMUNITY_Community 352|Community 352]]
+- [[_COMMUNITY_Community 353|Community 353]]
 - [[_COMMUNITY_Community 354|Community 354]]
+- [[_COMMUNITY_Community 355|Community 355]]
+- [[_COMMUNITY_Community 356|Community 356]]
 - [[_COMMUNITY_Community 357|Community 357]]
+- [[_COMMUNITY_Community 358|Community 358]]
+- [[_COMMUNITY_Community 359|Community 359]]
+- [[_COMMUNITY_Community 360|Community 360]]
+- [[_COMMUNITY_Community 361|Community 361]]
+- [[_COMMUNITY_Community 362|Community 362]]
 - [[_COMMUNITY_Community 363|Community 363]]
+- [[_COMMUNITY_Community 364|Community 364]]
+- [[_COMMUNITY_Community 365|Community 365]]
+- [[_COMMUNITY_Community 366|Community 366]]
 - [[_COMMUNITY_Community 367|Community 367]]
 - [[_COMMUNITY_Community 368|Community 368]]
 - [[_COMMUNITY_Community 369|Community 369]]
 - [[_COMMUNITY_Community 370|Community 370]]
 - [[_COMMUNITY_Community 371|Community 371]]
+- [[_COMMUNITY_Community 372|Community 372]]
+- [[_COMMUNITY_Community 373|Community 373]]
+- [[_COMMUNITY_Community 374|Community 374]]
+- [[_COMMUNITY_Community 375|Community 375]]
+- [[_COMMUNITY_Community 376|Community 376]]
+- [[_COMMUNITY_Community 377|Community 377]]
+- [[_COMMUNITY_Community 378|Community 378]]
 - [[_COMMUNITY_Community 379|Community 379]]
 - [[_COMMUNITY_Community 380|Community 380]]
+- [[_COMMUNITY_Community 381|Community 381]]
+- [[_COMMUNITY_Community 382|Community 382]]
+- [[_COMMUNITY_Community 383|Community 383]]
 - [[_COMMUNITY_Community 384|Community 384]]
 - [[_COMMUNITY_Community 385|Community 385]]
+- [[_COMMUNITY_Community 386|Community 386]]
 - [[_COMMUNITY_Community 387|Community 387]]
+- [[_COMMUNITY_Community 388|Community 388]]
+- [[_COMMUNITY_Community 389|Community 389]]
 - [[_COMMUNITY_Community 390|Community 390]]
+- [[_COMMUNITY_Community 391|Community 391]]
+- [[_COMMUNITY_Community 392|Community 392]]
+- [[_COMMUNITY_Community 393|Community 393]]
+- [[_COMMUNITY_Community 394|Community 394]]
 - [[_COMMUNITY_Community 395|Community 395]]
+- [[_COMMUNITY_Community 396|Community 396]]
+- [[_COMMUNITY_Community 397|Community 397]]
+- [[_COMMUNITY_Community 398|Community 398]]
+- [[_COMMUNITY_Community 399|Community 399]]
+- [[_COMMUNITY_Community 400|Community 400]]
 - [[_COMMUNITY_Community 401|Community 401]]
+- [[_COMMUNITY_Community 402|Community 402]]
+- [[_COMMUNITY_Community 403|Community 403]]
+- [[_COMMUNITY_Community 404|Community 404]]
 - [[_COMMUNITY_Community 405|Community 405]]
+- [[_COMMUNITY_Community 406|Community 406]]
+- [[_COMMUNITY_Community 407|Community 407]]
+- [[_COMMUNITY_Community 408|Community 408]]
+- [[_COMMUNITY_Community 409|Community 409]]
+- [[_COMMUNITY_Community 410|Community 410]]
+- [[_COMMUNITY_Community 411|Community 411]]
+- [[_COMMUNITY_Community 412|Community 412]]
 - [[_COMMUNITY_Community 413|Community 413]]
 - [[_COMMUNITY_Community 414|Community 414]]
 - [[_COMMUNITY_Community 415|Community 415]]
@@ -335,57 +431,159 @@
 - [[_COMMUNITY_Community 419|Community 419]]
 - [[_COMMUNITY_Community 420|Community 420]]
 - [[_COMMUNITY_Community 421|Community 421]]
+- [[_COMMUNITY_Community 422|Community 422]]
+- [[_COMMUNITY_Community 423|Community 423]]
+- [[_COMMUNITY_Community 424|Community 424]]
+- [[_COMMUNITY_Community 425|Community 425]]
 - [[_COMMUNITY_Community 426|Community 426]]
+- [[_COMMUNITY_Community 427|Community 427]]
+- [[_COMMUNITY_Community 428|Community 428]]
+- [[_COMMUNITY_Community 429|Community 429]]
 - [[_COMMUNITY_Community 430|Community 430]]
 - [[_COMMUNITY_Community 431|Community 431]]
+- [[_COMMUNITY_Community 432|Community 432]]
+- [[_COMMUNITY_Community 433|Community 433]]
+- [[_COMMUNITY_Community 434|Community 434]]
 - [[_COMMUNITY_Community 435|Community 435]]
 - [[_COMMUNITY_Community 436|Community 436]]
+- [[_COMMUNITY_Community 437|Community 437]]
+- [[_COMMUNITY_Community 439|Community 439]]
+- [[_COMMUNITY_Community 440|Community 440]]
+- [[_COMMUNITY_Community 441|Community 441]]
 - [[_COMMUNITY_Community 442|Community 442]]
+- [[_COMMUNITY_Community 443|Community 443]]
+- [[_COMMUNITY_Community 444|Community 444]]
+- [[_COMMUNITY_Community 445|Community 445]]
 - [[_COMMUNITY_Community 446|Community 446]]
 - [[_COMMUNITY_Community 447|Community 447]]
 - [[_COMMUNITY_Community 448|Community 448]]
+- [[_COMMUNITY_Community 449|Community 449]]
 - [[_COMMUNITY_Community 450|Community 450]]
+- [[_COMMUNITY_Community 451|Community 451]]
+- [[_COMMUNITY_Community 452|Community 452]]
+- [[_COMMUNITY_Community 453|Community 453]]
+- [[_COMMUNITY_Community 454|Community 454]]
+- [[_COMMUNITY_Community 455|Community 455]]
+- [[_COMMUNITY_Community 456|Community 456]]
 - [[_COMMUNITY_Community 457|Community 457]]
+- [[_COMMUNITY_Community 458|Community 458]]
 - [[_COMMUNITY_Community 459|Community 459]]
+- [[_COMMUNITY_Community 460|Community 460]]
+- [[_COMMUNITY_Community 461|Community 461]]
+- [[_COMMUNITY_Community 462|Community 462]]
+- [[_COMMUNITY_Community 463|Community 463]]
+- [[_COMMUNITY_Community 464|Community 464]]
+- [[_COMMUNITY_Community 465|Community 465]]
+- [[_COMMUNITY_Community 466|Community 466]]
+- [[_COMMUNITY_Community 467|Community 467]]
+- [[_COMMUNITY_Community 468|Community 468]]
+- [[_COMMUNITY_Community 469|Community 469]]
 - [[_COMMUNITY_Community 470|Community 470]]
+- [[_COMMUNITY_Community 471|Community 471]]
+- [[_COMMUNITY_Community 472|Community 472]]
+- [[_COMMUNITY_Community 473|Community 473]]
 - [[_COMMUNITY_Community 474|Community 474]]
+- [[_COMMUNITY_Community 475|Community 475]]
+- [[_COMMUNITY_Community 476|Community 476]]
+- [[_COMMUNITY_Community 477|Community 477]]
 - [[_COMMUNITY_Community 478|Community 478]]
+- [[_COMMUNITY_Community 479|Community 479]]
 - [[_COMMUNITY_Community 480|Community 480]]
+- [[_COMMUNITY_Community 481|Community 481]]
 - [[_COMMUNITY_Community 482|Community 482]]
+- [[_COMMUNITY_Community 483|Community 483]]
 - [[_COMMUNITY_Community 484|Community 484]]
+- [[_COMMUNITY_Community 486|Community 486]]
+- [[_COMMUNITY_Community 487|Community 487]]
 - [[_COMMUNITY_Community 488|Community 488]]
 - [[_COMMUNITY_Community 489|Community 489]]
 - [[_COMMUNITY_Community 490|Community 490]]
+- [[_COMMUNITY_Community 491|Community 491]]
 - [[_COMMUNITY_Community 492|Community 492]]
+- [[_COMMUNITY_Community 493|Community 493]]
 - [[_COMMUNITY_Community 494|Community 494]]
+- [[_COMMUNITY_Community 495|Community 495]]
 - [[_COMMUNITY_Community 496|Community 496]]
+- [[_COMMUNITY_Community 497|Community 497]]
 - [[_COMMUNITY_Community 498|Community 498]]
+- [[_COMMUNITY_Community 499|Community 499]]
+- [[_COMMUNITY_Community 500|Community 500]]
 - [[_COMMUNITY_Community 501|Community 501]]
 - [[_COMMUNITY_Community 502|Community 502]]
+- [[_COMMUNITY_Community 503|Community 503]]
 - [[_COMMUNITY_Community 504|Community 504]]
+- [[_COMMUNITY_Community 505|Community 505]]
+- [[_COMMUNITY_Community 506|Community 506]]
 - [[_COMMUNITY_Community 507|Community 507]]
+- [[_COMMUNITY_Community 508|Community 508]]
+- [[_COMMUNITY_Community 509|Community 509]]
+- [[_COMMUNITY_Community 510|Community 510]]
+- [[_COMMUNITY_Community 511|Community 511]]
+- [[_COMMUNITY_Community 512|Community 512]]
 - [[_COMMUNITY_Community 513|Community 513]]
 - [[_COMMUNITY_Community 514|Community 514]]
+- [[_COMMUNITY_Community 515|Community 515]]
+- [[_COMMUNITY_Community 516|Community 516]]
+- [[_COMMUNITY_Community 517|Community 517]]
+- [[_COMMUNITY_Community 519|Community 519]]
+- [[_COMMUNITY_Community 520|Community 520]]
+- [[_COMMUNITY_Community 521|Community 521]]
+- [[_COMMUNITY_Community 522|Community 522]]
 - [[_COMMUNITY_Community 523|Community 523]]
+- [[_COMMUNITY_Community 524|Community 524]]
+- [[_COMMUNITY_Community 525|Community 525]]
 - [[_COMMUNITY_Community 526|Community 526]]
 - [[_COMMUNITY_Community 527|Community 527]]
 - [[_COMMUNITY_Community 528|Community 528]]
 - [[_COMMUNITY_Community 529|Community 529]]
+- [[_COMMUNITY_Community 530|Community 530]]
+- [[_COMMUNITY_Community 531|Community 531]]
+- [[_COMMUNITY_Community 532|Community 532]]
+- [[_COMMUNITY_Community 533|Community 533]]
+- [[_COMMUNITY_Community 534|Community 534]]
 - [[_COMMUNITY_Community 535|Community 535]]
+- [[_COMMUNITY_Community 536|Community 536]]
 - [[_COMMUNITY_Community 537|Community 537]]
 - [[_COMMUNITY_Community 538|Community 538]]
+- [[_COMMUNITY_Community 539|Community 539]]
+- [[_COMMUNITY_Community 540|Community 540]]
 - [[_COMMUNITY_Community 541|Community 541]]
+- [[_COMMUNITY_Community 542|Community 542]]
 - [[_COMMUNITY_Community 543|Community 543]]
 - [[_COMMUNITY_Community 544|Community 544]]
+- [[_COMMUNITY_Community 545|Community 545]]
+- [[_COMMUNITY_Community 546|Community 546]]
+- [[_COMMUNITY_Community 547|Community 547]]
+- [[_COMMUNITY_Community 548|Community 548]]
+- [[_COMMUNITY_Community 549|Community 549]]
+- [[_COMMUNITY_Community 550|Community 550]]
+- [[_COMMUNITY_Community 551|Community 551]]
+- [[_COMMUNITY_Community 552|Community 552]]
+- [[_COMMUNITY_Community 553|Community 553]]
 - [[_COMMUNITY_Community 554|Community 554]]
+- [[_COMMUNITY_Community 555|Community 555]]
+- [[_COMMUNITY_Community 556|Community 556]]
+- [[_COMMUNITY_Community 557|Community 557]]
 - [[_COMMUNITY_Community 558|Community 558]]
+- [[_COMMUNITY_Community 559|Community 559]]
+- [[_COMMUNITY_Community 560|Community 560]]
+- [[_COMMUNITY_Community 561|Community 561]]
+- [[_COMMUNITY_Community 563|Community 563]]
 - [[_COMMUNITY_Community 564|Community 564]]
 - [[_COMMUNITY_Community 565|Community 565]]
 - [[_COMMUNITY_Community 566|Community 566]]
+- [[_COMMUNITY_Community 567|Community 567]]
 - [[_COMMUNITY_Community 568|Community 568]]
+- [[_COMMUNITY_Community 569|Community 569]]
+- [[_COMMUNITY_Community 570|Community 570]]
+- [[_COMMUNITY_Community 571|Community 571]]
+- [[_COMMUNITY_Community 572|Community 572]]
 - [[_COMMUNITY_Community 573|Community 573]]
 - [[_COMMUNITY_Community 574|Community 574]]
 - [[_COMMUNITY_Community 575|Community 575]]
+- [[_COMMUNITY_Community 576|Community 576]]
+- [[_COMMUNITY_Community 577|Community 577]]
+- [[_COMMUNITY_Community 578|Community 578]]
 - [[_COMMUNITY_Community 580|Community 580]]
 - [[_COMMUNITY_Community 582|Community 582]]
 - [[_COMMUNITY_Community 586|Community 586]]
@@ -398,7 +596,6 @@
 - [[_COMMUNITY_Community 612|Community 612]]
 - [[_COMMUNITY_Community 620|Community 620]]
 - [[_COMMUNITY_Community 627|Community 627]]
-- [[_COMMUNITY_Community 632|Community 632]]
 - [[_COMMUNITY_Community 633|Community 633]]
 - [[_COMMUNITY_Community 634|Community 634]]
 - [[_COMMUNITY_Community 635|Community 635]]
@@ -474,7 +671,6 @@
 - [[_COMMUNITY_Community 807|Community 807]]
 - [[_COMMUNITY_Community 808|Community 808]]
 - [[_COMMUNITY_Community 809|Community 809]]
-- [[_COMMUNITY_Community 810|Community 810]]
 - [[_COMMUNITY_Community 811|Community 811]]
 - [[_COMMUNITY_Community 812|Community 812]]
 - [[_COMMUNITY_Community 813|Community 813]]
@@ -538,7 +734,6 @@
 - [[_COMMUNITY_Community 937|Community 937]]
 - [[_COMMUNITY_Community 940|Community 940]]
 - [[_COMMUNITY_Community 946|Community 946]]
-- [[_COMMUNITY_Community 949|Community 949]]
 - [[_COMMUNITY_Community 956|Community 956]]
 - [[_COMMUNITY_Community 960|Community 960]]
 - [[_COMMUNITY_Community 961|Community 961]]
@@ -551,7 +746,6 @@
 - [[_COMMUNITY_Community 970|Community 970]]
 - [[_COMMUNITY_Community 971|Community 971]]
 - [[_COMMUNITY_Community 972|Community 972]]
-- [[_COMMUNITY_Community 973|Community 973]]
 - [[_COMMUNITY_Community 976|Community 976]]
 - [[_COMMUNITY_Community 983|Community 983]]
 - [[_COMMUNITY_Community 984|Community 984]]
@@ -816,7 +1010,6 @@
 - [[_COMMUNITY_Community 2047|Community 2047]]
 - [[_COMMUNITY_Community 2048|Community 2048]]
 - [[_COMMUNITY_Community 2049|Community 2049]]
-- [[_COMMUNITY_Community 2055|Community 2055]]
 - [[_COMMUNITY_Community 2061|Community 2061]]
 - [[_COMMUNITY_Community 2062|Community 2062]]
 - [[_COMMUNITY_Community 2063|Community 2063]]
@@ -859,7 +1052,6 @@
 - [[_COMMUNITY_Community 2246|Community 2246]]
 - [[_COMMUNITY_Community 2247|Community 2247]]
 - [[_COMMUNITY_Community 2248|Community 2248]]
-- [[_COMMUNITY_Community 2249|Community 2249]]
 - [[_COMMUNITY_Community 2250|Community 2250]]
 - [[_COMMUNITY_Community 2251|Community 2251]]
 - [[_COMMUNITY_Community 2252|Community 2252]]
@@ -881,7 +1073,6 @@
 - [[_COMMUNITY_Community 2319|Community 2319]]
 - [[_COMMUNITY_Community 2320|Community 2320]]
 - [[_COMMUNITY_Community 2337|Community 2337]]
-- [[_COMMUNITY_Community 2339|Community 2339]]
 - [[_COMMUNITY_Community 2342|Community 2342]]
 - [[_COMMUNITY_Community 2362|Community 2362]]
 - [[_COMMUNITY_Community 2363|Community 2363]]
@@ -950,8 +1141,6 @@
 - [[_COMMUNITY_Community 2524|Community 2524]]
 - [[_COMMUNITY_Community 2525|Community 2525]]
 - [[_COMMUNITY_Community 2527|Community 2527]]
-- [[_COMMUNITY_Community 2535|Community 2535]]
-- [[_COMMUNITY_Community 2538|Community 2538]]
 - [[_COMMUNITY_Community 2542|Community 2542]]
 - [[_COMMUNITY_Community 2543|Community 2543]]
 - [[_COMMUNITY_Community 2548|Community 2548]]
@@ -1007,7 +1196,6 @@
 - [[_COMMUNITY_Community 2784|Community 2784]]
 - [[_COMMUNITY_Community 2785|Community 2785]]
 - [[_COMMUNITY_Community 2786|Community 2786]]
-- [[_COMMUNITY_Community 2787|Community 2787]]
 - [[_COMMUNITY_Community 2788|Community 2788]]
 - [[_COMMUNITY_Community 2790|Community 2790]]
 - [[_COMMUNITY_Community 2799|Community 2799]]
@@ -1071,9 +1259,6 @@
 - [[_COMMUNITY_Community 3643|Community 3643]]
 - [[_COMMUNITY_Community 3644|Community 3644]]
 - [[_COMMUNITY_Community 3645|Community 3645]]
-- [[_COMMUNITY_Community 3646|Community 3646]]
-- [[_COMMUNITY_Community 3648|Community 3648]]
-- [[_COMMUNITY_Community 3649|Community 3649]]
 - [[_COMMUNITY_Community 3650|Community 3650]]
 - [[_COMMUNITY_Community 4645|Community 4645]]
 - [[_COMMUNITY_Community 4651|Community 4651]]
@@ -1083,7 +1268,6 @@
 - [[_COMMUNITY_Community 4662|Community 4662]]
 - [[_COMMUNITY_Community 4669|Community 4669]]
 - [[_COMMUNITY_Community 4674|Community 4674]]
-- [[_COMMUNITY_Community 4675|Community 4675]]
 - [[_COMMUNITY_Community 4676|Community 4676]]
 - [[_COMMUNITY_Community 4677|Community 4677]]
 - [[_COMMUNITY_Community 4678|Community 4678]]
@@ -1092,7 +1276,6 @@
 - [[_COMMUNITY_Community 4681|Community 4681]]
 - [[_COMMUNITY_Community 4684|Community 4684]]
 - [[_COMMUNITY_Community 4685|Community 4685]]
-- [[_COMMUNITY_Community 4686|Community 4686]]
 - [[_COMMUNITY_Community 4687|Community 4687]]
 - [[_COMMUNITY_Community 4688|Community 4688]]
 - [[_COMMUNITY_Community 4689|Community 4689]]
@@ -1153,11 +1336,8 @@
 - [[_COMMUNITY_Community 4846|Community 4846]]
 - [[_COMMUNITY_Community 4847|Community 4847]]
 - [[_COMMUNITY_Community 4848|Community 4848]]
-- [[_COMMUNITY_Community 4849|Community 4849]]
-- [[_COMMUNITY_Community 4850|Community 4850]]
 - [[_COMMUNITY_Community 4851|Community 4851]]
 - [[_COMMUNITY_Community 4852|Community 4852]]
-- [[_COMMUNITY_Community 4862|Community 4862]]
 - [[_COMMUNITY_Community 4931|Community 4931]]
 - [[_COMMUNITY_Community 4932|Community 4932]]
 - [[_COMMUNITY_Community 4933|Community 4933]]
@@ -1286,7 +1466,6 @@
 - [[_COMMUNITY_Community 5846|Community 5846]]
 - [[_COMMUNITY_Community 5847|Community 5847]]
 - [[_COMMUNITY_Community 5848|Community 5848]]
-- [[_COMMUNITY_Community 5850|Community 5850]]
 - [[_COMMUNITY_Community 5989|Community 5989]]
 - [[_COMMUNITY_Community 5990|Community 5990]]
 - [[_COMMUNITY_Community 5992|Community 5992]]
@@ -1451,16 +1630,16 @@
 - [[_COMMUNITY_Community 6648|Community 6648]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `GenerationOptions` - 40 edges
-2. `SQLite error 21 "wrong number of statement arguments" with LIKE queries` - 40 edges
-3. `HarnessModel` - 38 edges
-4. `Requests` - 33 edges
-5. `DummyRuntime` - 29 edges
-6. `MemoryClient` - 27 edges
-7. `Agent` - 24 edges
-8. `ToolRegistry` - 24 edges
-9. `Overview` - 23 edges
-10. `Topics` - 23 edges
+1. `Parsed` - 79 edges
+2. `AgentTool` - 73 edges
+3. `MockAppURLOpener` - 69 edges
+4. `MusicService` - 62 edges
+5. `InMemoryNoteStore` - 45 edges
+6. `HarnessModel` - 44 edges
+7. `GenerationOptions` - 40 edges
+8. `SQLite error 21 "wrong number of statement arguments" with LIKE queries` - 40 edges
+9. `MirrorOutbox` - 39 edges
+10. `MemoryClient` - 38 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `ModelRuntimeTypesTests` --implements--> `S1 Plan 1: Scaffold + Protocol + Dummy Runtime + Bench`  [INFERRED]
@@ -1482,15 +1661,15 @@
 - **Bench pipeline test trio (Runner+PromptSet+Report+Runtime)** — gemmatests_benchrunnertests_class, gemmatests_promptsettests_class, gemmatests_benchreporttests_class, gemmatests_dummyruntimetests_class [INFERRED 0.85]
 - **Model infra layered subsystem (Descriptor+Catalog+Capability+Downloader+InstalledModels)** — gemmatests_modeldescriptortests_class, gemmatests_modelcatalogtests_class, gemmatests_devicecapabilitytests_class, gemmatests_modeldownloadertests_class, gemmatests_installedmodelstests_class [INFERRED 0.95]
 
-## Communities (1478 total, 498 thin omitted)
+## Communities (1664 total, 541 thin omitted)
 
 ### Community 1 - "Product Concepts & Plans"
 Cohesion: 0.08
 Nodes (35): CLAUDE.md graphify project rules, Bench combos a/b/c (LiteRT-LM±MTP, llama.cpp uncensored), Bilingual ES/EN with code-switching, Gemma 4 E4B (multimodal model), Hey Gemma wake word + espera/continúa, Home server (i3 + Qdrant + graphify), iPhone 16 base 8GB target, LiteRT-LM runtime (+27 more)
 
 ### Community 2 - "Core Test Suite"
-Cohesion: 0.16
-Nodes (3): ServerRuntimeHistoryTests, ServerRuntimeStreamingTests, ServerRuntime
+Cohesion: 0.10
+Nodes (4): HarnessModelTests, ServerRuntimeHistoryTests, ServerRuntimeStreamingTests, ServerRuntime
 
 ### Community 3 - "Community 3"
 Cohesion: 0.14
@@ -1505,8 +1684,12 @@ Cohesion: 0.11
 Nodes (4): GenerationSettingsTests, SettingsStoreTests, GenerationSettings, SettingsStore
 
 ### Community 6 - "SwiftUI App Shell"
-Cohesion: 0.07
-Nodes (13): App, GemmaApp, AgentChatView, HarnessView, MemoryGraphDetailPanel, MemoryGraphView, MemoryNodeMarker, MemoryInspectorView (+5 more)
+Cohesion: 0.06
+Nodes (19): App, AtoZLoginSheet, GemmaApp, AgentChatView, ChatAttachment, ChatLogRow, toggleDictation(), HarnessView (+11 more)
+
+### Community 7 - "Model Downloader"
+Cohesion: 0.06
+Nodes (7): StubURLProtocol, StubURLProtocol, BodyCapture, CaptureStub, SSEStub, StallStub, URLProtocol
 
 ### Community 8 - "Installed Models Storage"
 Cohesion: 0.11
@@ -1537,8 +1720,8 @@ Cohesion: 0.29
 Nodes (6): info, author, version, info, author, version
 
 ### Community 19 - "Community 19"
-Cohesion: 0.10
-Nodes (20): 1. Identidad del proyecto, 2. Decisiones bloqueadas, 3.1 · Estado de S1 (2026-05-28), 3.2 · Descomposición de S5 (2026-05-29), 3.2 · S1.2 — Runtime MLX (modelo-agnóstico) (2026-05-29), 3. Route map por fases, 4. Gráfico de dependencias (alto nivel), 5. Decisiones diferidas (cada una se resuelve dentro de su spec) (+12 more)
+Cohesion: 0.09
+Nodes (21): 1. Identidad del proyecto, 2. Decisiones bloqueadas, 3.1 · Estado de S1 (2026-05-28), 3.2 · Descomposición de S5 (2026-05-29), 3.2 · S1.2 — Runtime MLX (modelo-agnóstico) (2026-05-29), 3. Route map por fases, 4. Gráfico de dependencias (alto nivel), 5. Decisiones diferidas (cada una se resuelve dentro de su spec) (+13 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.12
@@ -1661,8 +1844,8 @@ Cohesion: 0.14
 Nodes (13): 1. Value types (package-agnostic — no LiteRTLM import), 2. `PerfBenchmarker` (imports LiteRTLM), 3. `BenchmarkModel` (@Observable @MainActor), 4. `BenchmarkView` (sheet), 5. `HarnessModel` / `HarnessView` integration, Components, Data flow, Error handling (+5 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.23
-Nodes (22): Decodable, Identifiable, ByEntityResult, ByHubResult, CreateEventResult, Edge, EmptyOK, ExpandResult (+14 more)
+Cohesion: 0.08
+Nodes (45): Decodable, Channel bridges, code:swift (let channel = ...), NIOAsyncChannel, NIOAsyncWriter, NIOThrowingAsyncSequenceProducer and NIOAsyncSequenceProducer, Identifiable, ByEntityResult (+37 more)
 
 ### Community 52 - "Community 52"
 Cohesion: 0.07
@@ -1673,8 +1856,8 @@ Cohesion: 0.13
 Nodes (14): 1. Problema (evidencia de device, corregida con feedback del usuario 2026-05-30), 2. Objetivo, 3.1 `save_memory` tool (reemplaza al consolidator), 3.2 Escritura diferida (`MemoryWriter`), 3.3 Anti-fabricación (prompt + reglas), 3.4 Contradicción / corrección, 3.5 Relevancia de inyección (recalibra RC6), 3.6 Qué se conserva / qué se elimina (+6 more)
 
 ### Community 54 - "Community 54"
-Cohesion: 0.08
-Nodes (8): Embedder, ForgetToolTests, KeywordEmbedder, MemoryToolsTests, SaveMemoryToolTests, makeStubMemoryClient(), ForgetTool, SaveMemoryTool
+Cohesion: 0.12
+Nodes (6): Embedder, KeywordEmbedder, MemoryToolsTests, SaveMemoryToolTests, makeStubMemoryClient(), SaveMemoryTool
 
 ### Community 55 - "Community 55"
 Cohesion: 0.08
@@ -1733,8 +1916,8 @@ Cohesion: 0.12
 Nodes (15): 1. Problem, 2. Goal, 3.1 `ServerManager` (`Runtime/ServerManager.swift`, `@MainActor @Observable`), 3.2 Wiring, 3.3 UI (`AgentChatView`), 3. Architecture, 4. Data flow, 5. Error handling (+7 more)
 
 ### Community 70 - "Community 70"
-Cohesion: 0.03
-Nodes (15): _BaseScheduledCallbackTests, AgentJarvisPromptTests, AgentPromptTests, GemmaTests, HarnessModelProviderTests, HarnessModelTests, HarnessResidencyTests, KeychainStoreTests (+7 more)
+Cohesion: 0.04
+Nodes (14): _BaseScheduledCallbackTests, AgentPromptTests, AlarmKitListProbe, ChatSessionTests, GemmaTests, HarnessModelProviderTests, HarnessResidencyTests, KeychainStoreTests (+6 more)
 
 ### Community 71 - "Community 71"
 Cohesion: 0.25
@@ -1747,6 +1930,10 @@ Nodes (7): 1. Problema y objetivo, 2. Arquitectura, 3. Secuenciación, 4. Prueba
 ### Community 73 - "Community 73"
 Cohesion: 0.05
 Nodes (36): code:swift (import XCTest), code:swift (import Foundation), code:swift (func test_reflect_creates_grounded_insight_and_drops_ungroun), code:swift (// MARK: Reflect — Abstract (grounded insights)), code:swift (import XCTest), code:swift (import Foundation), code:swift (import XCTest), code:swift (import Foundation) (+28 more)
+
+### Community 74 - "Community 74"
+Cohesion: 0.07
+Nodes (3): ChatLogEntry, DummyRuntime2, HarnessModel
 
 ### Community 75 - "Community 75"
 Cohesion: 0.06
@@ -1777,16 +1964,16 @@ Cohesion: 0.33
 Nodes (6): code:swift (import Foundation), code:swift (import Foundation), code:swift (import Foundation), code:swift (import XCTest), code:swift (import Foundation), Task 4: Migrate the three tools + ToolRegistry to AgentTool
 
 ### Community 82 - "Community 82"
-Cohesion: 0.11
-Nodes (4): DummyRuntimeTests, DummyRuntime, ModelLoadOptions, RuntimeFactory
+Cohesion: 0.18
+Nodes (5): StubLocationInfoProvider, StubPlaceGeocoder, WeatherLocationTests, GetWeatherTool, MockWeatherProvider
 
 ### Community 83 - "Community 83"
 Cohesion: 0.40
 Nodes (4): code:swift (import Foundation), code:swift (import Foundation), code:swift (import Foundation), Task 5: De-couple runtime protocols + Agent + DummyRuntime from LiteRT/UIKit
 
 ### Community 84 - "Community 84"
-Cohesion: 0.09
-Nodes (26): ParamType, boolean, integer, number, string, CaseIterable, Mode, grafo (+18 more)
+Cohesion: 0.02
+Nodes (82): ParamType, boolean, integer, number, string, CaseIterable, CodingKey, Mode (+74 more)
 
 ### Community 85 - "Community 85"
 Cohesion: 0.40
@@ -1797,16 +1984,16 @@ Cohesion: 0.11
 Nodes (18): 10. Resultado M2b-2 (VERIFICADO contra el 26B real, 2026-05-31), 1. Goal, 2. Decisions (locked in brainstorm 2026-05-31), 3.1 Structured + extensible kinds (foundation), 3.2 `Memory/MemoryConsolidationEngine.swift` (new) — the shared phase operations, 3.3 Sleep cycle — resumable (`runCycle`), 3.4 Awake reflection — light (`runLight`), 3.5 `Memory/ConsolidationScheduler.swift` (new, `@MainActor @Observable`) (+10 more)
 
 ### Community 87 - "Community 87"
-Cohesion: 0.09
-Nodes (19): Codable, Equatable, ModelRuntimeTypesTests, ChatMessage, ComputeBackend, cpu, gpu, GenerationEvent (+11 more)
+Cohesion: 0.13
+Nodes (4): MockMusicLibrary, MusicLibraryTests, MusicReviewRegressionTests, ListMusicPlaylistsTool
 
 ### Community 88 - "Community 88"
 Cohesion: 0.13
-Nodes (13): AgentTool, AgentToolParam, AgentToolTests, EchoTool, ScheduleStatusTests, CancelEventsTool, CheckScheduleTool, CreateEventTool (+5 more)
+Nodes (4): HybridReminderTests, StubReminderAlerter, StubReminderMemory, CreateReminderTool
 
 ### Community 89 - "Community 89"
-Cohesion: 0.12
-Nodes (5): CurrentTimeTool, CurrentTimeToolTests, ServerRuntimeTests, ToolRegistryTests, Tool
+Cohesion: 0.09
+Nodes (6): CurrentTimeTool, CurrentTimeToolTests, ServerRuntimeMockProtocol, ServerRuntimeTests, ToolRegistryTests, Tool
 
 ### Community 90 - "Community 90"
 Cohesion: 0.18
@@ -1815,6 +2002,10 @@ Nodes (10): Convenciones del proyecto (leer antes de ejecutar), File Structure, 
 ### Community 91 - "Community 91"
 Cohesion: 0.20
 Nodes (10): code:swift (import Foundation), code:swift (import XCTest), code:swift (import Foundation), code:swift (import Foundation), code:swift (import XCTest), code:swift (import Foundation), Phase 4 — Captura: toolbox singleton + tools + consolidador, Task 4.1: MemoryToolbox (singleton para tools) (+2 more)
+
+### Community 92 - "Community 92"
+Cohesion: 0.09
+Nodes (4): RuntimeFactoryTests, ServerRuntimeProviderTests, body, ModelProvider
 
 ### Community 93 - "Community 93"
 Cohesion: 0.22
@@ -1856,9 +2047,13 @@ Nodes (6): code:swift (import Foundation), code:swift (import XCTest), code:swif
 Cohesion: 0.07
 Nodes (28): code:swift (func test_does_not_launch_while_user_busy() async {), code:swift (req.timeoutInterval = Double(generationTimeout.components.se), code:bash (git add Gemma/Gemma/Runtime/ServerRuntime.swift Gemma/GemmaT), code:swift (func test_summarizeRecent_creates_summary_without_marking_co), code:swift (let prose = (out.summary?.isEmpty == false) ? out.summary! :), code:swift (/// Light, immediate summarization of the current unconsolid), code:swift (func runLight(isCancelled: @escaping () -> Bool) async {), code:bash (git add Gemma/Gemma/Memory/MemoryConsolidationEngine.swift G) (+20 more)
 
+### Community 106 - "Community 106"
+Cohesion: 0.05
+Nodes (21): AVAudioPlayerDelegate, StubProtocol, VoiceClientTests, FakeRecorder, FakeTurning, VoiceControllerTests, Recording, VoiceClient (+13 more)
+
 ### Community 107 - "Community 107"
-Cohesion: 0.18
-Nodes (3): HTTPServerHealthTests, ServerManagerLiveTests, HTTPServerHealth
+Cohesion: 0.15
+Nodes (6): ToolCallingRuntimeTests, ToolActivity, finished, started, ToolActivityRelay, ToolCallingRuntime
 
 ### Community 108 - "Community 108"
 Cohesion: 0.40
@@ -1869,8 +2064,8 @@ Cohesion: 0.15
 Nodes (12): 1. Motivation, 2. Goals, 3. Non-Goals, 4.1 Current date/time as per-turn tail context, 4.2 JARVIS persona + anti-invention + concision (the static prompt), 4. Design (`Gemma/Gemma/Agent/Agent.swift`, app-only), 5. Data Flow, 6. Error Handling (+4 more)
 
 ### Community 115 - "Community 115"
-Cohesion: 0.26
-Nodes (3): FakeHealth, FakeLauncher, ServerManagerTests
+Cohesion: 0.16
+Nodes (25): int, bool, add_shift(), authenticate_via_browser(), cookies_are_valid(), cookies_to_header(), copy_cookies_to_clipboard(), decode_jwt_payload() (+17 more)
 
 ### Community 116 - "Community 116"
 Cohesion: 0.15
@@ -1885,8 +2080,8 @@ Cohesion: 0.15
 Nodes (12): 1. Motivation, 2. Goals, 3. Non-Goals, 4.1 Temporal conventions in the system prompt (`Agent/Agent.swift`), 4.2 `query_schedule` as the agenda authority (`Agent/Agent.swift` + `Memory/ScheduleTools.swift`), 4.3 Recall marks event status (`Memory/MemoryClient.swift`), 4. Design (all in `personal_agent/Gemma/Gemma/`), 5. Data Flow (+4 more)
 
 ### Community 120 - "Community 120"
-Cohesion: 0.10
-Nodes (8): StubRuntime, ToolCallingRuntimeTests, GenerationResult, ToolActivity, finished, started, ToolActivityRelay, ToolCallingRuntime
+Cohesion: 0.05
+Nodes (29): AtoZGraphQL, ScheduledShift, AtoZAddShiftResult, confirmationRequired, confirmed, dryRun, failed, unknownOutcome (+21 more)
 
 ### Community 121 - "Community 121"
 Cohesion: 0.17
@@ -1897,16 +2092,20 @@ Cohesion: 0.11
 Nodes (18): 1. Problem, 2. Goal, 3.1 `ServerConfig` (`Runtime/ServerManager.swift`), 3.2 `ServerProcess` (`Runtime/ServerProcess.swift`), 3.3 `ServerManager` (`Runtime/ServerManager.swift`), 3.4 `HarnessModel` (`Harness/HarnessModel.swift`), 3.5 Settings scene + view, 3. Architecture (+10 more)
 
 ### Community 123 - "Community 123"
-Cohesion: 0.23
-Nodes (3): ExpandContextToolTests, ExpandContextTool, Ref
+Cohesion: 0.08
+Nodes (8): RunShortcutToolTests, ShortcutNameResolutionTests, MockShortcutRunner, ListShortcutsTool, RememberShortcutTool, ShortcutEntry, ShortcutRegistry, ShortcutRunResult
 
 ### Community 124 - "Community 124"
 Cohesion: 0.01
 Nodes (219): 0.101.1, 0.103.0, 0.104.0, 0.105.0, 0.106.0, 0.106.1, 0.109.0, 0.10.0 (+211 more)
 
 ### Community 126 - "Community 126"
-Cohesion: 0.20
-Nodes (10): Error, TestError, boom, code:swift (do {), code:swift (do {), RecordError, ClientError, decode (+2 more)
+Cohesion: 0.08
+Nodes (10): ShortcutRunnerTests, CLIShortcutRunner, ManagedAtomicFlag, ProcessOutput, ShortcutCallback, ShortcutCallbackBroker, ShortcutRunnerFactory, ShortcutRunning (+2 more)
+
+### Community 127 - "Community 127"
+Cohesion: 0.09
+Nodes (7): NoteCRUDTests, InMemoryNoteStore, DeleteNoteTool, ReadNoteTool, UpdateNoteTool, NoteResolver, SearchNotesTool
 
 ### Community 128 - "Community 128"
 Cohesion: 0.06
@@ -1917,8 +2116,16 @@ Cohesion: 0.05
 Nodes (41): code:bash (xcodebuild test -scheme Gemma -project Gemma/Gemma.xcodeproj), code:bash (git add Gemma/Gemma/Memory/MemoryStore.swift Gemma/Gemma/Mem), code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Gemma/Gemma/Memory/ConversationWindow.swift Gemma/Ge), code:swift (import XCTest), code:swift (let base = """), code:bash (git add Gemma/Gemma/Agent/Agent.swift Gemma/GemmaTests/Agent) (+33 more)
 
 ### Community 130 - "Community 130"
-Cohesion: 0.20
-Nodes (9): ServerHealth, ServerProcessLauncher, ServerState, failed, idle, loadingModel, ready, starting (+1 more)
+Cohesion: 0.10
+Nodes (6): MockMusicAppController, MusicServiceTests, MockAppURLOpener, MusicPlaybackRequest, MusicService, PlayMusicTool
+
+### Community 131 - "Community 131"
+Cohesion: 0.11
+Nodes (18): action, default_icon, default_popup, default_title, background, service_worker, content_scripts, 128 (+10 more)
+
+### Community 132 - "Community 132"
+Cohesion: 0.13
+Nodes (9): TaskRoutineContractTests, SetRoutineTool, CreateTaskTool, DeleteTaskTool, ListTasksTool, mem(), obj(), TaskToolSupport (+1 more)
 
 ### Community 133 - "Community 133"
 Cohesion: 0.08
@@ -1961,16 +2168,40 @@ Cohesion: 0.29
 Nodes (5): code:swift (// All the (columnName, dbValue) tuples, from left to right:), code:swift (let row: Row = ["name": "foo", "date": nil]), code:swift (let row = try Row.fetchOne(db, sql: "SELECT 1 AS foo, 2 AS f), code:swift (let dict = Dictionary(row, uniquingKeysWith: { (left, _) in ), Rows as Dictionaries
 
 ### Community 149 - "Community 149"
-Cohesion: 0.33
-Nodes (6): AgentEvent, completed, failed, token, toolCallFinished, toolCallStarted
+Cohesion: 0.29
+Nodes (7): Bridging other systems, code:swift (class ConfigurationBridge {), code:swift (func testDatabaseConnection() {), code:swift (let fallbackProvider = InMemoryProvider(values: [), Common Use Cases, Fallback values, Testing
 
 ### Community 151 - "Community 151"
-Cohesion: 0.33
-Nodes (6): code:swift (// SELECT book.*, author.*), code:swift (// Fetch all books along with their author), code:swift (struct Author: TableRecord {), code:swift (// Fetch all books along with the name and country of their ), code:swift (// Fetch all books along with the country of their author), `including(required:)`
+Cohesion: 0.05
+Nodes (40): code:block1 (fastapi==0.115.6), code:python (# --- TTS --------------------------------------------------), code:bash (git add voice/engines.py voice/test_app.py), code:python (import io, wave  # noqa: E402), code:python ("""Voice gateway for the Gemma assistant. Chains STT -> the ), code:bash (git add voice/app.py voice/test_app.py), code:dockerfile (FROM python:3.11-slim AS base), code:yaml (voice:) (+32 more)
 
 ### Community 152 - "Community 152"
 Cohesion: 0.33
 Nodes (6): code:swift (protocol FetchRequest<RowDecoder>: SQLSubqueryable, Database), code:swift (let row: Row? = try SQLRequest<Row>("SELECT * FROM player").), code:swift (// SELECT * FROM player), code:swift (let request = Player.all()), code:swift (// SELECT * FROM player), FetchRequest
+
+### Community 153 - "Community 153"
+Cohesion: 0.14
+Nodes (6): AtoZConstants, AtoZSession, AtoZSessionManager, AtoZSettings, AtoZSettingsKeys, AtoZTokenMetadata
+
+### Community 154 - "Community 154"
+Cohesion: 0.18
+Nodes (8): DayWindow, DeleteRoutineTool, ListRoutinesTool, mem(), obj(), ParsedRoutine, RoutineHelper, RoutineToolSupport
+
+### Community 157 - "Community 157"
+Cohesion: 0.12
+Nodes (16): code:python (import httpx  # noqa: E402), code:bash (ssh HomeLab 'cd ~/Projects/gemma-memory && git pull --ff-onl), code:bash (ssh HomeLab 'TOKEN=$(grep -E "^MEMORY_BEARER_TOKEN=" ~/Proje), code:python (class ElevenLabsScribeSTT:), code:bash (cd /Users/hashdown/Projects/personal_agent/gemma-memory), code:python (def test_make_stt_selects_elevenlabs_when_engine_flag_set(mo), code:python (def _make_stt():), code:bash (cd /Users/hashdown/Projects/personal_agent/gemma-memory) (+8 more)
+
+### Community 158 - "Community 158"
+Cohesion: 0.05
+Nodes (39): code:swift (import XCTest), code:bash (cd gemma-memory/memory-service), code:swift (func test_update_event_endpoint_move_notfound_conflict() asy), code:swift (group.post("/schedule/cancel", use: cancel)), code:swift (struct UpdateBody: Decodable, Sendable {), code:bash (cd gemma-memory/memory-service), code:swift (func test_updateEvent_decodes_updated_event() async throws {), code:swift (struct UpdateEventResult: Sendable {) (+31 more)
+
+### Community 161 - "Community 161"
+Cohesion: 0.26
+Nodes (3): StubTravelEstimator, ReminderMonitorTests, ReminderCheckpointPlanner
+
+### Community 162 - "Community 162"
+Cohesion: 0.15
+Nodes (12): createWebView(), getClipboardString(), loadLocalCookiesFile(), LoginTab, paste, safari, webview, makeNSView() (+4 more)
 
 ### Community 164 - "Community 164"
 Cohesion: 0.33
@@ -1982,15 +2213,11 @@ Nodes (6): code:swift (// Some request based on `Player`), code:swift (let allPl
 
 ### Community 166 - "Community 166"
 Cohesion: 0.18
-Nodes (6): AnyObject, ChannelHandler, ChannelInboundHandler, FakeServerHandle, ServerProcessHandle, RealServerProcessHandle
+Nodes (3): AtoZBrowserAuthenticator, AtoZWebViewController, ObservableObject
 
 ### Community 168 - "Community 168"
-Cohesion: 0.40
-Nodes (5): code:swift (// SELECT book.*, author.*), code:swift (// Fetch all books along with their eventual author), code:swift (// Fetch all books along with the name and country of their ), code:swift (// Fetch all books along with the country of their eventual ), `including(optional:)`
-
-### Community 169 - "Community 169"
-Cohesion: 0.40
-Nodes (5): code:swift (// SELECT book.*, person1.*, person2.*), code:swift (// SELECT book.*, person.*, country.*), code:swift (// SELECT book.*, country.*), code:swift (// SELECT book.*, country.*), Combining Associations
+Cohesion: 0.06
+Nodes (33): 3. Speaker Recognition Layer, 4. Attention Arbitration Engine, 5. Conversational State Machine, 6. Streaming STT, 7. Intent Layer, 9. Realtime TTS, Arquitectura de interrupciones, Arquitectura Interna REAL (+25 more)
 
 ### Community 171 - "Community 171"
 Cohesion: 0.40
@@ -2009,36 +2236,32 @@ Cohesion: 0.40
 Nodes (5): code:swift (protocol ColumnExpression: SQLSpecificExpressible {), code:swift (let row = try Row.fetchOne(db, sql: "SELECT 'Arthur' AS name), code:swift (// Optimized Observations), code:swift (// Nicer SQL), ColumnExpression
 
 ### Community 177 - "Community 177"
-Cohesion: 0.11
-Nodes (18): Asynchronous bootstrap methods, Channel bridges, ClientBootstrap, code:swift (let eventLoop: EventLoop), code:swift (let channel = ...), code:swift (let serverChannel = try await ServerBootstrap(group: eventLo), code:swift (let clientChannel = try await ClientBootstrap(group: eventLo), code:swift (enum UpgradeResult {) (+10 more)
+Cohesion: 0.15
+Nodes (9): llama_batch_add(), llama_batch_clear(), LlamaContext, LlamaError, contextLimitExceeded, couldNotInitializeContext, couldNotInitializeModel, decodeFailed (+1 more)
 
 ### Community 178 - "Community 178"
-Cohesion: 0.40
-Nodes (5): code:swift (struct Place : PersistableRecord { ... }), code:swift (struct Place: FetchableRecord { ... }), code:swift (struct Place: TableRecord { ... }), code:swift (struct Place: TableRecord, FetchableRecord { ... }), Record Protocols Overview
+Cohesion: 0.17
+Nodes (11): 1. New engine `ElevenLabsScribeSTT` (`voice/engines.py`), 2. Engine selection (`voice/app.py` `_make_stt()`), 3. Config (i3 `~/Projects/gemma-memory/.env` + `docker-compose.yml` `voice` service), Background (current state), code:block1 (def _make_stt():), Design, ElevenLabs Scribe STT — Design, Error handling (+3 more)
 
 ### Community 181 - "Community 181"
-Cohesion: 0.40
-Nodes (5): code:swift (struct Player: Identifiable, FetchableRecord, PersistableRec), code:swift (let player = try Player.find(db, id: 1)               // Pla), code:swift (try db.create(table: "country") { t in), code:swift (struct Country: Identifiable, FetchableRecord, PersistableRe), Identifiable Records
+Cohesion: 0.07
+Nodes (15): MusicControlTests, ControlMusicTool, MediaPlayerPlaybackController, MockMusicPlaybackController, MusicCommand, next, pause, previous (+7 more)
 
 ### Community 182 - "Community 182"
-Cohesion: 0.40
-Nodes (5): code:swift (try Player.find(db, id: 1)                   // Player), code:swift (try Player.find(db, key: 1)                  // Player), code:swift (// SELECT * FROM document WHERE rowid = 1), code:swift (let request = Player.filter(id: 1)), Fetching by Key
+Cohesion: 0.29
+Nodes (6): code:swift (try dbQueue.write { db in), code:swift (try dbQueue.write { db in), code:swift (// WRONG: don't embed values in raw SQL strings), code:swift (try db.execute(sql: """), code:swift (var player = Player(name: "Arthur", score: 1000)), Executing Updates
 
 ### Community 183 - "Community 183"
 Cohesion: 0.40
 Nodes (5): code:swift (let number = try NSNumber.fetchOne(db, sql: "SELECT 10")    ), code:swift (let number = try NSNumber.fetchOne(db, sql: "SELECT '10'")  ), code:swift (// INSERT INTO transfer VALUES (10)), code:swift (// INSERT INTO transfer VALUES ('10')), NSNumber, NSDecimalNumber, and Decimal
 
 ### Community 184 - "Community 184"
-Cohesion: 0.50
-Nodes (4): code:block38 (sudo usermod -aG render $USER), code:block39 (export UR_L0_ENABLE_RELAXED_ALLOCATION_LIMITS=1), **GitHub contribution**:, Q&A
-
-### Community 186 - "Community 186"
-Cohesion: 0.50
-Nodes (4): code:swift (struct Country: TableRecord {), code:swift (struct Document: TableRecord {), code:swift (struct Document: TableRecord {), HasManyThrough
+Cohesion: 0.06
+Nodes (31): code:xml (<?xml version="1.0" encoding="UTF-8"?>), code:swift (import Foundation), code:bash (git add Gemma/Gemma/Voice/VoiceController.swift Gemma/GemmaT), code:swift (/// In-app voice: records mic audio, sends it to the i3 voic), code:swift (/// The chat thread id voice turns join (same episode as typ), code:swift (voice.appendLine = { [weak self] line in self?.agentLog.appe), code:swift (/// Build (or rebuild) the voice client from `UserDefaults`.), code:swift (@AppStorage("voiceBaseURL") private var voiceBaseURL: String) (+23 more)
 
 ### Community 187 - "Community 187"
-Cohesion: 0.50
-Nodes (4): code:swift (struct Employee {), code:swift (migrator.registerMigration("Employees") { db in), code:swift (struct EmployeeInfo: FetchableRecord, Decodable {), Self Joins
+Cohesion: 0.06
+Nodes (30): code:swift (import XCTest), code:swift (import XCTest), code:swift (import Foundation), code:bash (cd /Users/hashdown/Projects/personal_agent), code:swift (import XCTest), code:swift (import Foundation), code:bash (cd /Users/hashdown/Projects/personal_agent), code:swift (/// Always-listening "Hey Jarvis". Built lazily so onnxrunti) (+22 more)
 
 ### Community 190 - "Community 190"
 Cohesion: 0.50
@@ -2049,8 +2272,8 @@ Cohesion: 0.50
 Nodes (4): code:swift (protocol SQLSubqueryable: SQLSpecificExpressible {), code:swift (// SELECT * FROM player), code:swift (func myRequest(_ nameSubquery: SQLSubqueryable) -> SQLReques), SQLSubqueryable
 
 ### Community 194 - "Community 194"
-Cohesion: 0.50
-Nodes (4): code:swift (// Generic parameter 'T' could not be inferred), code:swift (// General Workaround), code:swift (// Single-line closure workaround:), Generic parameter 'T' could not be inferred
+Cohesion: 0.14
+Nodes (7): MemoryRecallToolsContractTests, LoadMessagesTool, Caps, ListTopicsTool, RecallByTopicTool, WhyTool, SearchMemoryTool
 
 ### Community 196 - "Community 196"
 Cohesion: 0.67
@@ -2068,41 +2291,289 @@ Nodes (4): HasLocalExtendedConnectSettings, HasRemoteExtendedConnectSettings, Re
 Cohesion: 0.12
 Nodes (17): code:swift (var heap = Heap<Int>()), code:swift (var heap = Heap((1...).prefix(20))), code:swift (var heap: Heap<Double> = [0.1, 0.6, 1.0, 0.15, 0.42]), code:swift (var heap = Heap<Int>()), code:swift (var heap = Heap(0 ..< 10)), code:swift (var heap = Heap(1 ... 20)), code:swift (let heap = Heap((1...100).shuffled())), code:swift (var heap = Heap((1...20).shuffled())) (+9 more)
 
+### Community 268 - "Community 268"
+Cohesion: 0.22
+Nodes (5): AppDelegate, SceneDelegate, UIApplicationDelegate, UIResponder, UIWindowSceneDelegate
+
+### Community 272 - "Community 272"
+Cohesion: 0.13
+Nodes (6): ReminderCRUDToolTests, DeleteReminderTool, ListRemindersTool, Match, ReminderResolution, UpdateReminderTool
+
+### Community 276 - "Community 276"
+Cohesion: 0.08
+Nodes (24): code:swift (func test_reflect_per_cluster_uses_derivesFrom_to_members() ), code:swift (public func reflect() async {), code:bash (git add Sources/MemoryCore/MemoryConsolidationEngine.swift T), code:swift (func test_reflect_promotes_large_confident_cluster_to_identi), code:swift (let t = now()), code:bash (git add Sources/MemoryCore/MemoryConsolidationEngine.swift T), File Structure, Reflect-per-Cluster → Identity + Provenance (SP-B2) Implementation Plan (+16 more)
+
+### Community 278 - "Community 278"
+Cohesion: 0.11
+Nodes (17): 1. Motivation, 2. Goals, 3. Non-Goals, 4.1 Architecture & data flow, 4.2 The `voice` service (new, `gemma-memory/voice/`), 4.3 The thin Mac client (`gemma-memory/voice-client/voice_client.py`), 4.4 docker-compose, 4.5 Contract (+9 more)
+
 ### Community 279 - "Community 279"
 Cohesion: 0.04
 Nodes (44): 1. Download `nvidia-` parts that are supplied by the host RPM's (with dependencies), 2. Update the RPM database to assume the installation of these packages., Adding the CUDA Repository, Additional Notes, Check that the RPM Database has been correctly updated:, code:bash (toolbox create --image registry.fedoraproject.org/fedora-too), code:bash (sudo dnf install nvidia-driver-cuda nvidia-driver-libs nvidi), code:block11 (lrwxrwxrwx. 1 root root 21 Mar 24 11:26 /usr/lib64/libcuda.s) (+36 more)
+
+### Community 281 - "Community 281"
+Cohesion: 0.11
+Nodes (17): 1. Motivation, 2. Goals, 3. Non-Goals, 4.1 Architecture & data flow, 4.2 Components — new `Gemma/Gemma/Voice/`, 4.3 HarnessModel + UI wiring, 4.4 Settings, 4.5 Capability (sandbox + permission) (+9 more)
+
+### Community 282 - "Community 282"
+Cohesion: 0.12
+Nodes (17): code:swift (import XCTest), code:swift (m.registerMigration("v9-node-tags") { db in), code:swift (import Foundation), code:swift (/// All stored node embeddings (one query) — input for clust), code:swift (import Foundation), code:bash (git add Sources/MemoryCore/MemoryModels.swift Sources/Memory), Step 0: Read `MemoryModels.swift` (`NodeKind` line 6, `hubLabel` switch, `Relation` line 11), the `migrator` in `MemoryStore.swift` (last = `v8-transcript-seq`), and how `node_fts`/`node_embedding` rows are removed when a node is deleted (grep `node_fts`, `softDelete`, any `DELETE FROM node`) — so `clearClusters` cleans up consistently., Step 1: Failing test — `Tests/MemoryCoreTests/NodeTagsTests.swift`: (+9 more)
+
+### Community 283 - "Community 283"
+Cohesion: 0.12
+Nodes (15): 1. Motivation, 2. Goals, 3. Non-Goals, 4.1 Pipeline shape (machine-native order), 4.2 Embeddings stage, 4.3 Clustering stage, 4.4 Tagging stage (cluster→tag), 4.5 Reflect → identity + provenance (SP-B2) (+7 more)
+
+### Community 284 - "Community 284"
+Cohesion: 0.12
+Nodes (15): 1. Motivation, 2. Goals, 3. Non-Goals, 4.1 Server-authoritative message numbering (`seq`), 4.2 Traceable summaries, 4.3 Graduated recall (4 tiers), 4.4 Agent-driven drill-down, 4.5 Episode boundary by inactivity (app) (+7 more)
+
+### Community 285 - "Community 285"
+Cohesion: 0.12
+Nodes (15): 1. Motivation, 2. Goals, 3. Non-Goals, 4.1 Architecture & data flow, 4.2 Components — new in `Gemma/Gemma/Voice/`, 4.3 Reuse of Phase 1b, 4.4 Dependency & artifacts, 4.5 UI / control (+7 more)
 
 ### Community 286 - "Community 286"
 Cohesion: 0.05
 Nodes (43): Adding Support for New Templates, Algorithm Details, Analysis Flow, `analyze_content`, `analyze_reasoning`, `analyze_tools` and its sub-structs, Auto-Parser Architecture, code:json (<tool_call>) (+35 more)
 
+### Community 287 - "Community 287"
+Cohesion: 0.12
+Nodes (16): code:swift (import XCTest), code:swift (m.registerMigration("v8-transcript-seq") { db in), code:swift (public var turnIndex: Int), code:swift (@discardableResult), code:swift (public func range(threadId: String, from: Int, to: Int) thro), code:bash (git add Sources/MemoryCore/TranscriptStore.swift Sources/Mem), Step 0: Read `Sources/MemoryCore/TranscriptStore.swift` (the `TranscriptRow` struct + `append` + `range`) and the `migrator` in `Sources/MemoryCore/MemoryStore.swift` (last migration is `v7-transcript-embedding`). Confirm how existing transcript tests build a store (look in `Tests/MemoryCoreTests/` for a transcript test; reuse its store constructor — `try MemoryStore(inMemory: true, embeddingDim: 1024)` per other tests, and `store.transcript` or a `TranscriptStore(dbQueue:)`)., Step 1: Write the failing test — `Tests/MemoryCoreTests/TranscriptSeqTests.swift`: (+8 more)
+
+### Community 288 - "Community 288"
+Cohesion: 0.12
+Nodes (16): code:swift (func test_summaries_tier_renders_with_drilldown_refs() {), code:swift (func test_recall_decodes_summaries_tier() async throws {), code:swift (struct RecallSummary: Decodable, Sendable {), code:swift (let core: [RecallNode]; let recall: [RecallNode]; let summar), code:swift (func loadMessages(chatId: String, from: Int, to: Int?) async), code:swift (func injectionBlock() -> String {), code:bash (git add Gemma/Gemma/Memory/MemoryClient.swift Gemma/GemmaTes), Step 0: Read `Memory/MemoryClient.swift` — `RecallNode`, `RecentTurn`, `RecallBundle` (+ `injectionBlock`, `static let empty`), `recall(...)`, `expand(...)`, `ExpandResult`, and the private `get`/`post`/`escape` helpers. Read `RecallInjectionTests.swift` + `MemoryClientTests.swift` for how `RecallBundle` is built/decoded in tests. (+8 more)
+
+### Community 290 - "Community 290"
+Cohesion: 0.11
+Nodes (6): AlarmMetadata, AlarmKitScheduler, GemmaAlarmMetadata, SystemAlarmSchedulerFactory, SystemAlarmScheduling, UnsupportedAlarmScheduler
+
+### Community 292 - "Community 292"
+Cohesion: 0.18
+Nodes (10): Architecture, Background (current state), code:block1 (🎤 tap → GET /v1/voice/realtime-token (i3) ──→ {token, model_), Components, Error handling / resilience, Goal, Realtime STT — Phase 1 (mic button) Design, Scope / non-goals (Phase 1) (+2 more)
+
+### Community 293 - "Community 293"
+Cohesion: 0.13
+Nodes (15): Arbitration, Cerebras response start, code:text (1–5ms), code:text (5–20ms), code:text (1–10ms), code:text (50–150ms), code:text (10–40ms), code:text (100–400ms) (+7 more)
+
+### Community 294 - "Community 294"
+Cohesion: 0.14
+Nodes (13): 1. Motivation, 2. Goals, 3. Non-Goals, 4.1 Server endpoints (GET, under `/v1`, bearer-protected), 4.2 App — `MemoryClient` methods, 4.3 App — three read tools (ToolRegistry), 4.4 App — prompt, 4. Design (+5 more)
+
+### Community 295 - "Community 295"
+Cohesion: 0.14
+Nodes (14): code:swift (func test_tagClusters_writes_tags_to_members_and_collapses_s), code:swift (/// Test embedder: returns a fixed vector per string; string), code:swift (private struct TagsOut: Decodable { let tags: [String] }), code:swift (/// Label each cluster with 1-3 canonical thematic tags (clu), code:bash (git add Sources/MemoryCore/MemoryStore.swift Sources/MemoryC), Step 0: Read how the engine declares its model-output `Decodable` structs (e.g. `EntitiesOut`, `EdgesOut`) and `parse(_:_.self)`. Read `CannedRuntime` (it returns canned strings from `generate` in order). The tagging stage makes ONE `generate` call per cluster, so the canned array needs one entry per cluster (in cluster-iteration order — `store.allNodes().filter kind==cluster`)., Step 1: Failing test — append. Use a controlled stub embedder so the synonym-collapse is deterministic:, Step 2: Run → FAIL (`tagClusters` undefined). (+6 more)
+
+### Community 297 - "Community 297"
+Cohesion: 0.14
+Nodes (14): code:swift (func test_prompt_mentions_topic_and_why_tools() {), code:swift (import Foundation), code:swift (registry.register(ListTopicsTool()); registry.register(Recal), code:block15 (Your memory is rich — identity, episodic summaries, thematic), code:bash (git add Gemma/Gemma/Memory/MemoryTopicTools.swift Gemma/Gemm), Step 0: Read `Memory/LoadMessagesTool.swift` (the AgentTool template — `MemoryToolbox.shared.memory`, `ToolActivityRelay.started/finished`, the `await { ... }()` pattern, output cap), the registration block in `HarnessModel.runAgentTurn`, and `Agent.systemPromptText`. Confirm `AgentToolParam.ParamType` cases (`string`/`integer`/`number`/`boolean`)., Step 1: Failing test — append to `AgentJarvisPromptTests.swift`:, Step 2: Run → FAIL. (+6 more)
+
+### Community 298 - "Community 298"
+Cohesion: 0.15
+Nodes (12): 1. Motivation, 2. Goals, 3. Non-Goals, 4.1 The `self` singleton (server, `gemma-memory`), 4.2 Capture: route the user's identity to self (server + app), 4.3 The agent knows "you are the user" (app), 4. Design, 5. Data Flow (+4 more)
+
+### Community 299 - "Community 299"
+Cohesion: 0.15
+Nodes (12): 1. Store (MemoryCore, shared by both paths), 2. Gateway tool `update_event` (voice path), 3. HTTP endpoint `POST /schedule/update`, 4. App (in-app chat path), 5. Prompt (BOTH copies, kept byte-in-sync), Background (current state), Design, Error handling (+4 more)
+
+### Community 300 - "Community 300"
+Cohesion: 0.15
+Nodes (13): code:swift (func test_embedMissing_embeds_only_unembedded_nodes() async ), code:swift (case .embeddings: await embedMissing()), code:swift (/// Clusterable node kinds (durable atomic memories + summar), code:bash (git add Sources/MemoryCore/MemoryStore.swift Sources/MemoryC), Step 0: Read the `SleepPhase` enum (`MemoryStore.swift:4`) + the `runCycle` switch (`MemoryConsolidationEngine.swift:493–524`) — note adding a case to `SleepPhase` makes the switch non-exhaustive until you add the matching case. Read how the engine accesses `store`/`embedder` and a method like `compress()`/`curateKinds()` to mirror style. Check whether `MemoryStore` exposes a way to know which nodes lack an embedding (there is `allEmbeddings()` from Task 1 + `allNodes()`)., Step 1: Failing test — append to `MemoryConsolidationEngineTests.swift` (mirror the file's engine construction with `CannedRuntime`/`FakeEmbedder`):, Step 2: Run → FAIL (`embedMissing` undefined)., Step 3a: `SleepPhase` (`MemoryStore.swift:4`): add `embeddings` → `case nrem, summarize, detect, embeddings, rem, reflect, compress, clarify, curate, shy` (position doesn't matter yet — the `order` array in Task 6 sets execution order). (+5 more)
+
+### Community 301 - "Community 301"
+Cohesion: 0.15
+Nodes (13): code:swift (import XCTest), code:swift (/// Upsert the singleton self/user identity node (fixed id "), code:swift (public func coreMemories(limit: Int = 6) throws -> [Node] {), code:bash (git add Sources/MemoryCore/MemoryModels.swift Sources/Memory), Step 0: Read `Sources/MemoryCore/MemoryModels.swift` (`NodeKind` enum + the `hubLabel` extension), the file holding `func coreMemories` (`grep -rn "func coreMemories" Sources/` → likely `MemoryStore+List.swift`), and `Sources/MemoryCore/MemoryStore+Dedup.swift` (for `node(id:)`, `upsert(_:)`, `setEmbedding`, `MemoryText.canonicalEntityLabel`)., Step 1: Add the kind. In `MemoryModels.swift`:, Step 2: Failing test — `Tests/MemoryCoreTests/SelfIdentityTests.swift`:, Step 3: Run → FAIL: `swift test --filter SelfIdentityTests`. (+5 more)
+
+### Community 302 - "Community 302"
+Cohesion: 0.15
+Nodes (13): code:swift (func test_prompt_has_summary_first_drilldown_rule() {), code:swift (import Foundation), code:block27 (You may be given episodic summaries, each tagged with its so), code:bash (git add Gemma/Gemma/Memory/LoadMessagesTool.swift Gemma/Gemm), Step 0: Read `Memory/ExpandContextTool.swift` (the tool template) + how it's registered in `Harness/HarnessModel.swift` (`registry.register(ExpandContextTool())`). Read `Agent/Agent.swift` `systemPromptText`., Step 1: Failing test — append to `AgentJarvisPromptTests.swift`:, Step 2: Run → FAIL., Step 3a: Create `Gemma/Gemma/Memory/LoadMessagesTool.swift` (modeled on `ExpandContextTool`): (+5 more)
+
 ### Community 304 - "Community 304"
 Cohesion: 0.05
 Nodes (39): Ascend NPU, Background, Basic Flash Attention Support, Build Images, code:sh (lspci -n | grep -Eo '19e5:d[0-9a-f]{3}' | cut -d: -f2), code:sh (cmake -B build -DGGML_CANN=on -DCMAKE_BUILD_TYPE=release), code:sh (./build/bin/llama-cli -m path_to_model -p "Building a websit), code:sh (./build/bin/llama-cli -m path_to_model -p "Building a websit) (+31 more)
+
+### Community 305 - "Community 305"
+Cohesion: 0.15
+Nodes (13): code:bash (git add Sources/MemoryService/Agent/GatewayTool.swift Source), code:swift (import XCTest), code:swift (import Foundation), code:swift (import Foundation), Step 0: Read the app's tool files (`Gemma/Gemma/Memory/*.swift`, `Gemma/Gemma/Agent/CurrentTimeTool.swift`, the schedule tools) to COPY each tool's `name`/`description`/`parameters` VERBATIM (so the model behaves identically). Read `AgentTool.swift` for `functionSpec`/`jsonSchema`. Read the store methods + `MemoryQueries` (Task 2)., Step 1: Failing test — `Tests/MemoryServiceTests/GatewayToolsTests.swift`:, Step 2: Run → FAIL., Step 3a: Create `Sources/MemoryService/Agent/GatewayTool.swift`: (+5 more)
+
+### Community 306 - "Community 306"
+Cohesion: 0.17
+Nodes (11): 1. Motivation, 2. Goals, 3. Non-Goals, 4.1 Architecture (co-located in the memory service), 4.2 Server-side tools, 4.3 Contract, model config, errors, 4. Design, 5. Testing (Phase 1a) (+3 more)
+
+### Community 307 - "Community 307"
+Cohesion: 0.17
+Nodes (12): code:swift (func test_recall_attaches_tags_and_filters_by_tag() async th), code:swift (var recallNodes = retrieved.filter { !coreIds.contains($0.id), code:swift (func test_recall_node_decodes_tags() async throws {), code:bash (git add Sources/MemoryService/Handlers/MemoryHandlers.swift ), Step 0: Read the `recall` handler (`MemoryHandlers.swift` — the `OutNode` struct + `RecallBody` decode + how `core`/`recall` are built, post SP-A which added the `summaries` tier). Read app `MemoryClient.RecallNode`., Step 1: Failing test — server, append to `MemoryEndpointsTests.swift`:, Step 2: Run → FAIL., Step 3a: Server. In `MemoryHandlers.swift`: (+4 more)
+
+### Community 308 - "Community 308"
+Cohesion: 0.17
+Nodes (12): code:bash (git add Sources/MemoryCore/MemoryConsolidationEngine.swift T), code:swift (func test_summaryGroups_uses_seq_for_range() throws {), code:swift (/// Group consolidated transcript rows into one summary unit), code:swift (case .summarize:), Step 0: Read the `.summarize` case in `runCycle` (it groups `rows` by `threadId` and computes `range = (turns.min())...(turns.max())` from `$0.turnIndex`) and the `summarize(episodeTexts:threadId:turnRange:)` method (stores `"turnRange": [lower, upper]` in `extra`)., Step 1: Write the failing test — append to `Tests/MemoryCoreTests/MemoryConsolidationEngineTests.swift`. This tests the new pure helper that the runCycle grouping will use:, Step 2: Run → FAIL (`summaryGroups` doesn't exist)., Step 3a: Add the pure helper to `MemoryConsolidationEngine` (e.g. just above `summarize`): (+4 more)
+
+### Community 309 - "Community 309"
+Cohesion: 0.17
+Nodes (12): code:swift (func test_transcript_range_returns_rows_by_seq_and_caps_at_8), code:swift (group.get("/transcript/range", use: range)), code:swift (@Sendable func range(_ req: Request, _ ctx: BasicRequestCont), code:bash (git add Sources/MemoryService/Handlers/TranscriptHandlers.sw), Step 0: Read `Sources/MemoryService/Handlers/TranscriptHandlers.swift` — its `register(on:)` (it has `/transcript/append`) and how an existing handler reads query/body + builds a `Response` (mirror `MemoryHandlers.expand` for the query-param + JSON-encode pattern). Read `TranscriptEndpointsTests.swift` for the app/auth test helpers., Step 1: Failing test — append to `Tests/MemoryServiceTests/TranscriptEndpointsTests.swift` (mirror the file's existing app construction + auth header helpers):, Step 2: Run → FAIL (route 404 / not found)., Step 3a: Register the route. In `TranscriptHandlers.register(on:)`, add next to the append line: (+4 more)
+
+### Community 310 - "Community 310"
+Cohesion: 0.17
+Nodes (12): code:swift (import XCTest), code:swift (import Foundation), code:swift (if ChatSession.shouldStartNewChat(lastActivity: lastTurnEnde), code:bash (git add Gemma/Gemma/Harness/ChatSession.swift Gemma/Gemma/Ha), Step 0: Read `Harness/HarnessModel.swift` — the `threadId` (`let threadId = UUID().uuidString`), `turnIndex`, `lastTurnEndedAt`, and the start of `runAgentTurn` where `let now = Date().timeIntervalSince1970` is computed (~line 234, the `isWake` area)., Step 1: Failing test — `Gemma/GemmaTests/ChatSessionTests.swift`:, Step 2: Run → FAIL (`ChatSession` doesn't exist)., Step 3a: Create `Gemma/Gemma/Harness/ChatSession.swift`: (+4 more)
+
+### Community 313 - "Community 313"
+Cohesion: 0.17
+Nodes (12): code:swift (func test_agent_turn_returns_reply_and_appends_transcript() ), code:swift (import Foundation), code:bash (git add Sources/MemoryService/Handlers/AgentHandlers.swift S), Step 0: Read `App.swift` — the `Services` construction + the handler registration block (`MemoryHandlers(services:).register(on: v1)` …). Read how `MemoryEndpointsTests` builds the app for a live test. Decide where the gateway's `AgentLoop`/`ToolCallingClient` is built — the handler can build a `ToolCallingClient(configStore: services.modelConfig, defaultBaseURL: <the consolidation default>)` per turn (cheap), or hold one on `Services`. Mirror how `RemoteModelClient` is constructed in `App.swift` for the `defaultBaseURL`., Step 1: Failing test — `Tests/MemoryServiceTests/AgentEndpointTests.swift` (inject a canned model so it's deterministic — see the note):, Step 2: Run → FAIL (route 404)., Step 3a: Add `services.agentClient` to `Services` (an `AgentModelClient`, default = the real `ToolCallingClient` built from `modelConfig` + the consolidation default base URL). Construct it in `App.swift` where `Services` is built., Step 3b: Create `Sources/MemoryService/Handlers/AgentHandlers.swift`: (+4 more)
 
 ### Community 315 - "Community 315"
 Cohesion: 0.05
 Nodes (37): 1. Install OpenVINO Runtime, 2. Build llama.cpp with OpenVINO Backend, 3. Download Sample Model, 4. Run Inference with OpenVINO Backend, Additional Notes, Build Instructions, code:bash (sudo apt-get update), code:bash (# Linux) (+29 more)
 
+### Community 316 - "Community 316"
+Cohesion: 0.17
+Nodes (12): code:swift (func test_memory_tags_and_by_topic() async throws {), code:swift (group.get("/memory/tags",     use: tags)), code:swift (@Sendable func tags(_ req: Request, _ ctx: BasicRequestConte), code:bash (git add Sources/MemoryService/Handlers/MemoryHandlers.swift ), Step 0: Read `MemoryHandlers.register` + an existing GET handler (`expand`) for the query-param + JSON-encode + `jsonError` pattern. Read how `MemoryEndpointsTests` builds the app (`makeAppWithServices()` → `(app, services)`, `app.test(.live) { client in client.execute(...) }`, `Data(buffer: res.body)`, seeding via `services.store.upsert` + `services.store.setTags` + `services.embedder.embed`). Confirm `MemoryStore.cosineDistance` is `public static`., Step 1: Failing test — append to `MemoryEndpointsTests.swift`:, Step 2: Run → FAIL: `swift test --filter test_memory_tags_and_by_topic` (routes 404)., Step 3a: Register the routes. In `MemoryHandlers.register`, add: (+4 more)
+
 ### Community 320 - "Community 320"
 Cohesion: 0.05
 Nodes (36): Async MTP draft pipeline, code:sh (llama-server \), code:block10 (--draft, --draft-n, --draft-max N       number of tokens to ), code:bash (./llama-server [...] --spec-type ngram-simple), code:block12 (draft acceptance rate = 0.57576 (  171 accepted /   297 gene), code:block13 (draft acceptance rate = 0.70312 (   90 accepted /   128 gene), code:block14 (statistics ngram_map_k: #calls(b,g,a) = 6 1690 26, #gen draf), code:sh (# write trace to stderr) (+28 more)
+
+### Community 321 - "Community 321"
+Cohesion: 0.18
+Nodes (11): code:swift (func injectionBlock() -> String {), code:block16 (The "self" record you may be given is the USER you are speak), code:swift (func test_self_node_renders_as_you() {), code:swift (func test_prompt_has_self_instruction() {), code:bash (git add Gemma/Gemma/Memory/MemoryClient.swift Gemma/Gemma/Ag), Step 1: Render the self node first in `RecallBundle.injectionBlock()`. Read the current `injectionBlock()` (it builds `lines` from `merged`, handles event status, appends `recentTurns`). Add a self section BEFORE the remembered-facts lines, and EXCLUDE the self node from the generic `lines`:, Step 2: `Agent.systemPromptText` — add the self line. Insert (e.g. right after the persona sentence) inside the static string:, Step 3: `SaveMemoryTool` — document `kind:"self"`. In its `kind` `AgentToolParam` description, change to: `"One of: self (the user's own name/identity), person, place, preference, fact."`. (+3 more)
+
+### Community 322 - "Community 322"
+Cohesion: 0.18
+Nodes (11): code:swift (func test_consolidate_routes_self_kind_to_singleton() async ), code:block6 (The USER's OWN name/identity (the person you're talking to) ), code:swift (if e.kind == "self" {), code:bash (git add Sources/MemoryCore/MemoryConsolidationEngine.swift T), Step 1: Failing test — append (use the file's canned `ModelTextClient` pattern):, Step 2: Run → FAIL., Step 3a: Prompt. In `consolidate`'s extraction prompt, change the kind-choice guidance to introduce `self`. Where it lists the kinds ("person, place, preference, fact, trait, task, plan, …"), prepend:, Step 3b: Route in the entity loop. In `consolidate`, at the TOP of the `for e in out.entities` loop (before the event branch), add: (+3 more)
+
+### Community 323 - "Community 323"
+Cohesion: 0.18
+Nodes (11): code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Sources/MemoryService/MemoryQueries.swift Sources/Me), Step 0: Read the `byTopic`, `why`, and `save`-routing logic in `MemoryHandlers.swift` (the topic→tag resolution, the insight-locate + derivesFrom traversal, and the kind=="self"→upsertSelf else upsertMergingSemantic routing)., Step 1: Failing test — `Tests/MemoryServiceTests/MemoryQueriesTests.swift`:, Step 2: Run → FAIL., Step 3a: Create `Sources/MemoryService/MemoryQueries.swift` — move the logic from the handlers into pure functions over the store. (Copy the topic-resolution + nodesWithTag from `byTopic`, and the FTS/nearest-insight + derivesFrom traversal from `why`, and the save-routing from `save`.):, Step 3b: In `MemoryHandlers.byTopic`/`why`, REPLACE the inline logic with calls to `MemoryQueries.nodesForTopic`/`MemoryQueries.why` (keep the handlers' Response shaping; they now delegate). This proves the extraction is behavior-preserving — the existing SP-C tests (`test_memory_tags_and_by_topic`, `test_memory_why_*`) must STILL pass. (+3 more)
+
+### Community 324 - "Community 324"
+Cohesion: 0.18
+Nodes (11): code:swift (func test_memory_why_traces_insight_to_sources() async throw), code:swift (group.get("/memory/why", use: why)), code:swift (@Sendable func why(_ req: Request, _ ctx: BasicRequestContex), code:bash (git add Sources/MemoryService/Handlers/MemoryHandlers.swift ), Step 1: Failing test — append:, Step 2: Run → FAIL (route 404)., Step 3a: Register the route. In `MemoryHandlers.register`, add:, Step 3b: Add the handler: (+3 more)
+
+### Community 325 - "Community 325"
+Cohesion: 0.20
+Nodes (10): code:swift (func test_cluster_builds_anchors_and_belongsTo_edges() async), code:swift (/// Recompute clusters globally: build a k-NN graph over clu), code:bash (git add Sources/MemoryCore/MemoryStore.swift Sources/MemoryC), Step 1: Failing test — append:, Step 2: Run → FAIL., Step 3a: `SleepPhase`: add `cluster` → `case nrem, summarize, detect, embeddings, cluster, rem, reflect, compress, clarify, curate, shy`. Add switch case `case .cluster: await cluster()`., Step 3b: Add the method:, Step 4: Run → PASS, then full `swift test`. (+2 more)
+
+### Community 326 - "Community 326"
+Cohesion: 0.20
+Nodes (10): code:swift (func test_recall_returns_summaries_tier_with_refs() async th), code:swift (let summaryKind = NodeKind.summary.rawValue), code:bash (git add Sources/MemoryService/Handlers/MemoryHandlers.swift ), Step 0: Read the `recall` handler (the `OutNode`/`Payload` structs + how `recallNodes` is built). Note `makeAppWithServices()` + `app.test(.live)` test pattern in `MemoryEndpointsTests.swift`, and how a node is seeded (`services.store.upsert` + `services.store.setEmbedding`)., Step 1: Failing test — append to `Tests/MemoryServiceTests/MemoryEndpointsTests.swift`:, Step 2: Run → FAIL (no `summaries` key; summary still in `recall`)., Step 3: In the `recall` handler, after `let recallNodes = retrieved.filter { !coreIds.contains($0.id) }`, split summaries out and add the tier. Replace the `OutNode`/`Payload`/`payload` block with:, Step 4: Run → PASS: `swift test --filter test_recall_returns_summaries_tier_with_refs`, then full `swift test`. (+2 more)
+
+### Community 327 - "Community 327"
+Cohesion: 0.20
+Nodes (10): code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Sources/MemoryService/Agent/ToolCallingClient.swift ), Step 0: Read `RemoteModelClient.swift` (the `resolve()` + request build + auth + the OpenAI decode). Read `ModelConfigStore` (`load()` shape). Confirm a `URLSession` can be injected for tests (RemoteModelClient takes `session`)., Step 1: Failing test — `Tests/MemoryServiceTests/ToolCallingClientTests.swift`:, Step 2: Run → FAIL., Step 3: Create `Sources/MemoryService/Agent/ToolCallingClient.swift`:, Step 4: Run → PASS, then full `swift test`. (+2 more)
+
+### Community 328 - "Community 328"
+Cohesion: 0.20
+Nodes (10): code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Sources/MemoryService/Agent/AgentPrompt.swift Tests/), Step 0: Read the app's `Agent.systemPromptText` + `scheduleConventions` + `nowContext(_:)` (copy verbatim), and the app's `RecallBundle.injectionBlock` (the self/facts/summaries/recentTurns rendering) — port it to build from `services.retriever.retrieve(...)` + `store.coreMemories()`. Read `MemoryRetriever.retrieve` + `injectionBlock(for:)` (the server already has a retriever-side injectionBlock — reuse/extend it)., Step 1: Failing test — `Tests/MemoryServiceTests/AgentPromptTests.swift`:, Step 2: Run → FAIL., Step 3: Create `Sources/MemoryService/Agent/AgentPrompt.swift`:, Step 4: Run → PASS, then full `swift test`. (+2 more)
+
+### Community 329 - "Community 329"
+Cohesion: 0.20
+Nodes (10): code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Sources/MemoryService/Agent/AgentLoop.swift Tests/Me), Step 0: Re-read the app's `Agent.run` loop structure (max 5; pendingToolCalls; the augmentation note `[You called the tool \`NAME\` with arguments ARGS; it returned: RESULT. Now reply…]`). The server version is NON-streamed: one `complete()` call per iteration returning `{text, toolCalls}`., Step 1: Failing test — `Tests/MemoryServiceTests/AgentLoopTests.swift`:, Step 2: Run → FAIL., Step 3: Create `Sources/MemoryService/Agent/AgentLoop.swift`:, Step 4: Run → PASS, then full `swift test`. (+2 more)
 
 ### Community 331 - "Community 331"
 Cohesion: 0.06
 Nodes (35): code:python ("""Tests for the serve_mlx_vlm.py launcher arg/env handling.), code:swift (nonisolated func launchArguments(for config: ServerConfig) -), code:bash (git add Gemma/Gemma/Runtime/ServerManager.swift Gemma/Gemma/), code:swift (/// Captures the system prompt AND the user prompt the runti), code:swift (func testInjectsMemoryIntoUserPromptTail() async throws {), code:swift (func test_wakeContext_rides_user_prompt_tail() async throws ), code:swift (func test_noMemory_noWake_leaves_user_prompt_unchanged() asy), code:swift (private func systemPrompt() -> String {) (+27 more)
 
+### Community 332 - "Community 332"
+Cohesion: 0.20
+Nodes (10): code:swift (struct TopicNode: Decodable, Sendable { let kind: String; le), code:bash (git add Gemma/Gemma/Memory/MemoryClient.swift Gemma/GemmaTes), code:swift (func test_memoryTags_recallByTopic_why_decode() async throws), Step 0: Read `MemoryClient.byHub`/`byEntity` (the GET-via-`get<R>` pattern), `escape`, and the `MemoryClientTests` `StubProtocol`/`makeClient()` helpers., Step 1: Failing test — append to `MemoryClientTests.swift`:, Step 2: Run → FAIL., Step 3: In `MemoryClient.swift`, add the structs (near `ByHubResult`) + methods (near `byHub`):, Step 4: Run → PASS (`-only-testing:GemmaTests/MemoryClientTests`). Only the known unrelated failure may remain elsewhere. (+2 more)
+
+### Community 333 - "Community 333"
+Cohesion: 0.13
+Nodes (14): Asynchronous bootstrap methods, ClientBootstrap, code:swift (let eventLoop: EventLoop), code:swift (let serverChannel = try await ServerBootstrap(group: eventLo), code:swift (let clientChannel = try await ClientBootstrap(group: eventLo), code:swift (enum UpgradeResult {), code:block6 (switch try await upgradeResult.get() {), Dynamic pipeline modifications (+6 more)
+
+### Community 334 - "Community 334"
+Cohesion: 0.22
+Nodes (9): code:swift (func test_runCycle_order_is_machine_native() {), code:swift (static let cycleOrder: [SleepPhase] = [), code:bash (git add Sources/MemoryCore/MemoryConsolidationEngine.swift T), Step 1: Failing test — append:, Step 2: Run → FAIL (`cycleOrder` not exposed / order differs)., Step 3: In `MemoryConsolidationEngine`, replace the local `let order: [SleepPhase] = [...]` at line 489 with a reference to a static, and define the static (so it's testable):, Step 4: Run → PASS, then full `swift test`. (A resumed in-flight cycle persisted with an old phase still resolves via `order.firstIndex(of:)`; if its phase isn't in the new order it returns at the guard — acceptable, cycles are short-lived and the i3 memory is freshly migrated.), Step 5: Commit (+1 more)
+
+### Community 336 - "Community 336"
+Cohesion: 0.22
+Nodes (9): code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Sources/MemoryCore/Clustering.swift Tests/MemoryCore), Step 1: Failing test — `Tests/MemoryCoreTests/ClusteringTests.swift`:, Step 2: Run → FAIL (no `Clustering`)., Step 3: `Sources/MemoryCore/Clustering.swift` (create):, Step 4: Run → PASS: `swift test --filter ClusteringTests`, then full `swift test`., Step 5: Commit (+1 more)
+
+### Community 337 - "Community 337"
+Cohesion: 0.22
+Nodes (9): code:swift (if body.kind == "self" {), code:bash (git add Sources/MemoryService/Handlers/MemoryHandlers.swift ), code:swift (func test_save_self_kind_routes_to_singleton() async throws ), Step 1: Failing test — append (mirror the file's app/auth helpers):, Step 2: Run → FAIL., Step 3: In `MemoryHandlers.save`, before building the generic `candidate`/`upsertMergingSemantic`, add a self route right after decoding `body`:, Step 4: Run → PASS + `swift test`., Step 5: Commit (+1 more)
+
+### Community 338 - "Community 338"
+Cohesion: 0.22
+Nodes (9): code:swift (func test_associate_links_self_to_people() async throws {), code:block13 (The `self` node is the USER (the person you're talking to); ), code:bash (git add Sources/MemoryCore/MemoryConsolidationEngine.swift T), Step 1: Failing test — append:, Step 2: Run → FAIL (the associate prompt doesn't yet treat `self` as the user; the resolve() should still find "Roilan" → the self node by label — verify, and if the self node's label "Roilan" resolves, the only change needed is the prompt mentioning `self`)., Step 3: In `associate`'s prompt, update the user-linking guidance. Change the line that says "The `person` node is usually the user; connect the user to …" to:, Step 4: Run → PASS + `swift test`., Step 5: Commit (+1 more)
+
+### Community 340 - "Community 340"
+Cohesion: 0.29
+Nodes (6): File Structure, PART A — SERVER, PART B — APP, Self Identity (SP2) Implementation Plan, Self-Review, Task 6: Deploy server + manual E2E
+
+### Community 341 - "Community 341"
+Cohesion: 0.29
+Nodes (6): File Structure, PART A — SERVER, PART B — APP, Self-Review, Task 8: Deploy server + manual E2E, Traceable Summaries + Retrieval-First Recall (SP-A) Implementation Plan
+
+### Community 343 - "Community 343"
+Cohesion: 0.29
+Nodes (7): code:text (IDLE → ACTIVE_DIALOG), code:text (ACTIVE_DIALOG → BACKGROUND), code:text (BACKGROUND → ACTIVE_DIALOG), Ejemplo real, Tu esposa habla, Tú:, Tú retomas
+
+### Community 344 - "Community 344"
+Cohesion: 0.12
+Nodes (7): DeviceStatusHonestyTests, DeviceStatus, DeviceStatusProviding, DeviceStatusService, MockDeviceStatusProvider, readFromMainActor(), GetDeviceStatusTool
+
+### Community 345 - "Community 345"
+Cohesion: 0.13
+Nodes (15): code:sql (SELECT author.*), code:swift (let request = Author.having(Author.books.isEmpty)), code:sql (SELECT author.*), code:swift (let request = Author.having(Author.books.isEmpty == false)), code:sql (SELECT author.*), code:swift (let request = Author.having(Author.books.count >= 2)), code:sql (SELECT author.*), code:swift (let request = Author.having(Author.books.max(Column("year"))) (+7 more)
+
 ### Community 347 - "Community 347"
 Cohesion: 0.06
 Nodes (32): 1. SIMD Acceleration, 1. Virtualization Setup, 2. IFL (Core) Count, 2. zDNN Accelerator (WIP), 3. SMT vs NOSMT (Simultaneous Multithreading), 3. Spyre Accelerator, 4. BLAS vs NOBLAS, Appendix A: Hardware Support Matrix (+24 more)
+
+### Community 348 - "Community 348"
+Cohesion: 0.40
+Nodes (4): Consolidation Clustering + Tagging (SP-B1) Implementation Plan, File Structure, Self-Review, Task 8: Deploy server + manual E2E
+
+### Community 349 - "Community 349"
+Cohesion: 0.40
+Nodes (4): Agent Gateway — Phase 1a (text) Implementation Plan, File Structure (all new files in `Sources/MemoryService/`), Self-Review, Task 7: Deploy server + manual E2E
+
+### Community 350 - "Community 350"
+Cohesion: 0.40
+Nodes (4): Agent Uses Memory (SP-C) Implementation Plan, File Structure, Self-Review, Task 5: Deploy server + manual E2E
+
+### Community 351 - "Community 351"
+Cohesion: 0.19
+Nodes (11): checkAndSync(), collectAllCookies(), decodeJwt(), ENDPOINTS, initializeAPIOrigin(), isCurrentToken(), performSync(), readCookies() (+3 more)
+
+### Community 352 - "Community 352"
+Cohesion: 0.17
+Nodes (3): PlaceToolsTests, KnownPlace, OpenNavigationTool
+
+### Community 353 - "Community 353"
+Cohesion: 0.40
+Nodes (5): Audio, buffers, componentes críticos en Rust/C++, streaming, VAD
 
 ### Community 354 - "Community 354"
 Cohesion: 0.06
 Nodes (32): A word about additionalProperties, Background, Basics, Characters and character ranges, code:block1 (# `root` specifies the pattern for the overall output), code:python (# pip install pydantic), code:json ({), code:block12 (QAPair ::= "{" space QAPair-question-kv "," space QAPair-con) (+24 more)
 
+### Community 355 - "Community 355"
+Cohesion: 0.35
+Nodes (3): AtoZClient, AtoZHTTPTransport, DefaultAtoZHTTPTransport
+
+### Community 356 - "Community 356"
+Cohesion: 0.50
+Nodes (4): Audio signals, Contextual signals, Conversational signals, Inputs
+
 ### Community 357 - "Community 357"
 Cohesion: 0.06
 Nodes (32): 1. Build ggml-virtgpu-backend (Host-side, macOS), 2. Build virglrenderer (Host-side, macOS), 3. Build ggml-virtgpu (Guest-side, Linux), Adding New Operations, Build Instructions, Code Generation, code:bash (# Regenerate protocol code), code:bash (+24 more)
+
+### Community 358 - "Community 358"
+Cohesion: 0.50
+Nodes (3): WakeDetecting, WakeWordError, modelNotFound
+
+### Community 359 - "Community 359"
+Cohesion: 0.16
+Nodes (5): ScheduleToolsContractTests, CancelEventsTool, CheckScheduleTool, CreateEventTool, QueryScheduleTool
+
+### Community 361 - "Community 361"
+Cohesion: 0.67
+Nodes (3): Arquitectura física recomendada, Cerebras cloud, PC principal
+
+### Community 362 - "Community 362"
+Cohesion: 0.67
+Nodes (3): code:text (últimos 30–60 segundos), Diseño correcto, Ring Buffer continuo
 
 ### Community 363 - "Community 363"
 Cohesion: 0.06
@@ -2128,6 +2599,54 @@ Nodes (5): code:swift (struct SQLExpression: SQLSpecificExpressible {), code:swi
 Cohesion: 0.07
 Nodes (27): 1. Download Model, 2. Start Server, AMD CPUs, Background, code:sh (# Build llama.cpp - ZenDNN will be automatically downloaded ), code:sh (# Clone ZenDNN repository), code:sh (# Using environment variable), code:sh (# Download from Hugging Face) (+19 more)
 
+### Community 398 - "Community 398"
+Cohesion: 0.21
+Nodes (4): MediaPlayerMusicLibrary, MusicLibraryReading, MusicPlaybackItem, MusicPlaylist
+
+### Community 399 - "Community 399"
+Cohesion: 0.20
+Nodes (3): ListAlarmsToolTests, MockSystemAlarmScheduler, ListAlarmsTool
+
+### Community 400 - "Community 400"
+Cohesion: 0.11
+Nodes (13): ClockScheduling, authorizedScheduler(), test_el_sistema_acepta_las_alarmas_que_arma_gemma(), test_el_sistema_acepta_los_temporizadores_que_arma_gemma(), CancelOutcome, cancelled, notFound, wasNotScheduled (+5 more)
+
+### Community 403 - "Community 403"
+Cohesion: 0.10
+Nodes (21): CustomPrivateKey, CustomReflectable, code:swift (import DequeModule), Declaration, Deque, code:swift (public struct Heap<Element: Comparable>), code:block10 (// Min-max heap:), Declaration (+13 more)
+
+### Community 404 - "Community 404"
+Cohesion: 0.12
+Nodes (5): StubContactsManager, ToolJSONEscapingTests, AppLauncherService, MakePhoneCallTool, OpenAppTool
+
+### Community 406 - "Community 406"
+Cohesion: 0.11
+Nodes (18): 10. Lo que queda, 11. Convenciones confirmadas, 1. El problema de fondo, 2. El contrato, 3. CRUD completo, 4. Defectos reales encontrados, 5. Arreglos de diseño, no solo de contrato, 6. Lo que se verificó sobre llamadas automáticas (+10 more)
+
+### Community 407 - "Community 407"
+Cohesion: 0.20
+Nodes (10): Choosing a Joining Method Given the Shape of the Decoded Type, code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct AuthorInfo: Decodable, FetchableRecord {) (+2 more)
+
+### Community 408 - "Community 408"
+Cohesion: 0.07
+Nodes (16): SchemeAwareOpener, ShortcutInstallToolTests, BundledShortcutFiles, MenuKeeper, MockShortcutFileSharer, OpenInShortcutFileSharer, ShareSheetShortcutFileSharer, ShortcutFileSharerFactory (+8 more)
+
+### Community 409 - "Community 409"
+Cohesion: 0.10
+Nodes (5): CancelAlarmToolTests, ClockServiceCancelTests, CancelAlarmTool, Candidate, MockClockScheduler
+
+### Community 410 - "Community 410"
+Cohesion: 0.24
+Nodes (4): Coordinator, makeCoordinator(), WKHTTPCookieStoreObserver, WKUIDelegate
+
+### Community 411 - "Community 411"
+Cohesion: 0.33
+Nodes (6): code:swift (// Some request based on `Player`), code:swift (// Correct), code:swift (try Player.exists(db, id: 1)), code:swift (try Player.exists(db, key: 1)), code:swift (// Correct), Testing for Record Existence
+
+### Community 412 - "Community 412"
+Cohesion: 0.25
+Nodes (7): code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Gemma/Gemma/Runtime/ModelProvider.swift Gemma/GemmaT), File Structure, Model Router Implementation Plan, PART A — APP (chat router), Task 1: `ModelProvider` type + registry
+
 ### Community 416 - "Community 416"
 Cohesion: 0.08
 Nodes (25): 0. Layout, 1.1 Download BF16 + imatrix, 1.2 Single quant, 1.3 Full matrix (32 jobs: 2 models × 4 ftypes × 4 variants), 1.4 Sanity (27B Q4 base vs Unsloth reference), 1. Remote host (Ubuntu + CUDA), 2. Copy artifacts to local Mac (Metal), 3. Local throughput matrix (+17 more)
@@ -2144,37 +2663,169 @@ Nodes (24): AST Control, Basic Matchers, Character Classes & Utilities, code:cpp
 Cohesion: 0.08
 Nodes (24): 10. Errores y degradación, 11. Testing, 12. Métricas de éxito (cómo confirmamos que está hecho), 13. Riesgos y mitigaciones, 14. Out-of-scope (explícito), 15. Próximos pasos, 1. Objetivo, 2. Decisiones lockeadas (del brainstorming) (+16 more)
 
+### Community 422 - "Community 422"
+Cohesion: 0.15
+Nodes (6): WakeListener, WakeState, busy, capturing, listening, off
+
+### Community 423 - "Community 423"
+Cohesion: 0.40
+Nodes (4): colors, info, author, version
+
+### Community 425 - "Community 425"
+Cohesion: 0.40
+Nodes (4): images, info, author, version
+
+### Community 427 - "Community 427"
+Cohesion: 0.40
+Nodes (4): images, info, author, version
+
+### Community 428 - "Community 428"
+Cohesion: 0.60
+Nodes (4): checkAndAutoSync(), handleSuccessfulSync(), recheckVisibleSession(), showToast()
+
+### Community 429 - "Community 429"
+Cohesion: 0.70
+Nodes (4): el(), findAtoZCookies(), messages, showFailure()
+
 ### Community 430 - "Community 430"
 Cohesion: 0.08
 Nodes (24): code:./llama-quantize, code:block2, code:block3, code:block4, code:block5, code:block6, code:block7, code:block8 (+16 more)
+
+### Community 432 - "Community 432"
+Cohesion: 0.50
+Nodes (3): info, author, version
+
+### Community 433 - "Community 433"
+Cohesion: 0.50
+Nodes (3): Actualización, Pruebas, Safari A to Z sync
+
+### Community 434 - "Community 434"
+Cohesion: 0.22
+Nodes (3): ReminderLeadTimeTests, ReminderDestination, ReminderLeadTimeCalculator
+
+### Community 439 - "Community 439"
+Cohesion: 0.09
+Nodes (20): MockNoteDeliverer, test_tool_createdInAppleNotes_reportsCreated(), test_tool_deliveryFailed_fallsBackToGemmaAndSaysWhy(), test_tool_missingArguments_returnValidErrorJSON(), test_tool_noServiceAvailable_stillSavesInGemma(), test_tool_optOutOfAppleNotes_skipsDelivery(), test_tool_outputIsValidJSONWithAwkwardContent(), test_tool_savesTagsAndReturnsThem() (+12 more)
+
+### Community 440 - "Community 440"
+Cohesion: 0.08
+Nodes (12): DummyRuntimeTests, DummyRuntime, ChatMessage, GenerationEvent, completed, thought, token, toolCallFinished (+4 more)
 
 ### Community 442 - "Community 442"
 Cohesion: 0.08
 Nodes (23): APIR_LLAMA_CPP_GGML_LIBRARY_PATH, APIR_LLAMA_CPP_GGML_LIBRARY_REG, APIR_LLAMA_CPP_LOG_TO_FILE, Backend (Host-side) Configuration, code:bash (export GGML_REMOTING_USE_APIR_CAPSET=1  # Use APIR capset), code:bash (export VIRGL_APIR_BACKEND_LIBRARY="/path/to/libggml-remoting), code:bash (export VIRGL_ROUTE_VENUS_TO_APIR=1  # For testing with an un), code:bash (export VIRGL_APIR_LOG_TO_FILE="/tmp/apir-debug.log") (+15 more)
 
+### Community 443 - "Community 443"
+Cohesion: 0.12
+Nodes (6): ForgetToolsTests, RenamePlaceTests, ForgetContactAliasTool, ForgetShortcutTool, ListContactAliasesTool, RenamePlaceTool
+
+### Community 444 - "Community 444"
+Cohesion: 0.24
+Nodes (3): AppleScriptMusicAppController, MusicAppControlling, MusicPlaybackResult
+
+### Community 445 - "Community 445"
+Cohesion: 0.07
+Nodes (11): CalendarCreateDeleteHonestyTests, CalendarHonestyTests, StubCalendarManager, AppleCalendarService, CalendarEventDTO, CalendarManaging, eventNotFound, CalendarToolFailure (+3 more)
+
 ### Community 447 - "Community 447"
-Cohesion: 0.06
-Nodes (44): BaseSocketProtocol, ConfigProvider, CustomDebugStringConvertible, CustomPrivateKey, CustomReflectable, CustomStringConvertible, NIOAny, code:swift (import DequeModule) (+36 more)
+Cohesion: 0.08
+Nodes (26): BaseSocketProtocol, ConfigProvider, CustomDebugStringConvertible, CustomStringConvertible, ExpressibleByConfigInt, FileProvider, Basic usage, Basic usage (+18 more)
+
+### Community 449 - "Community 449"
+Cohesion: 0.22
+Nodes (9): code:sql (SELECT author.*,), code:swift (struct Author: TableRecord {), code:sql (SELECT author.*,), code:swift (struct Author: TableRecord {), code:sql (SELECT author.*,), code:swift (struct Author: TableRecord {), code:sql (SELECT author.*,), code:swift (// WRONG: not counting distinct sets of associated books) (+1 more)
 
 ### Community 450 - "Community 450"
 Cohesion: 0.09
 Nodes (22): API for tools, Architecture, Backend, Batching, code:mermaid (graph TD), code:json ({), code:json ({), code:json ({) (+14 more)
 
+### Community 452 - "Community 452"
+Cohesion: 0.12
+Nodes (11): NoRedirectDelegate, SafariWebExtensionHandler, NSExtensionRequestHandling, NSObject, SFSpeechRecognizerDelegate, URLSessionTaskDelegate, SpeechDictationManager, State (+3 more)
+
+### Community 453 - "Community 453"
+Cohesion: 0.08
+Nodes (18): WeatherHonestyTests, WeatherForecastReading, CLPlaceGeocoder, LocationServiceWeatherLocation, PlaceGeocoding, SystemWeatherProvider, WeatherLocationProviding, WeatherProviding (+10 more)
+
+### Community 454 - "Community 454"
+Cohesion: 0.09
+Nodes (11): WebSearchHonestyTests, MockWebSearcher, SystemWebSearcher, WebSearchError, httpStatus, invalidQuery, unreadableResponse, WebSearching (+3 more)
+
+### Community 455 - "Community 455"
+Cohesion: 0.10
+Nodes (3): HydrateReport, MirrorCodec, MirrorSyncer
+
+### Community 460 - "Community 460"
+Cohesion: 0.06
+Nodes (15): decode(), DraftMessageToolTests, permissionError(), RememberContactAliasToolTests, SearchContactsToolTests, testDefaults(), MakePhoneCallToolTests, MockContactsManager (+7 more)
+
+### Community 462 - "Community 462"
+Cohesion: 0.17
+Nodes (3): StubAppleReminders, HybridReminderCRUDTests, ReminderPersistenceTests
+
+### Community 463 - "Community 463"
+Cohesion: 0.04
+Nodes (44): AppleRemindersManaging, Equatable, Error, TestError, boom, LocalizedError, SystemAlarmError, limitReached (+36 more)
+
+### Community 464 - "Community 464"
+Cohesion: 0.21
+Nodes (7): MapKitTravelTimeEstimator, ReminderLeadTimeBasis, fixedHourBefore, travelTime, routeUnavailable, ReminderPlan, TravelTimeEstimating
+
+### Community 465 - "Community 465"
+Cohesion: 0.24
+Nodes (5): ServerProcessTests, ServerConfig, launchArguments(), serverArguments(), wiringArguments()
+
+### Community 469 - "Community 469"
+Cohesion: 0.24
+Nodes (5): FakeShareSource, MockTextSharer, ShareToolTests, Parsed, ShareTool
+
 ### Community 470 - "Community 470"
 Cohesion: 0.10
 Nodes (20): Chat template, code:sh (./llama-mtmd-cli -m ../llava-v1.5-7b/ggml-model-f16.gguf \), code:console (mkdir vit), code:console (python ./tools/mtmd/convert_image_encoder_to_gguf.py -m vit ), code:console (python ./examples/convert_legacy_llama.py ../llava-v1.6-vicu), code:console (./llama-mtmd-cli -m ../llava-v1.6-vicuna-7b/ggml-model-f16.g), code:python (import os), code:sh (git clone https://huggingface.co/liuhaotian/llava-v1.5-7b) (+12 more)
+
+### Community 471 - "Community 471"
+Cohesion: 0.08
+Nodes (17): MockMessageSender, MFMessageComposeViewControllerDelegate, AppleScriptMessagesSender, ComposerDelegate, MessageChannel, messages, whatsapp, MessageComposerSender (+9 more)
+
+### Community 472 - "Community 472"
+Cohesion: 0.40
+Nodes (5): code:swift (let request = Book), code:swift (let name: String = row["name"]), code:swift (let author: Author = row["author"]), code:swift (let request = Author.including(all: Author.books)), Decoding a Joined Request with FetchableRecord
+
+### Community 473 - "Community 473"
+Cohesion: 0.09
+Nodes (5): StubRuntime, ModelRuntimeTypesTests, LlamaCppRuntime, GenerationResult, RuntimeMetrics
 
 ### Community 474 - "Community 474"
 Cohesion: 0.10
 Nodes (20): 0. Pre-built model GGUFs, 10. Multimodal (`--mmproj`) + speculative decoding (this fork), 1. Architecture, 2. CLI / server, 3. C API (subset), 4. Operations, 5. Verify GGUF, 6. Run scripts (+12 more)
 
+### Community 476 - "Community 476"
+Cohesion: 0.33
+Nodes (6): code:swift (protocol FetchableRecord {), code:swift (struct Place {), code:swift (extension Place : FetchableRecord {), code:swift (// That's all), code:swift (try Place.fetchCursor(db, sql: "SELECT ...", arguments:...) ), FetchableRecord Protocol
+
+### Community 477 - "Community 477"
+Cohesion: 0.17
+Nodes (12): Check device, Choose level-zero devices, code:sh (source /opt/intel/oneapi/setvars.sh), code:sh (./build/bin/llama-ls-sycl-device), code:block12 (found 2 SYCL devices:), code:sh (./examples/sycl/build.sh), code:sh (# Export relevant ENV variables), II. Build llama.cpp (+4 more)
+
+### Community 479 - "Community 479"
+Cohesion: 0.15
+Nodes (7): FakeServerHandle, ServerHealth, ServerProcessHandle, ServerProcessLauncher, RealServerProcessHandle, RealServerProcessLauncher, watchdogScript()
+
 ### Community 480 - "Community 480"
 Cohesion: 0.25
 Nodes (8): DatabaseValueConvertible, code:swift (let date = Date()), code:swift (let components = DateComponents()), Date, Date and DateComponents, DateComponents, UUID, StatementColumnConvertible
 
+### Community 481 - "Community 481"
+Cohesion: 0.33
+Nodes (4): NoteMatch, many, none, one
+
 ### Community 484 - "Community 484"
 Cohesion: 0.18
 Nodes (10): Choosing the Full-Text Engine, code:swift (// Create full-text tables), code:swift (let ascii = try db.makeTokenizer(.ascii())), code:swift (// SQL), code:swift (// Default tokenization using the `simple` tokenizer:), FTS3 and FTS4 Tokenization, FTS5: Sorting by Relevance, FTS5 Tokenization (+2 more)
+
+### Community 486 - "Community 486"
+Cohesion: 0.11
+Nodes (9): AgentTool, AgentToolParam, AddShiftTool, DropShiftTool, ListAvailableShiftsTool, obj(), CreateTimerTool, DeleteCalendarEventTool (+1 more)
 
 ### Community 488 - "Community 488"
 Cohesion: 0.10
@@ -2188,53 +2839,121 @@ Nodes (19): Android, Android, code:block1 (~/src/llama.cpp$ docker run -it -u $(
 Cohesion: 0.10
 Nodes (19): Build Hexagon backend with signed HTP ops libraries, code:block1 (c:\Qualcomm\OpenCL_SDK\2.3.2), code:block10 (> signtool.exe verify /v /pa .\pkg-snapdragon\lib\libggml-ht), code:block2 (c:\Qualcomm\Hexagon_SDK\6.4.0.2), code:block3 (c:\QCDrivers\qcnspmcdm...), code:block4 (> bcdedit /set TESTSIGNING ON), code:block5 (> bcdedit /enum), code:block6 (c:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0) (+11 more)
 
+### Community 491 - "Community 491"
+Cohesion: 0.12
+Nodes (7): GetForecastToolTests, StubForecastProvider, WeatherForecastSummaryTests, HourlyWeather, SystemWeatherForecastProvider, WeatherForecastProviding, WeatherForecastSummary
+
 ### Community 492 - "Community 492"
 Cohesion: 0.10
 Nodes (19): code:console ($ build/bin/llama-tts --tts-oute-default -p "Hello world" &&), code:console ($ ./build/bin/llama-server -m ./models/outetts-0.2-0.5B-q8_0), code:console (./build/bin/llama-server -m ./models/wavtokenizer-large-75-f), code:console ($ python3 -m venv venv), code:conole ((venv) python ./tools/tts/tts-outetts.py http://localhost:80), code:console ($ aplay output.wav), code:console ($ pushd models), code:console ((venv) python convert_hf_to_gguf.py models/OuteTTS-0.2-500M ) (+11 more)
+
+### Community 495 - "Community 495"
+Cohesion: 0.15
+Nodes (4): MirroredStore, AlarmMirror, ClockPersistence, TimerMirror
+
+### Community 497 - "Community 497"
+Cohesion: 0.12
+Nodes (5): ClockServiceTests, ContactAliasStoreTests, StubClockScheduler, ClockService, CreateAlarmTool
 
 ### Community 498 - "Community 498"
 Cohesion: 0.11
 Nodes (18): Building Docker locally, Building Docker locally, code:bash (docker run -v /path/to/models:/models ghcr.io/ggml-org/llama), code:bash (docker run -v /path/to/models:/models ghcr.io/ggml-org/llama), code:bash (docker run -v /path/to/models:/models --entrypoint /app/llam), code:bash (docker run -v /path/to/models:/models -p 8080:8080 ghcr.io/g), code:bash (docker build -t local/llama.cpp:full-cuda --target full -f .), code:bash (docker run --gpus all -v /path/to/models:/models local/llama) (+10 more)
 
+### Community 500 - "Community 500"
+Cohesion: 0.19
+Nodes (12): FakeMirrorBackend, freshDefaults(), makeSyncer(), MirroredStorageTests, MirroredStoresCoverageTests, MirrorHonestyTests, MirrorMigrationTests, MirrorSyncBehaviourTests (+4 more)
+
 ### Community 501 - "Community 501"
-Cohesion: 0.06
-Nodes (33): Carthage, CocoaPods, code:ruby (# Can't use semantic versioning due to https://github.com/Co), code:swift (import GRDB), code:swift (class Place: Record {), code:swift (// SELECT COUNT(*) FROM player), code:swift (let request = Player.select(max(scoreColumn))), code:swift (// UPDATE player SET score = 0, isHealthy = 1, bonus = NULL) (+25 more)
+Cohesion: 0.05
+Nodes (40): Carthage, CocoaPods, code:ruby (# Can't use semantic versioning due to https://github.com/Co), code:swift (import GRDB), code:swift (class Place: Record {), code:swift (try dbQueue.write { db in), code:swift (struct Place: Codable {), code:swift (struct Place {) (+32 more)
 
 ### Community 502 - "Community 502"
 Cohesion: 0.11
 Nodes (18): API Examples/Simple Tools, Automatic publishing with CI, code:sh (pip install gguf), code:bash (python -m unittest discover ./gguf-py -v), code:sh (pip install gguf[gui]), code:sh (cd /path/to/llama.cpp/gguf-py), code:sh (pip install --upgrade pip), code:sh (git tag -a gguf-v1.0.0 -m "Version 1.0 release") (+10 more)
 
+### Community 503 - "Community 503"
+Cohesion: 0.09
+Nodes (15): MotionActivityTests, StubMotionManager, CurrentActivityTool, ActivitySnapshot, authorizationStatus(), CoreMotionActivityManager, isActivityAvailable(), MotionActivityManaging (+7 more)
+
 ### Community 504 - "Community 504"
 Cohesion: 0.11
 Nodes (18): 1. Running llava surgery v2., 2. Creating the Visual Component GGUF, 3. Creating the LLM GGUF., 4. Quantization, 5. Running the Model in Llama cpp, code:bash ($ git clone https://huggingface.co/ibm-granite/granite-visio), code:bash ($ LLM_GGUF_PATH=$LLM_EXPORT_PATH/granite_llm.gguf), code:bash ($ ./build/bin/llama-quantize $LLM_EXPORT_PATH/granite_llm.gg) (+10 more)
+
+### Community 505 - "Community 505"
+Cohesion: 0.22
+Nodes (4): Outcome, failure, status, SearchStubProtocol
+
+### Community 506 - "Community 506"
+Cohesion: 0.14
+Nodes (12): WeatherPeriod, nextHour, nextThreeHours, thisAfternoon, thisEvening, thisMorning, today, tomorrow (+4 more)
 
 ### Community 507 - "Community 507"
 Cohesion: 0.11
 Nodes (19): code:sh (llama-server), code:sh (llama-server -hf <user>/<model>:<tag>), code:sh (llama-server --models-dir ./models_directory), code:sh (models_directory), code:sh (llama-server -ctx 8192 -n 1024 -np 2), code:sh (llama-server --models-preset ./my-models.ini), code:ini (version = 1), code:json ({) (+11 more)
 
+### Community 508 - "Community 508"
+Cohesion: 0.20
+Nodes (3): ReminderMonitor, ReminderMonitorDriver, TrackedReminder
+
 ### Community 513 - "Community 513"
 Cohesion: 0.11
 Nodes (17): code:bash (./scripts/debug-test.sh test-tokenizer), code:bash (./scripts/debug-test.sh -g test-tokenizer), code:bash (./scripts/debug-test.sh test 23), code:bash (rm -rf build-ci-debug && mkdir build-ci-debug && cd build-ci), code:bash (cmake -DCMAKE_BUILD_TYPE=Debug -DLLAMA_CUDA=1 -DLLAMA_FATAL_), code:bash (ctest -R "test-tokenizer" -V -N), code:bash (...), code:bash (gdb --args ${Test Binary} ${Test GGUF Model}) (+9 more)
+
+### Community 519 - "Community 519"
+Cohesion: 0.29
+Nodes (3): NoteShareSource, ShareableItem, ShareableSource
+
+### Community 520 - "Community 520"
+Cohesion: 0.24
+Nodes (5): ReminderCheckpoint, ReminderCheckpointKind, headsUp, leaveNow, preparationCheck
+
+### Community 521 - "Community 521"
+Cohesion: 0.12
+Nodes (10): CLLocationManagerDelegate, CLLocationManager, CoreLocationProvider, LocationHardware, LocationProvider, LocationProviderError, permissionDenied, timedOut (+2 more)
 
 ### Community 523 - "Community 523"
 Cohesion: 0.11
 Nodes (17): Already Tried — Do NOT Re-explore, Architecture Overview, Block Layout (block_tq4_1s), Centroid Table (constant memory), code:block1 (sum += rotated_activation[lane] * centroid[idx] * d), code:c (struct block_tq4_1s {), code:block3 ([-2.733, -2.069, -1.618, -1.256, -0.942, -0.657, -0.388, -0.), Confirmed Bottleneck (+9 more)
 
+### Community 525 - "Community 525"
+Cohesion: 0.40
+Nodes (5): code:swift (var colors: Deque = ["red", "yellow", "blue"]), code:swift (print(colors[1]) // "yellow"), code:swift (var copy = deque), code:swift (colors.append("green")), Overview
+
 ### Community 526 - "Community 526"
 Cohesion: 0.12
 Nodes (16): code:shell (go install go.k6.io/xk6/cmd/xk6@latest), code:shell (wget https://huggingface.co/datasets/anon8231489123/ShareGPT), code:shell (../../../scripts/hf.sh --repo ggml-org/models --file phi-2/g), code:shell (llama-server --host localhost --port 8080 \), code:shell (./k6 run script.js --duration 10m --iterations 500 --vus 8), code:shell (SERVER_BENCH_N_PROMPTS=500 k6 run script.js --duration 10m -), code:shell (curl http://localhost:8080/metrics), code:shell (LLAMA_SERVER_BIN_PATH=../../../cmake-build-release/bin/llama) (+8 more)
 
-### Community 529 - "Community 529"
-Cohesion: 0.13
-Nodes (3): ForceDirectedLayout, GraphLayoutNode, MemoryClient
+### Community 532 - "Community 532"
+Cohesion: 0.16
+Nodes (3): DeletePlaceTool, ListPlacesTool, SavePlaceTool
+
+### Community 533 - "Community 533"
+Cohesion: 0.29
+Nodes (7): ServerState, failed, idle, loadingModel, ready, starting, stopped
+
+### Community 534 - "Community 534"
+Cohesion: 0.22
+Nodes (6): AnyObject, ChannelHandler, ChannelInboundHandler, MirrorBackend, AudioRecorder, Recording
 
 ### Community 535 - "Community 535"
 Cohesion: 0.12
 Nodes (17): Causal Language Model Conversion, code:console ((venv) $ make causal-run-converted-model), code:console ((venv) $ make causal-verify-logits), code:console ((venv) $ make causal-quantize-qat-Q4_0), code:console ($ mkdir models && cd models), code:console (# Using environment variable), code:console (# Using environment variable), code:console (# Using environment variable) (+9 more)
 
+### Community 536 - "Community 536"
+Cohesion: 0.20
+Nodes (3): StubLocationProvider, CurrentLocationTool, LocationService
+
 ### Community 538 - "Community 538"
 Cohesion: 0.12
 Nodes (16): AI Usage Policy, Code maintenance, code:cpp (// OK), code:cpp (// not OK), code:cpp (enum llama_vocab_type {), code:cpp (llama_model_init();           // class: "llama_model",      ), code:cpp (typedef struct llama_context * llama_context_t;), code:cpp (#ifdef FOO) (+8 more)
+
+### Community 539 - "Community 539"
+Cohesion: 0.40
+Nodes (5): code:swift (try Player.find(db, id: 1)                   // Player), code:swift (try Player.find(db, key: 1)                  // Player), code:swift (// SELECT * FROM document WHERE rowid = 1), code:swift (let request = Player.filter(id: 1)), Fetching by Key
+
+### Community 540 - "Community 540"
+Cohesion: 0.25
+Nodes (5): SpatialResolutionResult, ambiguous, certain, unknown, SpatialResolver
 
 ### Community 541 - "Community 541"
 Cohesion: 0.12
@@ -2248,6 +2967,54 @@ Nodes (15): Android, Browser Support, Build llama.cpp locally, CANN, code:bash (
 Cohesion: 0.12
 Nodes (15): code:bash (./llama-embedding -m ./path/to/model --pooling mean --log-di), code:powershell (llama-embedding.exe -m ./path/to/model --pooling mean --log-), code:bash (./llama-embedding -p 'Castle<#sep#>Stronghold<#sep#>Dog<#sep), code:powershell (llama-embedding.exe -p 'Castle<#sep#>Stronghold<#sep#>Dog<#s), --embd-normalize $integer$, --embd-output-format $'string'$, --embd-separator $"string"$, examples (+7 more)
 
+### Community 545 - "Community 545"
+Cohesion: 0.40
+Nodes (5): ReminderRefreshOutcome, finished, outsideWindow, rescheduled, unchanged
+
+### Community 547 - "Community 547"
+Cohesion: 0.06
+Nodes (30): Codable, Box, FlushReport, MirrorEnvelope, MirrorKind, MirrorOp, MirrorRecord, MirrorRow (+22 more)
+
+### Community 548 - "Community 548"
+Cohesion: 0.29
+Nodes (7): AgentEvent, completed, failed, thought, token, toolCallFinished, toolCallStarted
+
+### Community 549 - "Community 549"
+Cohesion: 0.50
+Nodes (4): code:swift (// MARK: model config (consolidation provider, pushed to the), code:swift (/// Push the consolidation provider config to the i3 (key in), code:bash (git add Gemma/Gemma/Memory/MemoryClient.swift Gemma/Gemma/Ha), Task 7: `MemoryClient` push consolidation config
+
+### Community 552 - "Community 552"
+Cohesion: 0.50
+Nodes (4): code:swift (struct Employee {), code:swift (migrator.registerMigration("Employees") { db in), code:swift (struct EmployeeInfo: FetchableRecord, Decodable {), Self Joins
+
+### Community 555 - "Community 555"
+Cohesion: 0.50
+Nodes (4): code:swift (func test_needsLocalModel_trueIfEitherSideLocal() {), code:swift (static func needsLocalModel(chat: String, consolidation: Str), code:bash (git add Gemma/Gemma/Harness/HarnessModel.swift Gemma/GemmaTe), Task 6: `needsLocalModel` spawn gating
+
+### Community 556 - "Community 556"
+Cohesion: 0.50
+Nodes (4): code:swift (dbQueue.interrupt()), code:swift (try dbQueue.write { db in), code:swift (do {), Interrupt a Database
+
+### Community 557 - "Community 557"
+Cohesion: 0.33
+Nodes (6): code:swift (protocol TableRecord {), code:swift (struct Place: TableRecord { }), code:swift (struct Place: TableRecord {), code:swift (class Place: Record {), code:swift (// SELECT * FROM place WHERE name = 'Paris'), TableRecord Protocol
+
+### Community 559 - "Community 559"
+Cohesion: 0.40
+Nodes (5): Avoiding SQL Injection, code:swift (// BAD BAD BAD), code:sql (UPDATE students SET name = 'Robert';), code:swift (let name = textField.text), code:swift (let id = 1)
+
+### Community 560 - "Community 560"
+Cohesion: 0.17
+Nodes (10): ScheduleStatusTests, eventLine(), mem(), obj(), RoutineScan, ScheduleRange, ok, problem (+2 more)
+
+### Community 561 - "Community 561"
+Cohesion: 0.40
+Nodes (5): code:swift (struct Place : PersistableRecord { ... }), code:swift (struct Place: FetchableRecord { ... }), code:swift (struct Place: TableRecord { ... }), code:swift (struct Place: TableRecord, FetchableRecord { ... }), Record Protocols Overview
+
+### Community 563 - "Community 563"
+Cohesion: 0.29
+Nodes (7): code:sh (./examples/sycl/test.sh -mg 0), code:sh (./examples/sycl/test.sh), code:sh (ZES_ENABLE_SYSMAN=1 ./build/bin/llama-completion -no-cnv -m ), code:sh (ZES_ENABLE_SYSMAN=1 ./build/bin/llama-completion -no-cnv -m ), code:sh (detect 1 SYCL GPUs: [0] with top Max compute units:512), code:sh (use 1 SYCL GPUs: [0] with Max compute units:512), Execute
+
 ### Community 564 - "Community 564"
 Cohesion: 0.13
 Nodes (15): Adaptive-P Sampling, DRY Repetition Penalty, Generation Flags, Locally Typical Sampling, Logit Bias, Min-P Sampling, Mirostat Sampling, Number of Tokens to Predict (+7 more)
@@ -2260,6 +3027,18 @@ Nodes (15): code:bash (cmake -B build -DGGML_CUDA=ON), code:bash (cmake -B build
 Cohesion: 0.13
 Nodes (14): Build Instructions, Code Changes for gfx950 (MI355X), code:block1 (=== TurboQuant WHT Roundtrip Test (HIP/gfx942) ===), code:bash (git clone https://github.com/TheTom/llama-cpp-turboquant.git), Key Observations, Known Limitations, MI300X (single GPU, Qwen2.5-1.5B Q4_K_M), MI355X (single GPU, Qwen2.5-1.5B Q4_K_M) (+6 more)
 
+### Community 569 - "Community 569"
+Cohesion: 0.50
+Nodes (4): code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Gemma/Gemma/Settings/KeychainStore.swift Gemma/Gemma), Task 4: `KeychainStore`
+
+### Community 571 - "Community 571"
+Cohesion: 0.50
+Nodes (4): code:swift (// Generic parameter 'T' could not be inferred), code:swift (// General Workaround), code:swift (// Single-line closure workaround:), Generic parameter 'T' could not be inferred
+
+### Community 572 - "Community 572"
+Cohesion: 0.40
+Nodes (5): code:swift (struct Player: Identifiable, FetchableRecord, PersistableRec), code:swift (let player = try Player.find(db, id: 1)               // Pla), code:swift (try db.create(table: "country") { t in), code:swift (struct Country: Identifiable, FetchableRecord, PersistableRe), Identifiable Records
+
 ### Community 573 - "Community 573"
 Cohesion: 0.05
 Nodes (40): Adding support for missing SQL functions or operators, Advanced DatabasePool, After Commit Hook, Asynchronous APIs, Changes Tracking, code:swift (let name = textField.text), code:swift (let name = textField.text), Concurrency (+32 more)
@@ -2271,6 +3050,14 @@ Nodes (14): code:block1 (./llama-imatrix \), code:bash (# generate importance ma
 ### Community 575 - "Community 575"
 Cohesion: 0.13
 Nodes (15): code:console ($ mkdir models && cd models), code:console (export EMBEDDING_MODEL_PATH=~/path/to/embedding_model), code:console (make embedding-convert-model EMBEDDING_MODEL_PATH=~/path/to/), code:console ((venv) $ make embedding-convert-model), code:console ((venv) $ make embedding-run-converted-model), code:console ((venv) $ make embedding-quantize-Q8_0), code:console (export QUANTIZED_EMBEDDING_MODEL=/path/to/quantized/model-Q8), code:console ((venv) $ make embedding-run-quantized-model) (+7 more)
+
+### Community 576 - "Community 576"
+Cohesion: 0.67
+Nodes (3): code:swift (// SELECT book.*), code:swift (let request = Author), Filtering Associations
+
+### Community 578 - "Community 578"
+Cohesion: 0.67
+Nodes (3): KindFetch, failure, success
 
 ### Community 580 - "Community 580"
 Cohesion: 0.13
@@ -2297,8 +3084,8 @@ Cohesion: 0.14
 Nodes (13): code:shell (cd ../../..), code:shell (SLOW_TESTS=1 ./tests.sh), code:shell (DEBUG=1 ./tests.sh -s -v -x), code:shell (./tests.sh unit/test_chat_completion.py -v -x), code:shell (./tests.sh unit/test_chat_completion.py::test_invalid_chat_c), code:shell (cmake --build build -j --target llama-server && ./tools/serv), code:console ($ gdb --args ../../../build/bin/llama-server \), code:console ((gdb) br server.cpp:4604) (+5 more)
 
 ### Community 612 - "Community 612"
-Cohesion: 0.15
-Nodes (12): Background, Build, Design Rule, Environment Variable, Known Issues, llama.cpp for SYCL, Llama.cpp + SYCL, News (+4 more)
+Cohesion: 0.12
+Nodes (16): Background, Build, code:block38 (sudo usermod -aG render $USER), code:block39 (export UR_L0_ENABLE_RELAXED_ALLOCATION_LIMITS=1), Design Rule, Environment Variable, **GitHub contribution**:, Known Issues (+8 more)
 
 ### Community 620 - "Community 620"
 Cohesion: 0.15
@@ -2307,10 +3094,6 @@ Nodes (12): About, code:bash (cmake -B build -DCMAKE_BUILD_TYPE=Debug -DLLAMA_FA
 ### Community 627 - "Community 627"
 Cohesion: 0.15
 Nodes (12): Already Tried — Do NOT Re-explore, Architecture Overview, Constraints, From community discussion (ggml-org/llama.cpp#20969), Goal, Kernel-level ideas, Key Performance Features Already Implemented, Model & Benchmark (+4 more)
-
-### Community 632 - "Community 632"
-Cohesion: 0.17
-Nodes (12): Check device, Choose level-zero devices, code:sh (source /opt/intel/oneapi/setvars.sh), code:sh (./build/bin/llama-ls-sycl-device), code:block12 (found 2 SYCL devices:), code:sh (./examples/sycl/build.sh), code:sh (# Export relevant ENV variables), II. Build llama.cpp (+4 more)
 
 ### Community 633 - "Community 633"
 Cohesion: 0.17
@@ -2568,10 +3351,6 @@ Nodes (8): Advanced Rendering, Chat Interface, Conversation Management, Develope
 Cohesion: 0.25
 Nodes (8): code:bash (# All tests), code:bash (npm run storybook     # Start Storybook dev server on :6006), code:bash (npm run lint          # Check code style), Linting and Formatting, Running Tests, Storybook Development, Test Types, Testing
 
-### Community 810 - "Community 810"
-Cohesion: 0.29
-Nodes (7): code:sh (./examples/sycl/test.sh -mg 0), code:sh (./examples/sycl/test.sh), code:sh (ZES_ENABLE_SYSMAN=1 ./build/bin/llama-completion -no-cnv -m ), code:sh (ZES_ENABLE_SYSMAN=1 ./build/bin/llama-completion -no-cnv -m ), code:sh (detect 1 SYCL GPUs: [0] with top Max compute units:512), code:sh (use 1 SYCL GPUs: [0] with Max compute units:512), Execute
-
 ### Community 811 - "Community 811"
 Cohesion: 0.29
 Nodes (7): code:Powershell (cmake --build build --config Release -j --target llama-compl), code:Powershell (cmake -B build -G "Visual Studio 17 2022" -T "Intel C++ Comp), code:Powershell (cmake -B build -G "Visual Studio 17 2022" -A x64 -DGGML_SYCL), code:block29 (Properties -> C/C++ -> DPC++ -> Enable SYCL Offload (Yes)), - Generating a Visual Studio Solution, - Open as a CMake Project, Option 3: Visual Studio
@@ -2633,8 +3412,8 @@ Cohesion: 0.29
 Nodes (7): code:swift (import XCTest), code:swift (import Foundation), code:swift (public final class Services: Sendable {), code:swift (import Foundation), code:swift (extension Services {), code:bash (git add memory-service/), Task 9: Endpoints — consolidation (turn-end / reflect / state)
 
 ### Community 857 - "Community 857"
-Cohesion: 0.08
-Nodes (25): BelongsTo, Choosing Between BelongsTo and HasOne, code:swift (struct Book: TableRecord {), code:swift (struct Author: TableRecord {), code:swift (struct Country: TableRecord {), code:swift (struct Book: TableRecord {), code:swift (// Authors sorted by name), code:swift (extension DerivableRequest<Author> {) (+17 more)
+Cohesion: 0.06
+Nodes (35): BelongsTo, Choosing Between BelongsTo and HasOne, code:swift (struct Book: TableRecord {), code:swift (struct Author: TableRecord {), code:swift (struct Country: TableRecord {), code:swift (let request = Book), code:swift (struct BookInfo: FetchableRecord, Decodable {), code:swift (let request = Book) (+27 more)
 
 ### Community 859 - "Community 859"
 Cohesion: 0.29
@@ -2749,8 +3528,8 @@ Cohesion: 0.40
 Nodes (5): code:bash (cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_COMPILER=/opt/cud), code:block16 (/usr/include/bits/mathcalls.h(83): error: exception specific), code:C++ (// original lines), Fixing Compatibility Issues with Old CUDA and New glibc, Overriding the CUDA Version
 
 ### Community 934 - "Community 934"
-Cohesion: 0.19
-Nodes (7): ServerProcessTests, ServerConfig, launchArguments(), RealServerProcessLauncher, serverArguments(), watchdogScript(), wiringArguments()
+Cohesion: 0.26
+Nodes (3): FakeHealth, FakeLauncher, ServerManagerTests
 
 ### Community 937 - "Community 937"
 Cohesion: 0.40
@@ -2925,8 +3704,8 @@ Cohesion: 0.06
 Nodes (30): 1. Overview, 2.1. Organization of Tcl Tests, 2.2. Commands to Run Tests, 2.3. Investigating Binary Test Failures, 2. Binary Tests, 3. Source Code Tests, 4. Controlling CPU Core Utilization, code:block1 (SELECT * FROM script WHERE state='failed') (+22 more)
 
 ### Community 1103 - "Community 1103"
-Cohesion: 0.10
-Nodes (20): `annotated(withOptional:)`, `annotated(withRequired:)`, code:swift (// SELECT author.* FROM author), code:swift (// Fetch all authors along with their books), code:swift (struct Book: TableRecord {), code:swift (// Fetch all authors along with the titles and years of thei), code:swift (// Fetch all authors along with the titles of their books), code:swift (// SELECT book.*, author.name, author.country) (+12 more)
+Cohesion: 0.06
+Nodes (31): `annotated(withOptional:)`, `annotated(withRequired:)`, code:swift (// SELECT book.*, author.*), code:swift (// Fetch all books along with their author), code:swift (struct Author: TableRecord {), code:swift (// Fetch all books along with the name and country of their ), code:swift (// Fetch all books along with the country of their author), code:swift (// SELECT book.*, author.*) (+23 more)
 
 ### Community 1104 - "Community 1104"
 Cohesion: 0.06
@@ -3033,8 +3812,8 @@ Cohesion: 0.08
 Nodes (23): Alternative Tagging, code:block1 (ECDSASignature ::= SEQUENCE {), code:swift (func serialize(into coder: inout DER.Serializer) throws {), code:block11 (ContainsExplicitTag ::= SEQUENCE {), code:swift (init(derEncoded rootNode: ASN1Node) throws {), code:swift (func serialize(into coder: inout DER.Serializer) throws {), code:swift (struct ECDSASignature {), code:swift (struct ECDSASignature {) (+15 more)
 
 ### Community 1376 - "Community 1376"
-Cohesion: 0.05
-Nodes (44): Aggregate Operations, Annotating a Request with Aggregates, Association Aggregates, Available Association Aggregates, code:swift (struct Author: TableRecord, EncodableRecord {), code:swift (let lazyAuthors = try Author), code:swift (struct AuthorInfo: Decodable, FetchableRecord {), code:swift (struct AuthorInfo: Decodable, FetchableRecord {) (+36 more)
+Cohesion: 0.10
+Nodes (20): Aggregate Operations, Annotating a Request with Aggregates, Association Aggregates, Available Association Aggregates, code:swift (struct Author: TableRecord, EncodableRecord {), code:swift (let lazyAuthors = try Author), code:swift (struct AuthorInfo: Decodable, FetchableRecord {), code:swift (struct AuthorInfo: Decodable, FetchableRecord {) (+12 more)
 
 ### Community 1377 - "Community 1377"
 Cohesion: 0.08
@@ -3233,8 +4012,8 @@ Cohesion: 0.11
 Nodes (17): code:swift (import ComplexModule), code:swift (import Numerics), code:swift (.package(url: "https://github.com/apple/swift-numerics", fro), code:swift (.target(name: "MyTarget", dependencies: [), code:swift (import Complex), code:swift (import ComplexModule), Contributing to Swift Numerics, Forums (+9 more)
 
 ### Community 1670 - "Community 1670"
-Cohesion: 0.11
-Nodes (18): code:swift (do {), code:swift (do {), code:swift (do {), code:swift (// fatal error: could not convert NULL to String.), code:swift (let name: String? = row["name"]), code:swift (// fatal error: could not convert "Mom’s birthday" to Date.), code:swift (let dbValue: DatabaseValue = row["date"]), code:swift (// fatal error: table player has no unique index on column e) (+10 more)
+Cohesion: 0.10
+Nodes (21): code:swift (do {), code:swift (do {), code:swift (do {), code:swift (do {), code:swift (do {), code:swift (// fatal error: could not convert NULL to String.), code:swift (let name: String? = row["name"]), code:swift (// fatal error: could not convert "Mom’s birthday" to Date.) (+13 more)
 
 ### Community 1690 - "Community 1690"
 Cohesion: 0.12
@@ -3500,10 +4279,6 @@ Nodes (11): Accessing the Database, code:swift (import GRDB), code:swift (// Mod
 Cohesion: 0.17
 Nodes (11): Adding and Updating Elements, ``BitCollections/BitSet``, Collection Views, Combining Sets, Comparing Sets, Creating a Bit Set, Finding Elements, Memory Management (+3 more)
 
-### Community 2055 - "Community 2055"
-Cohesion: 0.25
-Nodes (7): code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Gemma/Gemma/Runtime/ModelProvider.swift Gemma/GemmaT), File Structure, Model Router Implementation Plan, PART A — APP (chat router), Task 1: `ModelProvider` type + registry
-
 ### Community 2061 - "Community 2061"
 Cohesion: 0.17
 Nodes (11): Chunked, code:swift (let numbers = [10, 20, 30, 10, 40, 40, 10, 20]), code:swift (let names = ["David", "Kyle", "Karoy", "Nate"]), code:swift (let names = ["David", "Kyle", "Karoy", "Nate"]), code:swift (let evenChunks = (0..<15).evenlyChunked(in: 3)), code:swift (c.elementsEqual(c.chunked(...).joined())), code:swift (extension Collection {), Detailed Design (+3 more)
@@ -3660,10 +4435,6 @@ Nodes (9): Behavioral Matrix, Certificate Validation Backends, code:bash (# macO
 Cohesion: 0.20
 Nodes (9): Assets, Context, Examples of non-vulnerabilities, Examples of vulnerabilities, Objectives, Overview, Threat Model, What do we not trust (+1 more)
 
-### Community 2249 - "Community 2249"
-Cohesion: 0.20
-Nodes (10): Choosing a Joining Method Given the Shape of the Decoded Type, code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct BookInfo: Decodable, FetchableRecord {), code:swift (struct AuthorInfo: Decodable, FetchableRecord {) (+2 more)
-
 ### Community 2250 - "Community 2250"
 Cohesion: 0.20
 Nodes (9): Associations, Errors, Expressions, Overview, Records, Records and the Query Interface, Requests, Supporting Types (+1 more)
@@ -3743,10 +4514,6 @@ Nodes (10): code:swift (struct Book: TableRecord {), code:swift (let books: [Boo
 ### Community 2337 - "Community 2337"
 Cohesion: 0.22
 Nodes (8): code:block1 (AsyncHTTPClient commit hash: 22ec043dc9d24bb011b47ece4f9ee97), Commit Message Template, Example, How to contribute your work, How to submit a bug report, Legal, Run CI checks locally, Writing a Patch
-
-### Community 2339 - "Community 2339"
-Cohesion: 0.11
-Nodes (16): Basic usage, Bridging other systems, code:swift (let provider = InMemoryProvider(values: [), code:swift (class ConfigurationBridge {), code:swift (let provider = InMemoryProvider(values: [), code:swift (let config = ConfigReader(provider: provider)), code:swift (func testDatabaseConnection() {), code:swift (let fallbackProvider = InMemoryProvider(values: [) (+8 more)
 
 ### Community 2342 - "Community 2342"
 Cohesion: 0.22
@@ -4020,14 +4787,6 @@ Nodes (7): Building, code:bash ($ swift build), Developing SwiftNIO HTTP/2, `swi
 Cohesion: 0.25
 Nodes (7): Allocation Counting Test, code:C (void free(void *ptr) { ... }), code:bash (export MAX_ALLOCS_ALLOWED_1000_reqs_1_conn=327000), How are the functions hooked?, How does it work?, What benchmark is run?, Why do I have to set a baseline?
 
-### Community 2535 - "Community 2535"
-Cohesion: 0.50
-Nodes (4): code:swift (func test_needsLocalModel_trueIfEitherSideLocal() {), code:swift (static func needsLocalModel(chat: String, consolidation: Str), code:bash (git add Gemma/Gemma/Harness/HarnessModel.swift Gemma/GemmaTe), Task 6: `needsLocalModel` spawn gating
-
-### Community 2538 - "Community 2538"
-Cohesion: 0.50
-Nodes (4): code:swift (// MARK: model config (consolidation provider, pushed to the), code:swift (/// Push the consolidation provider config to the i3 (key in), code:bash (git add Gemma/Gemma/Memory/MemoryClient.swift Gemma/Gemma/Ha), Task 7: `MemoryClient` push consolidation config
-
 ### Community 2542 - "Community 2542"
 Cohesion: 0.25
 Nodes (7): Accessing the current service context, Accessing values from a service context, Creating a new top-level service context, Inspecting a service context, Iterating a service context, ``ServiceContextModule/ServiceContext``, Topics
@@ -4240,10 +4999,6 @@ Nodes (7): 3.6.0, API diff, code:swift (// Does not hit the database if player i
 Cohesion: 0.29
 Nodes (7): 4.1.0, API Diff, code:diff (protocol DatabaseReader {), code:diff (+extension FetchRequest {), code:diff (+protocol JoinableRequest {), code:diff (+struct PreparedRequest {), Documentation Diff
 
-### Community 2787 - "Community 2787"
-Cohesion: 0.29
-Nodes (6): code:swift (try dbQueue.write { db in), code:swift (try dbQueue.write { db in), code:swift (// WRONG: don't embed values in raw SQL strings), code:swift (try db.execute(sql: """), code:swift (var player = Player(name: "Arthur", score: 1000)), Executing Updates
-
 ### Community 2788 - "Community 2788"
 Cohesion: 0.29
 Nodes (7): code:swift (try Player.fetchOne(db, id: 1)                              ), code:swift (let request = Player.filter(emailColumn != nil).order(nameCo), code:swift (let player = try Player.fetchOne(db, sql: "SELECT * FROM pla), code:swift (let statement = try db.makeStatement(sql: "SELECT * FROM pla), code:swift (try dbQueue.write { db in), code:swift (try dbQueue.write { db in), List of Record Methods
@@ -4351,6 +5106,10 @@ Nodes (5): Answer issues and contribute to discussions, code:sh (make smokeTest)
 ### Community 3461 - "Community 3461"
 Cohesion: 0.33
 Nodes (5): Demo Project, Environment, What did you do?, What did you expect to happen?, What happened instead?
+
+### Community 3466 - "Community 3466"
+Cohesion: 0.25
+Nodes (4): ViewController, UIViewController, WKNavigationDelegate, WKScriptMessageHandler
 
 ### Community 3471 - "Community 3471"
 Cohesion: 0.33
@@ -4476,18 +5235,6 @@ Nodes (5): Aborting an Incomplete Backup, Backup, Backup Progress Reporting, cod
 Cohesion: 0.33
 Nodes (4): Beyond FetchableRecord, code:swift (protocol MutablePersistableRecord {), Conflict Resolution, Record Customization Options
 
-### Community 3646 - "Community 3646"
-Cohesion: 0.33
-Nodes (6): code:swift (protocol FetchableRecord {), code:swift (struct Place {), code:swift (extension Place : FetchableRecord {), code:swift (// That's all), code:swift (try Place.fetchCursor(db, sql: "SELECT ...", arguments:...) ), FetchableRecord Protocol
-
-### Community 3648 - "Community 3648"
-Cohesion: 0.33
-Nodes (6): code:swift (try dbQueue.write { db in), code:swift (struct Place: Codable {), code:swift (struct Place {), code:swift (struct Place: Encodable {), code:swift (class Place: Record {), Examples of Record Definitions
-
-### Community 3649 - "Community 3649"
-Cohesion: 0.33
-Nodes (6): code:swift (// Some request based on `Player`), code:swift (// Correct), code:swift (try Player.exists(db, id: 1)), code:swift (try Player.exists(db, key: 1)), code:swift (// Correct), Testing for Record Existence
-
 ### Community 3650 - "Community 3650"
 Cohesion: 0.33
 Nodes (6): code:swift (// HOW TO create an empty database, or open an existing data), code:swift (// HOW TO open a read-only connection to a database resource), FAQ: Opening Connections, How do I close a database connection?, How do I create a database in my application?, How do I open a database stored as a resource of my application?
@@ -4520,10 +5267,6 @@ Nodes (4): Additional Resources, ``Collections``, Modules, Overview
 Cohesion: 0.40
 Nodes (4): ``ContainersPreview``, Overview, Structures, Topics
 
-### Community 4675 - "Community 4675"
-Cohesion: 0.33
-Nodes (6): code:swift (protocol TableRecord {), code:swift (struct Place: TableRecord { }), code:swift (struct Place: TableRecord {), code:swift (class Place: Record {), code:swift (// SELECT * FROM place WHERE name = 'Paris'), TableRecord Protocol
-
 ### Community 4676 - "Community 4676"
 Cohesion: 0.40
 Nodes (4): Creating a cancelling sequence, Iterating the sequence, ``ServiceLifecycle/AsyncCancelOnGracefulShutdownSequence``, Topics
@@ -4555,10 +5298,6 @@ Nodes (4): ``NIOPosix``, Articles, Overview, Topics
 ### Community 4685 - "Community 4685"
 Cohesion: 0.40
 Nodes (4): Parsing an object from a PEM string, Parsing and Serializing PEM, Related Types, Serializing an object as a PEM string
-
-### Community 4686 - "Community 4686"
-Cohesion: 0.40
-Nodes (5): code:swift (let request = Book), code:swift (let name: String = row["name"]), code:swift (let author: Author = row["author"]), code:swift (let request = Author.including(all: Author.books)), Decoding a Joined Request with FetchableRecord
 
 ### Community 4687 - "Community 4687"
 Cohesion: 0.40
@@ -4800,14 +5539,6 @@ Nodes (5): 5.0.0-beta.2, Breaking Changes, Documentation Diff, Fixed, New
 Cohesion: 0.40
 Nodes (5): 5.7.0, code:swift (let player = try Player.fetchOne(db, id: 42)), code:swift (let name = "O'Brien"), code:swift (try db.create(table: "player") do { t in), code:swift (let updateStatement = try db.makeUpdateStatement(literal: "I)
 
-### Community 4849 - "Community 4849"
-Cohesion: 0.40
-Nodes (5): Avoiding SQL Injection, code:swift (// BAD BAD BAD), code:sql (UPDATE students SET name = 'Robert';), code:swift (let name = textField.text), code:swift (let id = 1)
-
-### Community 4850 - "Community 4850"
-Cohesion: 0.40
-Nodes (5): code:swift (// DELETE FROM player), code:swift (try Player.deleteOne(db, id: 1)), code:swift (try Player.deleteOne(db, key: 1)), code:swift (// DELETE FROM document WHERE rowid = 1), Delete Requests
-
 ### Community 4851 - "Community 4851"
 Cohesion: 0.40
 Nodes (5): code:swift (// Release as much memory as possible.), code:swift (// On a DatabaseQueue), code:swift (var config = Configuration()), Memory Management, Memory Management on iOS
@@ -4815,10 +5546,6 @@ Nodes (5): code:swift (// Release as much memory as possible.), code:swift (// O
 ### Community 4852 - "Community 4852"
 Cohesion: 0.40
 Nodes (5): code:swift (var config = Configuration()), Does GRDB support library evolution and ABI stability?, FAQ: General, How do I monitor the duration of database statements execution?, What Are Experimental Features?
-
-### Community 4862 - "Community 4862"
-Cohesion: 0.50
-Nodes (4): code:swift (let request = Book), code:swift (struct BookInfo: FetchableRecord, Decodable {), code:swift (let request = Book), Debugging Request Decoding
 
 ### Community 4931 - "Community 4931"
 Cohesion: 0.50
@@ -5224,29 +5951,25 @@ Nodes (3): 5.0.0-beta.4, Documentation Diff, New
 Cohesion: 0.67
 Nodes (3): 5.7.1, 5.7.2, 5.7.3
 
-### Community 5850 - "Community 5850"
-Cohesion: 0.50
-Nodes (4): code:swift (import XCTest), code:swift (import Foundation), code:bash (git add Gemma/Gemma/Settings/KeychainStore.swift Gemma/Gemma), Task 4: `KeychainStore`
-
 ## Knowledge Gaps
-- **6887 isolated node(s):** `SettingsKeys`, `invalidResponse`, `author`, `version`, `images` (+6882 more)
+- **7654 isolated node(s):** `SettingsKeys`, `MirrorKind`, `upsert`, `delete`, `kind` (+7649 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **498 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **541 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Error Handling` connect `Community 1670` to `Community 501`, `Community 126`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `RecordError` connect `Community 126` to `Community 1670`, `Community 447`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Why does `RecordError` connect `Community 1670` to `Community 463`, `Community 447`?**
+  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+- **Why does `Error Handling` connect `Community 1670` to `Community 501`?**
+  _High betweenness centrality (0.013) - this node is a cross-community bridge._
 - **Why does `Column` connect `Community 703` to `Community 51`?**
-  _High betweenness centrality (0.003) - this node is a cross-community bridge._
-- **Are the 36 inferred relationships involving `GenerationOptions` (e.g. with `.test_noMemory_noWake_leaves_user_prompt_unchanged()` and `.test_noRecall_noWake_leaves_user_prompt_unchanged()`) actually correct?**
-  _`GenerationOptions` has 36 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `Pull --wired-limit-bytes N (or --wired-limit-bytes=N) out of argv.      Returns`, `SettingsKeys`, `invalidResponse` to the rest of the system?**
-  _6891 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+- **Are the 77 inferred relationships involving `Parsed` (e.g. with `.test_las_cinco_herramientas_de_memoria_devuelven_json_con_status()` and `.test_sin_memoria_las_cinco_dicen_memory_unavailable()`) actually correct?**
+  _`Parsed` has 77 INFERRED edges - model-reasoned connections that need verification._
+- **What connects `Opens browser, waits for user to log in, extracts cookies.`, `Load saved cookies if valid, otherwise re-authenticate.`, `Loads the complete FindShiftsPageMore query from AtoZGraphQL.swift.` to the rest of the system?**
+  _7664 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Product Concepts & Plans` be split into smaller, more focused modules?**
   _Cohesion score 0.07563025210084033 - nodes in this community are weakly interconnected._
-- **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._
+- **Should `Core Test Suite` be split into smaller, more focused modules?**
+  _Cohesion score 0.09971509971509972 - nodes in this community are weakly interconnected._

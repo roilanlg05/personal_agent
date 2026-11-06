@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Gemma Agent</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.gemma.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>gemma</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>spotify</string>
+		<string>music</string>
+		<string>shortcuts</string>
+		<string>whatsapp</string>
+		<string>sms</string>
+		<string>tel</string>
+	</array>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>Gemma necesita poner alarmas y temporizadores del sistema cuando se lo pides, para que suenen aunque el teléfono esté en silencio.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>100.91.174.81</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+			<key>192.168.1.50</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Gemma controla Spotify y Música para reproducir lo que le pides.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Gemma lee tus listas de reproducción para poner la música que le pides.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Gemma lee y escribe en tu calendario para consultar tu agenda, crear eventos y avisarte de conflictos.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Gemma lee y escribe en tu calendario para consultar tu agenda, crear eventos y avisarte de conflictos.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Gemma busca en tus contactos para llamar o escribir a quien le pides por su nombre.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Gemma se conecta a tu servidor local de memoria en la red local.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Gemma usa tu ubicación mientras la app está abierta para decirte dónde estás, guardar lugares conocidos y consultar el clima de donde te encuentras.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Gemma graba tu voz para enviarla al asistente.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Gemma usa el sensor de movimiento para saber si vas conduciendo, caminando o en reposo y adaptar lo que te propone.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Gemma guarda tus recordatorios en la app Recordatorios para que los veas y los tengas en todos tus dispositivos.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Gemma usa reconocimiento de voz para transcribir tus mensajes.</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>UILaunchScreen</key>
+	<dict/>
+</dict>
+</plist>

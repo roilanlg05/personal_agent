@@ -58,40 +58,76 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                     if !provider.kind.isLocalMLX, (provider.apiKey ?? "").isEmpty {
                         throw RuntimeError.generationFailed("\(provider.kind.displayName): falta la API key — agrégala en Settings → Modelos (y sal del campo para guardarla).")
                     }
-                    var messages: [[String: Any]] = []
-                    if let sys = options.systemPrompt, !sys.isEmpty {
-                        messages.append(["role": "system", "content": sys])
-                    }
-                    for m in options.history {
-                        messages.append(["role": m.role.rawValue, "content": m.content])
-                    }
-                    messages.append(["role": "user", "content": prompt])
-
-                    var body: [String: Any] = [
-                        "model": model,
-                        "messages": messages,
-                        "max_tokens": options.maxTokens,
-                        "temperature": options.temperature,
-                        "stream": true,   // SSE: tokens arrive incrementally so the UI can render live.
-                    ]
-                    // Skip the model's hidden chain-of-thought (~48x faster; see `enableThinking`).
-                    // Cloud providers reject this kwarg, so only send it to local mlx.
-                    if provider.kind.isLocalMLX {
-                        body["chat_template_kwargs"] = ["enable_thinking": enableThinking]
-                    }
-                    if !tools.isEmpty {
-                        body["tools"] = tools.map { type(of: $0).functionSpec }
-                    }
-
-                    var req = URLRequest(url: baseURL.appendingPathComponent("chat/completions"))
+                    let effectiveMaxTokens = max(options.maxTokens, 4096)
+                    let isClaude = provider.kind == .claude
+                    let endpoint = isClaude ? "messages" : "chat/completions"
+                    var req = URLRequest(url: baseURL.appendingPathComponent(endpoint))
                     req.httpMethod = "POST"
                     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     req.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-                    if let key = provider.apiKey, !key.isEmpty {
-                        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-                    }
-                    req.httpBody = try JSONSerialization.data(withJSONObject: body)
                     req.timeoutInterval = Double(generationTimeout.components.seconds)
+
+                    if isClaude {
+                        if let key = provider.apiKey, !key.isEmpty {
+                            req.setValue(key, forHTTPHeaderField: "x-api-key")
+                        }
+                        req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+                        var claudeMessages: [[String: Any]] = []
+                        for m in options.history {
+                            claudeMessages.append(["role": m.role == .assistant ? "assistant" : "user", "content": m.content])
+                        }
+                        claudeMessages.append(["role": "user", "content": prompt])
+
+                        var body: [String: Any] = [
+                            "model": model,
+                            "messages": claudeMessages,
+                            "max_tokens": effectiveMaxTokens,
+                            "stream": true,
+                        ]
+                        if let sys = options.systemPrompt, !sys.isEmpty {
+                            body["system"] = sys
+                        }
+                        if !tools.isEmpty {
+                            body["tools"] = tools.map { t in
+                                let spec = type(of: t).functionSpec
+                                let fn = spec["function"] as? [String: Any] ?? [:]
+                                return [
+                                    "name": fn["name"] as? String ?? "",
+                                    "description": fn["description"] as? String ?? "",
+                                    "input_schema": fn["parameters"] as? [String: Any] ?? [:]
+                                ]
+                            }
+                        }
+                        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+                    } else {
+                        var messages: [[String: Any]] = []
+                        if let sys = options.systemPrompt, !sys.isEmpty {
+                            messages.append(["role": "system", "content": sys])
+                        }
+                        for m in options.history {
+                            messages.append(["role": m.role.rawValue, "content": m.content])
+                        }
+                        messages.append(["role": "user", "content": prompt])
+
+                        var body: [String: Any] = [
+                            "model": model,
+                            "messages": messages,
+                            "max_tokens": effectiveMaxTokens,
+                            "temperature": options.temperature,
+                            "stream": true,
+                        ]
+                        if provider.kind.isLocalMLX {
+                            body["chat_template_kwargs"] = ["enable_thinking": enableThinking]
+                        }
+                        if !tools.isEmpty {
+                            body["tools"] = tools.map { type(of: $0).functionSpec }
+                        }
+                        if let key = provider.apiKey, !key.isEmpty {
+                            req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+                        }
+                        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+                    }
 
                     // Issue the request, retrying transient 429s (e.g. Cerebras free-tier
                     // "queue_exceeded") a few times with linear backoff before surfacing.
@@ -119,10 +155,10 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                     let bytes = bytesOpt!
 
                     // Parse the OpenAI SSE stream: `data: {chunk}` lines, ending with `data: [DONE]`.
-                    // Emit each content delta as a token (live); accumulate tool-call deltas (which
-                    // arrive fragmented by index) and emit them at the end so the Agent tool loop
-                    // sees the same shape as before.
                     var visible = ""
+                    var isPotentiallyToolCall: Bool? = nil
+                    var inThoughtTag = false
+                    var thoughtBuffer = ""
                     var toolNames: [Int: String] = [:]
                     var toolArgs: [Int: String] = [:]
                     for try await line in bytes.lines {
@@ -130,12 +166,101 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                         let payload = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
                         if payload == "[DONE]" { break }
                         guard let d = payload.data(using: .utf8),
-                              let chunk = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
-                              let delta = (chunk["choices"] as? [[String: Any]])?.first?["delta"] as? [String: Any]
+                              let chunk = try? JSONSerialization.jsonObject(with: d) as? [String: Any]
                         else { continue }
+
+                        if isClaude {
+                            let type = chunk["type"] as? String
+                            if type == "content_block_delta" {
+                                if let delta = chunk["delta"] as? [String: Any] {
+                                    let deltaType = delta["type"] as? String
+                                    if deltaType == "text_delta", let piece = delta["text"] as? String, !piece.isEmpty {
+                                        visible += piece
+                                        continuation.yield(.token(piece))
+                                    } else if deltaType == "input_json_delta", let partial = delta["partial_json"] as? String {
+                                        let idx = (chunk["index"] as? Int) ?? 0
+                                        toolArgs[idx, default: ""] += partial
+                                    }
+                                }
+                            } else if type == "content_block_start" {
+                                if let block = chunk["content_block"] as? [String: Any], block["type"] as? String == "tool_use" {
+                                    let idx = (chunk["index"] as? Int) ?? 0
+                                    if let name = block["name"] as? String {
+                                        toolNames[idx] = name
+                                    }
+                                }
+                            } else if type == "message_stop" {
+                                break
+                            }
+                            continue
+                        }
+
+                        guard let delta = (chunk["choices"] as? [[String: Any]])?.first?["delta"] as? [String: Any] else { continue }
+                        if let reasoning = delta["reasoning_content"] as? String, !reasoning.isEmpty {
+                            continuation.yield(.thought(reasoning))
+                        }
                         if let piece = delta["content"] as? String, !piece.isEmpty {
                             visible += piece
-                            continuation.yield(.token(piece))
+
+                            if inThoughtTag {
+                                thoughtBuffer += piece
+                                if let endRange = thoughtBuffer.range(of: "</thought>") ??
+                                                  thoughtBuffer.range(of: "</think>") ??
+                                                  thoughtBuffer.range(of: "<channel|>") ??
+                                                  thoughtBuffer.range(of: "<|channel|>") ??
+                                                  thoughtBuffer.range(of: "<|end_of_thought|>") {
+                                    let inside = String(thoughtBuffer[..<endRange.lowerBound])
+                                    let remainder = String(thoughtBuffer[endRange.upperBound...])
+                                    if !inside.isEmpty { continuation.yield(.thought(inside)) }
+                                    thoughtBuffer = ""
+                                    inThoughtTag = false
+                                    if !remainder.isEmpty && isPotentiallyToolCall == false {
+                                        continuation.yield(.token(remainder))
+                                    }
+                                } else {
+                                    // Emit thought incrementally while holding back potential partial closing tag
+                                    if thoughtBuffer.count > 25 {
+                                        let safeIdx = thoughtBuffer.index(thoughtBuffer.endIndex, offsetBy: -25)
+                                        let emit = String(thoughtBuffer[..<safeIdx])
+                                        thoughtBuffer = String(thoughtBuffer[safeIdx...])
+                                        continuation.yield(.thought(emit))
+                                    }
+                                }
+                                continue
+                            }
+
+                            // Check if a thought tag starts in content
+                            if piece.contains("<thought>") || piece.contains("<think>") ||
+                               piece.contains("<|channel|>thought") || piece.contains("<|channel>thought") {
+                                inThoughtTag = true
+                                let startTags = ["<thought>", "<think>", "<|channel|>thought", "<|channel>thought"]
+                                var remainder = piece
+                                for tag in startTags {
+                                    if let r = remainder.range(of: tag) {
+                                        let before = String(remainder[..<r.lowerBound])
+                                        remainder = String(remainder[r.upperBound...])
+                                        if !before.isEmpty && isPotentiallyToolCall == false {
+                                            continuation.yield(.token(before))
+                                        }
+                                        break
+                                    }
+                                }
+                                thoughtBuffer = remainder
+                                continue
+                            }
+
+                            if isPotentiallyToolCall == nil && visible.count >= 5 {
+                                let trimmed = visible.trimmingCharacters(in: .whitespacesAndNewlines)
+                                if trimmed.hasPrefix("<execute_tool") || trimmed.hasPrefix("<tool_call") ||
+                                   trimmed.hasPrefix("call:") || trimmed.hasPrefix("{") {
+                                    isPotentiallyToolCall = true
+                                } else {
+                                    isPotentiallyToolCall = false
+                                }
+                            }
+                            if isPotentiallyToolCall == false {
+                                continuation.yield(.token(piece))
+                            }
                         }
                         if let calls = delta["tool_calls"] as? [[String: Any]] {
                             for call in calls {
@@ -147,12 +272,30 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                         }
                     }
 
+                    // Flush any remaining thought buffer if stream ended without explicit close
+                    if inThoughtTag && !thoughtBuffer.isEmpty {
+                        continuation.yield(.thought(thoughtBuffer))
+                    }
+
+                    // Also extract any text-encoded tool calls emitted by models in delta["content"]
+                    let (extractedCalls, cleanText) = GemmaToolCallParser.parseToolCalls(from: visible)
+                    for (i, call) in extractedCalls.enumerated() {
+                        let baseIdx = (toolNames.keys.max() ?? -1) + 1 + i
+                        toolNames[baseIdx] = call.name
+                        toolArgs[baseIdx] = call.args
+                    }
+
                     for idx in toolNames.keys.sorted() {
                         let args = toolArgs[idx].flatMap { $0.isEmpty ? nil : $0 } ?? "{}"
                         continuation.yield(.toolCallStarted(name: toolNames[idx] ?? "", args: args))
                     }
+
+                    if isPotentiallyToolCall == true && toolNames.isEmpty && !cleanText.isEmpty {
+                        continuation.yield(.token(cleanText))
+                    }
+
                     continuation.yield(.completed(GenerationResult(
-                        text: GemmaToolCallParser.strip(visible),
+                        text: cleanText,
                         metrics: .init(tokensGenerated: 0, elapsedSeconds: 0, timeToFirstTokenSeconds: 0, peakResidentMemoryBytes: 0, draftAcceptanceRate: nil))))
                     continuation.finish()
                 } catch let e as RuntimeError {

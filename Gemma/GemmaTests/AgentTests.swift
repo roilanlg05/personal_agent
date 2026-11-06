@@ -24,6 +24,7 @@ final class AgentTests: XCTestCase {
         for try await event in agent.run(prompt: "what time is it?", options: GenerationOptions(maxTokens: 64)) {
             switch event {
             case .token: kinds.append("token")
+            case .thought: break
             case .toolCallStarted(let n, _): kinds.append("start:\(n)")
             case .toolCallFinished(let n, _): kinds.append("done:\(n)")
             case .completed(let r): finalText = r.text; kinds.append("completed")

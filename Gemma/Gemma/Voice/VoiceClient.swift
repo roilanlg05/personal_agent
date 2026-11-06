@@ -22,6 +22,12 @@ protocol VoiceTurning: Sendable {
     func turn(wav: Data, threadId: String, timezone: String, isPassive: Bool) async throws -> VoiceReply
 }
 
+extension VoiceTurning {
+    func turn(wav: Data, threadId: String, timezone: String) async throws -> VoiceReply {
+        try await turn(wav: wav, threadId: threadId, timezone: timezone, isPassive: false)
+    }
+}
+
 /// HTTP client to the i3 voice service. Mirrors MemoryClient (baseURL + bearer + injectable session).
 /// Sends a multipart/form-data POST to /v1/voice/turn (audio in -> audio out).
 struct VoiceClient: VoiceTurning {

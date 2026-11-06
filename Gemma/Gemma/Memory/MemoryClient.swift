@@ -41,9 +41,14 @@ final class MemoryClient {
                 let base = "- [\(n.kind)] \(n.label): \(n.body.isEmpty ? n.label : n.body)"
                 guard n.kind == "event", let extra = n.extra,
                       let data = extra.data(using: .utf8),
-                      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let status = obj["status"] as? String else { return base }
-                return base + scheduleStatusSuffix(status)
+                      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return base }
+                let status = obj["status"] as? String
+                let endAt = obj["endAt"] as? Double
+                var suffix = scheduleStatusSuffix(status)
+                if let endAt, endAt <= Date().timeIntervalSince1970, status != "cancelled" {
+                    suffix += " (ya finalizó / pasado)"
+                }
+                return base + suffix
             }
             var out = ""
             if let s = selfNode, !s.label.isEmpty {
@@ -89,6 +94,9 @@ final class MemoryClient {
         let salience: Double?
         let mentionCount: Int?
         let confidence: String?
+        /// When the service last touched the node. The mirrored device stores read it to renew
+        /// a node before the consolidation sweep gets close to it.
+        let lastSeenAt: Double?
     }
     struct Edge: Decodable, Sendable, Identifiable {
         let id: String
@@ -130,10 +138,17 @@ final class MemoryClient {
     let bearerToken: String
     private let session: URLSession
 
-    init(baseURL: URL, bearerToken: String, session: URLSession = .shared) {
+    init(baseURL: URL, bearerToken: String, session: URLSession? = nil) {
         self.baseURL = baseURL
         self.bearerToken = bearerToken
-        self.session = session
+        if let session {
+            self.session = session
+        } else {
+            let config = URLSessionConfiguration.default
+            config.timeoutIntervalForRequest = 5.0
+            config.timeoutIntervalForResource = 8.0
+            self.session = URLSession(configuration: config)
+        }
     }
 
     // MARK: transcript
@@ -149,9 +164,16 @@ final class MemoryClient {
     }
 
     // MARK: memory
-    func save(kind: String, label: String, body: String?, extra: String?, sourceRef: String?) async throws -> SaveResult {
-        struct B: Encodable { let kind: String; let label: String; let body: String?; let extra: String?; let sourceRef: String? }
-        return try await post("/v1/memory/save", B(kind: kind, label: label, body: body, extra: extra, sourceRef: sourceRef))
+    /// `layer` is optional and almost never set: the server picks `daily` by itself, which is
+    /// right for a fact the model just learned. The mirrored device stores (notes, places,
+    /// shortcuts…) do set it — see `MemoryClient.mirrorSave` for why they must.
+    func save(kind: String, label: String, body: String?, extra: String?, sourceRef: String?,
+              layer: String? = nil) async throws -> SaveResult {
+        struct B: Encodable { let kind: String; let label: String; let body: String?; let extra: String?
+                              let sourceRef: String?; let layer: String? }
+        return try await post("/v1/memory/save",
+                              B(kind: kind, label: label, body: body, extra: extra,
+                                sourceRef: sourceRef, layer: layer))
     }
     func forget(label: String? = nil, id: String? = nil) async throws -> Int {
         struct B: Encodable { let label: String?; let id: String? }
@@ -172,6 +194,20 @@ final class MemoryClient {
             return .empty
         }
     }
+    /// Igual que `recall`, pero propaga el fallo en vez de devolver un paquete vacío.
+    ///
+    /// `recall` se traga los 5xx y los `URLError` a propósito: así el agente sigue
+    /// conversando si la memoria se cae, aunque esa vez no inyecte nada. Para la
+    /// BÚSQUEDA explícita (`search_memory`) ese silencio es una mentira: la herramienta
+    /// recibía un paquete vacío indistinguible de «no hay nada» y el modelo le decía al
+    /// usuario «no recuerdo nada de eso» cuando el servicio estaba caído. Quien pregunta
+    /// a propósito tiene derecho a saber que no se pudo mirar.
+    func recallStrict(query: String, scope: String? = nil, limit: Int? = nil,
+                      threadId: String? = nil) async throws -> RecallBundle {
+        struct B: Encodable { let query: String; let scope: String?; let limit: Int?; let threadId: String? }
+        return try await post("/v1/memory/recall", B(query: query, scope: scope, limit: limit, threadId: threadId))
+    }
+
     func loadMessages(chatId: String, from: Int, to: Int?) async throws -> RangeResult {
         let toq = to.map { "&to=\($0)" } ?? ""
         return try await get("/v1/transcript/range?chat_id=\(escape(chatId))&from=\(from)\(toq)")

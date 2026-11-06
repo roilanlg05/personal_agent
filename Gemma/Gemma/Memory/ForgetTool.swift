@@ -16,7 +16,27 @@ struct ForgetTool: AgentTool {
         let result: String = await {
             guard let mem = await MemoryToolbox.shared.memory else { return "memory unavailable" }
             do {
+                let list = try? await mem.nodes(limit: 100, offset: 0, kind: nil)
+                let needle = query.lowercased()
+                let matchingNodes = list?.nodes.filter {
+                    $0.label.lowercased().contains(needle) ||
+                    $0.body.lowercased().contains(needle) ||
+                    needle.contains($0.label.lowercased())
+                } ?? []
+
+                if !matchingNodes.isEmpty {
+                    var total = 0
+                    for node in matchingNodes {
+                        _ = try await mem.forget(label: nil, id: node.id)
+                        total += 1
+                    }
+                    return "Forgot \(total) item(s) matching '\(query)'."
+                }
+
                 let removed = try await mem.forget(label: query, id: nil)
+                if removed == 0 {
+                    return "No memories found matching '\(query)' to forget."
+                }
                 return "Forgot \(removed) item(s)."
             } catch { return "memory error: \(error)" }
         }()

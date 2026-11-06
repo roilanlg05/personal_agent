@@ -1,5 +1,7 @@
 # M2b-3 — Conscious resume of reflection + proactive follow-up on wake — Design
 
+> **Nota de evolución, 2026-11-05:** este documento conserva el diseño y resultados históricos del seguimiento al volver el usuario. La iniciativa sin entrada previa se concreta ahora en [S14 del roadmap maestro](00-roadmap.md); las transiciones fiables de tareas y dudas están en el [plan del cerebro](../plans/2026-11-05-cerebro-gemma.md). «Conscious resume» designa reanudación de trabajo y contexto persistidos, no conciencia subjetiva. Los atajos históricos de resolución no sustituyen los contratos nuevos.
+
 > **Parent vision:** `docs/superpowers/specs/2026-05-31-sleep-consolidation-vision.md`. **Phase 3** of the Sleep Consolidation memory. Builds on M2b-2 (`…m2b-2-sleep-consolidation-design.md`): the resumable `runCycle`, `ConsolidationScheduler`, `task`/`plan`/`insight` kinds, episodic nodes. (Reflection/abstraction already landed in M2b-2; M2b-3 is the proactivity/awareness piece.)
 > **Date:** 2026-05-31. **Platform:** macOS app + local mlx-lm Gemma 4 26B, GRDB graph memory. **Branch:** `main`.
 > **Guiding constraint (user):** quality over token cost (`[[user-prioritizes-quality-over-tokens]]`).

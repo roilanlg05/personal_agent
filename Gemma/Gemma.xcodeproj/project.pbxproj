@@ -104,6 +104,7 @@
 				0D5284F32FC7D2190028A19E /* Sources */,
 				0D5284F42FC7D2190028A19E /* Frameworks */,
 				0D5284F52FC7D2190028A19E /* Resources */,
+				0D5284FE2FC7D2190028A19F /* Embed llama.framework */,
 			);
 			buildRules = (
 			);
@@ -205,6 +206,27 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		0D5284FE2FC7D2190028A19F /* Embed llama.framework */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed llama.framework";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DEST=\"${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\nmkdir -p \"$DEST\"\nif [ \"$EFFECTIVE_PLATFORM_NAME\" = \"-iphonesimulator\" ]; then\n    FRAMEWORK_DIR=\"${SRCROOT}/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/llama.framework\"\nelif [ \"$EFFECTIVE_PLATFORM_NAME\" = \"-iphoneos\" ]; then\n    FRAMEWORK_DIR=\"${SRCROOT}/Gemma/Frameworks/llama.xcframework/ios-arm64/llama.framework\"\nelse\n    FRAMEWORK_DIR=\"${SRCROOT}/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/llama.framework\"\nfi\nrsync -av --delete \"$FRAMEWORK_DIR\" \"$DEST/\"\nif [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ]; then\n    /usr/bin/codesign --force --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" --timestamp=none --preserve-metadata=identifier,entitlements,flags \"$DEST/llama.framework\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		0D5284F32FC7D2190028A19E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -266,10 +288,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 8FF63857X2;
+				DEVELOPMENT_TEAM = ST54FK4W4X;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -334,10 +356,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 8FF63857X2;
+				DEVELOPMENT_TEAM = ST54FK4W4X;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -368,19 +390,24 @@
 				CODE_SIGN_ENTITLEMENTS = Gemma/Gemma.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8FF63857X2;
+				DEVELOPMENT_TEAM = ST54FK4W4X;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AppInfo.plist;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Gemma se conecta a tu servidor local de memoria en la red local.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Gemma graba tu voz para enviarla al asistente.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Gemma usa reconocimiento de voz para transcribir tus mensajes.";
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "lambert-dev-group.Gemma";
+				PRODUCT_BUNDLE_IDENTIFIER = com.roilan.gemma;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -400,19 +427,24 @@
 				CODE_SIGN_ENTITLEMENTS = Gemma/Gemma.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8FF63857X2;
+				DEVELOPMENT_TEAM = ST54FK4W4X;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AppInfo.plist;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Gemma se conecta a tu servidor local de memoria en la red local.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Gemma graba tu voz para enviarla al asistente.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Gemma usa reconocimiento de voz para transcribir tus mensajes.";
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "lambert-dev-group.Gemma";
+				PRODUCT_BUNDLE_IDENTIFIER = com.roilan.gemma;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -430,10 +462,10 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8FF63857X2;
+				DEVELOPMENT_TEAM = ST54FK4W4X;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "lambert-dev-group.GemmaTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.roilan.gemma.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -450,10 +482,10 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8FF63857X2;
+				DEVELOPMENT_TEAM = ST54FK4W4X;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "lambert-dev-group.GemmaTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.roilan.gemma.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

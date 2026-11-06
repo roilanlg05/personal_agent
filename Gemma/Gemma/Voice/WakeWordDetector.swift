@@ -73,11 +73,6 @@ final class WakeWordDetector: WakeDetecting {
     // MARK: - WakeDetecting
 
     func process(frame: [Float]) -> Float {
-        // Skip silent live frames early to prevent noise buffer buildup
-        let sumSq = frame.reduce(0) { $0 + $1 * $1 }
-        let rms = sqrt(sumSq / Float(frame.count))
-        guard rms >= 0.003 else { return 0 }
-
         // ── Step 1: melspectrogram ─────────────────────────────────────────────
         guard let rawMel = runMelspec(frame) else { return 0 }
 

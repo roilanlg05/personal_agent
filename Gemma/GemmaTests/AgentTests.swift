@@ -107,4 +107,82 @@ final class AgentTests: XCTestCase {
         XCTAssertTrue(sawToolFinished, "pending tool must execute even though the model also emitted visible text")
         XCTAssertEqual(finalText, "It is 12:00.")
     }
+
+    // MARK: - Herramientas de navegador: el bucle tiene que dejar conducir la página
+
+    /// Runtime que pide SIEMPRE la misma herramienta y nunca la ejecuta. Sirve para medir
+    /// cuántas rondas le concede el bucle a un turno y qué nota recibe el modelo. Como el
+    /// registro que se le pasa va vacío, ninguna herramienta real llega a correr.
+    final class RepeatingToolRuntime: ToolCallingRuntime {
+        let toolName: String
+        var prompts: [String] = []
+        init(toolName: String) { self.toolName = toolName }
+        func generate(prompt: String, tools: [AgentTool], options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
+            prompts.append(prompt)
+            let name = toolName
+            return AsyncThrowingStream { c in
+                c.yield(.toolCallStarted(name: name, args: "{}"))
+                c.yield(.completed(GenerationResult(text: "", metrics: .init(tokensGenerated: 0, elapsedSeconds: 0, timeToFirstTokenSeconds: 0, peakResidentMemoryBytes: 0, draftAcceptanceRate: nil))))
+                c.finish()
+            }
+        }
+    }
+
+    /// La nota de resultado es lo ÚLTIMO que el modelo lee, así que su `DO NOT call ... again`
+    /// incondicional ganaba sobre la línea del prompt que enseña el bucle del navegador y
+    /// mataba el turno después del primer `browser_open`.
+    func test_browser_tool_note_lets_the_model_keep_driving_the_page() {
+        let note = Agent.toolResultNote(toolName: "browser_open",
+                                        args: #"{"url":"https://a.test"}"#,
+                                        result: #"{"status":"success","title":"Ejemplo"}"#)
+        XCTAssertTrue(note.contains(#"{"status":"success","title":"Ejemplo"}"#), "la nota sigue dando el resultado: \(note)")
+        XCTAssertFalse(note.contains("DO NOT call"), "una herramienta de navegador no puede cerrar el turno: \(note)")
+        XCTAssertTrue(note.contains("You MAY keep calling browser tools"), "falta el permiso de continuar: \(note)")
+        XCTAssertTrue(note.contains("`browser_snapshot`"), "falta el paso siguiente: \(note)")
+        XCTAssertTrue(note.contains("`browser_close`"), "falta cómo cerrar la tarea: \(note)")
+        XCTAssertTrue(note.contains("NEVER volunteer the current date or time"), "la cláusula ortogonal se queda: \(note)")
+
+        for name in Agent.browserToolNames {
+            XCTAssertFalse(Agent.toolResultNote(toolName: name, args: "{}", result: "r").contains("DO NOT call"), name)
+        }
+        XCTAssertEqual(Agent.browserToolNames.count, 8)
+    }
+
+    /// Las otras ~71 herramientas dependen de esta frase: el modelo spameaba herramientas y
+    /// la nota es lo que lo obliga a cerrar el turno. El literal va entero a propósito, para
+    /// que cualquier cambio en la rama que NO sea de navegador rompa este test.
+    func test_non_browser_tool_note_is_byte_for_byte_the_one_that_was_there() {
+        XCTAssertEqual(Agent.toolResultNote(toolName: "web_search", args: #"{"query":"x"}"#, result: "ok"),
+                       #"[You called the tool `web_search` with arguments {"query":"x"}; it returned: ok. Tool execution is complete for this action. Formulate your final response to the user in a natural, friendly sentence explaining this result. DO NOT call `web_search` or any other tool again. NEVER volunteer the current date or time.]"#)
+        // `read_webpage` es de una sola llamada: le sirve la nota de cierre y queda fuera.
+        XCTAssertFalse(Agent.browserToolNames.contains("read_webpage"))
+        XCTAssertTrue(Agent.toolResultNote(toolName: "read_webpage", args: "{}", result: "ok").contains("DO NOT call"))
+    }
+
+    /// Un bucle de navegador realista (`open → snapshot → fill → snapshot → click → snapshot
+    /// → get → close`) son ocho rondas; con las cinco de un turno normal no cabía.
+    func test_a_turn_that_touches_the_browser_gets_a_bigger_iteration_budget() async throws {
+        let normal = RepeatingToolRuntime(toolName: "web_search")
+        for try await _ in Agent(runtime: normal, registry: ToolRegistry()).run(prompt: "x", options: GenerationOptions()) {}
+        XCTAssertEqual(normal.prompts.count, Agent.maxIterations,
+                       "el presupuesto de un turno sin navegador no cambia")
+
+        let browser = RepeatingToolRuntime(toolName: "browser_open")
+        for try await _ in Agent(runtime: browser, registry: ToolRegistry()).run(prompt: "x", options: GenerationOptions()) {}
+        XCTAssertEqual(browser.prompts.count, Agent.maxBrowserIterations)
+        XCTAssertGreaterThan(Agent.maxBrowserIterations, Agent.maxIterations)
+        // Las herramientas se retiran en `iteration >= max - 2`, así que las rondas que de
+        // verdad pueden llamar herramientas son `max - 1`: tienen que llegar a ocho.
+        XCTAssertGreaterThanOrEqual(Agent.maxBrowserIterations - 1, 8)
+    }
+
+    /// Lo anterior por la vía larga: la nota del navegador llega de verdad al prompt vivo a
+    /// través de `Agent.run`, que es lo que nada en la rama ejercitaba.
+    func test_the_browser_note_reaches_the_live_prompt_through_the_loop() async throws {
+        let runtime = RepeatingToolRuntime(toolName: "browser_snapshot")
+        for try await _ in Agent(runtime: runtime, registry: ToolRegistry()).run(prompt: "abre la página", options: GenerationOptions()) {}
+        let second = try XCTUnwrap(runtime.prompts.dropFirst().first, "el bucle no volvió a llamar al modelo")
+        XCTAssertTrue(second.contains("You MAY keep calling browser tools"), "prompt: \(second)")
+        XCTAssertFalse(second.contains("DO NOT call"), "prompt: \(second)")
+    }
 }

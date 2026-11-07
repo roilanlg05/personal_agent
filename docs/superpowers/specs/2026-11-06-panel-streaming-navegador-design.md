@@ -1,6 +1,8 @@
 # Panel de streaming del navegador — documento de diseño
 
-**Fecha:** 2026-11-06
+**Fecha:** 2026-11-06. **Revisado el 2026-11-07** por la decisión de arquitectura
+del usuario: el cerebro y el navegador se van al i3; la app de Swift queda como
+visor. Los cambios están en las secciones 3, 5.10, 6.4 y 11.
 **Estado:** propuesta de diseño, pendiente de aprobación del usuario.
 **Rama de la que depende:** `feat/agent-browser`, ya mergeada a `main` (merge commit
 `6a87231`). Las nueve herramientas de navegador y `read_webpage` existen y están
@@ -67,12 +69,17 @@ El trabajo es de consumo y presentación, no de instrumentación.
   `input_keyboard`, `input_touch`) y se descarta a propósito: ver la sección 7.
 - **Grabación.** No se guarda vídeo, ni GIF, ni secuencias de frames. El panel
   es un feed en vivo y nada más.
-- **Un panel para el iPhone.** Las herramientas de navegador son
-  `#if os(macOS)`, porque `agent-browser` es un binario nativo que se lanza con
-  `Process` y iOS no tiene subprocesos. El panel es macOS. Cuando llegue el
-  cliente de iOS (M3b del roadmap), el camino será el mismo que ya se usa para
-  la memoria del i3: el navegador corre en el Mac y el teléfono habla por red.
-  Eso es otro proyecto.
+- **Interfaces que no sean la app de macOS.** El visor se construye primero en
+  la app de Mac porque es la que existe. La decisión de arquitectura de la
+  sección 5.10 hace que iOS, una página web o una terminal sean **clientes
+  nuevos del mismo servicio**, no reescrituras; pero construirlos es otro
+  proyecto.
+- **Mover al i3 las herramientas que dependen de Apple.** De los 79 ficheros de
+  `NativeServices`, 22 importan marcos de Apple (CoreLocation, EventKit, UIKit,
+  WeatherKit, MusicKit…) y no pueden correr en Linux. Este sub-proyecto mueve
+  **solo el navegador**, que no tiene ninguna de esas dependencias y por eso es
+  la primera pieza del pivote. Las otras 22 necesitan un diseño propio donde el
+  dispositivo ofrece capacidades que el cerebro llama, y no se diseña aquí.
 - **Un panel para varias sesiones a la vez.** Una sesión de navegador, un panel.
 - **Reemplazar el log del agente.** El panel muestra lo que pasa en la página;
   el log del chat sigue siendo el registro de lo que el agente hizo.
@@ -288,6 +295,85 @@ puede caerse del canal y perder mensajes. La documentación es explícita en que
 `console` es un feed en vivo y **no un registro de auditoría**. El panel no debe
 derivar ningún estado importante de haber visto todos los mensajes.
 
+### 5.10 El navegador corre en el i3, no en el Mac — y eso obliga un relé
+
+**Decisión del usuario, 2026-11-07.** Textual: «no quiero que lo que se vaya a
+crear a partir de ahora viva en Swift, no esté atado a un sistema operativo,
+pero… lo pueda correr en el i3 como el server. Lo de la vista del navegador en
+streaming en la app eso es necesario, porque tengo que mostrarlo. Pero toda la
+lógica de validación debe vivir en el i3… el streaming del navegador debe salir
+desde el i3 y dibujarse en la app de Swift.»
+
+Es decir: **el navegador y toda la lógica se van al i3; la app de Swift dibuja y
+nada más.**
+
+#### Lo que se verificó antes de aceptarlo
+
+| Hecho | Cómo se comprobó | Consecuencia |
+|---|---|---|
+| `agent-browser` tiene binarios de Linux | el lanzador del paquete npm mapea `linux`, `linux-musl` y `win32` para `x64` y `arm64`, y el repo tiene `build:linux` y `build:windows` | el navegador **sí** corre en el i3 |
+| El servidor del stream se ata a **localhost** | la ayuda del CLI: «agent-browser binds an available localhost port automatically»; `AGENT_BROWSER_STREAM_PORT` fija **el puerto, no el host** | la app **no** puede conectar directamente al socket del i3 |
+| El stream hace eco de `params` de cada comando | sección 5.7 | el filtrado tiene que ocurrir **antes** de que nada salga del i3 |
+
+#### El relé, y por qué mejora el diseño
+
+Como el socket es local al i3, hace falta un componente en el i3 que lo abra y
+re-sirva a la app. Eso parecía un coste y resulta ser una mejora grande:
+
+**El filtrado pasa a ser del servidor.** En el diseño anterior, el `params` con
+el número de tarjeta llegaba a la app y la app lo descartaba. Ahora el `params`
+**no sale del i3**: el relé lo tira antes de poner nada en el cable. La app ya
+no puede filtrar un secreto ni por error de programación, porque nunca lo
+recibe. La regla de la sección 6.3 sigue siendo la misma regla, aplicada un
+salto antes.
+
+**El estado «en vivo» lo calcula el i3.** El predicado de la sección 6.2(f) son
+tres propiedades de la conexión al demonio, y esa conexión la tiene el relé, no
+la app. Así que el relé manda el estado ya decidido y la app lo pinta. Eso
+cumple lo que el usuario pidió —«toda la lógica de validación debe vivir en el
+i3»— y además hace imposible que dos clientes del mismo stream discrepen sobre
+si está en vivo.
+
+**La autenticación ya existe.** El i3 ya expone servicios autenticados por
+`Bearer` sobre Tailscale, y la app ya los consume así para la memoria. El relé
+es un endpoint más con la misma disciplina.
+
+#### Qué queda en cada lado
+
+| Pieza | Dónde vive |
+|---|---|
+| lanzar el demonio `agent-browser` y su entorno | i3 |
+| abrir el socket local, acusar frames | i3 |
+| decodificar los mensajes y **tirar `params`** | i3 |
+| la tabla de frases y la narración | i3 |
+| el predicado de «en vivo» y el colapso | i3 |
+| contar acciones y componer el resumen del panel | i3 |
+| **pintar la imagen, la frase y la etiqueta** | app |
+| decidir dónde aparece el panel en el chat | app |
+
+La app recibe un flujo de mensajes ya limpios y ya decididos. No calcula nada
+sobre el estado del navegador.
+
+#### El lenguaje del servicio — decisión mía
+
+**Python con FastAPI, junto al servicio de voz que ya está desplegado en el i3**
+(`gemma-memory/voice/app.py`). Razones: el usuario pidió que lo nuevo no sea
+Swift ni esté atado a un sistema operativo, ese servicio ya existe y ya está
+desplegado ahí, ya tiene disciplina de motores intercambiables detrás de un
+protocolo, y hablar con `agent-browser` es lanzar un proceso y leer JSON, que en
+Python no cuesta nada. El servicio de memoria del i3 sí es Swift, pero es
+anterior a esta decisión y no se toca.
+
+Revocable: si el usuario prefiere Node, el diseño no cambia, solo el runtime.
+
+#### Lo que esto NO resuelve, y hay que decirlo
+
+El agente sigue corriendo en la app. Este sub-proyecto mueve el **navegador** y
+el **panel**, no el cerebro. Mientras el agente viva en el Mac, la app seguirá
+llamando a las nueve herramientas de navegador, y esas llamadas pasarán a ir por
+red al i3 en vez de a un proceso local. Ese es el cambio de las herramientas, y
+está en la sección 11.
+
 ---
 
 ## 6. Las decisiones
@@ -332,13 +418,20 @@ las variables no hacen nada y la app no tiene forma de saberlo.
 
 Así que la regla se invierte:
 
-- La app **sí** pone `AGENT_BROWSER_STREAM_QUALITY=20`,
+- El **servicio del i3** pone `AGENT_BROWSER_STREAM_QUALITY=20`,
   `AGENT_BROWSER_STREAM_MAX_WIDTH=640` y `AGENT_BROWSER_STREAM_MAX_HEIGHT=360` en
-  el entorno del hijo. Es gratis y surte efecto **cuando la app es la que arranca
-  el demonio en frío**.
-- La app **nunca cuenta con que hayan surtido efecto.** El decodificador y la
-  vista tienen que tragar un frame de 1280×720 a calidad 80 sin inmutarse, y
-  reducirlo al tamaño de presentación.
+  el entorno del demonio. Tras la decisión de la sección 5.10 esto es **más
+  fiable que antes**, porque el servicio es el dueño del demonio en el i3 y es
+  quien lo arranca en frío; pero sigue siendo mejor esfuerzo, porque el usuario
+  puede haber dejado un demonio corriendo a mano por SSH.
+- **Nadie cuenta con que hayan surtido efecto.** El relé y el visor tienen que
+  tragar un frame de 1280×720 a calidad 80 sin inmutarse, y la app reducirlo al
+  tamaño de presentación.
+- Y ahora hay un coste nuevo que antes no existía: **el socket ya no es
+  localhost**, es Tailscale. Los ~92 KB de base64 por frame a 10 fps son ~900
+  KB/s por el túnel. Sobre la red local de casa no es nada; desde fuera, con el
+  móvil, sí lo es. Por eso el relé **tiene que poder recodificar o bajar el tope
+  de fps por cliente**, y el visor declarar lo que quiere. Ver la sección 11.
 
 El coste de aceptar lo peor es menor de lo que parece y conviene dejarlo escrito
 para que nadie lo vuelva a optimizar: el socket es **localhost**, así que los
@@ -450,6 +543,33 @@ Así una acción nueva del CLI aparece como su nombre y nada más. Falla cerrado
 El mismo criterio para el log: el panel no registra `params` en ningún sitio,
 ni en consola de depuración.
 
+### 6.4 El protocolo entre el i3 y el visor — decisión mía
+
+El relé expone un WebSocket autenticado y manda **solo** estos mensajes. Es la
+frontera donde se hace cumplir todo lo anterior, así que se fija aquí y no la
+decide el constructor:
+
+| Mensaje | Campos | Por qué |
+|---|---|---|
+| `frame` | `seq`, `jpeg` en base64, `captured_at` | la imagen, y nada más |
+| `narration` | `text` ya compuesto por la tabla de frases | el texto viaja ya hecho: la app no ve ni `action` ni `params` |
+| `host` | `host` | para el resumen del panel colapsado |
+| `state` | `live` (bool), `collapsed` (bool) | el predicado ya decidido en el i3 |
+| `summary` | `text` | «navegó en amazon.es · 7 acciones», compuesto en el i3 |
+| `closed` | `reason` | el panel se congela |
+
+**Lo que el protocolo NO lleva, por construcción:** `params`, `action` cruda,
+selectores, el valor de un relleno, y la URL completa —solo el host—. Un cliente
+nuevo (iOS, web, terminal) hereda esas garantías sin volver a implementarlas, que
+es justo lo que se gana poniendo la lógica en el i3.
+
+**El acuse sigue existiendo, pero entre el visor y el relé.** El visor acusa
+`{"type":"ack","seq":N}` al relé, y el relé acusa al demonio. Así la contrapresión
+llega hasta el origen: un visor atascado deja de acusar, el relé deja de acusar al
+demonio, y cuando vuelve recibe la página actual y no historia rancia. Si el relé
+acusara al demonio por su cuenta, el anti objetivo principal volvería un salto más
+atrás.
+
 ---
 
 ## 7. Por qué no hay control remoto
@@ -482,11 +602,15 @@ como un detalle del panel.
 El plan de implementación decide estas, y son decisiones de oficio, no de
 producto.
 
-1. **Dónde vive el cliente de WebSocket.** `URLSessionWebSocketTask` es lo
-   natural en esta app. Si va en un actor propio, si es un `AsyncStream` de
-   frames que la vista consume, o si cuelga de `HarnessModel`, es del
-   constructor. Lo que no es negociable: no bloquear el hilo principal
-   decodificando JPEG.
+1. **La forma interna del relé en el i3.** Si el socket al demonio lo abre una
+   tarea por sesión, si el fan-out a varios visores es una cola por cliente, y
+   cómo se arranca y se vigila el demonio. Lo que no es negociable: `params`
+   **no sale del proceso**, y el relé no acusa al demonio por su cuenta —acusa
+   cuando el visor le acusa (sección 6.4)—.
+   Y en el visor: no bloquear el hilo principal decodificando JPEG. La
+   decodificación de un frame de 1280×720 fuera del hilo principal sigue siendo
+   obligación de la app, porque el JPEG llega como bytes y la app es la que
+   pinta.
 2. **Cómo se presenta la edad del frame.** El predicado de «en vivo» ya no
    depende de ella (sección 6.2(f)), así que esto es presentación: si se muestra
    siempre, solo por encima de unos segundos, o solo en un modo de depuración.
@@ -495,20 +619,29 @@ producto.
    cuando `browser_open` tiene éxito y se cierre cuando `browser_close` lo tiene,
    pero el disparo exacto depende de cómo el chat renderiza entradas, y eso lo ve
    el constructor con el código delante.
-4. **Dónde se fijan las variables de entorno del demonio.** El demonio lo lanza
-   `AgentBrowserInvoker`, y ya construye el entorno del hijo con
-   `Self.childEnvironment(from: environment)`. Las tres variables de calidad y
-   tamaño van ahí, como esfuerzo de mejor caso y nada más: por la sección 6.2(b),
-   la vista tiene que funcionar igual si no surten efecto. Hay que respetar la
-   memoización de la resolución del binario.
-5. **La forma del acuse y su prueba.** El servidor ignora en silencio lo que no
-   entiende (sección 5.8), así que la prueba de que `{"type":"ack","seq":N}` está
-   bien formado **no puede** ser un acuse del servidor: tiene que ser por el
-   efecto, comprobando que los frames siguen llegando tras acusar. Es la única
-   verificación posible y el plan debe pedirla explícitamente.
-6. **Qué pasa con dos sesiones.** El no objetivo dice una sesión, un panel. Si
+4. **Dónde se fijan las variables de entorno del demonio.** Ahora las pone el
+   servicio del i3 al arrancar el demonio, no `AgentBrowserInvoker`. Siguen
+   siendo mejor esfuerzo por la sección 6.2(b): el usuario puede haber dejado un
+   demonio corriendo a mano por SSH.
+5. **El tope de fps por cliente y quién lo pide.** Por la sección 6.2(b) el
+   enlace ya no es localhost. El relé tiene que aceptar que un visor declare su
+   propio tope, y el plan decide si el visor lo elige por configuración, por
+   medición del enlace, o fijo. Un tope fijo es aceptable como primera versión
+   si queda escrito.
+6. **La forma del acuse y su prueba.** El servidor del demonio ignora en
+   silencio lo que no entiende (sección 5.8), así que la prueba de que
+   `{"type":"ack","seq":N}` está bien formado **no puede** ser un acuse del
+   servidor: tiene que ser por el efecto, comprobando que los frames siguen
+   llegando tras acusar. Es la única verificación posible y el plan debe pedirla
+   explícitamente, ahora en los dos saltos: visor→relé y relé→demonio.
+7. **Qué pasa con dos sesiones.** El no objetivo dice una sesión, un panel. Si
    el código permite hoy que haya dos demonios con dos sesiones, el plan decide
    si el panel sigue a la sesión del turno activo o si simplemente no aparece.
+8. **Cómo se autentica el visor contra el relé** y de dónde saca la URL base del
+   i3. La app ya guarda `memoryBaseURL` y su `Bearer` en Settings para la
+   memoria; el plan decide si el relé reusa esa configuración o tiene la suya.
+   Lo que no es negociable: el endpoint **no** se sirve sin autenticación, ni
+   siquiera dentro de Tailscale.
 
 ### Clases de entrada que el plan debe cubrir con tests
 
@@ -537,6 +670,17 @@ Ninguna la ejercita el camino felíz, y todas son de las que muerden:
 - Un frame de 1280×720 a calidad 80 (el demonio ya estaba levantado y las
   variables no surtieron efecto) → **se pinta igual**, reducido, sin decodificar
   en el hilo principal.
+- **El relé recibe un `command` de `fill` con un valor** → el mensaje que sale
+  al visor no contiene el valor, ni el selector, ni la acción cruda. Prueba del
+  lado del i3, sobre el cable, y es la más importante de todas: es la que hace
+  que la app no pueda filtrar el secreto ni programándolo mal.
+- **El i3 no responde** (servicio caído, Tailscale abajo) → el panel no aparece
+  y el turno del agente **no cambia en nada**. Misma degradación que cuando no
+  había puerto, un salto más lejos.
+- **El visor se desconecta a mitad y vuelve** → recibe la página actual, no un
+  backlog. Es la contrapresión de la sección 6.4 funcionando de punta a punta.
+- **Dos visores conectados al mismo panel** (la app de Mac y, más adelante, la
+  de iOS) → los dos ven lo mismo y el visor lento no retrasa al rápido.
 
 ---
 
@@ -600,3 +744,30 @@ ordena el cierre del panel anterior antes de abrir el siguiente, para que no
 haya una ventana en la que los dos tengan socket. El orden correcto es cerrar
 primero y abrir después, aunque eso cueste un hueco de unos milisegundos sin
 imagen.
+
+---
+
+## 11. Lo que la decisión del i3 abre, y no estaba en este documento
+
+Registrado para que el plan lo tenga delante y para que no se cuele como
+sorpresa. Tres cosas, en orden de lo que bloquea:
+
+1. **Las nueve herramientas de navegador pasan a ir por red.** Hoy
+   `AgentBrowserService` lanza un proceso local. Con el navegador en el i3,
+   tienen que hablar con el servicio nuevo por HTTP. Es un cambio acotado —el
+   servicio ya está detrás del protocolo `AgentBrowserInvoking`, que existe
+   precisamente para esto— pero es un cambio real y tiene su propio coste: cada
+   acción del navegador gana un viaje de red, y los plazos de 30 a 60 s de las
+   herramientas se miden ahora contra la red, no contra un proceso local.
+2. **El ancho de banda del túnel.** Con el socket en localhost los ~69 KB por
+   frame no eran ancho de banda real; por Tailscale sí. El relé necesita un tope
+   de fps por cliente, y conviene que el visor pueda pedir menos cuando no está
+   en la red local. Sin eso, el panel visto desde fuera de casa se come el enlace.
+3. **Chrome en el i3.** El demonio necesita un Chrome headless en Linux, con su
+   memoria y su CPU, en una máquina que ya corre el servicio de memoria y el de
+   voz. No es un bloqueo, es una cuenta que hay que hacer antes de desplegar.
+
+Y una cosa que esta decisión **no** toca y conviene no confundir: el agente sigue
+viviendo en la app. Mover el cerebro es el proyecto grande; este documento solo
+mueve el navegador y el panel, que es la pieza que no tiene ninguna dependencia
+de Apple y por eso sirve de piloto.

@@ -504,14 +504,16 @@ una frase casual —su propia preocupación—.
 tiene siempre), y **no se ata a una compra concreta** (con dos autorizaciones en
 cola, abre la que esté preguntando).
 
-**Las tres reglas, mías, y sin ellas el diseño no vale:**
+**Las dos reglas, mías, y sin ellas el diseño no vale:**
 
 1. **El turno del código no se guarda en ninguna parte.** Ni transcripción, ni
    resumen, ni memoria, ni log, ni telemetría. El verificador consume el texto y
    lo tira.
-2. **Se guarda como hash en el Llavero.** Irrecuperable: solo se puede comprobar
-   un candidato.
-3. **Tres fallos y se bloquea.** Se desbloquea a mano en Settings.
+2. **Tres fallos y se bloquea.** Se desbloquea a mano en Settings. Esta es la
+   regla que de verdad frena la fuerza bruta — ver más abajo.
+
+Había una tercera, «se guarda como hash», y el usuario la eliminó con razón. Por
+qué, en el apartado siguiente.
 
 **Formato — decisión del usuario:** **exactamente cuatro dígitos**, que él
 configura en la app. Textual: «es un código de cuatro dígitos, el cual va a estar
@@ -520,25 +522,61 @@ exactamente en el texto».
 
 Que lo configure él cambia el cazador a mejor: el cazador **sabe qué busca**. No
 tiene que adivinar qué parte de una frase es un código, que era el punto frágil
-del diseño anterior. Extrae cada secuencia de cuatro dígitos del texto, la hashea
-y la compara con el hash del Llavero. Una coincidencia se sustituye por `X`.
+del diseño anterior.
 
-**La cautela honesta sobre el hash, y es importante:** cuatro dígitos son diez
-mil posibilidades. Un hash rápido de un espacio de diez mil se agota en
-microsegundos, así que el hash **no** protege el código de quien ya pueda leer el
-elemento del Llavero. Lo que sí protege, y es lo que se compra con él: que el
-código no quede en claro en un fichero de configuración, en una copia de
-seguridad, en un volcado de `UserDefaults` ni en una captura de la pantalla de
-Settings.
+#### El código se guarda en claro, no como hash — decisión del usuario
 
-**Para que el agotamiento no sea gratis, el hash lleva sal y una derivación
-lenta** (PBKDF2 o scrypt, con un coste calibrado a unos 100 ms por intento en el
-Mac del usuario). Diez mil intentos a 100 ms son unos dieciséis minutos, que no
-es seguridad pero sí es un tope de velocidad real frente a un script. El coste se
-paga una vez por verificación y por cada candidato que el cazador extrae, así que
-el plan debe medirlo: un turno con muchos números no puede volverse lento. Si la
-medición dice que sí, el cazador cachea el resultado por candidato dentro del
-turno.
+Yo había puesto hash con sal y derivación lenta. El usuario lo quitó. Sus
+razones: el código **solo sirve para confirmar con su propio agente**, no vale
+para comprar nada en Internet ni funciona fuera de la app, y **él va a poder
+verlo en la app de todas formas**.
+
+**Tiene razón, y por una razón más fuerte que las que dio.** Si el código tiene
+que ser **legible en Settings** —y tiene que serlo: es un código fijo que él mira
+cuando no lo recuerda—, entonces **no se puede hashear**. Un hash no se muestra.
+El requisito de producto y el hash son incompatibles, así que el hash estaba mal
+puesto desde el principio.
+
+**Y contra el atacante que este diseño existe para frenar, el hash no aportaba
+nada.** El atacante es el **modelo** y la **inyección desde una página hostil**:
+alguien que logra que el agente intente comprar lo que el usuario no pidió. Ese
+atacante no lee el Llavero; lo que necesita es *acertar el código en el modal*. Y
+un humano con el Mac delante y la app abierta tampoco necesita el código: puede
+abrir el navegador y comprar con la tarjeta guardada, sin agente. El hash
+defendía de un atacante que no está en el modelo de amenazas.
+
+**Lo que el hash sí compraba, dicho para que la decisión quede informada:** que
+el código no apareciera en claro en una copia de seguridad, en un volcado de
+`UserDefaults` o en un informe de fallo. Eso se recupera gratis sin hash, con una
+sola regla:
+
+> **El código vive en el Llavero como texto, con `KeychainStore.set` / `.get`, no
+> en `UserDefaults` ni en un `plist`.**
+
+`Gemma/Gemma/Settings/KeychainStore.swift` ya hace exactamente eso —`get(account:)
+-> String?` y `set(_:account:)`— así que no hay nada que construir. Cuesta lo
+mismo que `UserDefaults` y mantiene el código fuera de los plists y de las copias
+de seguridad.
+
+**Lo que esto simplifica:** el cazador compara cadenas. Nada de derivar diez mil
+candidatos, nada de calibrar un coste por intento, nada de cachear dentro del
+turno. Extrae cada secuencia de cuatro dígitos y la compara con el valor. Una
+coincidencia se sustituye por `X`.
+
+**Y lo que esto hace más importante:** el **bloqueo a los tres fallos** pasa a ser
+la única defensa contra la fuerza bruta, y la superficie real nunca fue el
+almacenamiento sino **el modal**. Cuatro dígitos son diez mil intentos; sin
+bloqueo, un modelo confundido o una página hostil que consiga empujar intentos
+los agota. Con bloqueo a los tres, no. El plan no puede tratar esa regla como
+opcional, y el contador de fallos **no se reinicia** al reiniciar la app: vive
+donde vive el código.
+
+**Verificado, y es lo que hace que todo lo anterior se sostenga:** ninguna
+herramienta de `Gemma/Gemma/NativeServices` lee `SettingsStore` ni
+`SettingsKeys`. El modelo no tiene hoy ningún camino a los ajustes. Eso es una
+propiedad que el plan debe **fijar con un test**, no heredar por suerte: si algún
+día se añade una herramienta que enumere ajustes, el código de compra se va con
+ella.
 
 **Daño colateral del cazador, aceptado:** cualquier secuencia de cuatro dígitos
 que coincida con el código se tapa, venga de donde venga. Si el código es `2026`,
@@ -630,9 +668,10 @@ dentro del modal deja pasar el caso del despiste, que es justo cuando hace falta
 Esto es posible porque el código lo configura él: el cazador tiene algo concreto
 que buscar en todo momento.
 
-**(b) Funciona contra el hash, nunca contra el valor.** Extrae cada secuencia de
-cuatro dígitos, la deriva con la sal del Llavero y compara. El código no sale del
-Llavero ni para redactar.
+**(b) Compara contra el valor, que está en claro en el Llavero.** Extrae cada
+secuencia de cuatro dígitos y la compara. Es una comparación de cadenas, sin
+derivación y sin coste medible — ver la decisión de 8.3. El valor se lee del
+Llavero en el momento de redactar y no se copia a ninguna otra parte.
 
 **(c) Normaliza números dichos en palabras.** «Cuatro seis cinco cinco» es una
 transcripción normal de 4655, y un servicio de STT en la nube la devuelve así con
@@ -715,9 +754,9 @@ concretamente**, porque es una acción que el panel no ha visto nunca.
    transcripción en el i3. El cazador se escribe una vez y recibe texto; lo que
    el constructor decide es de dónde le llega ese texto, y que **nunca** llegue
    de `POST /v1/voice/turn`.
-8. **La calibración de la derivación lenta del código** (8.3): el coste por
-   intento, medido en el Mac del usuario, y el cacheo por candidato dentro del
-   turno si la medición dice que un turno con muchos números se vuelve lento.
+8. **Dónde vive el contador de fallos del código** y cómo sobrevive a un
+   reinicio de la app, porque el bloqueo a los tres fallos es la única defensa
+   contra la fuerza bruta en el modal (8.3).
 
 ### Clases de entrada que el plan debe cubrir con tests
 
@@ -746,7 +785,12 @@ felíz:
 - El cazador corre **antes** del primer consumidor del texto. Test de orden: con
   un doble del agente, de la memoria y del log, ninguno ve el código, y los tres
   ven la `X`.
-- Tres códigos mal → bloqueado, y el cuarto correcto **no** compra.
+- Tres códigos mal → bloqueado, y el cuarto correcto **no** compra. El bloqueo
+  **sobrevive a reiniciar la app**: es la única defensa contra agotar diez mil
+  combinaciones en el modal.
+- **Ninguna herramienta puede leer los ajustes.** Test de la propiedad que hoy se
+  cumple por construcción: el registro de herramientas no expone `SettingsStore`
+  ni `SettingsKeys`, así que el modelo no tiene camino al código.
 - `confirmation_required` y nadie confirma → **a los 60 s el CLI auto-deniega** y
   el agente lo reporta como **no comprado**, no como comprado.
 - El importe extraído por la app y el que dice el modelo **no coinciden** → pide
@@ -807,10 +851,22 @@ no explica lo que implica es una trampa para el yo del futuro.
 cazador va a saber qué buscar exactamente en el texto».
 
 **Obliga:** lo de la sección 8.3. El cazador compara contra algo concreto en vez
-de adivinar, que es más fuerte; en cambio cuatro dígitos son diez mil
-posibilidades, así que el hash necesita sal y derivación lenta para que agotarlo
-no sea gratis, y el daño colateral —tapar un `2026` que no era el código— se
-acepta porque falla del lado seguro.
+de adivinar, que es más fuerte, y el daño colateral —tapar un `2026` que no era
+el código— se acepta porque falla del lado seguro.
+
+**Y en la misma conversación quitó el hash.** Sus razones: el código solo
+confirma con su propio agente, no sirve para comprar en Internet, no funciona
+fuera de la app, y él va a poder verlo en la app de todas formas. La razón
+decisiva es la última: un código que tiene que ser legible en Settings no se
+puede hashear. Además, el hash no defendía del atacante de este diseño —el
+modelo y la inyección desde una página—, que no lee el Llavero sino que necesita
+acertar en el modal.
+
+Consecuencias, las tres registradas en 8.3: el código se guarda **en claro en el
+Llavero** con el `KeychainStore` que ya existe, nunca en `UserDefaults`; el
+cazador pasa a ser una comparación de cadenas; y el **bloqueo a los tres fallos**
+queda como única defensa contra la fuerza bruta, así que deja de ser una regla
+cómoda y pasa a ser obligatoria, con un contador que sobrevive al reinicio.
 
 ## 11. Dependencias
 

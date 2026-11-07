@@ -513,57 +513,135 @@ cola, abre la que esté preguntando).
    un candidato.
 3. **Tres fallos y se bloquea.** Se desbloquea a mano en Settings.
 
-**Formato — decisión mía, revocable:** de **4 a 8 dígitos, solo dígitos**. El
-cazador de 8.4 extrae secuencias de dígitos y las hashea; si el usuario pudiera
-poner `abretesesamo`, el cazador no cazaría nada y las tres reglas no servirían.
-Si quiere letras, el cazador necesita otro algoritmo y hay que decirlo antes.
+**Formato — decisión del usuario:** **exactamente cuatro dígitos**, que él
+configura en la app. Textual: «es un código de cuatro dígitos, el cual va a estar
+configurado en la aplicación, por lo que el cazador va a saber qué buscar
+exactamente en el texto».
 
-### 8.4 El cazador: dónde va, y el problema de que hoy el STT está en otra máquina
+Que lo configure él cambia el cazador a mejor: el cazador **sabe qué busca**. No
+tiene que adivinar qué parte de una frase es un código, que era el punto frágil
+del diseño anterior. Extrae cada secuencia de cuatro dígitos del texto, la hashea
+y la compara con el hash del Llavero. Una coincidencia se sustituye por `X`.
 
-**El cazador va inmediatamente después del STT y antes de todo lo demás.** Antes
-del modelo, del `TranscriptStore`, de los resúmenes, de la consolidación y de
-cualquier log. Si va después de alguno, el código ya se filtró en el que se
-saltó.
+**La cautela honesta sobre el hash, y es importante:** cuatro dígitos son diez
+mil posibilidades. Un hash rápido de un espacio de diez mil se agota en
+microsegundos, así que el hash **no** protege el código de quien ya pueda leer el
+elemento del Llavero. Lo que sí protege, y es lo que se compra con él: que el
+código no quede en claro en un fichero de configuración, en una copia de
+seguridad, en un volcado de `UserDefaults` ni en una captura de la pantalla de
+Settings.
 
-**El problema, verificado:** hoy no hay STT en el Mac.
-`SpeechDictationManager.requestAuthorization` devuelve `false` fuera de iOS y
-`startDictation` es entero `#if os(iOS)`. Lo que hay es `VoiceClient`, que **sube
-el WAV al i3** (`POST /v1/voice/turn`); allí corren el STT, el agente y la
-memoria, y la app solo recibe `X-STT-Text`. Es decir: **un código dicho por voz
-hoy llegaría ya transcrito desde otra máquina, detrás del modelo y del
-`TranscriptStore` del i3.** El cazador estaría en el sitio equivocado por
-completo.
+**Para que el agotamiento no sea gratis, el hash lleva sal y una derivación
+lenta** (PBKDF2 o scrypt, con un coste calibrado a unos 100 ms por intento en el
+Mac del usuario). Diez mil intentos a 100 ms son unos dieciséis minutos, que no
+es seguridad pero sí es un tope de velocidad real frente a un script. El coste se
+paga una vez por verificación y por cada candidato que el cazador extrae, así que
+el plan debe medirlo: un turno con muchos números no puede volverse lento. Si la
+medición dice que sí, el cazador cachea el resultado por candidato dentro del
+turno.
 
-**Decisión mía:** el modal del código hace **STT local, en el Mac, y solo para el
-código**. `SFSpeechRecognizer` existe en macOS; lo que falta es implementar la
-rama de macOS de `SpeechDictationManager` con **`requiresOnDeviceRecognition =
-true`**, de modo que el audio no salga de la máquina. Ese audio **no pasa por
-`VoiceClient`** y por tanto no toca el i3.
+**Daño colateral del cazador, aceptado:** cualquier secuencia de cuatro dígitos
+que coincida con el código se tapa, venga de donde venga. Si el código es `2026`,
+la fecha `2026` también se tapa. Es molesto y es la dirección correcta del error:
+tapar de más no abre ninguna puerta, tapar de menos sí. Se documenta en Settings
+con una línea para que el usuario no elija un número que escriba todos los días.
 
-Dos cautelas, las dos obligatorias:
+### 8.4 El cazador: dónde va, y qué camino de voz lo hace posible
 
-- `supportsOnDeviceRecognition` es **por configuración regional y por
-  dispositivo**, y hay que comprobarlo en caliente.
-- Si el reconocimiento en el dispositivo **no está disponible**, el modal **no**
-  cae al reconocimiento en la nube —eso mandaría el código a Apple—: cae a que el
-  usuario **teclee** el código. Degradado, pero cerrado.
+**Decisión del usuario, que cambia este apartado entero.** Se le planteó que decir
+el código por voz exigía construir reconocimiento en el dispositivo en el Mac, y
+respondió que no hace falta: el audio del código **puede ir a un servicio de STT
+en la nube**, porque es un código que solo usa él con su gente. Lo que **no**
+acepta es que el código se mezcle con la memoria. Textual: «no me importa que ese
+código vaya a Internet… pero sí necesito que no se mezcle con los datos en la
+memoria, por eso tiene que estar entre el STT y el transcribe que usa el modelo y
+la memoria». Y quiere **los dos caminos**: decirlo o escribirlo.
 
-**Tres propiedades del cazador:**
+Eso convierte el requisito en uno solo, y muy preciso:
 
-**(a) Caza en todos los turnos, no solo en el modal.** Si el usuario dice el
-código un martes cualquiera, también se tapa. Un cazador que solo mira dentro del
-modal deja pasar el caso del despiste, que es justo cuando hace falta.
+> El cazador va **inmediatamente después del STT y antes del primer consumidor
+> del texto**. Antes del modelo, del `TranscriptStore`, de los resúmenes, de la
+> consolidación y de cualquier log. Si va después de alguno, el código ya se
+> filtró en el que se saltó.
 
-**(b) Funciona con el hash.** Se extraen las secuencias de dígitos, se hashea cada
-una y se comparan con el hash del Llavero. Una coincidencia se sustituye por `X`.
-El código nunca sale del Llavero.
+El reconocimiento puede estar donde sea. Lo que importa es **en qué máquina
+existe el texto por primera vez**, porque el cazador tiene que correr ahí.
 
-**(c) Normaliza números dichos en palabras.** «Cuatro seis cinco» es una
-transcripción normal de 465. Sin normalizar, **el código dicho en palabras pasa
-limpio** y las tres reglas no sirven. Hay que cubrir las dos formas del español:
-cifra a cifra y como cantidad.
+#### Los tres caminos de voz, y dónde nace el texto en cada uno
 
-El camino felíz —el usuario escribe `465` en el chat— nunca ejercita (b) ni (c).
+Verificado leyendo el código y las specs del repo:
+
+| Camino | Estado hoy | Dónde existe el texto primero | ¿Cabe el cazador antes del modelo? |
+|---|---|---|---|
+| `POST /v1/voice/turn` | **es lo que hay** | dentro del i3, y el i3 ya llamó al agente | **no** |
+| Scribe por lotes en el i3 (plan `docs/superpowers/plans/2026-06-09-elevenlabs-stt.md`) | plan escrito, sin implementar | dentro del i3, igual | **no** |
+| Realtime STT fase 1 (spec `docs/superpowers/specs/2026-06-10-realtime-stt-phase1-design.md`) | spec aprobada, sin plan | **en la app**, antes de llamar al agente | **sí** |
+
+El primero es el que está vivo, y es el que no sirve. `VoiceClient.turn` sube el
+WAV a `POST /v1/voice/turn` y recibe audio de vuelta más las cabeceras
+`X-STT-Text` y `X-Reply-Text`: el i3 hace STT, llama al agente y sintetiza, todo
+en la misma petición. Cuando la app ve el texto, el modelo ya lo leyó y el
+`TranscriptStore` del i3 ya pudo guardarlo. **No hay punto de inserción en la
+app.** Cambiar el motor de STT a Scribe no lo mueve: el motor cambia dentro del
+i3 y el orden sigue siendo el mismo.
+
+El tercero sí sirve, y gratis. La spec de realtime fase 1 ya decide que **la app
+abre el websocket directamente contra ElevenLabs** y que el agente y el TTS se
+invocan después, **con texto**. Es decir: el transcrito nace en la app, antes del
+agente. El cazador es entonces código de la app, en el camino entre el
+`committed_transcript` del websocket y la llamada al agente. Eso es exactamente
+lo que el usuario pidió, y no hace falta inventar nada para conseguirlo.
+
+#### Lo que este sub-proyecto construye
+
+**Escribir el código funciona desde el primer día, y es el camino obligatorio de
+todas formas.** El usuario quiere los dos caminos, y el de teclado es además el
+degradado del de voz: cuando el STT no está disponible, falla a teclear. Se
+construye aquí, completo, con el cazador aplicado al texto del chat.
+
+**Para el camino de voz, dos opciones, y la decisión es de secuencia, no de
+diseño:**
+
+- **(A) Esperar a realtime STT fase 1.** Coste para este sub-proyecto: cero. El
+  cazador se escribe una vez, en la app, y se engancha al transcrito cuando ese
+  camino exista. Es la opción limpia si el usuario va a construir realtime de
+  todas formas, que es lo que la spec de junio dice.
+- **(B) Un endpoint de solo transcripción en el i3**, si quiere voz antes.
+  `POST /v1/voice/transcribe`: recibe el WAV, corre el STT, **devuelve el texto y
+  nada más** — no llama al agente, no toca el `TranscriptStore`, no escribe log
+  del cuerpo ni del resultado. El modal del código usa ese endpoint en vez de
+  `/v1/voice/turn`, y el cazador corre en la app sobre la respuesta. Es una
+  adición pequeña a `gemma-memory/voice/app.py`, que ya tiene el motor de STT
+  separado detrás del protocolo `STTEngine`.
+
+**Recomendación mía:** construir el camino de teclado ahora y (A) después, porque
+(B) añade un endpoint que realtime fase 1 vuelve redundante. Si el usuario quiere
+voz ya, (B) es correcto y pequeño.
+
+**Regla que vale para los dos caminos y que el plan no puede ablandar:** el modal
+del código **nunca** usa `POST /v1/voice/turn`. Ese endpoint lleva el texto al
+agente por construcción, y el modal no puede permitírselo.
+
+#### Las tres propiedades del cazador
+
+**(a) Caza en todos los turnos, no solo en el modal.** Si el usuario dice o
+escribe el código un martes cualquiera, también se tapa. Un cazador que solo mira
+dentro del modal deja pasar el caso del despiste, que es justo cuando hace falta.
+Esto es posible porque el código lo configura él: el cazador tiene algo concreto
+que buscar en todo momento.
+
+**(b) Funciona contra el hash, nunca contra el valor.** Extrae cada secuencia de
+cuatro dígitos, la deriva con la sal del Llavero y compara. El código no sale del
+Llavero ni para redactar.
+
+**(c) Normaliza números dichos en palabras.** «Cuatro seis cinco cinco» es una
+transcripción normal de 4655, y un servicio de STT en la nube la devuelve así con
+frecuencia. Sin normalizar, **el código dicho en palabras pasa limpio** y las
+tres reglas de 8.3 no sirven. Hay que cubrir las dos formas del español: cifra a
+cifra («cuatro seis cinco cinco») y como cantidad («cuatro mil seiscientos
+cincuenta y cinco»), y la mezcla de las dos, que es como habla la gente.
+
+El camino felíz —el usuario escribe `4655` en el chat— nunca ejercita (b) ni (c).
 Son tests obligatorios.
 
 ### 8.5 El tope diario, y el grifo que queda abierto
@@ -577,6 +655,11 @@ diario lo hace.
 
 **Mitigación mía:** cada compra autónoma deja **línea en el chat y notificación
 del sistema**. No frena el grifo. Impide que pase callada.
+
+**Y Settings lo dice donde el usuario lo lea**, junto al campo vacío: «sin tope:
+el agente puede repetir compras por debajo del umbral». Un campo vacío que no
+explica lo que implica es una trampa para el yo del futuro. El usuario confirmó
+el campo inerte sabiendo esto (ver 10.2).
 
 El tope, cuando el usuario ponga un número, se hace cumplir **al acuñar el
 permiso de gasto**, no en el prompt. Y necesita saber lo gastado hoy, que es el
@@ -626,9 +709,15 @@ concretamente**, porque es una acción que el panel no ha visto nunca.
 5. **La forma exacta del redactor de `snapshot`** de la vía 4, y cómo se autoriza
    un `browser_get value` campo a campo.
 6. **Cómo se renderiza el campo secreto** y cómo se sustituye por el resumen.
-7. **La rama de macOS de `SpeechDictationManager`** con
-   `requiresOnDeviceRecognition`, y la detección en caliente de
-   `supportsOnDeviceRecognition`.
+7. **El punto de enganche del cazador en el camino de voz**, según la opción de
+   secuencia que el usuario elija en 10.1: el `committed_transcript` del
+   websocket de realtime STT fase 1, o la respuesta de un endpoint de solo
+   transcripción en el i3. El cazador se escribe una vez y recibe texto; lo que
+   el constructor decide es de dónde le llega ese texto, y que **nunca** llegue
+   de `POST /v1/voice/turn`.
+8. **La calibración de la derivación lenta del código** (8.3): el coste por
+   intento, medido en el Mac del usuario, y el cacheo por candidato dentro del
+   turno si la medición dice que un turno con muchos números se vuelve lento.
 
 ### Clases de entrada que el plan debe cubrir con tests
 
@@ -649,8 +738,14 @@ felíz:
 - El usuario dice el código **en palabras** → se normaliza, se caza, se sustituye.
 - Un turno con el código **no deja rastro** en `TranscriptStore`, resúmenes,
   memoria ni logs. Es un test de ausencia y se escribe como tal.
-- El reconocimiento en el dispositivo **no está disponible** → el modal pide
-  teclear, **no** usa la nube.
+- El STT **no está disponible** → el modal pide **teclear**. El camino de teclado
+  es el degradado, y existe siempre.
+- El modal del código **nunca** llama a `POST /v1/voice/turn`. Test que falla si
+  alguien lo cablea ahí, porque ese endpoint lleva el texto al agente por
+  construcción.
+- El cazador corre **antes** del primer consumidor del texto. Test de orden: con
+  un doble del agente, de la memoria y del log, ninguno ve el código, y los tres
+  ven la `X`.
 - Tres códigos mal → bloqueado, y el cuarto correcto **no** compra.
 - `confirmation_required` y nadie confirma → **a los 60 s el CLI auto-deniega** y
   el agente lo reporta como **no comprado**, no como comprado.
@@ -664,23 +759,58 @@ felíz:
 
 ---
 
-## 10. Lo que el usuario tiene que decidir
+## 10. Las tres decisiones del usuario sobre este documento
 
-Tres cosas, y solo él puede.
+Las tres preguntas que este documento le hizo, con su respuesta y lo que cada una
+obliga.
 
-1. **¿Puede decir el código por voz?** Decirlo exige construir la rama de macOS de
-   `SpeechDictationManager` con reconocimiento en el dispositivo (8.4). Es trabajo
-   acotado pero es trabajo, y no estaba en el alcance original. La alternativa es
-   **teclearlo** mientras tanto, lo que funciona desde el primer día y no cambia
-   nada más del diseño.
-2. **¿Entra el tope diario en este sub-proyecto?** Hacerlo cumplir exige el
-   registro estructurado de compras, que es el peldaño 4 de los recibos. O entra
-   aquí, o los recibos se adelantan, o el tope queda como campo inerte hasta
-   entonces.
-3. **¿El código son solo dígitos, de 4 a 8?** Si quiere letras, el cazador de
-   8.4(b) necesita otro algoritmo.
+### 10.1 El código: voz y teclado, con el cazador justo después del STT
 
----
+**Respondió:** el audio del código puede ir a un servicio de STT en la nube —no le
+importa que ese código viaje a Internet, porque solo lo usa él con su gente— pero
+**no puede mezclarse con los datos de la memoria**, así que el cazador tiene que
+estar **entre el STT y el transcrito que usan el modelo y la memoria**. Y quiere
+**los dos caminos**: decirlo o escribirlo.
+
+**Obliga:** lo de la sección 8.4. Se construye el camino de teclado completo, que
+es además el degradado del de voz. El camino de voz necesita que el transcrito
+nazca en la app, lo que el camino actual (`POST /v1/voice/turn`) no da y realtime
+STT fase 1 sí. La decisión que queda es de secuencia: esperar a realtime, o añadir
+un endpoint de solo transcripción al i3 para tener voz antes.
+
+**Lo que esta respuesta cancela:** ya no hace falta implementar la rama de macOS
+de `SpeechDictationManager` con reconocimiento en el dispositivo. Era la salida
+que el documento proponía cuando se creía que el audio no podía salir del Mac.
+
+### 10.2 El tope diario: campo inerte por ahora
+
+**Respondió:** campo inerte por ahora.
+
+**Obliga:** el campo existe en Settings y por defecto va vacío, como pidió antes,
+pero **no se hace cumplir** en este sub-proyecto. Lo que sí funciona desde el
+primer día es el **umbral por compra** —por debajo decide ella, por encima pide el
+código—, que no necesita saber lo gastado hoy.
+
+**Y el grifo de 8.5 queda abierto, dicho sin suavizar:** umbral vacío más «menos
+de 20 ella sola» significa que diez compras de 19 pasan sin preguntar una vez. La
+mitigación de 8.5 —línea en el chat y notificación del sistema por cada compra
+autónoma— no cierra el grifo; solo impide que corra callado. El cierre llega con
+el peldaño 4 de los recibos, en el sub-proyecto 4.
+
+**Settings debe decirlo donde el usuario lo lea**, junto al campo vacío: «sin
+tope: el agente puede repetir compras por debajo del umbral». Un campo vacío que
+no explica lo que implica es una trampa para el yo del futuro.
+
+### 10.3 El formato: exactamente cuatro dígitos, configurados en la app
+
+**Respondió:** cuatro dígitos, configurados en la aplicación, «por lo que el
+cazador va a saber qué buscar exactamente en el texto».
+
+**Obliga:** lo de la sección 8.3. El cazador compara contra algo concreto en vez
+de adivinar, que es más fuerte; en cambio cuatro dígitos son diez mil
+posibilidades, así que el hash necesita sal y derivación lenta para que agotarlo
+no sea gratis, y el daño colateral —tapar un `2026` que no era el código— se
+acepta porque falla del lado seguro.
 
 ## 11. Dependencias
 
@@ -695,7 +825,11 @@ Tres cosas, y solo él puede.
   **Conviene arreglarlo antes de construir el cazador, no después.**
 - **El pivote de arquitectura queda aparcado.** El usuario planteó sacar el
   cerebro de la app a un proceso propio que corra en Linux o Windows. Este diseño
-  se apoya en el **Llavero de macOS** y en **`SFSpeechRecognizer` de macOS**, que
-  no existen fuera de Apple. Si el pivote se hace, estas dos piezas se quedan en
-  el dispositivo como proveedoras de capacidad y el cerebro las llama; el resto
-  del diseño no cambia. No se diseña aquí.
+  se apoya en el **Llavero de macOS**, que no existe fuera de Apple. Si el pivote
+  se hace, esa pieza se queda en el dispositivo como proveedora de capacidad y el
+  cerebro la llama; el resto del diseño no cambia. No se diseña aquí.
+
+  La decisión 10.1 **quitó la otra dependencia de Apple que este documento tenía**:
+  ya no hace falta `SFSpeechRecognizer`, porque el STT puede ser un servicio de
+  red. Eso deja el diseño del código de compra casi portable, lo que juega a favor
+  del pivote.

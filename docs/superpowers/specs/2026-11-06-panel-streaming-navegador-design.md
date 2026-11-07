@@ -303,6 +303,7 @@ preguntar.
 | **Mirar, no tocar** | «Necesito ver cómo ella se mueve… tan simple como eso» |
 | **En vivo durante el pago, sin pantalla negra** | «Sería bueno para debuguear. Así que sí, quiero verlo en vivo» |
 | **Streaming antes que todo lo demás** | «Quiero que el streaming sea lo primero que hagas» |
+| **Un panel nuevo por cada turno que toque el navegador**, con los anteriores colapsados a una etiqueta | eligió la opción B sobre un solo panel anclado al primer turno |
 
 Sobre la opción A, el usuario conoce su coste porque se le presentó: el panel es
 pequeño y **se va de pantalla al scrollear**. Lo eligió igual. El diseño no
@@ -553,38 +554,49 @@ Ninguna la ejercita el camino felíz, y todas son de las que muerden:
 
 ---
 
-## 10. Lo que el usuario tiene que decidir
+## 10. Ciclo de vida de los paneles — decidido
 
-Una cosa, y solo él puede, porque cambia lo que se construye.
+**Decisión del usuario:** un panel nuevo por cada turno que toque el navegador,
+con los anteriores colapsados a una etiqueta.
 
-**¿Un panel por sesión de navegador, o un panel nuevo por cada turno que
-toque el navegador?**
+La sección 6.1 ya fijaba que el panel vive dentro del chat como un mensaje más,
+y que el usuario aceptó el coste de que se vaya de pantalla al scrollear. Lo
+que faltaba por fijar era cuántos paneles hay. Se le presentaron las dos
+opciones con su coste:
 
-La sección 6.1 fija que el panel vive dentro del chat, como un mensaje más, y
-que el usuario aceptó el coste de que se vaya de pantalla al scrollear. Lo que
-no fija es cuántos paneles hay.
+- **Un solo panel, anclado donde ella empezó a navegar.** En el turno 1 se ve
+  todo. A partir del turno 2 el panel ya subió fuera de la vista: el usuario
+  escribe, ella navega, y él está ciego mirando la parte baja de la
+  conversación. Es primo del anti objetivo número uno de la sección 4 —un panel
+  que no sirve para ver lo que está pasando ahora.
+- **Un panel nuevo por turno**, que es lo que eligió. Cada turno que toca el
+  navegador trae su propia ventana, justo debajo de lo que el usuario acaba de
+  escribir.
 
-Las dos lecturas son coherentes con lo que él dijo, y llevan a software
-distinto:
+### Qué obliga esta decisión
 
-- **Un panel, anclado donde ella empezó a navegar.** En el turno 1 se ve todo.
-  En el turno 2 el panel ya subió fuera de la vista: el usuario escribe, ella
-  navega, y él está ciego mientras mira la parte baja de la conversación. Eso
-  es exactamente el fallo que el proyecto existe para arreglar —el anti
-  objetivo número uno de la sección 4 es un panel que dice estar en vivo sin
-  estarlo, y uno que está en vivo pero fuera de pantalla es el primo del mismo
-  problema.
-- **Un panel nuevo por cada turno que toque el navegador**, con los anteriores
-  colapsados a una etiqueta («navegó en amazon.es · 14 acciones»). Cada turno
-  trae su propia ventana a lo que está pasando, al lado de lo que él acaba de
-  escribir. Es más trabajo de ciclo de vida: hay varios paneles, solo el último
-  está conectado, y los viejos tienen que haber soltado su último frame por la
-  decisión 6.2(g).
+1. **Varios paneles coexisten en la conversación, y solo uno está conectado.**
+   El panel del turno activo tiene el socket abierto y acusa frames. Todos los
+   anteriores están cerrados. No puede haber dos sockets de screencast a la vez
+   contra la misma sesión: el segundo reconfiguraría el screencast del primero
+   por la razón de la sección 5.3.
+2. **Al cerrarse, un panel suelta su último frame y se colapsa a una etiqueta.**
+   Es la decisión 6.2(g) aplicada al cierre normal, no solo al fallo: un panel
+   terminado no se queda mostrando una imagen vieja. La etiqueta dice dominio y
+   número de acciones —«navegó en amazon.es · 14 acciones»— y no muestra
+   imagen.
+3. **El colapso es definitivo: no se puede reabrir.** Reabrir exigiría haber
+   guardado el frame, y los frames no se escriben a disco nunca por la decisión
+   6.2(a). La etiqueta es texto, y eso es todo lo que queda del turno.
+4. **Un turno que no toca el navegador no crea panel.** El disparador es la
+   primera herramienta de navegador del turno, no el turno.
+5. **Un turno con varias acciones de navegador tiene UN panel**, el que se creó
+   con la primera. No uno por acción.
 
-**Mi recomendación: un panel nuevo por turno, con los anteriores colapsados.**
-El coste extra es ciclo de vida, que es código acotado y testeable. El coste de
-la otra opción lo paga el usuario cada vez que la conversación pasa del primer
-turno, y lo paga mirando a una burbuja que no está ahí.
+### Qué queda al constructor
 
-Si él elige un solo panel, la sección 6.2(g) sigue valiendo tal cual y el
-constructor tiene menos que hacer; nada más del documento cambia.
+Dónde vive el estado del panel en el modelo de la conversación, y cómo se
+ordena el cierre del panel anterior antes de abrir el siguiente, para que no
+haya una ventana en la que los dos tengan socket. El orden correcto es cerrar
+primero y abrir después, aunque eso cueste un hueco de unos milisegundos sin
+imagen.

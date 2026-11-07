@@ -105,8 +105,9 @@ El trabajo es de consumo y presentación, no de instrumentación.
 
 Todo lo de esta sección se verificó **en vivo** contra
 `/opt/homebrew/bin/agent-browser` 0.41.2, no se leyó de documentación. El recon
-completo, con las transcripciones, está en el fichero de recon de streaming de
-la sesión. Lo que sigue es lo que obliga al diseño.
+completo, con las transcripciones, está en
+`docs/superpowers/notes/2026-11-06-recon-streaming-agent-browser.md`. Lo que
+sigue es lo que obliga al diseño.
 
 ### 5.1 El streaming ya está encendido — nunca llamar a `stream enable`
 
@@ -544,7 +545,46 @@ Ninguna la ejercita el camino felíz, y todas son de las que muerden:
 - **La puerta de compra, el código hablado y los topes.** Sub-proyecto 3. El
   recon encontró que el CLI trae `--confirm-actions` con auto denegación a los
   60 s, que es un punto de aplicación por debajo del modelo; eso cambia ese
-  diseño y está registrado en el recon de contención.
+  diseño y está registrado en
+  `docs/superpowers/notes/2026-11-06-recon-contencion-y-confirmacion.md`.
 - **Los recibos.** Sub-proyecto 4. La escalera de cuatro peldaños está decidida
   y registrada en `docs/superpowers/notes/2026-11-06-compras-decisiones.md`.
 - **El panel en el iPhone.** Es el M3b del roadmap y es otro proyecto.
+
+---
+
+## 10. Lo que el usuario tiene que decidir
+
+Una cosa, y solo él puede, porque cambia lo que se construye.
+
+**¿Un panel por sesión de navegador, o un panel nuevo por cada turno que
+toque el navegador?**
+
+La sección 6.1 fija que el panel vive dentro del chat, como un mensaje más, y
+que el usuario aceptó el coste de que se vaya de pantalla al scrollear. Lo que
+no fija es cuántos paneles hay.
+
+Las dos lecturas son coherentes con lo que él dijo, y llevan a software
+distinto:
+
+- **Un panel, anclado donde ella empezó a navegar.** En el turno 1 se ve todo.
+  En el turno 2 el panel ya subió fuera de la vista: el usuario escribe, ella
+  navega, y él está ciego mientras mira la parte baja de la conversación. Eso
+  es exactamente el fallo que el proyecto existe para arreglar —el anti
+  objetivo número uno de la sección 4 es un panel que dice estar en vivo sin
+  estarlo, y uno que está en vivo pero fuera de pantalla es el primo del mismo
+  problema.
+- **Un panel nuevo por cada turno que toque el navegador**, con los anteriores
+  colapsados a una etiqueta («navegó en amazon.es · 14 acciones»). Cada turno
+  trae su propia ventana a lo que está pasando, al lado de lo que él acaba de
+  escribir. Es más trabajo de ciclo de vida: hay varios paneles, solo el último
+  está conectado, y los viejos tienen que haber soltado su último frame por la
+  decisión 6.2(g).
+
+**Mi recomendación: un panel nuevo por turno, con los anteriores colapsados.**
+El coste extra es ciclo de vida, que es código acotado y testeable. El coste de
+la otra opción lo paga el usuario cada vez que la conversación pasa del primer
+turno, y lo paga mirando a una burbuja que no está ahí.
+
+Si él elige un solo panel, la sección 6.2(g) sigue valiendo tal cual y el
+constructor tiene menos que hacer; nada más del documento cambia.

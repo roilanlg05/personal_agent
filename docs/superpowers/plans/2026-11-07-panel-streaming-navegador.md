@@ -1193,7 +1193,7 @@ git commit -m "test(panel): de punta a punta contra el i3, con la prueba del val
 
 **4. Review Focus.** Las cinco líneas tienen prueba: 1 → `read_port` se llama en cada reconexión (T4) y la verificación en vivo de T2 Step 6 levanta el demonio en frío; 2 → `test_un_error_de_red_es_launchFailed_con_motivo` (T5), `test_sin_rele_no_aparece_panel` (T7) y `test_en_vivo_un_i3_inalcanzable_da_not_available_y_no_rompe` (T9); 3 → el fan-out con descarte por cliente y el acuse por cliente (T4); 4 → `test_un_visor_que_entra_a_mitad_recibe_estado_resumen_y_host` (T4); 5 → los cuatro tests de validación de T2.
 
-**5. Proporción.** El spec son 773 líneas; este plan, del orden de 700. La mayor parte son aserciones con los valores exactos del spec, que es lo que el implementador no puede inventar. No hay ningún cuerpo de función transcrito.
+**5. Proporción.** El spec son 773 líneas; este plan, 1204, es decir 1,56 veces. Revisado con ese número delante: la mayor parte son aserciones de prueba con los valores exactos del spec y las firmas exactas, que es lo que el implementador no puede inventar, y no hay ningún cuerpo de función transcrito. Lo que justifica el exceso sobre el spec es que este plan cruza **dos lenguajes y dos repositorios**: cada pieza del cable aparece dos veces, una en Python y otra en Swift, y las dos necesitan sus valores exactos para que los seis mensajes de la §6.4 coincidan. Si una tarea quedara larga al ejecutarla, la candidata es la 4, que es la única con cuerpo descrito en seis pasos.
 
 ---
 

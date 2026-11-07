@@ -169,6 +169,13 @@ La selección mantendrá unidades conversacionales completas cuando sean necesar
 
 La actualización del hilo se activará por cambios de tema, decisiones, correcciones o presión del presupuesto, no mediante una llamada costosa de resumen después de cada palabra. Las correcciones claras entran inmediatamente en el estado de trabajo. La compresión de fondo no bloqueará la respuesta ni desplazará un dato confirmado con una versión anterior.
 
+### Continuidad de proyectos entre conversaciones
+
+Cada conversación nueva empieza con su propio historial reciente vacío. La memoria autorizada del usuario y de sus proyectos sigue disponible. Si el usuario dice «vamos a seguir trabajando en el proyecto XXX», Gemma identifica el proyecto por su nombre, sus alias y el contexto pertinente, y reúne lo necesario de las conversaciones previas. El punto de partida es el último estado respaldado por evidencia, junto con las decisiones vigentes, el trabajo completado y los próximos pasos que quedaron abiertos. Una propuesta mantiene su condición de propuesta, y un resumen antiguo cede ante una corrección posterior. Si hay varios proyectos plausibles, Gemma pide una aclaración breve sobre el proyecto.
+
+El historial reciente, los referentes y el estado afectivo transitorio pertenecen a su conversación. La continuidad de un proyecto usa recuerdos autorizados, hechos y episodios pertinentes, con fuentes e información temporal. Si hace falta una cita de otro intercambio, el acceso al original se verifica por separado y solo se acredita lo que se entregó completo al modelo. Abrir deliberadamente una conversación anterior puede precargar su contexto reciente; retomar un proyecto desde una conversación nueva no requiere hacerlo.
+
+
 Se evitará resumir indefinidamente resúmenes de resúmenes. Habrá segmentos estables con referencias, actualizaciones localizadas y reconstrucciones periódicas desde fuentes pertinentes. Las anclas factuales conservarán lo que no se debe deformar, mientras la prosa que recibe el modelo seguirá siendo breve y natural.
 
 Un recuerdo resumido no equivale a un recuerdo incierto. Se mantendrán separados el nivel de detalle y el nivel de confianza. Gemma podrá conocer con seguridad que hubo una salida al parque sin tener cargados los juegos concretos. No simulará dudas o errores para parecer humana, ni fingirá recordar palabras que nunca recuperó.

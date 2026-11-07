@@ -180,10 +180,11 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 ## Task 14: Authenticated brain HTTP API and gateway integration
 
 **Repo:** backend.
-**Files:** add `Handlers/BrainHandlers.swift`, `BrainServices.swift`, endpoint tests; modify App.swift, AgentHandlers/AgentLoop/AgentPrompt and tools at integration boundaries.
+**Files:** extend `Handlers/BrainHandlers.swift`, add `BrainServices.swift`, endpoint tests; modify App.swift, AgentHandlers/AgentLoop/AgentPrompt and tools at integration boundaries.
 **Interfaces:** authenticated `/v1/brain/turns/begin`, `/v1/brain/turns/complete`, `/v1/brain/context`, `/v1/brain/updates/propose`, `/v1/brain/updates/commit`, `/v1/brain/outcomes`, `/v1/brain/identity`, `/v1/brain/affect`, `/v1/brain/revise`, `/v1/brain/forget`, `/v1/brain/consolidate`, `/v1/brain/prospective` plus safe resolution/receipt endpoints. DTOs are BrainContract types; typed error responses distinguish auth, validation, revision conflict, unavailable persistence and unsupported schema.
 - [ ] RED: auth/validation/revision conflict; API begin-before-context and current correction visibility; active model failure input persists once; passive IGNORE absent; direct AgentLoop.run and HTTP turn have one clear persistence owner; output remains `{reply}` compatible; grounded tool observations and source attribution reach experience store; old endpoints still behave.
 - [ ] Wire all services, shared policy/identity/context, asynchronous job lifecycle and model adapters. Preserve language/timezone and tool capabilities; do not advertise native-only AtoZ on gateway. Make failures observable and endpoint health distinct from semantic confidence. Use source-specific mutation APIs instead of silently bypassing the brain in old save/forget tools.
+- [ ] Reuse the authenticated context route. Wire the semantic selector and tool-observation groups in the gateway. Drive the real gateway entry point with a recording provider and assert that exact citation eligibility comes from the full rendered context and the unchanged recent units actually sent. Keep sourceReferences as metadata; omitted originals, prefixes and derived support do not grant exact citation. Verify trusted owner authorization and restricted transport before deployment.
 - [ ] GREEN: full backend suite, including old contract tests and new brain lifecycle endpoints.
 - [ ] Self-review and commit.
 
@@ -196,6 +197,7 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 **Interfaces:** same BrainContract library linked from local `../gemma-memory/memory-service`; `MemoryClient.beginTurn`, `brainContext`, `recordOutcome`, `recordAssistant`, identity/revision methods; provider capability adapter chooses budgets and modalities. Snapshot thread/client/operation identity before awaiting. Older service yields legacy fallback without losing active input or pretending persisted success.
 - [ ] RED: correction before generation, retry once after persistence failure, no duplicate input/history, cancellation+new turn doesn't write into wrong thread, provider switch identity stable, 4096-token budget honored, mandatory acknowledgments removed, optional affect guidance, AtoZ tools survive memory disabled and capabilities remain truthful.
 - [ ] Integrate begin/context/outcome/assistant lifecycle, truthful pending state and retries; use canonical conversation policy with native tool addenda. Preserve voice/passive behavior and exact detail `load_messages`. Capture tool outcomes when actually executed, not only if final model succeeds. No automatic model switching or external calls with user secrets in tests.
+- [ ] Inject synthetic configuration before HarnessModel initializes or touches Keychain. Use the real native coordinator and client with a recording provider to check the exact payload, forwarded recent units, citation eligibility and legacy fallback.
 - [ ] GREEN: focused app suites, then full macOS app suite and iOS compilation. Keep all existing Safari/AtoZ functionality unchanged.
 - [ ] Self-review and commit.
 
@@ -208,7 +210,7 @@ App verification: `xcodebuild -quiet -project Gemma/Gemma.xcodeproj -scheme Gemm
 **Interfaces:** `EmbeddingIndexVersion(modelID:dimension:revision:)`; writes/query specify version; `rebuildIndex` creates separate staged index; `activateIndex(version:expectedRevision:)` only after readiness/validation. Existing legacy vector paths keep working without mixing spaces. Brain inputs/outputs remain model-neutral; unsupported capabilities fail closed for affected task, not for all memory.
 - [ ] RED: equal dimensions from different models not comparable; rebuild does not remove old recall; no partial swap; failed rebuild keeps active index; persisted identity independent of provider; OpenAI-like and Anthropic-like adapter contract fixtures both use brain context and tool outputs correctly.
 - [ ] Implement explicit index metadata and atomic activation with compatible legacy migration. Preserve exact/FTS retrieval when no model/embedding is available.
-- [ ] GREEN: vector, contract, provider and context suites. Real-family smoke tests only if authorized configuration is available; mark absent real-provider validation explicitly rather than pretending fixture tests prove it.
+- [ ] GREEN: vector, contract, provider and context suites. Use recording providers by default. Any authorized model smoke test must use a cloud provider with synthetic input. Never run the local Ollama/Gemma smoke. Report real-provider validation separately.
 - [ ] Self-review and commit.
 
 ## Task 17: Longitudinal evaluation, integration and honest release report

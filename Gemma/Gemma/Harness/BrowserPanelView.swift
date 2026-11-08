@@ -12,10 +12,14 @@ struct BrowserPanelView: View {
         Group {
             if state.isCollapsed { collapsed } else { live }
         }
-        .task(id: state.jpeg) {
+        // `lastFrameAt` identifica el frame con una comparación de fechas; usar el JPEG como id
+        // obligaría a SwiftUI a comparar los bytes enteros en el hilo principal en cada evaluación.
+        .task(id: state.lastFrameAt) {
             guard let jpeg = state.jpeg else { image = nil; return }
             // ImageIO fuera del hilo principal: un frame de 1280x720 decodificado aquí haría saltar el chat.
-            image = await Self.decodeOffMain(jpeg)
+            let decoded = await Self.decodeOffMain(jpeg)
+            // Un frame viejo que termina tarde no debe pintarse encima de uno nuevo.
+            if !Task.isCancelled { image = decoded }
         }
     }
 
@@ -47,10 +51,11 @@ struct BrowserPanelView: View {
                         .scaledToFit()
                 } else {
                     Color.secondary.opacity(0.1)
-                        .frame(height: 120)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: 360)
+            // Altura estable: el primer frame no debe mover el resto del historial.
+            .frame(maxWidth: .infinity)
+            .frame(height: 220)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             HStack(spacing: 6) {
                 Spacer()
@@ -77,11 +82,14 @@ struct BrowserPanelView: View {
     }
 
     /// Decodifica el JPEG en una tarea de fondo. `nil` si los bytes no son una imagen.
-    nonisolated static func decodeOffMain(_ jpeg: Data) async -> CGImage? {
-        await Task.detached(priority: .userInitiated) {
-            guard let src = CGImageSourceCreateWithData(jpeg as CFData, nil) else { return nil }
-            // `ShouldCacheImmediately` fuerza la decodificación aquí, no al pintar en el hilo principal.
-            return CGImageSourceCreateImageAtIndex(src, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary)
-        }.value
+    @concurrent static func decodeOffMain(_ jpeg: Data) async -> CGImage? {
+        // `@concurrent` obliga a correr en el ejecutor global. Un `nonisolated async` a secas NO basta
+        // aquí: con la ejecución no aislada heredada del llamador (valor por omisión del proyecto)
+        // correría en el hilo principal; el `assert` de abajo lo detecta si alguien lo quita.
+        // Llamada desde el `.task(id:)`, hereda su cancelación.
+        assert(!Thread.isMainThread, "la decodificación del JPEG no puede ocurrir en el hilo principal")
+        guard let src = CGImageSourceCreateWithData(jpeg as CFData, nil) else { return nil }
+        // `ShouldCacheImmediately` fuerza la decodificación aquí, no al pintar en el hilo principal.
+        return CGImageSourceCreateImageAtIndex(src, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary)
     }
 }

@@ -6,7 +6,7 @@ import UIKit
 
 public struct ChatLogEntry: Identifiable, Sendable, Equatable {
     public let id: String
-    public var role: String // "you", "gemma", "tool", "system", "error"
+    public var role: String // "you", "gemma", "tool", "system", "error", "browserPanel"
     public var text: String
     public var thought: String?
     public var isThoughtExpanded: Bool = false
@@ -414,6 +414,36 @@ public final class HarnessModel {
         agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
     }
 
+    /// Flujo del relé del i3 para un panel nuevo, o `nil` sin `browserBaseURL` válida (en
+    /// iOS no hay navegador del agente: devuelve `nil`). `BrowserRelayClient` es un actor y su `events()`
+    /// es `async`, así que se puentea: un `Task` reenvía los eventos y, al terminar el flujo
+    /// (cierre del panel), se cancela y se llama a `stop()` para no dejar el socket abierto.
+    static func makeRelayStream(defaults: UserDefaults = .standard) -> AsyncStream<BrowserRelayEvent>? {
+        #if os(macOS)
+        let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
+              url.host != nil else { return nil }
+        let token = (defaults.string(forKey: SettingsKeys.browserBearerToken) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let client = BrowserRelayClient(baseURL: url, bearerToken: token)
+        let (stream, continuation) = AsyncStream<BrowserRelayEvent>.makeStream(bufferingPolicy: .bufferingNewest(64))
+        let forwarder = Task {
+            for await event in await client.events() {
+                continuation.yield(event)
+            }
+            continuation.finish()
+        }
+        continuation.onTermination = { _ in
+            forwarder.cancel()
+            Task { await client.stop() }
+        }
+        return stream
+        #else
+        return nil
+        #endif
+    }
+
     #if os(macOS)
     /// Registra en `registry` las nueve herramientas de navegador (`read_webpage` y `browser_*`).
     /// Comparten una única instancia de `AgentBrowserService`, y por tanto la misma sesión de
@@ -450,36 +480,6 @@ public final class HarnessModel {
         let token = (defaults.string(forKey: SettingsKeys.browserBearerToken) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return HTTPAgentBrowserInvoker(baseURL: url, bearerToken: token, session: session)
-    }
-
-    /// Flujo del relé del i3 para un panel nuevo, o `nil` sin `browserBaseURL` válida (en
-    /// iOS tampoco hay navegador del agente). `BrowserRelayClient` es un actor y su `events()`
-    /// es `async`, así que se puentea: un `Task` reenvía los eventos y, al terminar el flujo
-    /// (cierre del panel), se cancela y se llama a `stop()` para no dejar el socket abierto.
-    static func makeRelayStream(defaults: UserDefaults = .standard) -> AsyncStream<BrowserRelayEvent>? {
-        #if os(macOS)
-        let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
-              url.host != nil else { return nil }
-        let token = (defaults.string(forKey: SettingsKeys.browserBearerToken) ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let client = BrowserRelayClient(baseURL: url, bearerToken: token)
-        let (stream, continuation) = AsyncStream<BrowserRelayEvent>.makeStream(bufferingPolicy: .bufferingNewest(64))
-        let forwarder = Task {
-            for await event in await client.events() {
-                continuation.yield(event)
-            }
-            continuation.finish()
-        }
-        continuation.onTermination = { _ in
-            forwarder.cancel()
-            Task { await client.stop() }
-        }
-        return stream
-        #else
-        return nil
-        #endif
     }
 
     /// Registro con solo las herramientas de navegador, para poder probarlas sin arrancar un turno.

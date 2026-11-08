@@ -10,33 +10,85 @@ sea, se ve bien borroso». El tope de 10 fotogramas por segundo se había fijado
 cuando el único cliente era un Mac por cable; ahora hay un iPhone con datos
 móviles, y nadie había medido qué caudal pide el panel.
 
-## La página sobre la que se midió, y por qué no es Amazon
+## La página sobre la que se midió, y la corrección de un error mío
 
-El caso real del usuario es una página de resultados de Amazon. **El i3 no la
-alcanza.** Sondeadas seis tiendas desde el Chromium del contenedor, con el largo
-del texto del `body` como prueba:
+El caso real del usuario es una página de resultados de Amazon, y **Amazon
+funciona**. Escribí aquí lo contrario y era falso; lo corrijo abajo, porque el
+error importa más que el dato.
 
-| sitio | caracteres del body | qué sirve |
+Se midió sobre `https://es.aliexpress.com/w/wholesale-raqueta-ping-pong.html`:
+una rejilla real de fotografías de producto con precios y texto encima, que es
+exactamente la forma del caso del usuario y es caro para un JPEG por bordes y
+detalle. Vale igual que Amazon para medir el peso de un fotograma.
+
+### Lo que escribí mal, y lo que de verdad pasa
+
+Primera medida, con el `body` como única prueba y pidiendo la misma URL cuatro
+veces en pocos minutos durante el barrido:
+
+| sitio | caracteres | qué servía |
 |---|---|---|
 | `amazon.es/s?k=…` | 357 | «Lo sentimos. Se ha producido un error al intentar procesar tu solicitud» |
 | `pccomponentes.com/buscar` | 270 | «Performing security verification» |
 | `decathlon.es/search` | 694 | «Sorry, you have been blocked» |
 | `ebay.es/sch` | 155 | «SORRY. Something went wrong on our end» |
 | `idealo.es` | 256 | «Sorry! Something has gone wrong» |
-| **`es.aliexpress.com/w/…`** | **12 038** | **la página de resultados de verdad, 171 etiquetas `<img>`** |
+| `es.aliexpress.com/w/…` | 12 038 | la página de resultados de verdad |
 
-Se midió por tanto sobre
-`https://es.aliexpress.com/w/wholesale-raqueta-ping-pong.html`: una rejilla real
-de fotografías de producto con precios y texto encima, que es exactamente la
-forma del caso del usuario y es caro para un JPEG por bordes y detalle.
+De ahí concluí que «cinco de las seis tiendas le sirven su página antibots al
+navegador del i3». **El usuario lo corrigió: él sí había visto la página de
+Amazon desde el teléfono, y en cambio Cloudflare le había bloqueado ChatGPT y
+Claude AI.** Tenía razón en los dos extremos.
 
-**Esto es un hallazgo aparte y más grave que la nitidez**, y queda anotado aquí
-porque es donde se descubrió: cinco de las seis tiendas sondeadas le sirven su
-página antibots al navegador del i3. Explica por qué el agente «entró en Amazon,
-buscó y dio las mejores valoradas» sin que el usuario viera nada útil: estaba
-leyendo una página de error de 357 caracteres. Es un problema de huella del
-navegador (user-agent, flags de automatización, IP), no de nitidez, y pertenece a
-los planes B y D del spec `2026-11-08-navegador-visible-y-busqueda-design.md`.
+Re-medido sin martillear (15 s entre peticiones) y leyendo también el **título**,
+que es lo que lo delata:
+
+| sitio | título de la página | qué es |
+|---|---|---|
+| `amazon.es/s?k=raquetas+ping+pong` | «Amazon.es : raquetas ping pong», 18 720 caracteres | **entra** |
+| `amazon.es/s?k=raqueta+tenis` | «Amazon.es : raqueta tenis», 16 680 caracteres | **entra** |
+| `amazon.es/` portada | «Amazon.es: online shopping…», 7 354 caracteres | **entra** |
+| `pccomponentes.com/buscar` | `Just a moment...` | desafío de Cloudflare |
+| `claude.ai` | `Just a moment...` | desafío de Cloudflare |
+| `chatgpt.com` | `Just a moment...` | desafío de Cloudflare |
+| `decathlon.es/search` | `Attention Required! \| Cloudflare` | bloqueo duro de Cloudflare |
+| `ebay.es/sch` | `Error Page \| eBay` | error propio del sitio, sin Cloudflare |
+| `idealo.es` | `idealo` | error propio del sitio, sin Cloudflare |
+
+Dos correcciones, por tanto:
+
+1. **Amazon no bloquea nada.** Lo que vi era su página de *estrangulamiento*, y
+   la provoqué yo pidiendo la misma URL cuatro veces seguidas durante el barrido.
+   Con 20 segundos de separación entra siempre. El caso de compra del usuario
+   —«entra en Amazon y busca un par de raquetas»— es alcanzable hoy.
+2. **Lo que bloquea no son «las tiendas», es Cloudflare**, que es un
+   intermediario y afecta por igual a una tienda y a un chatbot. El título
+   `Just a moment...` es su interstitial y es la firma que hay que buscar; el
+   largo del `body` por sí solo no distingue un bloqueo de un error del sitio, y
+   por eso me equivoqué.
+
+### ¿Se pasa el desafío de Cloudflare esperando? No
+
+`chatgpt.com` servía, dentro del interstitial, el texto «Verification
+successful. Waiting for chatgpt.com to respond», que parecía indicar que el
+navegador había superado la verificación y que yo había leído la página
+demasiado pronto. **Medido: es falso.** Dejando la página abierta y releyéndola:
+
+| sitio | t+5 s | t+15 s | t+30 s | t+45 s |
+|---|---|---|---|---|
+| `pccomponentes.com` | `Just a moment...` | igual | igual | igual |
+| `chatgpt.com` | `Just a moment...` | igual | igual | (no medido) |
+
+El desafío no se resuelve solo. Ese «Verification successful» es texto de la
+propia página de desafío, no un estado alcanzado. (Los dos últimos sitios de esa
+prueba se quedaron sin medir porque mi propia reconstrucción del contenedor mató
+el proceso, que corría dentro de él.)
+
+**Conclusión para quien trabaje en los planes B y D** del spec
+`2026-11-08-navegador-visible-y-busqueda-design.md`: hay un problema real de
+huella del navegador —user-agent, flags de automatización, IP de origen— pero es
+**más pequeño de lo que esta nota decía al principio**, y no se arregla con
+paciencia. Amazon, que es el caso que el usuario pidió, no lo necesita.
 
 ## El acuse del visor no es opcional
 

@@ -157,7 +157,7 @@ no se anima». Eso es lo que se hace.
 |---|---|---|
 | `AGENT_BROWSER_STREAM_MAX_WIDTH` | **1080** | 2,85× los píxeles de 640×360; es la queja del usuario, que era de resolución |
 | `AGENT_BROWSER_STREAM_MAX_HEIGHT` | **608** | la misma proporción 16:9 |
-| `AGENT_BROWSER_STREAM_QUALITY` | **45** | q60 cuesta un 9 % más de bytes por una mejora que no se ve en una rejilla de productos; el salto grande de calidad es 20 → 45 |
+| `AGENT_BROWSER_STREAM_QUALITY` | **45** | q60 cuesta un **7,7 %** más de bytes sobre las medias (55 566 / 51 594) por una mejora que no se ve en una rejilla de productos; el salto grande de calidad es 20 → 45 |
 | `DAEMON_MAX_FPS` | **7** | 400 000 ÷ 54 715 (el fotograma más grande medido) = 7,31 → 7 |
 | `DEFAULT_VIEWER_MAX_FPS` | **7** | el mismo |
 

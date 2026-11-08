@@ -400,6 +400,9 @@ public final class HarnessModel {
 
     public func startAgentTurn(_ prompt: String) {
         currentTurnTask?.cancel()
+        // Determinista: el panel del turno anterior se cierra por orden, no por la carrera
+        // con la cancelación (si perdiera, el turno nuevo se quedaría sin panel).
+        browserPanels.endTurn()
         currentTurnTask = Task { @MainActor [weak self] in
             guard let self else { return }
             await self.runAgentTurn(prompt)

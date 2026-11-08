@@ -10,7 +10,9 @@ struct BrowserPanelView: View {
 
     var body: some View {
         Group {
-            if state.isCollapsed { collapsed } else { live }
+            // Nada antes de oír al relé: sin i3 detrás el panel no aparece (spec §6.2(e), §8).
+            if !state.hasReceivedMessage { EmptyView() }
+            else if state.isCollapsed { collapsed } else { live }
         }
         // `lastFrameAt` identifica el frame con una comparación de fechas; usar el JPEG como id
         // obligaría a SwiftUI a comparar los bytes enteros en el hilo principal en cada evaluación.
@@ -40,10 +42,17 @@ struct BrowserPanelView: View {
 
     private var live: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(state.phrase)
+            Text(state.host.map { "\(state.phrase) · \($0)" } ?? state.phrase)
                 .font(.caption2.monospaced())
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+            if let reason = state.closedReason {
+                // El usuario tiene que poder leer por qué el panel está muerto sin ir a Ajustes.
+                Text(reason.isEmpty ? "Conexión con el navegador cerrada (sin motivo)." : "Conexión con el navegador cerrada: \(reason)")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .lineLimit(2)
+            }
             Group {
                 if let image {
                     Image(decorative: image, scale: 1)
@@ -64,7 +73,7 @@ struct BrowserPanelView: View {
                     TimelineView(.periodic(from: .now, by: 1)) { ctx in
                         let age = ctx.date.timeIntervalSince(last)
                         if age > 2 {
-                            Text("hace \(Int(age)) s")
+                            Text("último cambio hace \(Int(age)) s")
                                 .font(.caption2)
                                 .foregroundStyle(.gray)
                         }

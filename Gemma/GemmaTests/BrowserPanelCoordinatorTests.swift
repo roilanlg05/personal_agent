@@ -58,9 +58,11 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         XCTAssertNil(c.activeID)
     }
 
-    func test_isBrowserTool_cubre_las_ocho_mas_read_webpage() {
+    func test_isBrowserTool_cubre_las_ocho_y_no_read_webpage() {
         for name in Agent.browserToolNames { XCTAssertTrue(BrowserPanelCoordinator.isBrowserTool(name), name) }
-        XCTAssertTrue(BrowserPanelCoordinator.isBrowserTool("read_webpage"))
+        // read_webpage no comparte sesión con el relé del i3 (sessioned: false) y conectar el
+        // visor despertaría un Chromium que esa herramienta existe para evitar.
+        XCTAssertFalse(BrowserPanelCoordinator.isBrowserTool("read_webpage"))
         XCTAssertFalse(BrowserPanelCoordinator.isBrowserTool("web_search"))
     }
 

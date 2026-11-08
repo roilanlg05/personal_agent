@@ -53,8 +53,10 @@ public final class BrowserPanelCoordinator {
         activeID = nil
     }
 
-    /// Las ocho herramientas que conducen el navegador, más `read_webpage`.
+    /// Las ocho herramientas que conducen el navegador. `read_webpage` NO está: no trabaja en la
+    /// sesión que el relé del i3 observa y conectar el visor levantaría un Chromium que esa
+    /// herramienta existe para evitar (además de poder pintar una página vieja como «en vivo»).
     public nonisolated static func isBrowserTool(_ name: String) -> Bool {
-        Agent.browserToolNames.contains(name) || name == "read_webpage"
+        Agent.browserToolNames.contains(name)
     }
 }

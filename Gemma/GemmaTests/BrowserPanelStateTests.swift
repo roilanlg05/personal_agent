@@ -101,4 +101,51 @@ final class BrowserPanelStateTests: XCTestCase {
         XCTAssertEqual(s.phrase, "haciendo clic")
         XCTAssertEqual(s.summary, "navegó en amazon.es · 7 acciones")
     }
+
+    // MARK: - Revisión final: el panel informa
+
+    /// Sin mensajes del relé no hay nada detrás: la vista no pinta (spec §6.2(e), §8).
+    @MainActor func test_sin_mensajes_del_rele_no_hay_nada_que_pintar() {
+        let s = BrowserPanelState()
+        XCTAssertFalse(s.hasReceivedMessage)
+        s.freeze()
+        XCTAssertFalse(s.hasReceivedMessage, "congelar no resucita un panel que nunca recibió nada")
+    }
+
+    /// `closed` lo fabrica también el cliente al fallar la conexión: no prueba que haya un i3.
+    @MainActor func test_un_closed_solo_no_cuenta_como_mensaje() {
+        let s = BrowserPanelState()
+        s.apply(.closed(reason: "fallo de recepción"))
+        XCTAssertFalse(s.hasReceivedMessage)
+    }
+
+    @MainActor func test_un_state_basta_para_que_el_panel_se_pinte() {
+        let s = BrowserPanelState()
+        s.apply(.state(live: true, collapsed: false))
+        XCTAssertTrue(s.hasReceivedMessage)
+    }
+
+    @MainActor func test_freeze_no_borra_haber_recibido() {
+        let s = BrowserPanelState()
+        s.apply(.state(live: true, collapsed: false))
+        s.freeze()
+        XCTAssertTrue(s.hasReceivedMessage)
+    }
+
+    @MainActor func test_el_motivo_del_closed_se_guarda_y_un_state_nuevo_lo_borra() {
+        let s = BrowserPanelState()
+        s.apply(.state(live: true, collapsed: false))
+        s.apply(.closed(reason: "sesión cerrada por inactividad"))
+        XCTAssertEqual(s.closedReason, "sesión cerrada por inactividad")
+        XCTAssertFalse(s.isLive)
+        s.apply(.state(live: true, collapsed: false))
+        XCTAssertNil(s.closedReason, "reconectó: el motivo ya no aplica")
+    }
+
+    @MainActor func test_el_host_se_guarda() {
+        let s = BrowserPanelState()
+        XCTAssertNil(s.host)
+        s.apply(.host("example.com"))
+        XCTAssertEqual(s.host, "example.com")
+    }
 }

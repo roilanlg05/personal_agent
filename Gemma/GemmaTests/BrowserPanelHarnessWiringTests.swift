@@ -101,6 +101,20 @@ final class BrowserPanelHarnessWiringTests: XCTestCase {
         XCTAssertFalse(model.browserPanels.panels[live]!.isCollapsed)
     }
 
+    /// Hablarle al agente (startAgentTurn) reinicia el reloj del panel vivo.
+    func test_hablarle_al_agente_reinicia_el_reloj_del_panel_vivo() async throws {
+        let (model, cont) = makeModel(idle: .milliseconds(200)); defer { cont.finish() }
+        model.turnRunnerOverride = { _ in }
+        _ = await model.consumeAgentEvents(turn([
+            .toolCallStarted(name: "browser_open", args: "{}"), .toolCallFinished(name: "browser_open", result: Self.ok), done()]))
+        let live = try XCTUnwrap(model.browserPanels.livePanelID)
+        for _ in 0..<4 {
+            try await Task.sleep(for: .milliseconds(100))
+            model.startAgentTurn("sigamos charlando")
+        }
+        XCTAssertEqual(model.browserPanels.livePanelID, live)
+    }
+
     func test_un_chat_nuevo_tras_mucho_silencio_retira_el_panel_vivo() async throws {
         let (model, cont) = makeModel(); defer { cont.finish() }
         // `startNewChatIfIdle` escribe `activeThreadId` en los ajustes reales: se restaura.

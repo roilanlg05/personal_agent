@@ -255,6 +255,21 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         try await Self.waitUntil { rig.flags.terminated[0] }
     }
 
+    /// El tope mide inactividad: mientras el usuario sigue hablando, el panel no muere.
+    @MainActor func test_la_actividad_del_usuario_reinicia_el_tope_de_inactividad() async throws {
+        let rig = Rig()
+        let c = BrowserPanelCoordinator(stream: { [rig] in rig.openStreamForTest() }, liveIdleLimit: .milliseconds(200))
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        c.endTurn()
+        for _ in 0..<4 {                              // 4 x 100 ms = el doble del tope, con actividad
+            try await Task.sleep(for: .milliseconds(100))
+            c.noteUserActivity()
+        }
+        XCTAssertEqual(c.livePanelID, id, "con actividad el panel sigue vivo pasado el tope")
+        try await Self.waitUntil { c.livePanelID == nil }   // en silencio, vence
+    }
+
     @MainActor func test_el_tope_de_inactividad_no_retira_a_un_panel_ya_relevado() async throws {
         let rig = Rig()
         let c = BrowserPanelCoordinator(stream: { [rig] in rig.openStreamForTest() }, liveIdleLimit: .milliseconds(150))
@@ -353,6 +368,13 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         rig.conts[0].finish()                         // el cliente se rindió tras sus reintentos
         try await Self.waitUntil { c.panels[id]!.isCollapsed }
         XCTAssertNil(c.panels[id]!.jpeg)
+        XCTAssertNil(c.livePanelID, "un panel congelado por fin de flujo ya no es «el vivo»")
+        // Y el panel siguiente no hereda un «navegador abierto» que ya no consta.
+        let next = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        c.toolFinished(toolName: "browser_open", result: Self.failed)
+        c.endTurn()
+        XCTAssertNil(c.livePanelID)
+        XCTAssertTrue(c.panels[next]!.isCollapsed)
     }
 
     @MainActor func test_retireLivePanel_congela_y_corta_el_flujo() async throws {

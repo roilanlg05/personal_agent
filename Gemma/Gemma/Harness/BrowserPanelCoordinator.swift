@@ -34,14 +34,19 @@ public final class BrowserPanelCoordinator {
     private let liveIdleLimit: Duration
     private var idleTask: Task<Void, Never>?
 
-    /// Tope de un panel vivo sin nadie que lo use. NO HAY MEDICIÓN: es un juicio, y se elige así.
-    /// El visor cuesta del orden de 10 Mbit/s contra el servidor casero del usuario mientras
-    /// dure, y esta clase no puede saber si él mira (no hay señal de ventana visible ni de
-    /// actividad). Muy corto: se le muere el video mientras lo ve (una serie o una peli dura
-    /// más de 20 min). Muy largo: el servidor emite para nadie. 30 min coincide con el corte de
-    /// «episodio» de `ChatSession` (`defaultGapSeconds`): pasado ese silencio el chat ya se
-    /// considera otra conversación. Qué lo cambiaría: una señal real de «la ventana está
-    /// oculta» (acortarlo mucho) o medir cuánto dura de verdad lo que el usuario deja puesto.
+    /// Tope de INACTIVIDAD de un panel vivo: tiempo sin que el usuario le hable al agente. Cada
+    /// mensaje suyo lo reinicia (`noteUserActivity()`), así que quien pone un video y sigue
+    /// charlando con el agente (justo el uso que se pidió) nunca pierde el panel mientras lo usa.
+    /// Solo corre en el silencio total.
+    ///
+    /// NO HAY MEDICIÓN: 30 min es un juicio. El visor cuesta del orden de 10 Mbit/s contra el
+    /// servidor casero mientras dure, y esta clase no puede saber si el usuario mira (no hay señal
+    /// de ventana visible). Como tope de silencio es defendible: 30 min sin escribir ni hablar es
+    /// el mismo umbral con que `ChatSession` da por terminada una conversación, y quien mira un
+    /// video largo sin tocar el chat es el único al que esto le corta algo (un video de más de
+    /// media hora, visto en silencio). Más corto lo castigaría a él; más largo deja al servidor
+    /// emitiendo a nadie. Lo cambiaría una señal real de «ventana oculta» (acortarlo mucho) o
+    /// saber cuánto deja puesto el usuario en la práctica.
     public static let defaultLiveIdleLimit: Duration = .seconds(30 * 60)
     private var consumers: [String: Task<Void, Never>] = [:]
 
@@ -80,6 +85,13 @@ public final class BrowserPanelCoordinator {
             // consumidor lento puede perder un `.closed`. Que el flujo termine congela el panel
             // por sí solo. No borrar por parecer redundante con `.closed`.
             state?.freeze()
+            // Un panel vivo cuyo flujo terminó ya está congelado: dejarlo como «el vivo» haría
+            // que el panel siguiente naciera creyendo que el navegador sigue abierto.
+            if let self, self.livePanelID == id {
+                self.livePanelID = nil
+                self.idleTask?.cancel()
+                self.idleTask = nil
+            }
             // El id es único por panel, así que esta entrada es la de esta tarea.
             self?.consumers[id] = nil
         }
@@ -94,7 +106,7 @@ public final class BrowserPanelCoordinator {
     ///
     /// Se lee el `status` del JSON y no se supone. Un resultado ilegible cuenta como fallo.
     public func toolFinished(toolName: String, result: String) {
-        guard Self.isBrowserTool(toolName), activeID != nil, Self.reportsSuccess(result) else { return }
+        guard Self.isBrowserTool(toolName), Self.reportsSuccess(result) else { return }
         browserLeftOpen = toolName != Self.closeToolName
     }
 
@@ -124,6 +136,13 @@ public final class BrowserPanelCoordinator {
         retire(id)
     }
 
+    /// El usuario le habló al agente: reinicia el reloj del panel vivo, si lo hay. Es lo que hace
+    /// que el tope mida inactividad y no vida máxima.
+    public func noteUserActivity() {
+        guard let id = livePanelID else { return }
+        armIdleCap(for: id)
+    }
+
     /// Congela el panel vivo, si lo hay, y corta su flujo.
     public func retireLivePanel() {
         idleTask?.cancel()
@@ -140,6 +159,11 @@ public final class BrowserPanelCoordinator {
         let limit = liveIdleLimit
         idleTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: limit)
+            // Segunda capa de defensa. La primera es que `retireLivePanel()` y `armIdleCap()`
+            // cancelan el reloj anterior. Cada una sola basta para las pruebas, pero juntas
+            // cubren la carrera en que un reloj ya despertó y espera el hilo principal cuando
+            // otro panel toma el relevo: sin esta identidad retiraría al panel nuevo. No quitar
+            // por parecer redundante con las cancelaciones.
             guard !Task.isCancelled, let self, self.livePanelID == id else { return }
             self.retireLivePanel()
         }

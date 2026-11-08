@@ -446,6 +446,8 @@ public final class HarnessModel {
     @ObservationIgnored var turnRunnerOverride: (@MainActor (String) async -> Void)?
 
     public func startAgentTurn(_ prompt: String) {
+        // Hablarle al agente es actividad: reinicia el reloj de inactividad del panel vivo.
+        browserPanels.noteUserActivity()
         currentTurnTask?.cancel()
         // Determinista: el panel del turno anterior se cierra por orden, no por la carrera
         // con la cancelación (si perdiera, el turno nuevo se quedaría sin panel).

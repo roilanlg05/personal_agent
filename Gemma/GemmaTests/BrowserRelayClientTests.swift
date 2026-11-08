@@ -7,6 +7,17 @@ final class BrowserRelayClientTests: XCTestCase {
         XCTAssertEqual(url?.absoluteString, "ws://100.91.174.81:8083/v1/browser/stream?maxFps=10")
     }
 
+    func test_sin_tope_pedido_la_url_no_lleva_maxFps_y_lo_decide_el_servidor() {
+        let url = BrowserRelayClient.socketURL(baseURL: URL(string: "http://i3.test:8083")!)
+        XCTAssertEqual(url?.absoluteString, "ws://i3.test:8083/v1/browser/stream")
+        XCTAssertNil(url?.query)
+    }
+
+    func test_con_tope_pedido_la_url_lleva_maxFps() {
+        let url = BrowserRelayClient.socketURL(baseURL: URL(string: "http://i3.test:8083")!, maxFps: 4)
+        XCTAssertEqual(url?.query, "maxFps=4")
+    }
+
     func test_un_base_https_da_wss() {
         let url = BrowserRelayClient.socketURL(baseURL: URL(string: "https://i3.test")!, maxFps: 10)
         XCTAssertEqual(url?.scheme, "wss")

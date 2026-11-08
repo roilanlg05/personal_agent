@@ -74,8 +74,14 @@ versiones.
 
 **Interfaces:**
 - Consumes: nada.
-- Produces: `docker-compose.browser.yml`, el fichero que las Tareas 2 en adelante
-  editan para cambiar la configuración del contenedor. Las claves que el servicio
+- Produces:
+  - `docker-compose.browser.yml`, el fichero que las Tareas 2 en adelante editan
+    para cambiar la configuración del contenedor.
+  - Dos auxiliares en `test_compose.py` que la Tarea 2 reutiliza, así que sus
+    nombres son contrato: `_config() -> dict` (el compose parseado) y
+    `_env_del_servicio(nombre: str) -> dict[str, str]` (la lista
+    `environment:` de ese servicio convertida a diccionario; en este compose son
+    cadenas `CLAVE=VALOR`, no un mapa, así que el auxiliar las parte). Las claves que el servicio
   lee de verdad son `BROWSER_BEARER_TOKEN` (de `.env`),
   `BROWSER_STREAM_SESSION`, `AGENT_BROWSER_EXECUTABLE_PATH`,
   `AGENT_BROWSER_IDLE_TIMEOUT_MS`, `AGENT_BROWSER_SOCKET_DIR`,
@@ -92,8 +98,18 @@ levanta memoria y voz.
 
 - [ ] **Step 1: Escribir la prueba que falla**
 
-En `gemma-memory/browser/test_compose.py`. Lee el YAML con `yaml.safe_load` y
-asevera la forma, no el texto:
+En `gemma-memory/browser/test_compose.py`.
+
+**No se usa PyYAML, y no es un descuido.** No está en
+`browser/requirements.txt` ni importable (`ModuleNotFoundError: No module named
+'yaml'`, comprobado), y añadirlo metería una dependencia **de pruebas** en la
+imagen de producción, que es la que conduce un Chromium real. El fichero bajo
+prueba lo escribimos nosotros y su formato lo controlamos, así que los auxiliares
+`_config()` y `_env_del_servicio()` lo leen con un parseo de líneas propio, dentro
+del propio fichero de pruebas y sin dependencias. La validación de verdad del
+YAML la hace `docker compose config` en el Step 6, que es del controlador.
+
+Las pruebas aseveran la forma, no el texto:
 
 ```python
 def test_el_compose_declara_las_claves_que_el_servicio_lee():
@@ -259,9 +275,18 @@ Sincronizar al i3, reconstruir el servicio nombrado, y que el usuario confirme
 que ya no lo ve borroso. Esto es lo único que de verdad cierra la tarea: el
 número lo da la medición, pero el veredicto lo da su ojo.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 8: Commit, uno por repositorio**
+
+Son dos repositorios: la nota de la medición vive en `personal_agent` y el
+servicio en `gemma-memory`. La nota va **primero**, para que el commit del
+servicio pueda citarla por su ruta.
 
 ```bash
+# en el worktree de personal_agent
+git add docs/superpowers/notes/2026-11-08-medicion-nitidez-panel.md
+git commit -m "docs(panel): la medicion de la que salen los valores de nitidez"
+
+# en el worktree de gemma-memory
 git add docker-compose.browser.yml browser/relay.py browser/test_compose.py browser/test_app.py
 git commit -m "fix(panel): la nitidez sale de una medicion, no de un valor heredado"
 ```
@@ -356,6 +381,12 @@ func test_el_detalle_se_recorta_para_que_abrir_la_fila_no_cuelgue_la_interfaz() 
     let enorme = String(repeating: "x", count: 500_000)
     XCTAssertLessThanOrEqual(ToolLogRow.detail(resultJSON: enorme).count, ToolLogRow.detailLimit)
     XCTAssertTrue(ToolLogRow.detail(resultJSON: enorme).hasSuffix("…"))
+}
+
+func test_read_webpage_cuenta_caracteres() {
+    let json = #"{"status":"success","content":"Hola mundo"}"#
+    XCTAssertEqual(ToolLogRow.summarize(toolName: "read_webpage", resultJSON: json),
+                   .count(10, "caracteres"))
 }
 
 func test_web_search_cuenta_resultados() {

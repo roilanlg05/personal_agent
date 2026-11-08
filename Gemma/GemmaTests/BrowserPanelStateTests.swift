@@ -67,12 +67,24 @@ final class BrowserPanelStateTests: XCTestCase {
         XCTAssertEqual(s.phrase, "abriendo el navegador")
     }
 
-    @MainActor func test_un_state_con_collapsed_congela() {
+    @MainActor func test_un_state_con_collapsed_suelta_la_imagen() {
         let s = BrowserPanelState()
         s.apply(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
         s.apply(.state(live: false, collapsed: true))
         XCTAssertTrue(s.isCollapsed)
         XCTAssertNil(s.jpeg)
+        s.apply(.frame(seq: 2, jpeg: Data([0x02]), capturedAt: .now))
+        XCTAssertNil(s.jpeg, "plegado no pinta")
+    }
+
+    /// Fija que un mensaje del relé nunca congela: plegar y desplegar deja revivir.
+    @MainActor func test_collapsed_true_y_luego_false_revive_y_vuelve_a_pintar() {
+        let s = BrowserPanelState()
+        s.apply(.state(live: true, collapsed: true))
+        s.apply(.state(live: true, collapsed: false))
+        s.apply(.frame(seq: 3, jpeg: Data([0x03]), capturedAt: .now))
+        XCTAssertFalse(s.isCollapsed)
+        XCTAssertEqual(s.jpeg, Data([0x03]))
     }
 
     @MainActor func test_el_resumen_llega_aunque_este_congelado() {

@@ -19,43 +19,51 @@ public final class BrowserPanelState {
     /// Cuándo se capturó el fotograma mostrado. Se enseña, pero no decide `isLive`.
     public private(set) var lastFrameAt: Date?
     public private(set) var isLive: Bool = false
-    /// `true` una vez congelado. Irreversible.
-    public private(set) var isCollapsed: Bool = false
+    /// Plegado: porque el relé lo dijo (reversible) o porque se congeló (irreversible).
+    public var isCollapsed: Bool { relayCollapsed || isFrozen }
+    private var relayCollapsed: Bool = false
+    /// Solo lo pone `freeze()`. Irreversible.
+    private var isFrozen: Bool = false
 
     public init() {}
 
+    /// REGLA: `freeze()` pertenece al ciclo de vida local. Solo lo llaman `endTurn()` y el fin
+    /// del `AsyncStream`. Un mensaje del relé (`state` o `closed`) NUNCA congela: solo mueve los
+    /// dos booleanos, porque el relé puede plegar y luego desplegar y el panel debe revivir.
     public func apply(_ event: BrowserRelayEvent) {
         switch event {
         case .summary(let text):
-            // El resumen es lo que queda del panel ya plegado, así que se acepta también congelado.
+            // El resumen es la etiqueta del panel plegado: se acepta también plegado o congelado.
             summary = text
-        case _ where isCollapsed:
-            // Congelado: nada pinta ni narra ni revive. Un frame tardío reabriría el secreto en reposo.
-            return
+        case .state(let live, let collapsed):
+            guard !isFrozen else { return }
+            isLive = live
+            relayCollapsed = collapsed
+            // §6.2(g): un panel plegado no deja imagen en reposo. Se cumple soltando el jpeg,
+            // no congelando, para que `collapsed: false` pueda revivirlo.
+            if collapsed { jpeg = nil }
+        case .closed:
+            // NO es terminal: BrowserRelayClient reconecta tras un cierre y llegan más frames y
+            // un `state` nuevo. Solo apagamos el en-vivo.
+            guard !isFrozen else { return }
+            isLive = false
         case .frame(_, let data, let capturedAt):
+            // Plegado o congelado: un frame tardío reabriría el secreto en reposo.
+            guard !isCollapsed else { return }
             jpeg = data
             lastFrameAt = capturedAt
         case .narration(let text):
+            guard !isCollapsed else { return }
             phrase = text
         case .host:
             break
-        case .state(let live, let collapsed):
-            if collapsed {
-                freeze()
-            } else {
-                isLive = live
-            }
-        case .closed:
-            // NO es terminal: BrowserRelayClient reconecta tras un cierre y llegan más frames y
-            // un `state` nuevo. Solo apagamos el en-vivo; congelar es cosa de `freeze()`.
-            isLive = false
         }
     }
 
     /// Plega el panel para siempre y suelta la imagen: un panel congelado no deja pantalla
     /// del navegador en el historial (§6.2(g)).
     public func freeze() {
-        isCollapsed = true
+        isFrozen = true
         isLive = false
         jpeg = nil
     }

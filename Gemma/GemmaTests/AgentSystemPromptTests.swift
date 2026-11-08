@@ -77,6 +77,46 @@ final class AgentSystemPromptTests: XCTestCase {
                       "un fallo de herramienta no se disfraza de negativa")
     }
 
+    /// Regresión del chat de YouTube del 2026-11-08: el usuario escribió «no cierres el
+    /// navegador hasta que no termine el video o yo te aviso» y el agente lo cerró igual,
+    /// porque tanto el prompt («Call `browser_close` when done») como la nota de resultado
+    /// (que se añade la última y el propio código declara que gana sobre el prompt) mandaban
+    /// cerrar sin condición. Cerrar se trataba como limpieza, pero si lo pedido ES un estado
+    /// que el usuario sigue mirando, cerrar destruye el entregable.
+    ///
+    /// Se afirman las intenciones y no las frases (la lección del test de logins de arriba):
+    /// (1) toda mención de `browser_close` va dentro de una oración condicionada;
+    /// (2) la nota nombra el caso «lo pedido se sigue mirando» y el caso «el usuario dijo que
+    /// lo dejara abierto»; (3) la nota cede ante lo que dijo el usuario, porque ella misma
+    /// es lo último que lee el modelo y de nada sirve que el prompt ceda si ella no lo hace.
+    func test_cerrar_el_navegador_es_condicional_y_cede_ante_el_usuario() throws {
+        func sentences(_ text: String) -> [String] {
+            text.components(separatedBy: CharacterSet(charactersIn: ".:;\n")).map { $0.lowercased() }
+        }
+        func assertEveryCloseIsConditional(_ text: String, _ donde: String) {
+            let closes = sentences(text).filter { $0.contains("browser_close") }
+            XCTAssertFalse(closes.isEmpty, "\(donde): debe seguir explicando cómo cerrar")
+            for c in closes {
+                XCTAssertTrue(["only when", "only if", "unless", "if ", "when what", "when the page"].contains { c.contains($0) } || c.contains("means to"),
+                              "\(donde): `browser_close` aparece sin condición: \(c)")
+            }
+        }
+        let linea = try XCTUnwrap(Agent.systemPromptText
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .first { $0.contains("browser_open(url)") }.map(String.init))
+        assertEveryCloseIsConditional(linea, "prompt")
+
+        let nota = Agent.toolResultNote(toolName: "browser_open", args: "{}", result: "ok")
+        assertEveryCloseIsConditional(nota, "nota")
+        let n = nota.lowercased()
+        XCTAssertTrue(n.contains("keep looking at") || n.contains("keep watching"),
+                      "la nota debe nombrar el caso en que lo pedido se sigue mirando: \(nota)")
+        XCTAssertTrue(n.contains("leave the browser open") || n.contains("leave it open"),
+                      "la nota debe nombrar la instrucción del usuario de dejarlo abierto: \(nota)")
+        XCTAssertTrue(n.contains("outranks this note"),
+                      "la nota debe ceder ante lo que dijo el usuario: \(nota)")
+    }
+
     func test_system_prompt_asks_to_mention_all_matching_memories() async throws {
         let rt = CapturingRuntime()
         let agent = Agent(runtime: rt, registry: ToolRegistry())

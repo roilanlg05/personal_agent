@@ -92,6 +92,9 @@ public final class RememberShortcutTool: AgentTool, Sendable {
         }
 
         // Si el modelo no clasifica el atajo, decide el nombre: ante la duda, sensible.
+        // Estricto a propósito: solo un booleano nativo declara la sensibilidad. Una cadena se lee
+        // como «no declarado» y el atajo cae en `looksSensitive`, que ante la duda lo marca
+        // sensible: falla hacia el lado SEGURO (más confirmaciones, nunca menos).
         let declaredSensitive = dict["sensitive"] as? Bool
         let isSensitive = declaredSensitive ?? ShortcutRegistry.looksSensitive(name)
 

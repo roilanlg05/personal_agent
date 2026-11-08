@@ -77,6 +77,60 @@ final class AgentSystemPromptTests: XCTestCase {
                       "un fallo de herramienta no se disfraza de negativa")
     }
 
+    /// Regresión del chat de YouTube del 2026-11-08: el usuario escribió «no cierres el
+    /// navegador hasta que no termine el video o yo te aviso» y el agente lo cerró igual,
+    /// porque tanto el prompt («Call `browser_close` when done») como la nota de resultado
+    /// (que se añade la última y el propio código declara que gana sobre el prompt) mandaban
+    /// cerrar sin condición. Cerrar se trataba como limpieza, pero si lo pedido ES un estado
+    /// que el usuario sigue mirando, cerrar destruye el entregable.
+    ///
+    /// Qué protege este test: DOS propiedades del texto, no una redacción.
+    ///   (A) cerrar el navegador es condicional: ninguna mención de `browser_close` es una
+    ///       orden incondicional, y el texto nombra el caso en que lo pedido es algo que el
+    ///       usuario sigue mirando (un vídeo, una página, un carrito).
+    ///   (B) la nota de resultado —que se añade la última y el código declara que gana sobre el
+    ///       prompt— cede ante lo que el usuario dijo, incluida la orden de dejar el navegador
+    ///       abierto. De nada sirve que solo el prompt ceda si la nota no lo hace.
+    ///
+    /// Los asertos de abajo usan fragmentos literales (`keep looking at`, `leave the browser
+    /// open`, `outranks this note`) porque sobre prosa no se puede afirmar nada sin alguna
+    /// palabra: SON ANCLAS de esas dos propiedades, no la propiedad misma. Si alguien reescribe
+    /// la nota y este test se pone rojo, la reacción correcta es releer (A) y (B), comprobar que
+    /// la nueva redacción las conserva y RE-APUNTAR las anclas a las palabras nuevas que las
+    /// llevan; no borrar el test ni forzar la redacción antigua. Ya se perdió un día con un test
+    /// de prompt que se puso rojo ante una reescritura que conservaba el sentido (ver el de
+    /// logins, arriba).
+    ///
+    /// Además se comprueba (A) por estructura —cada oración con `browser_close` lleva una
+    /// condición— y no solo por palabras, que es la parte menos frágil.
+    func test_cerrar_el_navegador_es_condicional_y_cede_ante_el_usuario() throws {
+        func sentences(_ text: String) -> [String] {
+            text.components(separatedBy: CharacterSet(charactersIn: ".:;\n")).map { $0.lowercased() }
+        }
+        func assertEveryCloseIsConditional(_ text: String, _ donde: String) {
+            let closes = sentences(text).filter { $0.contains("browser_close") }
+            XCTAssertFalse(closes.isEmpty, "\(donde): debe seguir explicando cómo cerrar")
+            for c in closes {
+                XCTAssertTrue(["only when", "only if", "unless", "if ", "when what", "when the page"].contains { c.contains($0) } || c.contains("means to"),
+                              "\(donde): `browser_close` aparece sin condición: \(c)")
+            }
+        }
+        let linea = try XCTUnwrap(Agent.systemPromptText
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .first { $0.contains("browser_open(url)") }.map(String.init))
+        assertEveryCloseIsConditional(linea, "prompt")
+
+        let nota = Agent.toolResultNote(toolName: "browser_open", args: "{}", result: "ok")
+        assertEveryCloseIsConditional(nota, "nota")
+        let n = nota.lowercased()
+        XCTAssertTrue(n.contains("keep looking at") || n.contains("keep watching"),
+                      "la nota debe nombrar el caso en que lo pedido se sigue mirando: \(nota)")
+        XCTAssertTrue(n.contains("leave the browser open") || n.contains("leave it open"),
+                      "la nota debe nombrar la instrucción del usuario de dejarlo abierto: \(nota)")
+        XCTAssertTrue(n.contains("outranks this note"),
+                      "la nota debe ceder ante lo que dijo el usuario: \(nota)")
+    }
+
     func test_system_prompt_asks_to_mention_all_matching_memories() async throws {
         let rt = CapturingRuntime()
         let agent = Agent(runtime: rt, registry: ToolRegistry())

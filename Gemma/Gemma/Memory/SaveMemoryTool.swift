@@ -23,7 +23,7 @@ struct SaveMemoryTool: AgentTool {
         let rawEntity = ((obj["entity"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let detail = (obj["detail"] as? String).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         let kindRaw = (obj["kind"] as? String) ?? "fact"
-        let permanent = (obj["permanent"] as? Bool) ?? false
+        let permanent = CancelAlarmTool.coerceBool(obj["permanent"]) ?? false
         let entity = Self.cleanLabel(rawEntity)
         guard !entity.isEmpty, !Self.isJunkLabel(entity) else { return "nothing to save" }
 

@@ -86,4 +86,70 @@ final class ServerRuntimeStreamingTests: XCTestCase {
         XCTAssertEqual(calls.first?.0, "get_current_time")
         XCTAssertEqual(calls.first?.1, "{}", "fragmented tool-call arguments are accumulated")
     }
+
+    // MARK: sintaxis de herramienta escrita como texto (chat de YouTube, 2026-11-08)
+
+    /// Cuerpo SSE de estilo OpenAI con un `content` por cada trozo.
+    private func sse(_ pieces: [String]) -> String {
+        pieces.map { p -> String in
+            let data = try! JSONSerialization.data(withJSONObject: ["choices": [["delta": ["content": p]]]])
+            return "data: " + String(decoding: data, as: UTF8.self) + "\n\n"
+        }.joined() + "data: [DONE]\n\n"
+    }
+
+    private func run(_ pieces: [String]) async throws -> (tokens: [String], calls: [(String, String)], completed: String?) {
+        SSEStub.body = sse(pieces)
+        let rt = ServerRuntime(session: makeSession())
+        var tokens: [String] = [], calls: [(String, String)] = []
+        var completed: String?
+        for try await ev in await rt.generate(prompt: "hi", tools: [], options: GenerationOptions()) {
+            switch ev {
+            case .token(let t): tokens.append(t)
+            case .toolCallStarted(let n, let a): calls.append((n, a))
+            case .completed(let r): completed = r.text
+            default: break
+            }
+        }
+        return (tokens, calls, completed)
+    }
+
+    /// El caso exacto del chat: prosa y luego la llamada. Antes, todo token posterior a la
+    /// decisión inicial (tomada con la prosa) salía a pantalla, sintaxis incluida.
+    func test_la_sintaxis_de_herramienta_tras_prosa_no_llega_a_los_tokens_y_si_se_ejecuta() async throws {
+        let r = try await run(["Entendido, dame un momento: ", "voy a abrir el más reciente.", "\n\n",
+                               "<func", "tion name=\"browser_click\">", "\n<parameter name=\"selector\">@e816</parameter>\n</function>"])
+        let shown = r.tokens.joined()
+        XCTAssertEqual(shown, "Entendido, dame un momento: voy a abrir el más reciente.\n\n")
+        XCTAssertFalse(shown.contains("browser_click") || shown.contains("@e816") || shown.contains("<"), "sintaxis visible: \(shown)")
+        XCTAssertEqual(r.calls.count, 1, "además de ocultarla, el parser la reconoce")
+        XCTAssertEqual(r.calls.first?.0, "browser_click")
+        XCTAssertEqual(r.calls.first?.1, #"{"selector":"@e816"}"#)
+        XCTAssertEqual(r.completed, "Entendido, dame un momento: voy a abrir el más reciente.")
+    }
+
+    func test_una_llamada_sin_cerrar_tras_prosa_no_se_muestra_ni_se_ejecuta() async throws {
+        let r = try await run(["Voy a abrirlo. ", "<function name=\"browser_click\">", "<parameter name=\"selector\">@e8"])
+        XCTAssertEqual(r.tokens.joined(), "Voy a abrirlo. ")
+        XCTAssertTrue(r.calls.isEmpty)
+        XCTAssertEqual(r.completed, "Voy a abrirlo.")
+    }
+
+    func test_la_prosa_normal_sigue_llegando_token_a_token() async throws {
+        let r = try await run(["Hoy ", "hará ", "sol, ", "con 5 ", "<", " 8 nubes."])
+        XCTAssertEqual(r.tokens.joined(), "Hoy hará sol, con 5 < 8 nubes.")
+        XCTAssertEqual(r.tokens.count, 5, "solo el \"<\" dudoso se retiene un token; el resto sale al llegar: \(r.tokens)")
+        XCTAssertEqual(r.tokens.first, "Hoy ")
+    }
+
+    func test_un_mensaje_que_empieza_por_la_llamada_sigue_oculto() async throws {
+        let r = try await run([#"call:web_search{"query":"gatos"}"#])
+        XCTAssertTrue(r.tokens.isEmpty)
+        XCTAssertEqual(r.calls.first?.0, "web_search")
+    }
+
+    /// Un mensaje que termina en `<` no debe perder ese fragmento en la vista en vivo.
+    func test_un_mensaje_que_termina_en_menor_que_lo_emite_al_cerrar_el_stream() async throws {
+        let r = try await run(["Resultado: x ", "<"])
+        XCTAssertEqual(r.tokens.joined(), "Resultado: x <")
+    }
 }

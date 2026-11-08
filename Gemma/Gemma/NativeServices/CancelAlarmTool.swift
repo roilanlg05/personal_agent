@@ -244,16 +244,37 @@ public final class CancelAlarmTool: AgentTool, Sendable {
     static func parseBool(named name: String, from argsJSON: String) -> Bool? {
         guard let data = argsJSON.data(using: .utf8),
               let dict = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return nil }
-        if let value = dict[name] as? Bool { return value }
+        return coerceBool(dict[name])
+    }
+
+    /// Convención única para argumentos booleanos: acepta el `true`/`false` nativo y su forma
+    /// en cadena. Existe porque el formato `<parameter name="k">v</parameter>` (que el parser
+    /// acepta desde 2026-11-08) entrega TODOS los valores como cadena, y una herramienta que
+    /// solo mira `as? Bool` lee `"true"` como ausente y toma el valor por defecto en silencio.
+    /// Una cadena irreconocible da `nil` (= «no dicho»), nunca un `true` por ser «verdadera».
+    static func coerceBool(_ value: Any?) -> Bool? {
+        if let value = value as? Bool { return value }
         // Un modelo pequeño manda "true" entre comillas con la misma facilidad.
-        if let text = dict[name] as? String {
-            switch text.lowercased() {
+        if let text = value as? String {
+            switch text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
             case "true", "yes", "sí", "si", "1": return true
             case "false", "no", "0": return false
             default: return nil
             }
         }
-        if let number = dict[name] as? NSNumber { return number.boolValue }
+        if let number = value as? NSNumber { return number.boolValue }
+        return nil
+    }
+
+    /// Igual que `coerceBool` para números decimales (coordenadas, radios). Una cadena que no es
+    /// un número finito da `nil`: el llamador decide su valor por defecto, no se inventa un 0.
+    static func coerceDouble(_ value: Any?) -> Double? {
+        if let value = value as? Double { return value.isFinite ? value : nil }
+        if let text = value as? String {
+            guard let d = Double(text.trimmingCharacters(in: .whitespacesAndNewlines)), d.isFinite else { return nil }
+            return d
+        }
+        if let number = value as? NSNumber { return number.doubleValue.isFinite ? number.doubleValue : nil }
         return nil
     }
 }

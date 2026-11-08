@@ -1,6 +1,75 @@
 import XCTest
 @testable import Gemma
 
+/// LOS DOBLES DE HERRAMIENTA CON LOS QUE SE CONDUCE EL BUCLE EN ESTE FICHERO.
+///
+/// EL DEFECTO QUE ARREGLAN. Estas pruebas conducían el bucle de `Agent` con un registro de
+/// herramientas VACÍO. No era un descuido inofensivo: cuando el bucle recibe una llamada a una
+/// herramienta que no está en el registro contesta con `Agent.resultadoDeHerramientaInexistente`,
+/// que desde que habla el contrato JSON (`status: error`) GASTA una unidad del presupuesto de
+/// fallos del turno. Con `Agent.maxConsecutiveFailures == 5`, el quinto fallo seguido mata el
+/// turno antes de volver a llamar al modelo, y el síntoma no es un error: es un último prompt
+/// vivo corto y una prueba en verde por el motivo equivocado. Ninguna prueba de entonces pasaba
+/// de tres llamadas, así que la trampa estaba armada y no había disparado.
+///   El arreglo no es «no pasar de tres»: es que la prueba no dependa de un resultado de error.
+/// Con estos dobles cada llamada del guion se ejecuta de verdad y devuelve un estado que el
+/// presupuesto lee como «esto funcionó».
+///
+/// POR QUÉ `no_content` Y NO `success`. Las dos reinician el presupuesto (`Agent.estadosDeExito`
+/// contiene las dos), que es lo que hace falta. Pero `success` haría además que
+/// `Agent.cortaLaCola` cortase la cola detrás de `browser_open` —está en
+/// `browserToolNamesThatResetThePage`, así que un `open` con éxito corta siempre— y entonces las
+/// pruebas que cuentan tres notas en una ronda contarían una. `no_content` es además la verdad
+/// de un doble: «la operación funcionó pero no hay nada que reportar».
+///
+/// Y NINGUNO GUARDA ESTADO. Un contador en un atributo de clase sobrevive entre pruebas, y en
+/// este proyecto ya ha hecho sobrevivir una mutación que debía morir.
+private enum DobleDeHerramienta {
+
+    /// Lo que devuelve cualquiera de los dobles, construido con el MISMO ayudante que usan los
+    /// tools de verdad (`ToolJSONOutput.object`), no escrito a mano: si la serialización
+    /// cambiara de forma, estas pruebas verían la forma nueva en vez de una copia vieja.
+    static var resultado: String {
+        ToolJSONOutput.object(["status": "no_content", "message": "El doble de test no hizo nada."])
+    }
+
+    /// Un doble por cada nombre que los guiones de este fichero llaman. Hacen falta tantos
+    /// tipos como nombres porque `AgentTool.name` es estática.
+    static var todos: [AgentTool] {
+        [WebSearch(), CurrentTime(), BrowserOpen(), BrowserSnapshot(), BrowserClick()]
+    }
+
+    struct WebSearch: AgentTool {
+        static let name = "web_search"
+        static let description = "doble de test"
+        func run(argsJSON: String) async -> String { DobleDeHerramienta.resultado }
+    }
+
+    struct CurrentTime: AgentTool {
+        static let name = "get_current_time"
+        static let description = "doble de test"
+        func run(argsJSON: String) async -> String { DobleDeHerramienta.resultado }
+    }
+
+    struct BrowserOpen: AgentTool {
+        static let name = "browser_open"
+        static let description = "doble de test"
+        func run(argsJSON: String) async -> String { DobleDeHerramienta.resultado }
+    }
+
+    struct BrowserSnapshot: AgentTool {
+        static let name = "browser_snapshot"
+        static let description = "doble de test"
+        func run(argsJSON: String) async -> String { DobleDeHerramienta.resultado }
+    }
+
+    struct BrowserClick: AgentTool {
+        static let name = "browser_click"
+        static let description = "doble de test"
+        func run(argsJSON: String) async -> String { DobleDeHerramienta.resultado }
+    }
+}
+
 /// La guía oficial de `agent-browser` delante del modelo, y nuestras reglas con UNA sola
 /// fuente.
 ///
@@ -103,7 +172,7 @@ final class BrowserCoreSkillTests: XCTestCase {
     /// primer movimiento y leer la prohibición después. Por eso hay dos renderizaciones.
     func test_las_reglas_estan_desde_el_primer_token_no_solo_en_la_guia() async throws {
         let rt = CapturingFirstCallRuntime()
-        for try await _ in Agent(runtime: rt, registry: ToolRegistry()).run(prompt: "abre gmail", options: GenerationOptions()) {}
+        for try await _ in Agent(runtime: rt, registry: registroDelGuion([])).run(prompt: "abre gmail", options: GenerationOptions()) {}
         XCTAssertTrue(rt.firstSystemPrompt.contains(BrowserRules.text),
                       "las reglas del navegador tienen que viajar en el prompt del sistema de la PRIMERA llamada")
         XCTAssertTrue(rt.firstSystemPrompt.contains("What you must not type is a password"),
@@ -158,12 +227,45 @@ final class BrowserCoreSkillTests: XCTestCase {
         }
     }
 
+    /// Registro con un doble por cada herramienta que el guion va a llamar.
+    ///
+    /// LA PREMISA DE LA PRUEBA SE AFIRMA, NO SE SUPONE. Si un guion nombra una herramienta que
+    /// el registro no tiene, el bucle contesta con el JSON de «no existe esa herramienta»
+    /// (`status: error`), eso gasta presupuesto de fallos y a la quinta mata el turno: la prueba
+    /// pasaría a medir el presupuesto en lugar de la inyección, y el síntoma sería un prompt
+    /// corto, no un error. Por eso la ausencia se afirma aquí y se ve en el acto. Ver
+    /// `DobleDeHerramienta`.
+    private func registroDelGuion(_ rounds: [[String]]) -> ToolRegistry {
+        let registro = ToolRegistry()
+        for doble in DobleDeHerramienta.todos { registro.register(doble) }
+        for nombre in rounds.flatMap({ $0 }) {
+            XCTAssertNotNil(registro.tool(named: nombre),
+                            "el guion llama a `\(nombre)` y el registro de la prueba no la tiene: "
+                            + "añade su doble en `DobleDeHerramienta.todos`")
+        }
+        return registro
+    }
+
     /// Corre un turno con ese guion y devuelve el último prompt vivo que vio el modelo.
+    ///
+    /// Y COMPRUEBA QUE EL TURNO NO SE MURIÓ POR EL CAMINO. Cada acción ejecutada deja su
+    /// resultado en un `.toolCallFinished`, y aquí se exige que ninguno sea un fallo a ojos del
+    /// presupuesto (`Agent.esFallo`). Es la guarda que hace imposible volver a conducir este
+    /// bucle con resultados de error sin que se note: sin ella, la única señal sería un prompt
+    /// más corto de lo esperado.
     private func lastLivePrompt(rounds: [[String]], contextTokenBudget: Int? = nil) async throws -> String {
         let runtime = ScriptedRoundsRuntime(rounds: rounds, contextTokenBudget: contextTokenBudget)
-        // Registro vacío a propósito: ninguna herramienta real corre, pero el bucle construye
-        // igual la nota de resultado, que es lo que se está midiendo.
-        for try await _ in Agent(runtime: runtime, registry: ToolRegistry()).run(prompt: "haz la tarea", options: GenerationOptions()) {}
+        var resultados: [String] = []
+        for try await evento in Agent(runtime: runtime, registry: registroDelGuion(rounds))
+            .run(prompt: "haz la tarea", options: GenerationOptions()) {
+            if case .toolCallFinished(_, let resultado) = evento { resultados.append(resultado) }
+        }
+        XCTAssertEqual(resultados.count, rounds.flatMap({ $0 }).count,
+                       "el bucle tenía que ejecutar las \(rounds.flatMap({ $0 }).count) acciones del guion")
+        for resultado in resultados {
+            XCTAssertFalse(Agent.esFallo(resultado: resultado),
+                           "una acción del guion gastó presupuesto de fallos: \(resultado)")
+        }
         return try XCTUnwrap(runtime.prompts.last, "el bucle no llamó ni una vez al modelo")
     }
 
@@ -196,22 +298,24 @@ final class BrowserCoreSkillTests: XCTestCase {
         // Y llega pegada a la nota de ESA herramienta, que es el sitio donde sirve: lo último
         // que el modelo lee antes de decidir el paso siguiente sobre la página.
         //
-        // La nota se localiza por su CABECERA, y el resultado se comprueba por su motivo. El
-        // resultado entero no se puede buscar: el bucle contesta a una herramienta que no está
-        // en el registro —el caso de `lastLivePrompt`, con su registro vacío— con el JSON de
-        // `Agent.resultadoDeHerramientaInexistente`, y `ToolJSONOutput.object` serializa un
-        // diccionario sin pedir `.sortedKeys`, así que **el orden de las claves no es estable
-        // entre dos llamadas del mismo proceso**: está medido, el mismo proceso produjo
-        // `{"status":…,"message":…}` para la nota esperada y `{"message":…,"status":…}` para la
-        // del prompt, y la prueba se puso roja 1 de cada 3 veces. Las dos piezas de aquí sí son
-        // estables, y las dos se DERIVAN de producción en vez de escribirse a mano.
+        // La nota se localiza por su CABECERA, derivada de producción en vez de escrita a mano,
+        // y el resultado se comprueba ENTERO.
+        //
+        // Buscar el resultado entero no se podía antes, y por dos razones que ya no están. La
+        // primera: el bucle contestaba a una herramienta que no estaba en el registro —el caso
+        // de `lastLivePrompt`, con su registro vacío— con el JSON de
+        // `Agent.resultadoDeHerramientaInexistente`, y eso gastaba presupuesto de fallos (ver
+        // `DobleDeHerramienta`); hoy el guion corre contra dobles de verdad. La segunda:
+        // `ToolJSONOutput.object` serializaba el diccionario sin `.sortedKeys`, así que el orden
+        // de las claves salía de la semilla de hash del proceso y de la capacidad de la tabla, y
+        // comparar la cadena byte a byte era una moneda al aire —esta prueba se ponía roja 1 de
+        // cada 3 veces—. Hoy el orden es estable (ver `ToolJSONOutputOrderTests`), así que la
+        // comparación fuerte es legítima.
         let notaConSenal = Agent.toolResultNote(toolName: "browser_open", args: "{}", result: "\u{1}R\u{1}")
         let finDeLaCabecera = try XCTUnwrap(notaConSenal.range(of: "\u{1}R\u{1}")?.lowerBound)
         let cabeceraDeLaNota = String(notaConSenal[..<finDeLaCabecera])
-        let motivo = try XCTUnwrap(
-            Agent.motivoDelResultado(Agent.resultadoDeHerramientaInexistente(nombre: "browser_open")))
-        XCTAssertTrue(prompt.contains(motivo),
-                      "el resultado de la herramienta tiene que viajar en la nota: \(prompt.suffix(300))")
+        XCTAssertTrue(prompt.contains(DobleDeHerramienta.resultado),
+                      "el resultado de la herramienta tiene que viajar ENTERO en la nota: \(prompt.suffix(300))")
         let indiceNota = try XCTUnwrap(prompt.range(of: cabeceraDeLaNota)?.lowerBound,
                                        "la cabecera de la nota no esta en el prompt vivo: \(cabeceraDeLaNota)")
         let indiceGuia = try XCTUnwrap(prompt.range(of: BrowserCoreSkill.text)?.lowerBound)
@@ -230,6 +334,40 @@ final class BrowserCoreSkillTests: XCTestCase {
                        "las tres notas de resultado se siguen añadiendo")
     }
 
+    /// (iii ter) CINCO acciones de navegador en una ronda, y una ronda más detrás: un turno de
+    /// conducción de verdad. La guía sigue llegando UNA vez y el turno sigue vivo.
+    ///
+    /// POR QUÉ ESTA PRUEBA EXISTE, Y NO ES UN «una más por si acaso». Las pruebas de este
+    /// fichero conducían el bucle con un registro de herramientas VACÍO, y vivían de que el
+    /// resultado de «no existe esa herramienta» fuera ilegible para el presupuesto de fallos.
+    /// Desde que ese resultado habla el contrato JSON (`Agent.resultadoDeHerramientaInexistente`,
+    /// `status: error`) cada llamada de un guion GASTA una unidad del presupuesto, y a la quinta
+    /// el bucle mata el turno antes de volver a llamar al modelo. Ninguna de las pruebas de
+    /// entonces pasaba de tres llamadas, así que ninguna moría — pero la primera que metiera
+    /// cinco mediría el presupuesto en lugar de la inyección, con el síntoma más venenoso que
+    /// hay: un prompt corto y la prueba en verde por el motivo equivocado.
+    ///   Esta prueba mete las cinco a propósito, así que es la que no se puede escribir sobre un
+    /// registro vacío: con él, el turno muere en la ronda 0 y el último prompt vivo no llega a
+    /// tener ni la guía ni las notas. Por eso el guion corre contra un registro REAL (ver
+    /// `registroDelGuion`), que es el arreglo de raíz.
+    func test_cinco_acciones_de_navegador_en_una_ronda_no_matan_el_turno() async throws {
+        let prompt = try await lastLivePrompt(rounds: [
+            ["browser_open", "browser_snapshot", "browser_click", "browser_snapshot", "browser_click"],
+            ["browser_snapshot"]
+        ])
+        XCTAssertEqual(veces(BrowserCoreSkill.text, en: prompt), 1,
+                       "cinco acciones y una ronda más siguen siendo UNA guía")
+        XCTAssertEqual(veces(Agent.browserGuidePreamble, en: prompt), 1)
+        // Las SEIS notas están: ninguna acción se abandonó ni por el presupuesto de fallos ni
+        // por el corte de cola. Es la comprobación que delata un turno muerto, porque un turno
+        // que muere en la ronda 0 deja un último prompt vivo sin notas.
+        XCTAssertEqual(veces("You MAY keep calling browser tools", en: prompt), 6,
+                       "las seis acciones del guion tienen que haber dejado su nota")
+        // Y el turno no terminó con el mensaje de presupuesto agotado.
+        XCTAssertFalse(prompt.contains("veces seguidas y las"),
+                       "el turno se murió por el presupuesto de fallos: \(prompt.suffix(400))")
+    }
+
     /// (iii bis) Tres RONDAS de navegador, que es la forma real de conducir una página. El
     /// prompt vivo es acumulativo, así que una guía por llamada se vería aquí como tres.
     func test_tres_rondas_de_navegador_siguen_llevando_la_guia_una_vez() async throws {
@@ -243,8 +381,9 @@ final class BrowserCoreSkillTests: XCTestCase {
     /// (iv) Un turno que empieza sin navegador y lo toca después la recibe en ese momento,
     /// no al principio: la primera herramienta de navegador es el disparador, no la ronda 0.
     func test_la_guia_llega_cuando_aparece_el_navegador_aunque_el_turno_empiece_sin_el() async throws {
-        let runtime = ScriptedRoundsRuntime(rounds: [["web_search"], ["browser_open"]])
-        for try await _ in Agent(runtime: runtime, registry: ToolRegistry()).run(prompt: "busca y abre", options: GenerationOptions()) {}
+        let guion = [["web_search"], ["browser_open"]]
+        let runtime = ScriptedRoundsRuntime(rounds: guion)
+        for try await _ in Agent(runtime: runtime, registry: registroDelGuion(guion)).run(prompt: "busca y abre", options: GenerationOptions()) {}
         XCTAssertGreaterThanOrEqual(runtime.prompts.count, 3, "el turno tenía que llegar a la tercera ronda")
         XCTAssertEqual(veces(Agent.browserGuidePreamble, en: runtime.prompts[1]), 0,
                        "tras la ronda de `web_search` la guía todavía no se ha pagado")

@@ -67,8 +67,8 @@ public enum AgentBrowserToolOutput {
     /// Las dos frases de estados que comparten todas las descripciones salvo `read_webpage`.
     public static let statesSentence = """
     'refused' (el navegador rechazó la operación; el motivo va en 'message'), \
-    'not_available' (el navegador del agente no está instalado; 'message' dice cómo \
-    instalarlo) y 'error' (argumento inválido o fallo inesperado).
+    'not_available' (el navegador del agente no está disponible; 'message' dice por qué \
+    y qué hacer) y 'error' (argumento inválido o fallo inesperado).
     """
 
     /// Decodifica los argumentos JSON de una herramienta; `[:]` si no son un objeto válido.

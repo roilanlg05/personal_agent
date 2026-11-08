@@ -110,7 +110,7 @@ public struct InvalidBrowserURLInvoker: AgentBrowserInvoking, Sendable {
         -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
         .failure(.launchFailed(
             "La URL del navegador del i3 en Ajustes no es válida (debe ser http:// o https://). "
-            + "Corrígela o déjala vacía para usar el navegador local."))
+            + "Corrígela en Ajustes."))
     }
 }
 

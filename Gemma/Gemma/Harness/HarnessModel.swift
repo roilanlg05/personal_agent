@@ -456,8 +456,8 @@ public final class HarnessModel {
         registry.register(BrowserCloseTool(service: service))
     }
 
-    /// Con `browserBaseURL` configurada el navegador es el del i3 (HTTP); sin ella, el
-    /// `agent-browser` local de siempre. Se lee en cada registro, así que Ajustes surte efecto en el turno siguiente.
+    /// Con `browserBaseURL` configurada el navegador es el del i3 (HTTP); sin ella, en macOS el
+    /// `agent-browser` local de siempre y en iOS ninguno (hay que configurarla en Ajustes). Se lee en cada registro, así que Ajustes surte efecto en el turno siguiente.
     static func browserInvoker(defaults: UserDefaults = .standard,
                                session: URLSession = .shared) -> any AgentBrowserInvoking {
         let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")

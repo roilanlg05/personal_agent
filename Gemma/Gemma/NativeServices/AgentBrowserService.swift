@@ -100,7 +100,7 @@ public struct AgentBrowserService: Sendable {
             return .unavailable(reason: "agent-browser superó el plazo de \(Int(seconds)) s.",
                                 isMissingBinary: false)
         case .launchFailed(let detail):
-            return .unavailable(reason: "No se pudo lanzar agent-browser: \(detail)",
+            return .unavailable(reason: "No se pudo lanzar el navegador: \(detail)",
                                 isMissingBinary: false)
         }
     }

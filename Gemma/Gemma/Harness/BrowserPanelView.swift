@@ -74,11 +74,20 @@ struct BrowserPanelView: View {
                             if Self.esperandoLaPrimera(closedReason: state.closedReason, isLive: state.isLive) {
                                 ProgressView().controlSize(.small)
                             }
-                            Text(Self.textoSinImagen(closedReason: state.closedReason, isLive: state.isLive))
+                            Text(Self.textoSinImagen(closedReason: state.closedReason,
+                                                     isLive: state.isLive,
+                                                     hayJpeg: state.jpeg != nil))
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 12)
+                            // La cuenta, en pequeño: es la que distingue «no llega nada» de
+                            // «llegan fotogramas y no se pintan», que se ven igual desde fuera.
+                            Text(Self.cuenta(mensajes: state.mensajesRecibidos,
+                                             fotogramas: state.fotogramasRecibidos,
+                                             descartados: state.fotogramasDescartados))
+                                .font(.caption2.monospaced())
+                                .foregroundStyle(.tertiary)
                         }
                     }
                 }
@@ -114,10 +123,23 @@ struct BrowserPanelView: View {
     /// Qué decir en el hueco de la imagen. Puro y estático para poder probarlo sin montar la
     /// vista: lo que importa es que NINGUNA combinación de estado devuelva una cadena vacía, que
     /// es lo que dejaría otra vez un rectángulo mudo.
-    static func textoSinImagen(closedReason: String?, isLive: Bool) -> String {
+    static func textoSinImagen(closedReason: String?, isLive: Bool, hayJpeg: Bool = false) -> String {
+        // Este caso va EL PRIMERO y es el que faltaba: hay bytes de fotograma guardados y aun así
+        // no hay imagen en pantalla, o sea que la decodificación falló. Antes caía en «Esperando
+        // la primera imagen», que es exactamente lo contrario de lo que pasa y manda a buscar el
+        // fallo en la red cuando está en la app.
+        if hayJpeg { return "Llegó un fotograma pero no se pudo decodificar." }
         if closedReason != nil { return "Sin imagen: la conexión con el navegador se cerró." }
         if !isLive { return "Sin imagen: el panel está congelado." }
         return "Esperando la primera imagen del navegador…"
+    }
+
+    /// La línea de cuentas del hueco. Siempre dice algo: un hueco sin cuentas no distingue
+    /// «el socket no habló» de «habló y no mandó fotogramas».
+    static func cuenta(mensajes: Int, fotogramas: Int, descartados: Int) -> String {
+        var t = "mensajes \(mensajes) · fotogramas \(fotogramas)"
+        if descartados > 0 { t += " · descartados \(descartados)" }
+        return t
     }
 
     /// Solo se gira la ruedecita cuando de verdad se espera algo. Girar sobre un panel cerrado o

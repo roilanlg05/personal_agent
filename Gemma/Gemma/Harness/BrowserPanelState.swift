@@ -48,6 +48,23 @@ public final class BrowserPanelState {
     /// Solo lo pone `freeze()`. Irreversible.
     private var isFrozen: Bool = false
 
+    /// Cuántos mensajes del relé han llegado, y cuántos de ellos eran fotogramas. No gobiernan
+    /// nada: existen para que el panel pueda DECIR en pantalla por qué está vacío.
+    ///
+    /// Por qué hacen falta. El panel se le quedó al usuario en «Esperando la primera imagen del
+    /// navegador…» mientras el i3 decía `Screencasting: true` y un visor de prueba enganchado al
+    /// mismo relé recibía su primer fotograma a los 0,02 s. Con eso, desde fuera, no hay manera
+    /// de distinguir tres cosas muy distintas: que no llegue ningún mensaje, que lleguen
+    /// mensajes pero ningún fotograma, o que lleguen fotogramas y no se puedan pintar. Los tres
+    /// casos se ven exactamente igual, y el teléfono no deja leer su `os_log` desde la terminal
+    /// (`log --device-udid` ya no existe en macOS 27), así que el único sitio donde el usuario
+    /// puede leer el diagnóstico es el propio panel.
+    public private(set) var mensajesRecibidos: Int = 0
+    public private(set) var fotogramasRecibidos: Int = 0
+    /// Fotogramas que llegaron y se tiraron por estar plegado o congelado. Se cuentan aparte
+    /// porque «no llegó» y «llegó y lo tiré a propósito» tienen arreglos opuestos.
+    public private(set) var fotogramasDescartados: Int = 0
+
     public init() {}
 
     /// REGLA: `freeze()` pertenece al ciclo de vida local. Solo lo llaman `endTurn()` y el fin
@@ -56,6 +73,14 @@ public final class BrowserPanelState {
     public func apply(_ event: BrowserRelayEvent) {
         if !isFrozen {
             if case .closed = event {} else { hasReceivedMessage = true }
+        }
+        // Se cuenta ANTES de cualquier guarda, incluidas las de congelado y plegado: la cuenta
+        // sirve para explicar los descartes, así que descontarlos la dejaría ciega justo en el
+        // caso que hay que explicar.
+        mensajesRecibidos += 1
+        if case .frame = event {
+            fotogramasRecibidos += 1
+            if isCollapsed { fotogramasDescartados += 1 }
         }
         switch event {
         case .summary(let text):

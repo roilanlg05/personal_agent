@@ -186,3 +186,50 @@ final class BrowserPanelHuecoSinImagenTests: XCTestCase {
         XCTAssertFalse(BrowserPanelView.esperandoLaPrimera(closedReason: "socket caído", isLive: true))
     }
 }
+
+/// Las cuentas del hueco. Ver `BrowserPanelState.mensajesRecibidos`: sin ellas, «no llega nada»,
+/// «llegan mensajes pero ningún fotograma» y «llegan fotogramas y no se pintan» se ven idénticos.
+final class BrowserPanelCuentasTests: XCTestCase {
+
+    /// El caso que faltaba y que mandaba a buscar el fallo al sitio equivocado: con bytes de
+    /// fotograma guardados, el hueco decía «Esperando la primera imagen», que es lo contrario.
+    func test_un_fotograma_que_no_decodifica_no_se_confunde_con_esperar() {
+        let t = BrowserPanelView.textoSinImagen(closedReason: nil, isLive: true, hayJpeg: true)
+        XCTAssertTrue(t.contains("decodificar"), t)
+        XCTAssertFalse(t.contains("Esperando"), t)
+    }
+
+    /// Y gana sobre los demás motivos: si hay bytes, el problema está en la app, se haya cerrado
+    /// o congelado lo que sea después.
+    func test_el_fotograma_sin_decodificar_gana_sobre_los_otros_motivos() {
+        for (motivo, vivo) in [("socket caído", false), (nil, false), ("", true)] as [(String?, Bool)] {
+            XCTAssertTrue(
+                BrowserPanelView.textoSinImagen(closedReason: motivo, isLive: vivo, hayJpeg: true)
+                    .contains("decodificar"))
+        }
+    }
+
+    func test_la_cuenta_siempre_dice_algo() {
+        XCTAssertEqual(BrowserPanelView.cuenta(mensajes: 0, fotogramas: 0, descartados: 0),
+                       "mensajes 0 · fotogramas 0")
+        XCTAssertTrue(BrowserPanelView.cuenta(mensajes: 9, fotogramas: 3, descartados: 2)
+                        .contains("descartados 2"))
+    }
+
+    /// Los descartes solo aparecen cuando los hay: una línea con «descartados 0» en cada panel
+    /// sano es ruido que acaba ignorándose, y entonces no se ve el día que importa.
+    func test_los_descartes_solo_se_nombran_cuando_existen() {
+        XCTAssertFalse(BrowserPanelView.cuenta(mensajes: 5, fotogramas: 5, descartados: 0)
+                        .contains("descartados"))
+    }
+
+    @MainActor
+    func test_el_estado_cuenta_los_fotogramas_descartados_por_plegado() {
+        let s = BrowserPanelState()
+        s.apply(.state(live: true, collapsed: true))
+        s.apply(.frame(seq: 1, jpeg: Data([0xFF, 0xD8]), capturedAt: Date()))
+        XCTAssertEqual(s.fotogramasRecibidos, 1)
+        XCTAssertEqual(s.fotogramasDescartados, 1, "un frame tirado por plegado debe contarse")
+        XCTAssertNil(s.jpeg, "plegado no guarda imagen")
+    }
+}

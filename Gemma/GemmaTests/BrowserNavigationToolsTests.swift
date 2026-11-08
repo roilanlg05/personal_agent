@@ -140,15 +140,42 @@ final class BrowserNavigationToolsTests: XCTestCase {
     // MARK: browser_close
 
     func test_close_reports_success_and_takes_no_parameters() async throws {
-        let out = await BrowserCloseTool(service: svc(#"{"success":true,"data":{},"error":null}"#)).run(argsJSON: #"{}"#)
+        let out = await BrowserCloseTool(service: svc(#"{"success":true,"data":{},"error":null}"#),
+                                         userAskedToClose: true).run(argsJSON: #"{}"#)
         XCTAssertEqual(try parse(out)["status"] as? String, "success")
         XCTAssertTrue(BrowserCloseTool.parameters.isEmpty)
     }
 
     func test_close_uses_the_session() async {
         let mock = MockAgentBrowserInvoker.succeeding(stdout: #"{"success":true,"data":{},"error":null}"#)
-        _ = await BrowserCloseTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma")).run(argsJSON: #"{}"#)
+        _ = await BrowserCloseTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma"),
+                                   userAskedToClose: true).run(argsJSON: #"{}"#)
         XCTAssertEqual(mock.receivedArguments.first, ["--session", "gemma", "close", "--json"])
+    }
+
+    /// El defecto, en su forma exacta: el usuario pidió «ábreme la Wikipedia con la página de
+    /// anatomía PARA LEERLA» y el modelo la cerró al dar el turno por terminado. La página era
+    /// el entregable. Se intentó arreglar dos veces en el prompt y las dos veces volvió, así que
+    /// ahora el candado está en la app: sin petición del usuario, `browser_close` no llega
+    /// siquiera a invocar el navegador.
+    func test_sin_peticion_del_usuario_no_se_cierra_ni_se_invoca_el_navegador() async throws {
+        let mock = MockAgentBrowserInvoker.succeeding(stdout: #"{"success":true,"data":{},"error":null}"#)
+        let out = await BrowserCloseTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma"),
+                                         userAskedToClose: false).run(argsJSON: #"{}"#)
+        XCTAssertEqual(try parse(out)["status"] as? String, "refused")
+        // Lo que de verdad importa no es el estado, sino que el navegador no se tocó: un
+        // `refused` que ya hubiera cerrado la página no arreglaría nada.
+        XCTAssertTrue(mock.receivedArguments.isEmpty,
+                      "no se debe invocar el navegador: \(mock.receivedArguments)")
+    }
+
+    /// El valor por defecto es el que manda: quien construya la herramienta sin decir nada no
+    /// puede cerrar. Así una vía de registro nueva que se olvide del parámetro falla del lado
+    /// seguro (no cierra) en vez de reabrir el defecto en silencio.
+    func test_por_defecto_la_herramienta_no_puede_cerrar() async throws {
+        let out = await BrowserCloseTool(service: svc(#"{"success":true,"data":{},"error":null}"#))
+            .run(argsJSON: #"{}"#)
+        XCTAssertEqual(try parse(out)["status"] as? String, "refused")
     }
 
     // MARK: descriptions

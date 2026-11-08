@@ -46,8 +46,15 @@ final class AgentBrowserRegistrationTests: XCTestCase {
         let source = testFile.deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Gemma/Harness/HarnessModel.swift")
         let text = try String(contentsOf: source, encoding: .utf8)
-        XCTAssertTrue(text.contains("Self.registerBrowserTools(into: registry)"),
-                      "runAgentTurn ya no llama a registerBrowserTools(into: registry): un turno real no registraría ninguna herramienta de navegador")
+        XCTAssertTrue(text.contains("Self.registerBrowserTools(into: registry,"),
+                      "runAgentTurn ya no llama a registerBrowserTools: un turno real no registraría ninguna herramienta de navegador")
+        // La propiedad que de verdad hay que clavar: el permiso para cerrar sale del MENSAJE
+        // DEL USUARIO de este turno, y de ningún otro sitio. Si alguien lo cablea a un `true`
+        // constante, o lo lee de una preferencia, vuelve el defecto que costó tres rondas (el
+        // agente cerrándole la página que el usuario había pedido para leer) y este test es lo
+        // único que lo vería.
+        XCTAssertTrue(text.contains("userAskedToClose: BrowserCloseIntent.userAskedToClose(prompt)"),
+                      "el permiso para cerrar el navegador debe salir del mensaje del usuario de este turno")
     }
 
     func test_system_prompt_teaches_reading_pages_and_the_interactive_loop() throws {

@@ -504,7 +504,10 @@ public final class HarnessModel {
     /// Registra en `registry` las nueve herramientas de navegador (`read_webpage` y `browser_*`).
     /// Comparten una única instancia de `AgentBrowserService`, y por tanto la misma sesión de
     /// `agent-browser`. Es la única ruta de registro: `runAgentTurn` y `browserToolRegistry()` la usan.
-    static func registerBrowserTools(into registry: ToolRegistry) {
+    /// `userAskedToClose` viaja hasta `BrowserCloseTool`: es el único camino por el que el
+    /// navegador se puede cerrar. Por defecto `false`, así que un registro que no diga nada
+    /// (las pruebas, `browserToolRegistry()`) no puede cerrar nada.
+    static func registerBrowserTools(into registry: ToolRegistry, userAskedToClose: Bool = false) {
         let service = AgentBrowserService(invoker: browserInvoker())
         registry.register(ReadWebpageTool(service: service))
         registry.register(BrowserOpenTool(service: service))
@@ -514,7 +517,7 @@ public final class HarnessModel {
         registry.register(BrowserPressTool(service: service))
         registry.register(BrowserWaitTool(service: service))
         registry.register(BrowserGetTool(service: service))
-        registry.register(BrowserCloseTool(service: service))
+        registry.register(BrowserCloseTool(service: service, userAskedToClose: userAskedToClose))
     }
 
     /// Con `browserBaseURL` configurada el navegador es el del i3 (HTTP); sin ella, en macOS el
@@ -694,7 +697,8 @@ public final class HarnessModel {
         registry.register(GetDeviceStatusTool())
         registry.register(OpenAppTool())
         registry.register(WebSearchTool())
-        Self.registerBrowserTools(into: registry)
+        Self.registerBrowserTools(into: registry,
+                                  userAskedToClose: BrowserCloseIntent.userAskedToClose(prompt))
         registry.register(GetWeatherTool())
         registry.register(GetForecastTool())
         registry.register(CreateAlarmTool())

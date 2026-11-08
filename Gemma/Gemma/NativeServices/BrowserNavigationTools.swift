@@ -131,25 +131,45 @@ public final class BrowserSnapshotTool: AgentTool, Sendable {
     }
 }
 
-/// Cierra la sesión del navegador del agente.
+/// Cierra la sesión del navegador del agente, SOLO si el usuario lo ha pedido en este turno.
+///
+/// El candado no está en el prompt a propósito: ver `BrowserCloseIntent` para por qué. La página
+/// abierta es muchas veces el entregable (un vídeo puesto, una página para leer, un carrito a
+/// revisar), y el modelo la destruía al dar el turno por terminado.
 public final class BrowserCloseTool: AgentTool, Sendable {
     public static let name = "browser_close"
     public static let timeout: TimeInterval = 30
 
     public static let description = """
     Cierra el navegador del agente y termina la sesión; las referencias '@eN' dejan de \
-    valer. Úsalo cuando termines de navegar. Estados: 'success' (el navegador se \
-    cerró), \(AgentBrowserToolOutput.statesSentence) \(AgentBrowserToolOutput.honestyNotice)
+    valer. SOLO funciona si el usuario ha pedido cerrar en este turno: en cualquier otro caso \
+    devuelve 'refused' y la página se queda abierta, lo cual es deliberado y no es un fallo que \
+    haya que reintentar. No lo llames para "limpiar" al terminar una tarea. Estados: 'success' \
+    (el navegador se cerró), 'refused' (el usuario no lo ha pedido; la página sigue abierta), \
+    \(AgentBrowserToolOutput.statesSentence) \(AgentBrowserToolOutput.honestyNotice)
     """
     public static let parameters: [AgentToolParam] = []
 
     private let service: AgentBrowserService
+    /// Lo pone el arnés una vez por turno, leyendo el mensaje del usuario. `false` por defecto:
+    /// quien registre la herramienta sin decir nada no puede cerrar nada.
+    private let userAskedToClose: Bool
 
-    public init(service: AgentBrowserService) {
+    public init(service: AgentBrowserService, userAskedToClose: Bool = false) {
         self.service = service
+        self.userAskedToClose = userAskedToClose
     }
 
     public func run(argsJSON: String) async -> String {
+        guard userAskedToClose else {
+            return ToolJSONOutput.object([
+                "status": "refused",
+                "message": "El usuario no ha pedido cerrar el navegador en este turno, así que no "
+                    + "se ha cerrado y la página sigue abierta. Esto no es un fallo: muchas veces la "
+                    + "página abierta ES lo que el usuario pidió. No vuelvas a intentarlo; dile qué "
+                    + "hay en pantalla y termina.",
+            ])
+        }
         let outcome = await service.run(command: ["close"], sessioned: true, timeout: Self.timeout)
         if case .failure(let json) = AgentBrowserToolOutput.resolve(outcome) { return json }
         return ToolJSONOutput.object(["status": "success", "message": "Navegador cerrado."])

@@ -32,6 +32,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
     @MainActor func test_el_turno_siguiente_abre_otro_panel_y_el_viejo_queda_colapsado() throws {
         let c = Self.coordinator()
         let first = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.closeBrowser(c)
         c.endTurn()
         XCTAssertNil(c.activeID)
         let second = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
@@ -46,6 +47,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         let first = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
         XCTAssertNil(c.openIfNeeded(toolName: "browser_open"), "dentro del mismo turno no hay segundo panel")
         XCTAssertEqual(c.panels.count, 1)
+        Self.closeBrowser(c)
         c.endTurn()
         XCTAssertTrue(c.panels[first]!.isCollapsed)
     }
@@ -117,8 +119,274 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         _ = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
         try await Task.sleep(for: .milliseconds(50))
         XCTAssertFalse(flag.terminated, "mientras el turno sigue, el flujo sigue abierto")
+        Self.closeBrowser(c)
         c.endTurn()
         try await Self.waitUntil { flag.terminated }
+    }
+
+    // MARK: - El panel sobrevive al turno si el navegador sigue abierto
+
+    private static let closeOK = #"{"status":"success","message":"Navegador cerrado."}"#
+
+    /// Lo que hace el arnés cuando el agente llama a `browser_close` y termina bien.
+    @MainActor private static func closeBrowser(_ c: BrowserPanelCoordinator) {
+        _ = c.openIfNeeded(toolName: "browser_close")
+        c.toolFinished(toolName: "browser_close", result: closeOK)
+    }
+
+    private static let openOK = #"{"status":"success","message":"ok"}"#
+    private static let failed = #"{"status":"error","message":"fallo"}"#
+
+    /// Lo que hace el arnés cuando una herramienta de navegador (no close) termina bien.
+    @MainActor private static func toolOK(_ c: BrowserPanelCoordinator, _ name: String = "browser_open") {
+        c.toolFinished(toolName: name, result: openOK)
+    }
+
+    /// Fábrica que reparte un flujo controlable por panel y recuerda las banderas de terminación.
+    @MainActor private final class Rig {
+        final class Flags: @unchecked Sendable { var terminated: [Bool] = [] }
+        var conts: [AsyncStream<BrowserRelayEvent>.Continuation] = []
+        let flags = Flags()
+        lazy var coordinator = BrowserPanelCoordinator(stream: { [self] in openStreamForTest() })
+        func openStreamForTest() -> AsyncStream<BrowserRelayEvent> {
+            let n = conts.count
+            flags.terminated.append(false)
+            let flags = self.flags
+            return AsyncStream<BrowserRelayEvent> { cont in
+                cont.onTermination = { _ in flags.terminated[n] = true }
+                self.conts.append(cont)
+            }
+        }
+    }
+
+    @MainActor func test_turno_que_termina_con_el_navegador_abierto_deja_el_panel_vivo_y_consumiendo() async throws {
+        let rig = Rig(); let c = rig.coordinator
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        rig.conts[0].yield(.state(live: true, collapsed: false))
+        try await Self.waitUntil { c.panels[id]!.isLive }
+        c.endTurn()
+        XCTAssertNil(c.activeID)
+        XCTAssertEqual(c.livePanelID, id)
+        try await Task.sleep(for: .milliseconds(80))
+        XCTAssertFalse(rig.flags.terminated[0], "el visor no se va: el video sigue a la vista")
+        XCTAssertTrue(c.panels[id]!.isLive)
+        // Y sigue recibiendo: no es una foto congelada que se dice en vivo.
+        rig.conts[0].yield(.frame(seq: 7, jpeg: Data([0x07]), capturedAt: .now))
+        try await Self.waitUntil { c.panels[id]!.jpeg == Data([0x07]) }
+    }
+
+    @MainActor func test_turno_que_termina_con_browser_close_congela_como_antes() async throws {
+        let rig = Rig(); let c = rig.coordinator
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        rig.conts[0].yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
+        try await Self.waitUntil { c.panels[id]!.jpeg != nil }
+        Self.toolOK(c)                                // el navegador está abierto de verdad
+        _ = c.openIfNeeded(toolName: "browser_close")
+        c.toolFinished(toolName: "browser_close", result: Self.closeOK)
+        c.endTurn()
+        XCTAssertNil(c.livePanelID)
+        XCTAssertTrue(c.panels[id]!.isCollapsed)
+        XCTAssertNil(c.panels[id]!.jpeg)
+        try await Self.waitUntil { rig.flags.terminated[0] }
+    }
+
+    @MainActor func test_un_browser_close_con_status_de_error_no_congela_un_navegador_que_sigue_abierto() throws {
+        let rig = Rig(); let c = rig.coordinator
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        _ = c.openIfNeeded(toolName: "browser_close")
+        c.toolFinished(toolName: "browser_close", result: Self.failed)
+        c.endTurn()
+        XCTAssertEqual(c.livePanelID, id)
+    }
+
+    @MainActor func test_un_browser_close_con_resultado_ilegible_no_congela_un_navegador_que_sigue_abierto() throws {
+        let rig = Rig(); let c = rig.coordinator
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        c.toolFinished(toolName: "browser_close", result: "no es json")
+        c.endTurn()
+        XCTAssertEqual(c.livePanelID, id)
+    }
+
+    /// El mismo defecto por otro camino: panel vivo y, en un turno posterior, lo PRIMERO es un
+    /// browser_close que falla. El navegador sigue abierto: el panel nuevo no puede nacer congelado.
+    @MainActor func test_close_fallido_como_primera_llamada_de_un_turno_posterior_deja_vivo_el_panel() async throws {
+        let rig = Rig(); let c = rig.coordinator
+        let first = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        c.endTurn()
+        XCTAssertEqual(c.livePanelID, first)
+        let second = try XCTUnwrap(c.openIfNeeded(toolName: "browser_close"))
+        c.toolFinished(toolName: "browser_close", result: Self.failed)
+        c.endTurn()
+        XCTAssertEqual(c.livePanelID, second)
+        XCTAssertFalse(c.panels[second]!.isCollapsed)
+        XCTAssertTrue(c.panels[first]!.isCollapsed)
+    }
+
+    @MainActor func test_un_browser_open_fallido_no_deja_un_panel_vivo() throws {
+        let rig = Rig(); let c = rig.coordinator
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        c.toolFinished(toolName: "browser_open", result: Self.failed)
+        c.endTurn()
+        XCTAssertNil(c.livePanelID)
+        XCTAssertTrue(c.panels[id]!.isCollapsed)
+    }
+
+    @MainActor func test_un_clic_fallido_no_abre_un_navegador_que_estaba_cerrado() throws {
+        let rig = Rig(); let c = rig.coordinator
+        _ = try XCTUnwrap(c.openIfNeeded(toolName: "browser_click"))
+        c.toolFinished(toolName: "browser_click", result: Self.failed)
+        c.endTurn()
+        XCTAssertNil(c.livePanelID)
+    }
+
+    @MainActor func test_el_tope_de_inactividad_retira_el_panel_vivo() async throws {
+        let rig = Rig()
+        let c = BrowserPanelCoordinator(stream: { [rig] in rig.openStreamForTest() }, liveIdleLimit: .milliseconds(60))
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        c.endTurn()
+        XCTAssertEqual(c.livePanelID, id)
+        try await Self.waitUntil { c.livePanelID == nil }
+        XCTAssertTrue(c.panels[id]!.isCollapsed)
+        try await Self.waitUntil { rig.flags.terminated[0] }
+    }
+
+    /// El tope mide inactividad: mientras el usuario sigue hablando, el panel no muere.
+    @MainActor func test_la_actividad_del_usuario_reinicia_el_tope_de_inactividad() async throws {
+        let rig = Rig()
+        let c = BrowserPanelCoordinator(stream: { [rig] in rig.openStreamForTest() }, liveIdleLimit: .milliseconds(200))
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        c.endTurn()
+        for _ in 0..<4 {                              // 4 x 100 ms = el doble del tope, con actividad
+            try await Task.sleep(for: .milliseconds(100))
+            c.noteUserActivity()
+        }
+        XCTAssertEqual(c.livePanelID, id, "con actividad el panel sigue vivo pasado el tope")
+        try await Self.waitUntil { c.livePanelID == nil }   // en silencio, vence
+    }
+
+    @MainActor func test_el_tope_de_inactividad_no_retira_a_un_panel_ya_relevado() async throws {
+        let rig = Rig()
+        let c = BrowserPanelCoordinator(stream: { [rig] in rig.openStreamForTest() }, liveIdleLimit: .milliseconds(150))
+        _ = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        c.endTurn()                                   // arma el reloj 1
+        try await Task.sleep(for: .milliseconds(100))
+        let second = try XCTUnwrap(c.openIfNeeded(toolName: "browser_click"))
+        Self.toolOK(c, "browser_click")
+        c.endTurn()                                   // reloj 2 desde cero
+        try await Task.sleep(for: .milliseconds(100)) // el reloj 1 ya habría vencido
+        XCTAssertEqual(c.livePanelID, second, "el reloj del panel viejo no retira al nuevo")
+    }
+
+    @MainActor func test_un_turno_que_no_acaba_por_su_pie_congela_aunque_el_navegador_siga_abierto() async throws {
+        let rig = Rig(); let c = rig.coordinator
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        c.endTurn(survive: false)
+        XCTAssertNil(c.livePanelID)
+        XCTAssertTrue(c.panels[id]!.isCollapsed)
+        try await Self.waitUntil { rig.flags.terminated[0] }
+    }
+
+    @MainActor func test_abrir_otra_vez_tras_cerrar_en_el_mismo_turno_deja_el_navegador_abierto() throws {
+        let rig = Rig(); let c = rig.coordinator
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.closeBrowser(c)
+        _ = c.openIfNeeded(toolName: "browser_open")
+        Self.toolOK(c)
+        c.endTurn()
+        XCTAssertEqual(c.livePanelID, id)
+    }
+
+    @MainActor func test_un_panel_pasado_congelado_sigue_congelado_y_conviven_con_el_vivo() async throws {
+        let rig = Rig(); let c = rig.coordinator
+        let old = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.closeBrowser(c)
+        c.endTurn()                                   // turno 1: cerrado -> congelado
+        let live = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        c.endTurn()                                   // turno 2: abierto -> vivo
+        XCTAssertEqual(c.panels.count, 2)
+        XCTAssertTrue(c.panels[old]!.isCollapsed)
+        XCTAssertFalse(c.panels[live]!.isCollapsed)
+        XCTAssertEqual(c.livePanelID, live)
+        // La cancelación del flujo viejo no basta para este aserto: se prueba que el ESTADO del
+        // panel congelado rechaza eventos (`freeze()`), llegándole por la vía directa.
+        c.panels[old]!.apply(.state(live: true, collapsed: false))
+        c.panels[old]!.apply(.frame(seq: 9, jpeg: Data([0x09]), capturedAt: .now))
+        XCTAssertNil(c.panels[old]!.jpeg, "un panel pasado congelado no vuelve a recibir imagen")
+        XCTAssertFalse(c.panels[old]!.isLive)
+        XCTAssertTrue(c.panels[old]!.isCollapsed)
+        // El vivo sí sigue recibiendo, por su propio flujo (el índice 1).
+        rig.conts[1].yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
+        try await Self.waitUntil { c.panels[live]!.jpeg != nil }
+    }
+
+    @MainActor func test_el_panel_vivo_se_retira_cuando_el_turno_siguiente_abre_otro() async throws {
+        let rig = Rig(); let c = rig.coordinator
+        let first = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        c.endTurn()
+        XCTAssertEqual(c.livePanelID, first)
+        let second = try XCTUnwrap(c.openIfNeeded(toolName: "browser_click"))
+        XCTAssertNotEqual(first, second)
+        XCTAssertNil(c.livePanelID, "el viejo ya no es el vivo")
+        XCTAssertTrue(c.panels[first]!.isCollapsed)
+        XCTAssertFalse(c.panels[second]!.isCollapsed)
+        try await Self.waitUntil { rig.flags.terminated[0] }
+        XCTAssertFalse(rig.flags.terminated[1])
+    }
+
+    @MainActor func test_el_browser_close_de_un_turno_posterior_deja_congelado_el_panel_que_abrio() async throws {
+        let rig = Rig(); let c = rig.coordinator
+        let first = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        c.endTurn()                                   // video en marcha, panel vivo
+        let second = try XCTUnwrap(c.openIfNeeded(toolName: "browser_close"))
+        c.toolFinished(toolName: "browser_close", result: Self.closeOK)
+        c.endTurn()
+        XCTAssertNil(c.livePanelID)
+        XCTAssertTrue(c.panels[first]!.isCollapsed)
+        XCTAssertTrue(c.panels[second]!.isCollapsed)
+        try await Self.waitUntil { rig.flags.terminated[0] && rig.flags.terminated[1] }
+    }
+
+    @MainActor func test_si_el_flujo_del_panel_vivo_termina_el_panel_se_congela() async throws {
+        let rig = Rig(); let c = rig.coordinator
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        rig.conts[0].yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
+        try await Self.waitUntil { c.panels[id]!.jpeg != nil }
+        Self.toolOK(c)
+        c.endTurn()
+        XCTAssertEqual(c.livePanelID, id)
+        rig.conts[0].finish()                         // el cliente se rindió tras sus reintentos
+        try await Self.waitUntil { c.panels[id]!.isCollapsed }
+        XCTAssertNil(c.panels[id]!.jpeg)
+        XCTAssertNil(c.livePanelID, "un panel congelado por fin de flujo ya no es «el vivo»")
+        // Y el panel siguiente no hereda un «navegador abierto» que ya no consta.
+        let next = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        c.toolFinished(toolName: "browser_open", result: Self.failed)
+        c.endTurn()
+        XCTAssertNil(c.livePanelID)
+        XCTAssertTrue(c.panels[next]!.isCollapsed)
+    }
+
+    @MainActor func test_retireLivePanel_congela_y_corta_el_flujo() async throws {
+        let rig = Rig(); let c = rig.coordinator
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        Self.toolOK(c)
+        c.endTurn()
+        XCTAssertEqual(c.livePanelID, id)
+        c.retireLivePanel()
+        XCTAssertNil(c.livePanelID)
+        XCTAssertTrue(c.panels[id]!.isCollapsed)
+        try await Self.waitUntil { rig.flags.terminated[0] }
     }
 
     @MainActor private static func waitUntil(_ cond: @MainActor () -> Bool) async throws {

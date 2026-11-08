@@ -79,9 +79,37 @@ final class BrowserRelayClientTests: XCTestCase {
         XCTAssertTrue(zip(waits, waits.dropFirst()).allSatisfy { $0 <= $1 })
     }
 
-    func test_el_tope_de_intentos_es_finito() {
-        XCTAssertGreaterThan(BrowserRelayClient.maxReconnectAttempts, 0)
-        XCTAssertLessThan(BrowserRelayClient.maxReconnectAttempts, 100)
+    func test_un_frame_reinicia_el_contador_aunque_venga_alto() {
+        XCTAssertEqual(BrowserRelayClient.nextFailureCount(current: 7, gotFrame: true), 1)
+    }
+
+    func test_sin_frame_el_contador_crece_de_uno_en_uno() {
+        XCTAssertEqual(BrowserRelayClient.nextFailureCount(current: 0, gotFrame: false), 1)
+        XCTAssertEqual(BrowserRelayClient.nextFailureCount(current: 4, gotFrame: false), 5)
+    }
+
+    func test_la_frontera_de_rendicion_es_exacta() {
+        XCTAssertFalse(BrowserRelayClient.shouldGiveUp(failures: 8))
+        XCTAssertTrue(BrowserRelayClient.shouldGiveUp(failures: 9))
+    }
+
+    func test_el_tope_del_retroceso_empieza_a_morder_en_el_intento_6() {
+        XCTAssertEqual(BrowserRelayClient.reconnectDelay(attempt: 5), 16)
+        XCTAssertEqual(BrowserRelayClient.reconnectDelay(attempt: 6), 30)
+    }
+
+    func test_base_con_barra_final_no_duplica_la_barra() {
+        let url = BrowserRelayClient.socketURL(baseURL: URL(string: "http://i3.test:8083/")!, maxFps: 5)
+        XCTAssertEqual(url?.absoluteString, "ws://i3.test:8083/v1/browser/stream?maxFps=5")
+    }
+
+    func test_un_base_ws_se_queda_en_ws() {
+        let url = BrowserRelayClient.socketURL(baseURL: URL(string: "ws://i3.test:8083")!, maxFps: 10)
+        XCTAssertEqual(url?.scheme, "ws")
+    }
+
+    func test_un_esquema_invalido_da_nil() {
+        XCTAssertNil(BrowserRelayClient.socketURL(baseURL: URL(string: "file:///tmp/x")!, maxFps: 10))
     }
 
     /// stop() antes de conectar termina el flujo de verdad, sin dejar tarea viva.

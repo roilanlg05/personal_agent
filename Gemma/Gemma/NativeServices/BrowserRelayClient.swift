@@ -1,6 +1,12 @@
 import Foundation
-// Portabilidad: este fichero SOLO importa Foundation, a propósito. Un cliente
-// de iOS lo reusará tal cual. No decodifica la imagen: el JPEG sube en bytes.
+// Portabilidad: solo Foundation, más la capacidad de red donde vive separada
+// (en Linux y Windows URLSessionWebSocketTask está en FoundationNetworking).
+// `canImport` pregunta por una capacidad, no por un sistema operativo: no hay
+// ramas por plataforma. Un cliente de iOS lo reusará tal cual.
+// No decodifica la imagen: el JPEG sube en bytes.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Lo que el relé del i3 puede decirle al visor. Seis casos, ninguno con sitio
 /// para parámetros de acciones: ni programando mal se podría transportar un secreto.
@@ -26,6 +32,17 @@ public actor BrowserRelayClient {
     public static func reconnectDelay(attempt: Int) -> TimeInterval {
         let exponent = max(0, min(attempt - 1, 10))
         return min(maxReconnectDelay, TimeInterval(1 << exponent))
+    }
+
+    /// Contador de fallos consecutivos tras un ciclo de conexión: un frame
+    /// recibido lo reinicia a 1 (conexión sana); sin frame, crece de uno en uno.
+    public static func nextFailureCount(current: Int, gotFrame: Bool) -> Int {
+        gotFrame ? 1 : current + 1
+    }
+
+    /// Se rinde cuando los fallos consecutivos superan `maxReconnectAttempts`.
+    public static func shouldGiveUp(failures: Int) -> Bool {
+        failures > maxReconnectAttempts
     }
 
     private let baseURL: URL
@@ -145,8 +162,8 @@ public actor BrowserRelayClient {
         while !Task.isCancelled {
             let gotFrame = await runOnce(url: url, cont)
             if Task.isCancelled { return }
-            failures = gotFrame ? 1 : failures + 1
-            if failures > Self.maxReconnectAttempts { return }
+            failures = Self.nextFailureCount(current: failures, gotFrame: gotFrame)
+            if Self.shouldGiveUp(failures: failures) { return }
             do { try await Task.sleep(for: .seconds(Self.reconnectDelay(attempt: failures))) }
             catch { return }
         }
@@ -171,7 +188,14 @@ public actor BrowserRelayClient {
                 guard case .string(let text) = message, let event = Self.decode(text) else { continue }
                 if case .frame(let seq, _, _) = event {
                     gotFrame = true
-                    try? await socket.send(.string(Self.ackPayload(seq: seq)))
+                    // El demonio ignora en silencio lo que no entiende: un acuse que no
+                    // llega solo se vería como frames que dejan de llegar. Si el envío
+                    // falla, la conexión está caída: salir y dejar que reconecte.
+                    do { try await socket.send(.string(Self.ackPayload(seq: seq))) }
+                    catch {
+                        if !Task.isCancelled { cont.yield(.closed(reason: "fallo al acusar")) }
+                        break
+                    }
                 }
                 cont.yield(event)
                 if case .closed = event { break }

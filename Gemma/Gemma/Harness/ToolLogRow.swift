@@ -9,6 +9,9 @@ public nonisolated enum ToolRowSummary: Equatable {
     case value(String)
     case count(Int, String)
     case failure(String)
+    /// La herramienta no pudo seguir y espera algo del usuario (un permiso, una
+    /// confirmación, una elección). No es éxito ni fallo: icono y color propios.
+    case needsYou
 }
 
 /// Fila del registro de chat para una llamada a herramienta. Plegada enseña el
@@ -31,18 +34,43 @@ public struct ToolLogRow: View {
     /// Tope del mensaje de un estado no fallido: el resumen es una línea.
     public nonisolated static let messageLimit = 120
 
-    /// Los únicos estados que pintan la fila en rojo. Medido sobre el repositorio
-    /// el 2026-11-08: las herramientas devuelven 68 estados distintos y solo 11 de
-    /// ellos son "success", así que tratar «no success» como fallo pinta en rojo la
-    /// mayoría de los retornos correctos ("ok", "created", "deleted", "found"…).
-    /// La polaridad va al revés: se enumera el fallo, no el éxito. Además, todo
-    /// estado con prefijo `invalid_` es fallo.
+    /// Frase fija de la fila "te pide algo". Nunca el `message` de la herramienta:
+    /// esos mensajes están redactados para el modelo (segunda persona, con
+    /// instrucciones) y no deben pintarse en la cara del usuario.
+    public nonisolated static let needsYouText = "necesita algo de ti"
+
+    /// Estados que piden algo al usuario: ni éxito ni fallo. Cerrado y enumerado
+    /// a propósito; añadir uno exige una prueba.
+    private nonisolated static let needsYouStatuses: Set<String> = [
+        "permission_required", "confirmation_required", "needs_criteria",
+        "needs_time", "ambiguous", "conflict", "location_unknown",
+        "no_forecast", "unknown",
+    ]
+
+    /// Los únicos estados que pintan la fila en rojo. Las herramientas devuelven
+    /// ~70 estados distintos y solo una minoría es "success", así que tratar «no
+    /// success» como fallo pintaría en rojo la mayoría de los retornos correctos
+    /// ("ok", "created", "deleted", "found"…). La polaridad va al revés: se
+    /// enumera el fallo, no el éxito. Además, todo estado con prefijo `invalid_`
+    /// es fallo.
+    ///
+    /// CÓMO SE HACE EL CENSO. Este grep ve también los estados que se CONSTRUYEN
+    /// en código en vez de escribirse como literal dentro de un objeto:
+    ///
+    ///     grep -rhoE '(status|"status")[ :=]+"[a-z_]+"' --include='*.swift' Gemma/Gemma \
+    ///       | grep -oE '"[a-z_]+"$' | sort -u
+    ///
+    /// El grep estrecho `"status" *: *"[a-z_]+"` (solo forma de objeto) se perdía
+    /// `refused` y `not_available`, que las nueve herramientas del navegador
+    /// construyen en `AgentBrowserToolOutput.resolve(_:extra:)` con
+    /// `status = "refused"`; un `browser_open` rechazado salía con tilde verde.
+    /// Medición de referencia: docs/superpowers/notes/2026-11-08-medicion-nitidez-panel.md
     private nonisolated static let failureStatuses: Set<String> = [
         "failed", "error", "timeout", "unavailable", "memory_unavailable",
         "permission_denied", "rejected", "not_found", "contact_not_found",
         "place_not_found", "not_in_catalog", "unknown_topic", "unsupported",
         "unsupported_kind", "limit_reached", "missing_fields", "name_taken",
-        "no_phone_number", "period_in_past",
+        "no_phone_number", "period_in_past", "refused", "not_available",
     ]
 
     /// Cierra la fila de una herramienta: rellena el `toolDetail` de la última
@@ -74,13 +102,14 @@ public struct ToolLogRow: View {
               let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
         else {
             let t = resultJSON.trimmingCharacters(in: .whitespacesAndNewlines)
-            return .failure(t.isEmpty ? "resultado vacío o ilegible" : String(t.prefix(120)))
+            return .failure(clip(t.isEmpty ? "resultado vacío o ilegible" : t))
         }
         let status = obj["status"] as? String
         let message = (obj["message"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if let status, failureStatuses.contains(status) || status.hasPrefix("invalid_") {
-            return .failure(message.isEmpty ? status : message)
+            return .failure(clip(message.isEmpty ? status : message))
         }
+        if let status, needsYouStatuses.contains(status) { return .needsYou }
         switch table[toolName] {
         case .host:
             if let s = obj["url"] as? String, let host = URL(string: s)?.host { return .value(host) }
@@ -90,8 +119,11 @@ public struct ToolLogRow: View {
             let n = s.split(whereSeparator: \.isNewline).filter { !$0.allSatisfy(\.isWhitespace) }.count
             return .count(n, "objetos")
         case .valueOrCount:
+            // Forma real, BrowserInspectionTools.swift (`browser_get`, rama
+            // `what == "count"`, ~l.142): {"status":"success","what":"count","value":<Int>}.
+            // El número va en `value` como Int; el resto de `what` lo trae como String.
+            if let n = obj["value"] as? Int { return .count(n, "elementos") }
             if let v = obj["value"] as? String { return .value(v) }
-            if let n = obj["count"] as? Int { return .count(n, "elementos") }
             return .ok
         case .chars:
             guard let s = obj["content"] as? String else { return .ok }
@@ -100,11 +132,17 @@ public struct ToolLogRow: View {
             guard let n = obj["count"] as? Int else { return .ok }
             return .count(n, "resultados")
         case nil:
-            // Herramienta sin dato propio: si trae un mensaje corto y útil
-            // (p. ej. «no_content»), se enseña en vez de un «listo» mudo.
-            guard !message.isEmpty else { return .ok }
-            return .value(message.count > messageLimit ? String(message.prefix(messageLimit)) + "…" : message)
+            // Herramienta sin dato propio: «listo». El `message` NO se enseña: está
+            // escrito para el modelo, no para el usuario; quien quiera el detalle
+            // abre la fila.
+            return .ok
         }
+    }
+
+    /// Recorte único de todo texto de una línea de resumen: `messageLimit`
+    /// caracteres y «…» si se pasa.
+    private nonisolated static func clip(_ s: String) -> String {
+        s.count > messageLimit ? String(s.prefix(messageLimit)) + "…" : s
     }
 
     /// Texto que se ve al abrir la fila, recortado a `detailLimit`.
@@ -127,12 +165,26 @@ public struct ToolLogRow: View {
         case .value(let v): return v
         case .count(let n, let what): return "\(n) \(what)"
         case .failure(let m): return m
+        case .needsYou: return Self.needsYouText
         }
     }
 
     private var isFailure: Bool {
         if case .failure = summary { return true }
         return false
+    }
+
+    private var needsYou: Bool { summary == .needsYou }
+
+    private var statusIcon: String {
+        if summary == nil { return "ellipsis.circle" }
+        if isFailure { return "xmark.circle.fill" }
+        if needsYou { return "exclamationmark.circle.fill" }
+        return "checkmark.circle.fill"
+    }
+
+    private var statusColor: Color {
+        isFailure ? .red : (needsYou ? .orange : .secondary)
     }
 
     public var body: some View {
@@ -144,13 +196,12 @@ public struct ToolLogRow: View {
                     withAnimation(.easeInOut(duration: 0.2)) { entry.isToolExpanded.toggle() }
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: summary == nil ? "ellipsis.circle"
-                              : (isFailure ? "xmark.circle.fill" : "checkmark.circle.fill"))
-                            .foregroundStyle(isFailure ? Color.red : Color.secondary)
+                        Image(systemName: statusIcon)
+                            .foregroundStyle(statusColor)
                         Text(entry.toolName ?? "tool").font(.caption.monospaced())
                         Text(summaryText)
                             .font(.caption)
-                            .foregroundStyle(isFailure ? Color.red : Color.secondary)
+                            .foregroundStyle(statusColor)
                             .lineLimit(entry.isToolExpanded ? nil : 2)
                         if hasDetail {
                             Image(systemName: entry.isToolExpanded ? "chevron.up" : "chevron.down")

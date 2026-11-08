@@ -47,13 +47,17 @@ public actor BrowserRelayClient {
 
     private let baseURL: URL
     private let bearerToken: String
-    private let maxFps: Int
+    /// Tope de fotogramas que la app PIDE. `nil` en producción: el tope del visor
+    /// es del servicio, porque sale de su medición de caudal (el enlace móvil), y la
+    /// app no debe tener una segunda opinión. Con `nil` el relé aplica su
+    /// `DEFAULT_VIEWER_MAX_FPS`. Solo una prueba pasa un valor.
+    private let maxFps: Int?
     private let session: URLSession
     private var loop: Task<Void, Never>?
     private var continuation: AsyncStream<BrowserRelayEvent>.Continuation?
     private var generation = 0
 
-    public init(baseURL: URL, bearerToken: String, maxFps: Int = 10, session: URLSession = .shared) {
+    public init(baseURL: URL, bearerToken: String, maxFps: Int? = nil, session: URLSession = .shared) {
         self.baseURL = baseURL
         self.bearerToken = bearerToken
         self.maxFps = maxFps
@@ -62,7 +66,7 @@ public actor BrowserRelayClient {
 
     // MARK: puras
 
-    public static func socketURL(baseURL: URL, maxFps: Int) -> URL? {
+    public static func socketURL(baseURL: URL, maxFps: Int? = nil) -> URL? {
         guard var parts = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else { return nil }
         switch parts.scheme?.lowercased() {
         case "http", "ws": parts.scheme = "ws"
@@ -71,7 +75,9 @@ public actor BrowserRelayClient {
         }
         let base = parts.path.hasSuffix("/") ? String(parts.path.dropLast()) : parts.path
         parts.path = base + "/v1/browser/stream"
-        parts.queryItems = [URLQueryItem(name: "maxFps", value: String(maxFps))]
+        // Solo `maxFps` va en la query; el token va en la cabecera del handshake y
+        // NO debe pasar a la URL (acaba en logs). Sin tope pedido no se añade nada.
+        parts.queryItems = maxFps.map { [URLQueryItem(name: "maxFps", value: String($0))] }
         return parts.url
     }
 

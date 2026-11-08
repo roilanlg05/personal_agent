@@ -93,24 +93,59 @@ final class ToolLogRowTests: XCTestCase {
         XCTAssertTrue(isFailure(ToolLogRow.summarize(toolName: "x", resultJSON: "{roto")))
     }
 
-    func test_browser_get_con_count_cuenta_elementos() {
-        XCTAssertEqual(ToolLogRow.summarize(toolName: "browser_get", resultJSON: #"{"status":"success","count":7}"#),
-                       .count(7, "elementos"))
+    func test_browser_get_con_count_cuenta_elementos_con_la_forma_real() {
+        // Forma que emite BrowserInspectionTools: el número va en `value`, como Int.
+        let json = #"{"status":"success","what":"count","value":32}"#
+        XCTAssertEqual(ToolLogRow.summarize(toolName: "browser_get", resultJSON: json), .count(32, "elementos"))
+    }
+
+    func test_browser_get_con_value_de_texto_es_un_valor() {
+        let json = #"{"status":"success","what":"text","value":"59,99 €"}"#
+        XCTAssertEqual(ToolLogRow.summarize(toolName: "browser_get", resultJSON: json), .value("59,99 €"))
+    }
+
+    func test_browser_open_rechazado_es_fallo_y_no_enseña_el_host() {
+        let json = #"{"url":"https://www.amazon.es/","status":"refused","message":"Dominio no permitido."}"#
+        let r = ToolLogRow.summarize(toolName: "browser_open", resultJSON: json)
+        XCTAssertEqual(r, .failure("Dominio no permitido."))
+        XCTAssertNotEqual(r, .value("www.amazon.es"))
+    }
+
+    func test_read_webpage_not_available_es_fallo() {
+        let r = ToolLogRow.summarize(toolName: "read_webpage", resultJSON: #"{"status":"not_available","message":"Instala el navegador."}"#)
+        XCTAssertTrue(isFailure(r), "\(r)")
+    }
+
+    func test_el_mensaje_de_un_fallo_se_recorta_como_los_demas() {
+        let largo = String(repeating: "m", count: 300)
+        let r = ToolLogRow.summarize(toolName: "read_webpage", resultJSON: #"{"status":"not_available","message":"\#(largo)"}"#)
+        guard case .failure(let m) = r else { return XCTFail("\(r)") }
+        XCTAssertEqual(m.count, ToolLogRow.messageLimit + 1)
+        XCTAssertTrue(m.hasSuffix("…"))
+    }
+
+    func test_los_nueve_estados_que_piden_algo_no_son_fallo_ni_neutros() {
+        let nueve = ["permission_required","confirmation_required","needs_criteria","needs_time",
+                     "ambiguous","conflict","location_unknown","no_forecast","unknown"]
+        for st in nueve {
+            let r = ToolLogRow.summarize(toolName: "x", resultJSON: #"{"status":"\#(st)","message":"Dile al usuario X."}"#)
+            XCTAssertEqual(r, .needsYou, "\(st) -> \(r)")
+        }
+    }
+
+    func test_un_estado_que_pide_algo_no_filtra_el_mensaje_del_modelo() {
+        XCTAssertEqual(ToolLogRow.needsYouText, "necesita algo de ti")
+    }
+
+    func test_un_estado_neutro_sin_tabla_no_enseña_el_mensaje_del_modelo() {
+        let r = ToolLogRow.summarize(toolName: "x", resultJSON: #"{"status":"ok","message":"Dile al usuario algo."}"#)
+        XCTAssertEqual(r, .ok)
     }
 
     func test_browser_open_con_url_sin_host() {
         XCTAssertEqual(ToolLogRow.summarize(toolName: "browser_open", resultJSON: #"{"status":"success","url":"notaurl"}"#), .ok)
     }
 
-    func test_un_mensaje_largo_de_estado_no_fallo_se_recorta() {
-        let largo = String(repeating: "m", count: 300)
-        let r = ToolLogRow.summarize(toolName: "x", resultJSON: #"{"status":"no_content","message":"\#(largo)"}"#)
-        guard case .value(let v) = r else { return XCTFail("\(r)") }
-        XCTAssertEqual(v.count, ToolLogRow.messageLimit + 1)
-        XCTAssertTrue(v.hasSuffix("…"))
-        let corto = ToolLogRow.summarize(toolName: "x", resultJSON: #"{"status":"no_content","message":"sin texto"}"#)
-        XCTAssertEqual(corto, .value("sin texto"))
-    }
 
     func test_cerrar_una_herramienta_rellena_su_fila_abierta_y_no_añade_otra() {
         var log = [ChatLogEntry(role: "tool", text: "", toolName: "a"),

@@ -74,6 +74,28 @@ final class BrowserNavigationToolsTests: XCTestCase {
         XCTAssertEqual(json["content_is_untrusted"] as? Bool, true)
     }
 
+    /// `origin` es esquema+host: no distingue dos paginas del mismo sitio, asi que como fuente
+    /// de «donde estoy» produce falsos negativos. Si el CLI da la URL completa, se da: es una
+    /// segunda fuente gratis para la comparacion que decide el corte de la cola, y el snapshot
+    /// es justo el paso que el modelo hace despues de cada accion.
+    func test_snapshot_reports_the_full_url_when_the_cli_gives_it() async throws {
+        let out = await BrowserSnapshotTool(service: svc(#"{"success":true,"data":{"snapshot":"- link \"Más\" [ref=e1]","refs":{"e1":{}},"origin":"https://a.test","url":"https://a.test/seccion/2"},"error":null}"#))
+            .run(argsJSON: #"{}"#)
+        let json = try parse(out)
+        XCTAssertEqual(json["url"] as? String, "https://a.test/seccion/2")
+        XCTAssertEqual(json["origin"] as? String, "https://a.test", "el campo viejo no se retira")
+        XCTAssertEqual(Agent.urlDelResultado(out), "https://a.test/seccion/2",
+                       "el bucle tiene que poder leerla de ahi: \(out)")
+    }
+
+    func test_snapshot_does_not_report_an_absurd_url() async throws {
+        let out = await BrowserSnapshotTool(service: svc(#"{"success":true,"data":{"snapshot":"x","refs":{},"origin":"https://a.test","url":"ni-idea"},"error":null}"#))
+            .run(argsJSON: #"{}"#)
+        let json = try parse(out)
+        XCTAssertNil(json["url"], "una URL ilegible no puede fabricar un cambio de pagina: \(out)")
+        XCTAssertEqual(json["origin"] as? String, "https://a.test")
+    }
+
     func test_snapshot_defaults_to_interactive_only() async {
         let mock = MockAgentBrowserInvoker.succeeding(stdout: #"{"success":true,"data":{"snapshot":"x","refs":{}},"error":null}"#)
         _ = await BrowserSnapshotTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma")).run(argsJSON: #"{}"#)

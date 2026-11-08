@@ -209,16 +209,19 @@ final class Agent {
     ///     si hubo redireccion. Es la unica herramienta que la da siempre.
     ///   - `BrowserGetTool` con `what=url` la devuelve en `value`, y `what` dice que ese valor
     ///     es una URL; de ahi se lee.
-    ///   - `BrowserClickTool`, `BrowserFillTool` y `BrowserPressTool` NO la devuelven: su exito
-    ///     es `{"status":"success","message":"…"}` y el resto del JSON del CLI se tira
-    ///     (`BrowserInteractionTools.swift`). `BrowserSnapshotTool` devuelve `origin`, que es
-    ///     esquema+host y NO distingue dos paginas del mismo sitio, asi que no sirve para esto.
+    ///   - `BrowserClickTool`, `BrowserFillTool` y `BrowserPressTool` la devuelven en `url`
+    ///     desde que la averiguan ellas: el CLI no la da en la salida de `click`/`fill`/`press`
+    ///     (medido contra 0.41.2), asi que tras una accion con exito preguntan `get url` y la
+    ///     incluyen. Ver `InteractionSupport.urlPosterior` en `BrowserInteractionTools.swift`
+    ///     para el coste y para por que una URL que no se pudo leer se omite en vez de
+    ///     inventarse.
+    ///   - `BrowserSnapshotTool` devuelve `origin` (esquema+host, que NO distingue dos paginas
+    ///     del mismo sitio y por eso no basta) y, cuando el CLI la trae, tambien la `url`
+    ///     completa, que si sirve.
     ///
-    /// Consecuencia honesta, y conviene saberla antes de leer el corte: hoy la comparacion de
-    /// URL solo puede dispararse detras de `browser_open` y de `browser_get(url)`. Un `click`
-    /// que navegue no lo demuestra en su propio resultado, asi que cae en la rama que NO corta.
-    /// Cerrar ese hueco es trabajo de las herramientas (devolver la URL posterior a la accion,
-    /// que el CLI si conoce), no de este bucle.
+    /// Consecuencia honesta, y conviene saberla antes de leer el corte: la comparacion de URL
+    /// vale lo que valga el dato. Una accion cuya URL posterior no se pudo averiguar sigue
+    /// cayendo en la rama que NO corta.
     nonisolated static func urlDelResultado(_ resultado: String) -> String? {
         guard let objeto = (try? JSONSerialization.jsonObject(with: Data(resultado.utf8))) as? [String: Any]
         else { return nil }
@@ -247,8 +250,8 @@ final class Agent {
     /// aplicada aqui: cortar de mas tampoco es gratis —cuesta una ronda del presupuesto del
     /// turno y le pide al modelo que vuelva a mirar una pagina que no se habia movido—, asi que
     /// un valor que no se supo leer nunca se convierte en un corte. El precio de esa eleccion
-    /// esta escrito arriba, en `urlDelResultado`: mientras las herramientas de interaccion no
-    /// devuelvan URL, un clic que navegue no se detecta por aqui.
+    /// esta escrito arriba, en `urlDelResultado`: un clic cuya URL posterior no se pudo
+    /// averiguar no se detecta por aqui.
     ///
     /// Y UNA ACCION FALLIDA NO CORTA. Si el CLI devolvio `error`, `refused` o `invalid_arguments`
     /// no hizo nada, luego no pudo invalidar nada: las `@eN` de la cola siguen siendo tan buenas

@@ -145,7 +145,17 @@ final class AgentTests: XCTestCase {
         for name in Agent.browserToolNames {
             XCTAssertFalse(Agent.toolResultNote(toolName: name, args: "{}", result: "r").contains("DO NOT call"), name)
         }
-        XCTAssertEqual(Agent.browserToolNames.count, 8)
+        // El conjunto es el INVENTARIO de herramientas de navegador, no un numero: lo que esta
+        // prueba necesita es que el bucle de arriba haya recorrido TODAS las que la app
+        // registra. Escrito a mano («count == 8») se quedaba viejo en cuanto apareciera la
+        // novena y se ponia rojo sin decir por que; derivado del registro, una herramienta
+        // nueva entra sola en el bucle, y si alguien la registra sin anadirla a
+        // `browserToolNames` el fallo nombra cual falta.
+        let registradas = Set(HarnessModel.browserToolRegistry().tools
+            .map { type(of: $0).name }
+            .filter { $0.hasPrefix("browser_") })
+        XCTAssertEqual(Agent.browserToolNames, registradas)
+        XCTAssertFalse(registradas.isEmpty, "sin inventario el bucle de arriba no comprueba nada")
     }
 
     /// Las otras ~71 herramientas dependen de esta frase: el modelo spameaba herramientas y

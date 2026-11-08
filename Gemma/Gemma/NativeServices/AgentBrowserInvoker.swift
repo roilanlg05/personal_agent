@@ -331,6 +331,15 @@ public final class MockAgentBrowserInvoker: AgentBrowserInvoking, @unchecked Sen
     /// Plazo recibido en cada llamada, en el mismo orden que `receivedArguments`.
     public private(set) var receivedTimeouts: [TimeInterval] = []
 
+    /// Respuestas en cola: una por llamada y en orden. Cuando se agota, las llamadas
+    /// siguientes vuelven a recibir `nextResult`.
+    ///
+    /// Existe porque una herramienta puede necesitar DOS órdenes del CLI para una acción
+    /// (una interacción y el `get url` que averigua dónde quedó la página), y con una sola
+    /// respuesta programada para todas las llamadas no se puede distinguir la URL que trae
+    /// la acción de la que se pregunta después.
+    public var scriptedResults: [Result<AgentBrowserInvocation, AgentBrowserInvocationFailure>] = []
+
     public init(nextResult: Result<AgentBrowserInvocation, AgentBrowserInvocationFailure>) {
         self.nextResult = nextResult
     }
@@ -341,10 +350,20 @@ public final class MockAgentBrowserInvoker: AgentBrowserInvoking, @unchecked Sen
             AgentBrowserInvocation(exitCode: 0, standardOutput: stdout, standardError: "")))
     }
 
+    /// Atajo: una salida por llamada, en orden. La última se repite si hay más llamadas.
+    public static func succeeding(stdouts: [String]) -> MockAgentBrowserInvoker {
+        let mock = MockAgentBrowserInvoker.succeeding(stdout: stdouts.last ?? "")
+        mock.scriptedResults = stdouts.map {
+            .success(AgentBrowserInvocation(exitCode: 0, standardOutput: $0, standardError: ""))
+        }
+        return mock
+    }
+
     public func invoke(arguments: [String], timeout: TimeInterval) async
         -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
         receivedArguments.append(arguments)
         receivedTimeouts.append(timeout)
+        if !scriptedResults.isEmpty { return scriptedResults.removeFirst() }
         return nextResult
     }
 }

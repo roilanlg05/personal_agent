@@ -73,7 +73,8 @@ public final class BrowserSnapshotTool: AgentTool, Sendable {
     árbol completo. Con 'selector' limita el snapshot a una parte de la página. \
     Estados: 'success' (el árbol va en 'snapshot'; 'element_count' cuenta las \
     referencias; 'truncated' indica si se recortó y entonces conviene acotar con \
-    'selector'), 'no_content' (la página no tiene elementos que mostrar: dilo tal \
+    'selector'; 'url' es la página en la que está el navegador, cuando se puede saber), \
+    'no_content' (la página no tiene elementos que mostrar: dilo tal \
     cual), \(AgentBrowserToolOutput.statesSentence) Si no hay página abierta, usa browser_open primero. \
     \(AgentBrowserToolOutput.honestyNotice) \(AgentBrowserToolOutput.untrustedContentNotice)
     """
@@ -121,6 +122,14 @@ public final class BrowserSnapshotTool: AgentTool, Sendable {
             "status": "success",
             "snapshot": clipped.text,
             "element_count": (fields["refs"] as? [String: Any])?.count ?? 0,
+            // `origin` es esquema+host: dos páginas del mismo sitio lo comparten, así que como
+            // respuesta a «¿dónde estoy?» da falsos negativos. La URL completa, cuando el CLI
+            // la trae, es la buena, y es además la que `Agent.cortaLaCola` compara para decidir
+            // si las `@eN` de la ronda siguen valiendo. Se dan las dos: el campo viejo no se
+            // retira, y un valor que no sea una página web (`isAllowedWebURL`) no se reporta,
+            // para que una URL ilegible no pueda fabricar un cambio de página que no hubo.
+            "url": AgentBrowserToolOutput.isAllowedWebURL(fields["url"] as? String ?? "")
+                ? fields["url"] as? String : nil,
             "origin": fields["origin"] as? String,
             "truncated": clipped.truncated,
             "message": clipped.truncated

@@ -428,9 +428,16 @@ public final class HarnessModel {
     static func browserInvoker(defaults: UserDefaults = .standard) -> any AgentBrowserInvoking {
         let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !raw.isEmpty, let url = URL(string: raw), url.scheme != nil, url.host != nil else {
-            return ProcessAgentBrowserInvoker()
+        // Solo el campo VACÍO es "sin i3" (comportamiento de siempre). Una URL escrita pero
+        // inválida no debe caer al navegador local a espaldas del usuario: ver `InvalidBrowserURLInvoker`.
+        if raw.isEmpty { return ProcessAgentBrowserInvoker() }
+        guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
+              url.host != nil else {
+            return InvalidBrowserURLInvoker()
         }
+        // Token vacío con URL válida: se usa el HTTP igualmente. El servicio responderá 401 y
+        // el invocador lo traduce a "el i3 rechazó el token", que es accionable; desviar al
+        // navegador local sería peor (ver arriba).
         let token = defaults.string(forKey: SettingsKeys.browserBearerToken) ?? ""
         return HTTPAgentBrowserInvoker(baseURL: url, bearerToken: token)
     }

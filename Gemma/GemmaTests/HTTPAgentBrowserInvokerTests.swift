@@ -135,5 +135,59 @@ final class HTTPAgentBrowserInvokerTests: XCTestCase {
         let interval = try XCTUnwrap(stub.lastRequest?.timeoutInterval)
         XCTAssertGreaterThan(interval, 60, "el viaje de red se suma al plazo del CLI, no se le resta")
     }
+
+    // MARK: selección del invocador (HarnessModel.browserInvoker)
+    // Si elige mal, el agente conduce un navegador y el panel muestra otro, sin ningún error.
+
+    private func defaults(url: String?, token: String? = nil) -> UserDefaults {
+        let suite = "HTTPAgentBrowserInvokerTests.\(UUID().uuidString)"
+        let d = UserDefaults(suiteName: suite)!
+        addTeardownBlock { d.removePersistentDomain(forName: suite) }
+        if let url { d.set(url, forKey: SettingsKeys.browserBaseURL) }
+        if let token { d.set(token, forKey: SettingsKeys.browserBearerToken) }
+        return d
+    }
+
+    func test_sin_url_configurada_se_usa_el_proceso_local() {
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: nil)) is ProcessAgentBrowserInvoker)
+    }
+
+    func test_url_vacia_o_en_blanco_se_usa_el_proceso_local() {
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: "")) is ProcessAgentBrowserInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: "  \n")) is ProcessAgentBrowserInvoker)
+    }
+
+    func test_url_valida_con_token_usa_el_invocador_http() {
+        let d = defaults(url: "http://100.1.2.3:8083", token: "t")
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: d) is HTTPAgentBrowserInvoker)
+    }
+
+    /// Decisión deliberada: URL válida y token vacío sigue siendo el i3 (dará 401 con motivo
+    /// accionable), nunca el navegador local a escondidas.
+    func test_url_valida_con_token_vacio_sigue_siendo_el_i3() {
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: "http://100.1.2.3:8083")) is HTTPAgentBrowserInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: "http://100.1.2.3:8083", token: "")) is HTTPAgentBrowserInvoker)
+    }
+
+    func test_url_no_vacia_pero_invalida_no_cae_al_proceso_local() {
+        for bad in ["no es una url", "100.1.2.3:8083", "ftp://x.test", "http://"] {
+            let invoker = HarnessModel.browserInvoker(defaults: defaults(url: bad, token: "t"))
+            XCTAssertFalse(invoker is ProcessAgentBrowserInvoker, "'\(bad)' no debe desviar al navegador local")
+            XCTAssertTrue(invoker is InvalidBrowserURLInvoker, "'\(bad)'")
+        }
+    }
+
+    func test_url_invalida_hace_que_la_herramienta_falle_con_motivo_nombrando_la_url_sin_usar_el_local() async throws {
+        let invoker = HarnessModel.browserInvoker(defaults: defaults(url: "no es una url"))
+        let out = await BrowserPressTool(service: AgentBrowserService(invoker: invoker, sessionName: "gemma"))
+            .run(argsJSON: #"{"key":"Enter"}"#)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(out.utf8)) as? [String: Any], "got: \(out)")
+        // AgentBrowserToolOutput reserva "not_available" para el binario ausente (y su mensaje
+        // manda a INSTALAR agent-browser, que aquí sería un consejo equivocado). Un launchFailed
+        // sale como "error" con el motivo; el turno no se rompe y el motivo nombra la URL del i3.
+        XCTAssertEqual(json["status"] as? String, "error")
+        XCTAssertFalse(out.contains("instal"), "no debe mandar a instalar el binario local: \(out)")
+        XCTAssertTrue(out.contains("URL del navegador del i3"), "el motivo nombra la URL: \(out)")
+    }
 }
 #endif

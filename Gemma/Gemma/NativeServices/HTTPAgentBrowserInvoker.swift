@@ -92,4 +92,20 @@ public struct HTTPAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
     }
 }
 
+/// Invocador de una `browserBaseURL` que el usuario escribió pero no es una URL http(s) utilizable.
+///
+/// Existe para NO desviar en silencio al navegador local: el usuario cree haber configurado el i3,
+/// y si el agente condujera un navegador de la Mac el panel de streaming (que mira el del i3)
+/// se quedaría en blanco sin explicación. Falla siempre, con un motivo que nombra la URL.
+public struct InvalidBrowserURLInvoker: AgentBrowserInvoking, Sendable {
+    public init() {}
+
+    public func invoke(arguments: [String], timeout: TimeInterval) async
+        -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
+        .failure(.launchFailed(
+            "La URL del navegador del i3 en Ajustes no es válida (debe ser http:// o https://). "
+            + "Corrígela o déjala vacía para usar el navegador local."))
+    }
+}
+
 #endif

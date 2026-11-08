@@ -51,6 +51,30 @@ enum BrowserRules {
     /// entre en un bucle de reintentos contra un candado que nunca va a ceder.
     static let closeRule = "You do NOT close the browser. The open page is usually the thing the user asked for (a video playing, a page to read, a cart or form to review), so leaving it open is the normal ending, not an oversight. `browser_close` is gated by the app: it works only when the user asked to close in this turn, and otherwise returns `refused` with the page still open. That refusal is correct behaviour, not an error to retry."
 
+    /// Lo que la guia oficial promete y nosotros NO tenemos.
+    ///
+    /// La guia documenta el CLI entero: `find role/text/label`, `wait --text/--url/--fn`,
+    /// `eval --stdin`, `screenshot --annotate`, `tab`, `frame`, `dialog`, `doctor`… Nuestro
+    /// agente conduce ese CLI a traves de un SUBCONJUNTO de herramientas, asi que va a leer
+    /// un manual mas grande que lo que puede llamar.
+    ///
+    /// Esto es exactamente el defecto que documentamos en browser-use y que no vamos a
+    /// importar: su prompt le promete al modelo cajas numeradas dibujadas sobre la captura
+    /// que por defecto no existen, y el modelo acaba leyendo la descripcion de algo que no ha
+    /// recibido. Nosotros estariamos haciendo lo mismo un nivel mas arriba. La solucion es
+    /// decir la verdad DELANTE del documento, no podar el documento: recortarlo romperia el
+    /// «byte a byte como lo imprime el CLI», que es lo que deja la copia diffeable contra el
+    /// original al subir de version — y entonces la siguiente actualizacion seria a ciegas.
+    ///
+    /// La lista de nombres se DERIVA de `Agent.browserToolNames`. A mano se quedaria vieja, y
+    /// una lista vieja es como se llega a prometer lo que no hay: si manana aparece un
+    /// `browser_find`, esta linea lo nombra sola (y si alguien la vuelve a escribir a mano,
+    /// `BrowserCoreSkillTests` se pone rojo).
+    static var toolInventoryNote: String {
+        let nombres = Agent.browserToolNames.sorted().map { "`\($0)`" }.joined(separator: ", ")
+        return "[The guide that follows documents the WHOLE agent-browser command-line tool, which is BIGGER than what you can call. You are not driving it from a shell: you have exactly \(Agent.browserToolNames.count) browser tools, and these are all of them: \(nombres). Any other command the guide mentions does not exist for you, however well the guide explains it — read those sections as background on how the browser behaves, never as something you can run. If a step would need a command you do not have, say which step you cannot do instead of pretending to run it.]"
+    }
+
     /// Las reglas enteras, como UNA sola linea de prompt.
     static let text = """
     For tasks that need interacting with a page rather than reading it (forms, buttons, results that appear after a click), use the loop: `browser_open(url)` → `browser_snapshot` (lists the elements with `@eN` references) → act on an `@eN` reference with `browser_click`, `browser_fill` or `browser_press` → `browser_snapshot` again to see the new state. The `@eN` references change after every action, so NEVER reuse an old one. \(closeRule) When you are done, just say what is on screen. \

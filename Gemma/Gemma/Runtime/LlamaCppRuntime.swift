@@ -4,6 +4,11 @@ public final class LlamaCppRuntime: ModelRuntime, ToolCallingRuntime, @unchecked
     public nonisolated let identifier: String = "llamacpp-metal"
 
     private var context: LlamaContext?
+    /// Ventana con la que se cargó el contexto, para que `Agent` pueda decidir si un bloque
+    /// grande cabe antes de añadirlo al prompt. `nil` mientras no hay modelo cargado: en el
+    /// bucle del agente eso no pasa, porque la primera `generate` carga el modelo mucho antes
+    /// de que haya un resultado de herramienta al que pegar nada.
+    private var loadedContextLength: Int?
     private var lastMetrics: RuntimeMetrics?
     private var isGenerating: Bool = false
     private let lock = NSLock()
@@ -69,7 +74,27 @@ public final class LlamaCppRuntime: ModelRuntime, ToolCallingRuntime, @unchecked
         )
         lock.lock()
         self.context = ctx
+        self.loadedContextLength = options.contextLength
         lock.unlock()
+    }
+
+    /// Ventana que se declara mientras no hay modelo cargado.
+    ///
+    /// Procedencia: es la que usa `ensureLoaded` cuando carga el modelo por su cuenta
+    /// (`ModelLoadOptions(modelPath: modelURL, contextLength: 8192, backend: .gpu)`), o sea la
+    /// ventana con la que este runtime se va a cargar si nadie le dice otra cosa.
+    ///
+    /// Se declara en lugar de devolver `nil` a propósito: `nil` significa «no hay ventana» y
+    /// quien decide lo trata como «cabe». Para el camino on-device eso seria mentira, y el
+    /// error caeria del lado caro — inyectar 17 KB en una ventana que no los aguanta hace que
+    /// `LlamaContext` deslice y se coma el prompt del sistema, donde viven las reglas de
+    /// seguridad. Mejor declarar una ventana estrecha de mas que ninguna.
+    public nonisolated static let fallbackContextTokens = 8192
+
+    public var contextTokenBudget: Int? {
+        lock.lock()
+        defer { lock.unlock() }
+        return loadedContextLength ?? Self.fallbackContextTokens
     }
 
     private func ensureLoaded() async throws {

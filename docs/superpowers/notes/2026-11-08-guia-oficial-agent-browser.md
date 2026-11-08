@@ -274,3 +274,219 @@ y presencia desde el primer token), pero la repetición es real y conviene decir
   `doctor`. El modelo va a leer sobre ellas y no va a poder llamarlas. Es un argumento para
   ampliar el registro de herramientas, no para recortar la guía — y es material para la cola de
   trabajo del navegador.
+
+---
+
+# Apéndice: Resoluciones 12 y 13 (2026-11-08, misma sesión)
+
+Dos resoluciones del coordinador sobre las preocupaciones 1 y 3 del informe de arriba. Las dos se
+implementan **dentro de `BrowserRules`**, que para eso es la fuente única.
+
+## Nota sobre el hallazgo del candado divergido
+
+Conviene decirlo más fuerte de lo que quedó arriba: **el candado de cierre ya había divergido**.
+No es una mejora preventiva, es un arreglo. Las reglas no estaban en dos sitios sino en TRES, y en
+dos de ellos la misma regla estaba escrita con palabras distintas:
+
+- Prompt del sistema: «You do NOT close the browser. … `browser_close` **is gated by the app**: it
+  works only when the user asked to close in this turn, and otherwise returns `refused` with the
+  page **still open**. That refusal is **correct behaviour, not an error to retry**.»
+- `Agent.toolResultNote`: «When the task IS finished, **leave the browser open** … You do not
+  close it — `browser_close` works only if the user asked to close in this turn, and otherwise
+  returns `refused` with the page **intact**, which is **correct and must not be retried**.»
+
+Mismo fondo, tres diferencias de redacción. El test que las protegía
+(`AgentSystemPromptTests.test_el_prompt_no_manda_cerrar_el_navegador_en_ningun_caso`) tenía que
+aceptar las dos formas con alternativas (`"not an error to retry" || "must not be retried" ||
+"correct behaviour"`), que es la cicatriz que deja una regla duplicada. Esa divergencia es
+exactamente lo que el usuario intuía cuando pidió la fuente única, y ya había pasado.
+
+## Resolución 12 — el manual es más grande que el agente, y se dice en voz alta
+
+La guía documenta `find role/text/label`, `wait --text/--url/--fn`, `eval --stdin`,
+`screenshot --annotate`, `tab`, `frame`, `dialog`, `doctor`. Nuestro agente **no tiene ninguna de
+esas**.
+
+Es el mismo defecto que documentamos en browser-use y que no vamos a importar: su prompt le
+promete al modelo cajas numeradas dibujadas sobre la captura que por defecto no existen, y el
+modelo acaba leyendo la descripción de algo que no ha recibido. Nosotros estaríamos haciéndolo un
+nivel más arriba: darle el manual de un CLI entero y un subconjunto de herramientas.
+
+**Lo hecho:** `BrowserRules.toolInventoryNote`, una línea que viaja DELANTE del texto oficial
+(orden del bloque: reglas → inventario → frase de precedencia → guía). Dice que el documento
+describe el CLI COMPLETO, enumera las herramientas que de verdad tiene, y dice que cualquier otro
+comando que la guía mencione **no existe para él** por bien que lo explique, que esas secciones se
+leen como contexto de cómo se comporta el navegador, y que si un paso necesitara un comando que no
+tiene diga qué paso no puede hacer en lugar de fingir que lo ejecuta.
+
+**La lista se DERIVA de `Agent.browserToolNames`**, no se escribe a mano:
+
+```swift
+let nombres = Agent.browserToolNames.sorted().map { "`\($0)`" }.joined(separator: ", ")
+```
+
+El test `test_el_inventario_de_herramientas_sale_de_browserToolNames` no comprueba que los nombres
+estén: comprueba que el **conjunto nombrado sea EXACTAMENTE `Agent.browserToolNames`** (extrae los
+trozos entre acentos graves, filtra los que empiezan por `browser_` y compara conjuntos), y que la
+cuenta de la frase salga del conjunto. Si mañana se añade un `browser_find`, la línea lo nombra
+sola; si alguien la vuelve a escribir a mano, el test se pone rojo (mutaciones M13 y M14).
+
+**CORRECCIÓN DE UN NÚMERO:** el encargo y la resolución hablan de «nueve herramientas». Son
+**OCHO**. `Agent.browserToolNames` = `browser_click`, `browser_close`, `browser_fill`,
+`browser_get`, `browser_open`, `browser_press`, `browser_snapshot`, `browser_wait`. Un `grep` de
+`"browser_[a-z_]*"` sobre todo `Gemma/Gemma` no encuentra una novena. (`read_webpage` existe pero
+no es del navegador: es de una sola llamada y queda fuera del conjunto a propósito.) Por eso la
+línea no lleva el número escrito: lo interpola de `Agent.browserToolNames.count`.
+
+**El texto oficial no se poda.** Dejarlo byte a byte es lo que permite diffear la próxima captura
+contra ésta; si se recortan las secciones de comandos que no tenemos, la siguiente actualización
+es a ciegas. `test_el_texto_oficial_conserva_los_comandos_que_no_tenemos` lo fija nombrando seis
+de esos comandos.
+
+## Resolución 13 — la guía no se inyecta si no cabe
+
+**No se recorta. Se deja de inyectar.** Y el motivo no es ahorrar tokens.
+
+`LlamaContext` no falla cuando el prompt no cabe. Desliza la ventana:
+
+```swift
+let maxPromptTokens = max(512, nCtx - 512)
+if tokensList.count > maxPromptTokens {
+    let keepHeader = min(500, tokensList.count / 3)
+    let keepTail = maxPromptTokens - keepHeader
+    tokensList = Array(tokensList.prefix(keepHeader)) + Array(tokensList.suffix(keepTail))
+}
+```
+
+Conserva ~500 tokens de cabecera y el resto de cola, y **se come el medio en silencio**. Lo que se
+cae por ese agujero no es sólo la guía: el prompt del sistema son 5824 tokens estimados, así que
+lo que se cae puede ser la prohibición de teclear contraseñas y el candado de cierre. Una guía a
+medias que además desaloja la prohibición de teclear contraseñas es estrictamente peor que no
+tener guía: cuesta tokens, no entrega nada y se lleva por delante lo único que no puede faltar.
+
+### Cómo se sabe si cabe
+
+`ToolCallingRuntime` gana una capacidad opcional con implementación por omisión:
+
+```swift
+var contextTokenBudget: Int? { get }   // extensión por omisión: nil
+```
+
+- `LlamaCppRuntime` la implementa devolviendo la ventana con la que se cargó (guarda
+  `loadedContextLength` en `load`).
+- `ServerRuntime` **no la implementa**: se queda con el `nil` por omisión, porque la ventana la
+  fija el modelo remoto.
+- Todos los dobles de test del proyecto se quedan también con el `nil`, así que ninguno hubo que
+  tocar.
+
+Cambio pequeño: 1 requisito de protocolo + 1 extensión por omisión + 1 propiedad almacenada y 1
+propiedad calculada en `LlamaCppRuntime`. No hizo falta nada grande, así que no hubo que pararlo.
+
+`Agent` decide con una función pura y testable:
+
+```swift
+nonisolated static func browserGuideFits(systemPrompt: String, livePrompt: String, budgetTokens: Int?) -> Bool
+```
+
+**`nil` = cabe.** Es el caso del camino que corre hoy y está afirmado con prueba propia
+(`test_en_el_camino_de_servidor_la_guia_sigue_llegando`), que además pasa un `livePrompt` de medio
+millón de caracteres con `budgetTokens: nil` y exige `true`: `nil` significa «no hay ventana
+declarada», nunca «no sé, mejor no».
+
+### El umbral y su procedencia
+
+Dos números, ninguno a ojo.
+
+| Número | De dónde sale |
+| --- | --- |
+| 512 tokens de margen para la respuesta | `LlamaContext.generate`: `maxPromptTokens = max(512, nCtx - 512)`. Es el margen que YA aplica el camino on-device, no uno nuevo. |
+| 3 bytes por token | La regla de pulgar habitual para inglés es ~4. Se usa 3 **a propósito**, o sea se SOBREestima el número de tokens. |
+
+Por qué 3 y no 4: los dos errores no cuestan lo mismo. Quedarse corto significa no inyectar una
+guía que sí cabía — se pierde una ayuda. Pasarse significa inyectarla cuando no cabe — la ventana
+desliza y se puede comer el prompt del sistema, donde viven las reglas de seguridad. Se redondea
+al lado que falla barato.
+
+### Las medidas reales (2026-11-08)
+
+| Medida | Bytes | Tokens estimados (bytes/3) |
+| --- | --- | --- |
+| Prompt del sistema renderizado | 17471 | 5824 |
+| Bloque inyectado completo | 18002 | 6001 |
+| — nuestras reglas | 2256 | |
+| — inventario de herramientas | 653 | |
+| — frase de precedencia | 630 | |
+| — texto oficial | 14457 | |
+
+Presupuesto de prompt por ventana: 4096 → 3584 tokens; 8192 → 7680; 32768 → 32256.
+
+Decisión que sale de esos números:
+
+| Ventana | Sistema + bloque | Presupuesto | ¿Se inyecta? |
+| --- | --- | --- | --- |
+| 4096 (por omisión de `GenerationSettings`) | 11825 | 3584 | **No** |
+| 8192 (la que usa `LlamaCppRuntime.ensureLoaded`) | 11825 | 7680 | **No** |
+| 32768 | 11825 | 32256 | Sí |
+| `nil` (servidor: el camino que corre hoy) | — | — | **Sí** |
+
+La decisión es robusta al divisor: con 4 bytes/token en lugar de 3 saldrían ~4368 + ~4501 = 8869
+tokens, que sigue pasándose de 7680. En las dos ventanas on-device la guía no cabe con ninguna de
+las dos estimaciones.
+
+### HALLAZGO que no es de esta tarea
+
+Con la ventana de 4096, **el prompt del sistema SOLO ya se pasa del presupuesto**: 5824 tokens
+estimados contra 3584. Sin guía ninguna, en el camino on-device con la ventana por omisión,
+`LlamaContext` ya está deslizando y comiéndose el medio del prompt del sistema. Esto no lo
+introduce esta tarea y no se arregla aquí, pero queda afirmado en
+`test_las_ventanas_reales_del_camino_on_device` para que no se pierda. Es material para la tarea
+aparcada (B) de recortar el prompt.
+
+## Mutaciones del apéndice
+
+Suite completa en cada una. Rojos = los que SUMAN sobre los 7 de base.
+
+| Mutación | Rojos nuevos |
+| --- | --- |
+| **M11** la guarda ignora el presupuesto y siempre devuelve `true` | `test_la_guia_no_se_inyecta_si_no_cabe_en_la_ventana`, `test_el_calculo_de_si_cabe`, `test_las_ventanas_reales_del_camino_on_device` (3) |
+| **M12** `LlamaCppRuntime.contextTokenBudget` devuelve `nil` | `test_el_camino_on_device_declara_su_ventana` (1) — **ver abajo: a la primera SOBREVIVIÓ** |
+| **M13** el inventario pierde una herramienta (`dropLast()`) | `test_el_inventario_de_herramientas_sale_de_browserToolNames` (1) |
+| **M14** el inventario se escribe a mano en vez de derivarse | `test_el_inventario_de_herramientas_sale_de_browserToolNames` (1) |
+| **M15** el inventario sale del bloque inyectado | `test_el_inventario…`, `test_en_el_camino_de_servidor_la_guia_sigue_llegando`, `test_nuestras_reglas_van_delante_del_texto_oficial…` (3) |
+| **M16** la estimación de tokens se vuelve optimista (3 → 40 bytes/token) | `test_la_guia_no_se_inyecta_si_no_cabe_en_la_ventana`, `test_el_calculo_de_si_cabe`, `test_las_ventanas_reales_del_camino_on_device` (3) |
+
+### M12 sobrevivió a la primera, y eso era el agujero
+
+En la primera tanda **M12 no puso NADA rojo**. La guarda miraba el presupuesto, el camino de
+servidor seguía funcionando, los dos tests de ventana pasaban… y el único sitio donde la guarda
+hace falta no estaba cubierto por nada: si `LlamaCppRuntime` devolvía `nil`, se interpretaba como
+«cabe» y la protección desaparecía en el camino on-device sin que ningún test se enterara.
+
+Arreglado con dos cambios:
+
+1. `LlamaCppRuntime.contextTokenBudget` deja de poder ser `nil`: devuelve
+   `loadedContextLength ?? LlamaCppRuntime.fallbackContextTokens`, y el fallback es 8192 — la
+   ventana con la que `ensureLoaded` carga el modelo cuando nadie le dice otra cosa. Declarar una
+   ventana estrecha de más es el lado barato; declarar ninguna (`nil` = «cabe») es el caro.
+2. `test_el_camino_on_device_declara_su_ventana`, que exige `contextTokenBudget` no-`nil`, que
+   valga el fallback, que el fallback sea 8192, y que con esa ventana `browserGuideFits` diga
+   `false` — o sea que la guarda hace algo real ahí. Se comprueba sin cargar modelo, porque en los
+   tests no hay `.gguf`; que tras un `load` real declare la ventana de ese `load` no es testeable
+   aquí y queda dicho en el comentario del runtime.
+
+**Segundo hallazgo del mismo episodio, metodológico:** la primera versión de M12 reemplazaba
+`return loadedContextLength` por `return nil`, y tras el arreglo esa cadena quedó como PREFIJO de
+la línea nueva, así que la mutación producía `return nil ?? Self.fallbackContextTokens` — que
+sigue devolviendo 8192. La mutación se había vuelto un no-op y «sobrevivía» por eso, no por falta
+de test. Hubo que re-apuntar el ancla a la línea entera para verla roja. Una mutación que no
+compila distinto a lo que uno cree es una mutación que miente igual que un test que pasa por el
+motivo equivocado.
+
+## Números finales
+
+| Medida | Valor |
+| --- | --- |
+| Tests fallando (suite completa) | 7, los de base |
+| Tests nuevos en `BrowserCoreSkillTests` | 22 |
+| Mutaciones comprobadas en rojo | 16 (10 + 6), ninguna sobrevive |
+| Ficheros de producción tocados | `Agent.swift`, `BrowserRules.swift`, `BrowserCoreSkill.swift`, `ToolCallingRuntime.swift`, `LlamaCppRuntime.swift` |

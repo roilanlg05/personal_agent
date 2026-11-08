@@ -233,7 +233,48 @@ final class Agent {
     ///     asi que inyectarla en cada llamada de navegador la repetiria hasta diez veces en un
     ///     unico turno de conduccion.
     nonisolated static func browserGuideBlock() -> String {
-        BrowserRules.text + "\n\n" + browserGuidePreamble + "\n\n" + BrowserCoreSkill.text
+        BrowserRules.text + "\n\n" + BrowserRules.toolInventoryNote
+            + "\n\n" + browserGuidePreamble + "\n\n" + BrowserCoreSkill.text
+    }
+
+    /// Tokens que `LlamaContext` reserva de la ventana para la respuesta: desliza el prompt a
+    /// `nCtx - 512` (ver `LlamaContext.generate`, `maxPromptTokens`). No es un numero a ojo:
+    /// es el que ya aplica el camino on-device.
+    nonisolated static let generationHeadroomTokens = 512
+
+    /// Bytes por token con los que se estima el tamano de un texto.
+    ///
+    /// La regla de pulgar habitual para texto en inglés es ~4 bytes por token. Aqui se usa 3 a
+    /// proposito, o sea se SOBREestima el numero de tokens, porque los dos errores no cuestan
+    /// lo mismo: quedarse corto significa no inyectar una guia que si cabia (se pierde una
+    /// ayuda), y pasarse significa inyectarla cuando no cabe (la ventana desliza y se puede
+    /// comer el prompt del sistema, donde viven las reglas de seguridad). Se redondea al lado
+    /// barato.
+    nonisolated static let estimateBytesPerToken = 3
+
+    nonisolated static func estimatedTokens(_ text: String) -> Int {
+        (text.utf8.count + estimateBytesPerToken - 1) / estimateBytesPerToken
+    }
+
+    /// Si el bloque de la guia del navegador cabe en la ventana del runtime.
+    ///
+    /// NO se recorta la guia cuando no cabe: se deja de inyectar. El motivo no es ahorrar
+    /// tokens, es que la alternativa es peligrosa. `LlamaContext` no falla cuando el prompt no
+    /// cabe: desliza la ventana (conserva ~500 tokens de cabecera y el resto de cola) y se come
+    /// el medio EN SILENCIO. Lo que se cae por ese agujero no es solo la guia — se puede caer
+    /// el prompt del sistema, que es donde viven la prohibicion de teclear contrasenas y el
+    /// candado de cierre. Una guia a medias que ademas desaloja la prohibicion de teclear
+    /// contrasenas es estrictamente peor que no tener guia: cuesta tokens, no entrega nada y se
+    /// lleva por delante lo unico que no puede faltar.
+    ///
+    /// `budgetTokens` a `nil` = el runtime no declara ventana (los de servidor, donde la fija
+    /// el modelo remoto y es holgada): cabe.
+    nonisolated static func browserGuideFits(systemPrompt: String, livePrompt: String, budgetTokens: Int?) -> Bool {
+        guard let budgetTokens else { return true }
+        let promptBudget = max(512, budgetTokens - generationHeadroomTokens)
+        let needed = estimatedTokens(systemPrompt) + estimatedTokens(livePrompt)
+            + estimatedTokens(browserGuideBlock())
+        return needed <= promptBudget
     }
 
     func run(prompt: String, options: GenerationOptions) -> AsyncThrowingStream<AgentEvent, Error> {
@@ -339,7 +380,10 @@ final class Agent {
                             // La guia oficial del CLI viaja con la nota de la PRIMERA
                             // herramienta de navegador del turno, y solo con esa. Ver
                             // `browserGuideBlock()` para el porque de esta colocacion.
-                            if Self.browserToolNames.contains(tc.name), !browserGuideInjected {
+                            if Self.browserToolNames.contains(tc.name), !browserGuideInjected,
+                               Self.browserGuideFits(systemPrompt: opts.systemPrompt ?? "",
+                                                     livePrompt: resultsNote,
+                                                     budgetTokens: self.runtime.contextTokenBudget) {
                                 browserGuideInjected = true
                                 resultsNote += "\n\n" + Self.browserGuideBlock()
                             }

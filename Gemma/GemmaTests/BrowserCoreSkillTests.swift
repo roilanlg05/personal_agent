@@ -137,8 +137,14 @@ final class BrowserCoreSkillTests: XCTestCase {
         private let rounds: [[String]]
         private var round = 0
         var prompts: [String] = []
+        /// Ventana declarada por este runtime. `nil` (por omisión) = no la declara, como los
+        /// runtimes de servidor.
+        let contextTokenBudget: Int?
 
-        init(rounds: [[String]]) { self.rounds = rounds }
+        init(rounds: [[String]], contextTokenBudget: Int? = nil) {
+            self.rounds = rounds
+            self.contextTokenBudget = contextTokenBudget
+        }
 
         func generate(prompt: String, tools: [AgentTool], options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
             prompts.append(prompt)
@@ -153,8 +159,8 @@ final class BrowserCoreSkillTests: XCTestCase {
     }
 
     /// Corre un turno con ese guion y devuelve el último prompt vivo que vio el modelo.
-    private func lastLivePrompt(rounds: [[String]]) async throws -> String {
-        let runtime = ScriptedRoundsRuntime(rounds: rounds)
+    private func lastLivePrompt(rounds: [[String]], contextTokenBudget: Int? = nil) async throws -> String {
+        let runtime = ScriptedRoundsRuntime(rounds: rounds, contextTokenBudget: contextTokenBudget)
         // Registro vacío a propósito: ninguna herramienta real corre, pero el bucle construye
         // igual la nota de resultado, que es lo que se está midiendo.
         for try await _ in Agent(runtime: runtime, registry: ToolRegistry()).run(prompt: "haz la tarea", options: GenerationOptions()) {}
@@ -240,10 +246,12 @@ final class BrowserCoreSkillTests: XCTestCase {
 
         let bloque = Agent.browserGuideBlock()
         let iReglas = try XCTUnwrap(bloque.range(of: BrowserRules.text)?.lowerBound)
+        let iInventario = try XCTUnwrap(bloque.range(of: BrowserRules.toolInventoryNote)?.lowerBound)
         let iFrase = try XCTUnwrap(bloque.range(of: Agent.browserGuidePreamble)?.lowerBound)
         let iGuia = try XCTUnwrap(bloque.range(of: BrowserCoreSkill.text)?.lowerBound)
-        XCTAssertLessThan(iReglas, iFrase, "nuestras reglas van primero")
-        XCTAssertLessThan(iFrase, iGuia, "la frase de precedencia va entre las reglas y la guía")
+        XCTAssertLessThan(iReglas, iInventario, "nuestras reglas van primero")
+        XCTAssertLessThan(iInventario, iFrase, "el inventario de herramientas va antes de la frase")
+        XCTAssertLessThan(iFrase, iGuia, "la frase de precedencia va entre el inventario y la guía")
 
         let p = Agent.browserGuidePreamble.lowercased()
         XCTAssertTrue(p.contains("the rules above win"), "falta quién gana: \(Agent.browserGuidePreamble)")
@@ -276,5 +284,162 @@ final class BrowserCoreSkillTests: XCTestCase {
         XCTAssertTrue(p.contains("`browser_snapshot`"), "se borró el bucle de conducción")
         XCTAssertTrue(p.contains("An email address is NOT a secret"), "se borró la regla del correo")
         XCTAssertTrue(p.contains("What you must not type is a password"), "se borró la regla de la contraseña")
+    }
+
+    // MARK: - Resolución 12: la guía documenta un CLI más grande que nuestro agente
+
+    /// La línea que avisa de eso nombra las herramientas que de verdad tenemos, y las nombra
+    /// DERIVADAS de `Agent.browserToolNames`, no escritas a mano.
+    ///
+    /// Es el defecto de browser-use que no queremos importar: su prompt le promete al modelo
+    /// cajas numeradas sobre la captura que por defecto no existen. Una lista a mano que se
+    /// queda vieja es cómo se llega a prometer lo que no hay, así que el test exige que el
+    /// conjunto nombrado sea EXACTAMENTE el conjunto real: si mañana aparece un
+    /// `browser_find`, la línea tiene que seguirlo sola o ponerse roja.
+    func test_el_inventario_de_herramientas_sale_de_browserToolNames() {
+        let nota = BrowserRules.toolInventoryNote
+        for name in Agent.browserToolNames {
+            XCTAssertTrue(nota.contains("`\(name)`"), "la línea no nombra \(name): \(nota)")
+        }
+        XCTAssertTrue(nota.contains("exactly \(Agent.browserToolNames.count) browser tools"),
+                      "la cuenta tiene que salir del conjunto, no de un número a mano: \(nota)")
+        // Y no nombra como nuestra ninguna que no esté en el conjunto. Se extraen los trozos
+        // entre acentos graves y se filtran los que parecen una herramienta nuestra.
+        let entreComillas = nota.components(separatedBy: "`").enumerated()
+            .filter { $0.offset % 2 == 1 }.map { $0.element }
+        let nombradas = Set(entreComillas.filter { $0.hasPrefix("browser_") })
+        XCTAssertEqual(nombradas, Agent.browserToolNames,
+                       "el conjunto nombrado tiene que ser el conjunto real")
+        // Dice lo que importa: que el documento es más grande que lo que puede llamar.
+        XCTAssertTrue(nota.contains("does not exist for you"),
+                      "falta que lo demás no existe para él: \(nota)")
+        XCTAssertTrue(nota.contains("instead of pretending to run it"),
+                      "falta qué hacer cuando le falta un comando: \(nota)")
+        // Y el aviso llega al prompt vivo con la guía.
+        XCTAssertTrue(Agent.browserGuideBlock().contains(nota))
+    }
+
+    /// El texto oficial NO se poda para quitar las secciones de comandos que no tenemos: se
+    /// deja byte a byte y se dice la verdad delante. Si se podara, la copia dejaría de ser
+    /// diffeable contra la salida del CLI y la siguiente actualización sería a ciegas.
+    func test_el_texto_oficial_conserva_los_comandos_que_no_tenemos() {
+        for comando in ["find role button click", "wait --text", "eval --stdin",
+                        "screenshot --annotate", "agent-browser tab", "agent-browser doctor"] {
+            XCTAssertTrue(BrowserCoreSkill.text.contains(comando),
+                          "el texto oficial se ha podado: falta \(comando)")
+        }
+    }
+
+    // MARK: - Resolución 13: la guía no se inyecta si no cabe
+
+    /// Con una ventana pequeña el bloque NO se inyecta.
+    ///
+    /// No se recorta: se deja de inyectar. `LlamaContext` no falla cuando el prompt no cabe —
+    /// desliza la ventana y se come el medio en silencio, y lo que se cae por ese agujero
+    /// puede ser el prompt del sistema, que es donde viven la prohibición de teclear
+    /// contraseñas y el candado de cierre. Media guía que además desaloja esa prohibición es
+    /// peor que no tener guía.
+    func test_la_guia_no_se_inyecta_si_no_cabe_en_la_ventana() async throws {
+        // 4096 es la ventana por defecto del camino on-device (`GenerationSettings`).
+        let prompt = try await lastLivePrompt(rounds: [["browser_open"]], contextTokenBudget: 4096)
+        XCTAssertEqual(veces(BrowserCoreSkill.text, en: prompt), 0,
+                       "con 4096 tokens de ventana el bloque no cabe y no se inyecta")
+        XCTAssertEqual(veces(Agent.browserGuidePreamble, en: prompt), 0)
+        // La nota de resultado sí sigue llegando: lo que se cae es la guía, no el bucle.
+        XCTAssertTrue(prompt.contains("You MAY keep calling browser tools"),
+                      "la nota de la herramienta no se toca")
+    }
+
+    /// Con una ventana holgada se inyecta, una vez.
+    func test_la_guia_se_inyecta_una_vez_con_una_ventana_holgada() async throws {
+        let prompt = try await lastLivePrompt(rounds: [["browser_open"]], contextTokenBudget: 32768)
+        XCTAssertEqual(veces(BrowserCoreSkill.text, en: prompt), 1,
+                       "con 32768 tokens de ventana cabe de sobra")
+    }
+
+    /// El cálculo, directamente, para que los dos lados de la decisión queden fijados sin
+    /// pasar por el bucle.
+    func test_el_calculo_de_si_cabe() {
+        // Un runtime que no declara ventana (los de servidor) siempre cabe.
+        XCTAssertTrue(Agent.browserGuideFits(systemPrompt: Agent.systemPromptText, livePrompt: "x", budgetTokens: nil))
+        XCTAssertFalse(Agent.browserGuideFits(systemPrompt: Agent.systemPromptText, livePrompt: "x", budgetTokens: 4096))
+        XCTAssertTrue(Agent.browserGuideFits(systemPrompt: Agent.systemPromptText, livePrompt: "x", budgetTokens: 32768))
+        // El margen de respuesta sale de `LlamaContext` (`nCtx - 512`), no de un número a ojo.
+        XCTAssertEqual(Agent.generationHeadroomTokens, 512)
+        // La estimación SOBREestima los tokens a propósito: redondea al lado barato.
+        XCTAssertLessThanOrEqual(Agent.estimateBytesPerToken, 4)
+        XCTAssertEqual(Agent.estimatedTokens(String(repeating: "a", count: 300)), 100)
+    }
+
+    /// Las dos ventanas reales del camino on-device, medidas, para que el umbral tenga
+    /// procedencia y no sea un número a ojo.
+    ///
+    /// Medido el 2026-11-08: prompt del sistema 17471 B (5824 tokens estimados), bloque de la
+    /// guía 18002 B (6001 tokens estimados). Presupuesto de prompt con ventana de 4096 =
+    /// 4096 - 512 = 3584 tokens; con 8192 = 7680.
+    ///
+    /// Sale un hallazgo de aquí que NO es de esta tarea: con la ventana de 4096 el prompt del
+    /// sistema SOLO ya se pasa del presupuesto (5824 > 3584), sin guía ninguna. Esto no lo
+    /// introduce la guía y no se arregla aquí, pero queda afirmado para que se vea.
+    func test_las_ventanas_reales_del_camino_on_device() {
+        let presupuesto4096 = max(512, 4096 - Agent.generationHeadroomTokens)
+        XCTAssertGreaterThan(Agent.estimatedTokens(Agent.systemPromptText), presupuesto4096,
+                             "con 4096 el prompt del sistema solo ya no cabe; si esto cambia, revisa el informe")
+        // Las dos ventanas con las que se carga el camino on-device: 4096 (por omisión de
+        // `GenerationSettings`) y 8192 (la que usa `LlamaCppRuntime.ensureLoaded`).
+        XCTAssertFalse(Agent.browserGuideFits(systemPrompt: Agent.systemPromptText, livePrompt: "", budgetTokens: 4096))
+        XCTAssertFalse(Agent.browserGuideFits(systemPrompt: Agent.systemPromptText, livePrompt: "", budgetTokens: 8192))
+        // Y una holgada, de las que declara un modelo de servidor si algún día las declarase.
+        XCTAssertTrue(Agent.browserGuideFits(systemPrompt: Agent.systemPromptText, livePrompt: "", budgetTokens: 32768))
+    }
+
+    /// EL CAMINO ON-DEVICE TIENE QUE DECLARAR SU VENTANA.
+    ///
+    /// Es el único sitio donde la guarda de contexto hace falta, así que si `LlamaCppRuntime`
+    /// devolviera `nil` la guarda no protegería nada: `nil` se interpreta como «cabe». Este
+    /// test existe porque una mutación que ponía ese `nil` SOBREVIVIÓ a la primera tanda — no
+    /// había nada que la detectara.
+    ///
+    /// Se comprueba sin cargar modelo (en los tests no hay `.gguf`): el runtime declara la
+    /// ventana con la que `ensureLoaded` lo cargaría. Que tras un `load` real declare la
+    /// ventana de ese `load` no es testeable aquí y queda dicho en el comentario del runtime.
+    func test_el_camino_on_device_declara_su_ventana() {
+        let rt = LlamaCppRuntime()
+        XCTAssertNotNil(rt.contextTokenBudget,
+                        "el camino on-device TIENE que declarar ventana; con `nil` la guarda no protege nada")
+        XCTAssertEqual(rt.contextTokenBudget, LlamaCppRuntime.fallbackContextTokens)
+        // Procedencia del número: la ventana con la que `ensureLoaded` carga el modelo.
+        XCTAssertEqual(LlamaCppRuntime.fallbackContextTokens, 8192)
+        // Y con esa ventana la guía NO cabe, o sea que la guarda hace algo real ahí.
+        XCTAssertFalse(Agent.browserGuideFits(systemPrompt: Agent.systemPromptText,
+                                              livePrompt: "",
+                                              budgetTokens: rt.contextTokenBudget),
+                       "con la ventana del camino on-device el bloque no cabe")
+    }
+
+    /// EL CAMINO QUE CORRE HOY. `RuntimeFactory` devuelve `ServerRuntime` para cualquier
+    /// proveedor que no sea `.onDevice`, y `ServerRuntime` no declara ventana (se queda con el
+    /// `nil` por omisión del protocolo, porque la ventana la fija el modelo remoto). La guarda
+    /// de contexto NO puede bloquear la guía ahí: sería arreglar un problema teórico y romper
+    /// el único camino que funciona.
+    func test_en_el_camino_de_servidor_la_guia_sigue_llegando() async throws {
+        // Igual que `ServerRuntime`: conforma el protocolo sin declarar ventana.
+        let prompt = try await lastLivePrompt(rounds: [["browser_open"]], contextTokenBudget: nil)
+        XCTAssertEqual(veces(BrowserCoreSkill.text, en: prompt), 1,
+                       "sin ventana declarada la guía TIENE que llegar")
+        XCTAssertEqual(veces(BrowserRules.toolInventoryNote, en: prompt), 1)
+        XCTAssertEqual(veces(Agent.browserGuidePreamble, en: prompt), 1)
+        // Y el cálculo, por si alguien cambia la guarda: `nil` es «cabe», no «no sé, mejor no».
+        XCTAssertTrue(Agent.browserGuideFits(systemPrompt: Agent.systemPromptText,
+                                             livePrompt: String(repeating: "x", count: 500_000),
+                                             budgetTokens: nil),
+                      "`nil` significa que no hay ventana declarada: cabe siempre")
+    }
+
+    /// Un runtime que no declara ventana es el caso por omisión del protocolo, y por eso los
+    /// demás tests de este fichero (y los dobles de test de todo el proyecto) siguen viendo la
+    /// guía sin tener que saber nada de contextos.
+    func test_por_omision_un_runtime_no_declara_ventana() {
+        XCTAssertNil(ScriptedRoundsRuntime(rounds: []).contextTokenBudget)
     }
 }

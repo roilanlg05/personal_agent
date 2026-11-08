@@ -8,6 +8,8 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.keepModelResident) private var keepResident = false
     @AppStorage("memoryBaseURL") private var memoryBaseURL: String = "http://localhost:8081"
     @AppStorage("memoryBearerToken") private var memoryBearerToken: String = "replace-me-with-a-long-random-string"
+    @AppStorage(SettingsKeys.browserBaseURL) private var browserBaseURL: String = ""
+    @AppStorage(SettingsKeys.browserBearerToken) private var browserBearerToken: String = ""
     @AppStorage("voiceBaseURL") private var voiceBaseURL: String = ""
     #if os(iOS)
     @AppStorage(SettingsKeys.chatProvider) private var chatProvider = "onDevice"
@@ -94,6 +96,17 @@ struct SettingsView: View {
             }
             .onChange(of: memoryBaseURL) { _, _ in model.ensureMemory() }
             .onChange(of: memoryBearerToken) { _, _ in model.ensureMemory() }
+            Section("Navegador (i3)") {
+                TextField("Browser base URL (opcional)", text: $browserBaseURL)
+                    .textFieldStyle(.roundedBorder)
+                    .help("Servicio del navegador en el i3, p. ej. http://100.x.y.z:8083. Vacío = navegador local.")
+                SecureField("Bearer token", text: $browserBearerToken)
+                    .textFieldStyle(.roundedBorder)
+                    .help("Token del servicio del navegador en el i3.")
+                Text("Vacío → el agente usa agent-browser en este Mac. Con URL, conduce el navegador del i3. Se aplica en el siguiente turno.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
             Section("Voice Service") {
                 TextField("Voice base URL (opcional)", text: $voiceBaseURL)
                     .textFieldStyle(.roundedBorder)

@@ -9,4 +9,9 @@ enum SettingsKeys {
     static let chatModel = "chatModel"
     static let consolidationProvider = "consolidationProvider"
     static let consolidationModel = "consolidationModel"
+
+    /// String. Base URL of the i3 browser service (port 8083). Empty = drive a local `agent-browser`.
+    static let browserBaseURL = "browserBaseURL"
+    /// String. Bearer token for the i3 browser service.
+    static let browserBearerToken = "browserBearerToken"
 }

@@ -411,7 +411,7 @@ public final class HarnessModel {
     /// Comparten una única instancia de `AgentBrowserService`, y por tanto la misma sesión de
     /// `agent-browser`. Es la única ruta de registro: `runAgentTurn` y `browserToolRegistry()` la usan.
     static func registerBrowserTools(into registry: ToolRegistry) {
-        let service = AgentBrowserService()
+        let service = AgentBrowserService(invoker: browserInvoker())
         registry.register(ReadWebpageTool(service: service))
         registry.register(BrowserOpenTool(service: service))
         registry.register(BrowserSnapshotTool(service: service))
@@ -421,6 +421,18 @@ public final class HarnessModel {
         registry.register(BrowserWaitTool(service: service))
         registry.register(BrowserGetTool(service: service))
         registry.register(BrowserCloseTool(service: service))
+    }
+
+    /// Con `browserBaseURL` configurada el navegador es el del i3 (HTTP); sin ella, el
+    /// `agent-browser` local de siempre. Se lee en cada registro, así que Ajustes surte efecto en el turno siguiente.
+    static func browserInvoker(defaults: UserDefaults = .standard) -> any AgentBrowserInvoking {
+        let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty, let url = URL(string: raw), url.scheme != nil, url.host != nil else {
+            return ProcessAgentBrowserInvoker()
+        }
+        let token = defaults.string(forKey: SettingsKeys.browserBearerToken) ?? ""
+        return HTTPAgentBrowserInvoker(baseURL: url, bearerToken: token)
     }
 
     /// Registro con solo las herramientas de navegador, para poder probarlas sin arrancar un turno.

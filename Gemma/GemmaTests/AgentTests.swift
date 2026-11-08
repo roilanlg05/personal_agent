@@ -444,4 +444,305 @@ final class AgentTests: XCTestCase {
         XCTAssertTrue(tercero.contains(BrowserRules.queueCutNote(tras: "browser_click", pendientes: ["browser_fill"])),
                       "el aviso del corte tiene que llegar al prompt vivo")
     }
+
+    // MARK: - Presupuesto de fallos consecutivos, contado POR ACCION
+
+    /// Herramienta de navegador que SIEMPRE falla, con el contrato de estados real de las
+    /// herramientas (`AgentBrowserToolOutput`: `status` + `message`). El motivo es largo a
+    /// proposito: es lo que mide que el error vuelve al modelo entero.
+    final class FakeBrowserAlwaysFails: AgentTool {
+        static let name = "browser_press"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        /// Mas largo que el recorte de browser-use (100 + 100 caracteres), para que un recorte
+        /// se note.
+        static let motivo = "El navegador devolvio una respuesta ilegible: "
+            + String(repeating: "abcdefghij", count: 40)
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return "{\"status\":\"error\",\"message\":\"\(Self.motivo)\"}"
+        }
+    }
+
+    /// Herramienta que NO es del navegador y siempre tiene exito.
+    final class FakeOkSearch: AgentTool {
+        static let name = "web_search"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        static let resultado = #"{"status":"success","message":"ok"}"#
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return Self.resultado
+        }
+    }
+
+    /// Herramienta que NO es del navegador y siempre falla. `read_webpage` esta registrada en la
+    /// app pero NO es del navegador (`browserToolNames` no la contiene), asi que sirve para
+    /// medir que el presupuesto no es una regla del navegador sino del bucle.
+    final class FakeFailingRead: AgentTool {
+        static let name = "read_webpage"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        static let resultado = #"{"status":"error","message":"la pagina no respondio"}"#
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return Self.resultado
+        }
+    }
+
+    private func registroConLaQueFalla() -> ToolRegistry {
+        FakeBrowserAlwaysFails.calls = 0
+        let r = registroDeNavegadorFalso()
+        r.register(FakeBrowserAlwaysFails())
+        return r
+    }
+
+    private func pulsaciones(_ rango: Range<Int>) -> [(name: String, args: String)] {
+        rango.map { (name: "browser_press", args: "{\"key\":\"Enter\",\"n\":\($0)}") }
+    }
+
+    /// Recoge de un turno lo que el USUARIO acaba viendo: los textos finales y los errores.
+    private func ejecuta(_ runtime: ScriptedRuntime,
+                         _ registro: ToolRegistry) async throws -> (completados: [String], fallados: [String]) {
+        var completados: [String] = []
+        var fallados: [String] = []
+        for try await e in Agent(runtime: runtime, registry: registro).run(prompt: "x", options: GenerationOptions()) {
+            if case .completed(let r) = e { completados.append(r.text) }
+            if case .failed(let m) = e { fallados.append(m) }
+        }
+        return (completados, fallados)
+    }
+
+    /// LA PRUEBA QUE LA IMPLEMENTACION DE BROWSER-USE NO PASARIA. En su `_post_process` el
+    /// contador de fallos solo sube si el paso tuvo EXACTAMENTE una accion, asi que una ronda
+    /// con seis acciones todas fallidas cuenta cero y el tope no acota el peor caso. Aqui se
+    /// cuenta por accion: la sexta ya no se ejecuta.
+    func test_cinco_acciones_fallidas_en_una_sola_ronda_agotan_el_presupuesto() async throws {
+        let runtime = ScriptedRuntime([pulsaciones(0..<(Agent.maxConsecutiveFailures + 1))])
+        let registro = registroConLaQueFalla()
+        let visto = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(FakeBrowserAlwaysFails.calls, Agent.maxConsecutiveFailures,
+                       "la accion que sobrepasa el presupuesto no se ejecuta, y es de la MISMA ronda")
+        XCTAssertEqual(runtime.prompts.count, 1, "el turno no llega a una segunda ronda")
+        XCTAssertEqual(visto.fallados, [], "no se sale con un `.failed`: el usuario recibe una respuesta")
+        XCTAssertEqual(visto.completados.count, 1, "un mensaje, ni dos ni ninguno: \(visto.completados)")
+        XCTAssertTrue(visto.completados.first?.contains("browser_press") ?? false,
+                      "el mensaje nombra la herramienta que fallo: \(visto.completados)")
+    }
+
+    /// Un exito reinicia la cuenta. El caso recorre de verdad el camino que la reinicia: cuatro
+    /// fallos, un exito, cuatro fallos mas. Son ocho fallos en la misma ronda pero nunca cinco
+    /// seguidos, asi que la ronda entera se ejecuta; sin el reinicio, la quinta accion mataria
+    /// el turno y el `browser_fill` no llegaria a correr.
+    func test_un_exito_reinicia_la_cuenta_de_fallos() async throws {
+        let tope = Agent.maxConsecutiveFailures
+        var ronda = pulsaciones(0..<(tope - 1))
+        ronda.append((name: "browser_fill", args: #"{"selector":"@e9","text":"hola"}"#))
+        ronda += pulsaciones((tope - 1)..<(2 * tope - 2))
+        let runtime = ScriptedRuntime([ronda, []])
+        let registro = registroConLaQueFalla()
+        let visto = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(FakeBrowserAlwaysFails.calls, 2 * (tope - 1),
+                       "ningun fallo sobra: nunca hubo \(tope) seguidos")
+        XCTAssertEqual(FakeBrowserFill.calls, 1, "el exito del medio es el que reinicia la cuenta")
+        XCTAssertEqual(runtime.prompts.count, 2, "la ronda termino entera y el bucle volvio al modelo")
+        XCTAssertEqual(visto.completados, ["listo"], "el turno termina por lo normal: \(visto.completados)")
+    }
+
+    /// Un resultado que no es JSON valido no cuenta como exito (no reinicia), no cuenta como
+    /// fallo (no gasta presupuesto) y no revienta el bucle. Son TRES estados, no dos.
+    func test_un_resultado_ilegible_no_es_exito_ni_fallo() {
+        for ilegible in ["error: no tool named browser_wait", "", "12:00", "[1,2,3]",
+                         #"{"status":42}"#, #"{"status":"una_cosa_que_no_existe"}"#, #"{"message":"sin status"}"#] {
+            XCTAssertFalse(Agent.esFallo(resultado: ilegible), "no gasta presupuesto: \(ilegible)")
+            XCTAssertFalse(Agent.esExito(resultado: ilegible), "no reinicia la cuenta: \(ilegible)")
+        }
+    }
+
+    /// Lo anterior por la via larga, que es donde se puede medir que no REINICIA: cuatro
+    /// fallos, el resultado ilegible que produce el propio bucle cuando el modelo llama a una
+    /// herramienta que no existe, y un quinto fallo. Si lo ilegible contara como exito, el
+    /// presupuesto no se agotaria y la ronda terminaria entera.
+    func test_un_resultado_ilegible_no_reinicia_el_presupuesto_ni_revienta_el_bucle() async throws {
+        let tope = Agent.maxConsecutiveFailures
+        var ronda = pulsaciones(0..<(tope - 1))
+        // `browser_wait` NO esta en este registro: el bucle devuelve `error: no tool named …`,
+        // que no es JSON.
+        ronda.append((name: "browser_wait", args: "{}"))
+        ronda += pulsaciones((tope - 1)..<tope)
+        let runtime = ScriptedRuntime([ronda, []])
+        let registro = registroConLaQueFalla()
+        let visto = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(FakeBrowserAlwaysFails.calls, tope, "los \(tope) fallos siguen siendo seguidos")
+        XCTAssertEqual(runtime.prompts.count, 1, "el presupuesto se agoto: no hay segunda ronda")
+        XCTAssertEqual(visto.fallados, [], "un resultado ilegible no revienta el bucle: \(visto.fallados)")
+        XCTAssertEqual(visto.completados.count, 1, "\(visto.completados)")
+    }
+
+    /// El mensaje con el que el turno termina: dice la herramienta, las veces y —cuando el
+    /// resultado lo declara— el motivo. Si no hay motivo legible no se inventa ninguno.
+    func test_el_mensaje_de_presupuesto_agotado_dice_la_herramienta_las_veces_y_el_motivo() {
+        let conMotivo = Agent.mensajeDePresupuestoAgotado(
+            herramienta: "browser_click", fallos: 5,
+            resultado: #"{"status":"error","message":"no existe el elemento '@e3'"}"#)
+        XCTAssertTrue(conMotivo.contains("browser_click"), conMotivo)
+        XCTAssertTrue(conMotivo.contains("5"), conMotivo)
+        XCTAssertTrue(conMotivo.contains("no existe el elemento '@e3'"),
+                      "el motivo que dio la herramienta: \(conMotivo)")
+
+        let sinMotivo = Agent.mensajeDePresupuestoAgotado(
+            herramienta: "browser_click", fallos: 5, resultado: "error: no tool named browser_click")
+        XCTAssertTrue(sinMotivo.contains("browser_click"), sinMotivo)
+        XCTAssertFalse(sinMotivo.contains("devolvió"), "sin motivo legible no se inventa uno: \(sinMotivo)")
+        XCTAssertNotEqual(conMotivo, sinMotivo)
+    }
+
+    /// El error vuelve al modelo ENTERO. browser-use lo recorta a los primeros 100 caracteres
+    /// mas los ultimos 100 con un `......` en medio, que es la forma mas segura de perder la
+    /// parte que explica que paso.
+    func test_el_error_vuelve_al_modelo_entero_y_sin_recortar() async throws {
+        let runtime = ScriptedRuntime([[(name: "browser_press", args: #"{"key":"Enter"}"#)], []])
+        let registro = registroConLaQueFalla()
+        _ = try await ejecuta(runtime, registro)
+
+        XCTAssertGreaterThan(FakeBrowserAlwaysFails.motivo.count, 200,
+                             "el motivo tiene que ser mas largo que el recorte que no hacemos")
+        let segundo = try XCTUnwrap(runtime.prompts.dropFirst().first, "el bucle no volvio a llamar al modelo")
+        XCTAssertTrue(segundo.contains(FakeBrowserAlwaysFails.motivo),
+                      "el motivo entero tiene que estar en el prompt vivo: \(segundo.suffix(400))")
+        XCTAssertFalse(segundo.contains("......"), "nada de elipsis de recorte: \(segundo.suffix(400))")
+    }
+
+    /// DECISION DIFICIL (3): el tope de fallos alcanzado en la MISMA ronda en que se agotan las
+    /// iteraciones. Dos caminos de salida compitiendo, y el usuario tiene que recibir UN
+    /// mensaje: ni dos ni ninguno. La colision se construye sin depender de que los dos numeros
+    /// coincidan: todas las rondas menos la ultima tienen exito, y la ultima trae de golpe las
+    /// acciones fallidas que agotan el presupuesto.
+    func test_el_presupuesto_gana_a_la_salida_por_iteraciones_y_el_usuario_recibe_un_mensaje() async throws {
+        var rondas: [[(name: String, args: String)]] = Array(
+            repeating: [(name: "web_search", args: #"{"query":"x"}"#)],
+            count: Agent.maxIterations - 1)
+        rondas.append((0..<Agent.maxConsecutiveFailures).map { (name: "read_webpage", args: "{\"n\":\($0)}") })
+        let runtime = ScriptedRuntime(rondas)
+        let registro = ToolRegistry()
+        FakeOkSearch.calls = 0
+        FakeFailingRead.calls = 0
+        registro.register(FakeOkSearch())
+        registro.register(FakeFailingRead())
+        let visto = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(runtime.prompts.count, Agent.maxIterations, "la colision es en la ultima ronda")
+        XCTAssertEqual(FakeOkSearch.calls, Agent.maxIterations - 1)
+        XCTAssertEqual(FakeFailingRead.calls, Agent.maxConsecutiveFailures)
+        XCTAssertEqual(visto.fallados, [],
+                       "la salida por no convergencia no se emite: diria menos y encima seria el segundo mensaje")
+        XCTAssertEqual(visto.completados.count, 1, "un mensaje, ni dos ni ninguno: \(visto.completados)")
+        XCTAssertTrue(visto.completados.first?.contains("read_webpage") ?? false,
+                      "y es el del presupuesto, que dice algo concreto: \(visto.completados)")
+    }
+
+    /// Un turno sin ninguna herramienta de navegador y sin ningun fallo no paga nada nuevo: el
+    /// prompt vivo de la segunda ronda es EXACTAMENTE el de antes mas la nota de resultado de
+    /// siempre, byte a byte. El presupuesto de fallos no mete un solo token en el prompt.
+    func test_un_turno_limpio_sin_navegador_no_paga_un_solo_token_nuevo() async throws {
+        let args = #"{"query":"x"}"#
+        let runtime = ScriptedRuntime([[(name: "web_search", args: args)], []])
+        let registro = ToolRegistry()
+        FakeOkSearch.calls = 0
+        registro.register(FakeOkSearch())
+        let visto = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(FakeOkSearch.calls, 1)
+        let primero = try XCTUnwrap(runtime.prompts.first)
+        let segundo = try XCTUnwrap(runtime.prompts.dropFirst().first, "el bucle no volvio a llamar al modelo")
+        XCTAssertEqual(segundo, primero + "\n\n" + Agent.toolResultNote(toolName: "web_search",
+                                                                       args: args,
+                                                                       result: FakeOkSearch.resultado))
+        XCTAssertEqual(visto.completados, ["listo"])
+        XCTAssertEqual(visto.fallados, [])
+    }
+
+    /// DECISION DIFICIL (2): una accion que falla Y ADEMAS trae una URL nueva. Gasta
+    /// presupuesto y NO corta la cola, y las dos cosas son por construccion: `cortaLaCola`
+    /// exige `success` (una accion que fallo no actuo, luego no invalido ninguna `@eN`) y un
+    /// exito reinicia el contador. Las dos salidas son disjuntas.
+    func test_una_accion_que_falla_con_url_nueva_gasta_presupuesto_pero_no_corta_la_cola() async throws {
+        let fallidoConUrlNueva = #"{"status":"error","url":"https://b.test/x","message":"no existe '@e3'"}"#
+        XCTAssertTrue(Agent.esFallo(resultado: fallidoConUrlNueva))
+        XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "browser_click",
+                                         resultado: fallidoConUrlNueva,
+                                         urlConocida: "https://a.test/"))
+        // Disjuntas: lo que corta la cola nunca gasta presupuesto, y al reves.
+        for nombre in Agent.browserToolNames {
+            for resultado in [fallidoConUrlNueva,
+                              #"{"status":"success","url":"https://b.test/x"}"#,
+                              #"{"status":"refused","message":"no"}"#,
+                              #"{"status":"no_content","message":"nada"}"#] {
+                let corta = Agent.cortaLaCola(trasHerramienta: nombre, resultado: resultado,
+                                              urlConocida: "https://a.test/")
+                if corta { XCTAssertFalse(Agent.esFallo(resultado: resultado), "\(nombre) / \(resultado)") }
+                if Agent.esFallo(resultado: resultado) { XCTAssertFalse(corta, "\(nombre) / \(resultado)") }
+            }
+        }
+
+        // Por la via larga: el clic falla con una URL distinta y el `browser_fill` de detras SI
+        // se ejecuta, porque el clic no llego a mover la pagina.
+        let anterior = FakeBrowserClick.resultado
+        defer { FakeBrowserClick.resultado = anterior }
+        FakeBrowserClick.resultado = fallidoConUrlNueva
+        let runtime = ScriptedRuntime([
+            [(name: "browser_open", args: #"{"url":"https://a.test/"}"#)],
+            [(name: "browser_click", args: #"{"selector":"@e3"}"#),
+             (name: "browser_fill", args: #"{"selector":"@e9","text":"hola"}"#)],
+            []
+        ])
+        let registro = registroDeNavegadorFalso()
+        _ = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(FakeBrowserClick.calls, 1)
+        XCTAssertEqual(FakeBrowserFill.calls, 1,
+                       "el clic fallo: no actuo, luego no pudo invalidar el `@e9` de la cola")
+        for prompt in runtime.prompts {
+            XCTAssertFalse(prompt.contains(marcaDelCorte), "una accion fallida no corta: \(prompt.suffix(300))")
+        }
+    }
+
+    /// Los dos conjuntos de estados son los del contrato real de las herramientas
+    /// (`AgentBrowserToolOutput`), y son disjuntos: ningun estado gasta y reinicia a la vez.
+    func test_los_estados_de_fallo_y_de_exito_son_el_contrato_real_y_son_disjuntos() {
+        for estado in ["error", "refused", "not_available"] {
+            XCTAssertTrue(Agent.esFallo(resultado: "{\"status\":\"\(estado)\"}"), estado)
+            XCTAssertFalse(Agent.esExito(resultado: "{\"status\":\"\(estado)\"}"), estado)
+        }
+        for estado in ["success", "no_content"] {
+            XCTAssertTrue(Agent.esExito(resultado: "{\"status\":\"\(estado)\"}"), estado)
+            XCTAssertFalse(Agent.esFallo(resultado: "{\"status\":\"\(estado)\"}"), estado)
+        }
+        XCTAssertTrue(Agent.estadosDeFallo.isDisjoint(with: Agent.estadosDeExito))
+        XCTAssertGreaterThan(Agent.maxConsecutiveFailures, 1, "con 1 no cabe un reintento")
+        XCTAssertLessThan(Agent.maxConsecutiveFailures, Agent.maxBrowserIterations,
+                          "el presupuesto tiene que morder antes que el tope de rondas")
+    }
+
+    /// Coherencia con lo que el usuario VE. `Agent.estadosDeFallo` y el censo de estados que
+    /// pinta la fila del chat (`ToolLogRow`) son conjuntos distintos a proposito —el segundo es
+    /// mas ancho—, pero no pueden contradecirse: un turno que muere por un estado que la fila
+    /// pintaba con tilde verde seria inexplicable para quien lo esta mirando, y al reves, un
+    /// estado que reinicia el presupuesto no puede salir con cruz roja.
+    func test_lo_que_gasta_presupuesto_sale_con_cruz_roja_en_el_chat() {
+        func esFalloEnLaFila(_ estado: String) -> Bool {
+            if case .failure = ToolLogRow.summarize(toolName: "browser_click",
+                                                    resultJSON: "{\"status\":\"\(estado)\"}") { return true }
+            return false
+        }
+        for estado in Agent.estadosDeFallo {
+            XCTAssertTrue(esFalloEnLaFila(estado), "gasta presupuesto y la fila no lo pinta como fallo: \(estado)")
+        }
+        for estado in Agent.estadosDeExito {
+            XCTAssertFalse(esFalloEnLaFila(estado), "reinicia el presupuesto y la fila lo pinta como fallo: \(estado)")
+        }
+    }
 }

@@ -93,9 +93,16 @@ final class BrowserCrossPlatformTests: XCTestCase {
         XCTAssertFalse(text.contains("brew"), text)
     }
 
-    /// Las nueve herramientas se registran en cualquier plataforma.
-    func test_las_nueve_herramientas_se_registran_en_cualquier_plataforma() {
-        XCTAssertEqual(HarnessModel.browserToolRegistry().tools.count, 9)
+    /// Las herramientas de navegador se registran en cualquier plataforma.
+    ///
+    /// La cuenta se DERIVA: las ocho que conducen una página (`Agent.browserToolNames`) más
+    /// `read_webpage`, que se registra por este mismo camino —comparte el `AgentBrowserService`—
+    /// sin ser una de ellas. Escrita a mano, un `9` se queda viejo el día que aparezca la
+    /// siguiente herramienta y entonces esta prueba se pone roja diciendo «9 != 10», que no
+    /// nombra nada.
+    func test_las_herramientas_de_navegador_se_registran_en_cualquier_plataforma() {
+        XCTAssertEqual(HarnessModel.browserToolRegistry().tools.count,
+                       Agent.browserToolNames.count + 1)
     }
 
     #if os(iOS)

@@ -274,6 +274,167 @@ final class Agent {
         return urlNueva != urlConocida
     }
 
+    /// Los `status` con los que una herramienta declara que NO hizo lo que se le pidio.
+    ///
+    /// No es una lista imaginada: es el contrato de estados que comparten las herramientas
+    /// (`AgentBrowserToolOutput`, que lo documenta como `success`, `no_content`, `refused`,
+    /// `not_available`, `error`) leido por el lado del fallo.
+    ///   - `error`: argumento invalido, fallo inesperado, o salida del CLI ilegible.
+    ///   - `refused`: el navegador —o el candado de cierre de la app— rechazo la operacion.
+    ///     Cuenta, y cuenta a proposito. El `refused` del candado es la respuesta CORRECTA y el
+    ///     prompt ya se lo explica al modelo (`BrowserRules.closeRule`), asi que un modelo que
+    ///     lo reintenta cinco veces seguidas es exactamente el que esta dando vueltas sin
+    ///     avanzar, que es lo que este presupuesto existe para cortar.
+    ///   - `not_available`: el navegador del agente no esta instalado. Reintentarlo no lo
+    ///     instala, y el mensaje con las instrucciones ya viajo al modelo en el primer intento.
+    ///
+    /// MAS ESTRECHO QUE `ToolLogRow.failureStatuses`, Y A PROPOSITO. Ese otro conjunto —el que
+    /// decide si la fila del chat sale con cruz roja— tiene veintitantos estados, censados con
+    /// un grep sobre toda la app. Aqui NO se reutiliza, y la diferencia no es un olvido: la
+    /// mitad de los suyos significan «la herramienta contesto, y la respuesta es que no»
+    /// (`not_found`, `contact_not_found`, `unknown_topic`, `not_in_catalog`), y un turno en el
+    /// que el modelo consulta cinco cosas que no existen esta trabajando, no dando vueltas.
+    /// Matarlo seria peor que el defecto que esto arregla. El criterio de este conjunto es
+    /// estricto: solo entra el estado que significa «la herramienta NO PUDO hacerlo». Y como el
+    /// presupuesto MATA el turno del usuario, ante la duda se queda fuera, que es la direccion
+    /// segura del proyecto. El hueco conocido que eso deja esta anotado en el informe de la
+    /// tarea: estados de infraestructura de otras herramientas (`timeout`, `unavailable`,
+    /// `memory_unavailable`, `permission_denied`) que hoy NO gastan presupuesto.
+    ///
+    /// Lo que si se clava contra el otro conjunto es la coherencia de lo que el usuario ve:
+    /// `test_lo_que_gasta_presupuesto_sale_con_cruz_roja_en_el_chat` exige que todo lo que aqui
+    /// cuenta como fallo se pinte como fallo en la fila, y que nada de `estadosDeExito` se
+    /// pinte como fallo. Un turno que muere por un estado que el chat pintaba en verde seria
+    /// inexplicable para quien lo mira.
+    nonisolated static let estadosDeFallo: Set<String> = ["error", "refused", "not_available"]
+
+    /// Los `status` con los que una herramienta declara que SI hizo lo que se le pidio, y que
+    /// por tanto REINICIAN el presupuesto de fallos.
+    ///
+    /// `no_content` esta aqui porque su propia definicion lo dice: «la operacion funciono pero
+    /// no hay nada que reportar». Un `get` que no encuentra el campo pedido no es una
+    /// herramienta que haya que dejar de llamar.
+    nonisolated static let estadosDeExito: Set<String> = ["success", "no_content"]
+
+    /// Si un resultado de herramienta declara un FALLO, y por tanto gasta una unidad del
+    /// presupuesto de fallos consecutivos del turno.
+    ///
+    /// Pura: toda la decision sale del resultado. No mira el nombre de la herramienta a
+    /// proposito, porque el presupuesto no es una regla del navegador — cualquiera de las
+    /// setenta y tantas herramientas del registro puede fallar en bucle, y el bucle que las
+    /// ejecuta es el mismo.
+    ///
+    /// LA DUDA NO GASTA PRESUPUESTO. Un resultado que no es un objeto JSON, uno sin `status`, o
+    /// uno con un `status` que no esta en ninguno de los dos conjuntos, devuelve `false`. Es la
+    /// direccion segura de este proyecto aplicada aqui: la accion que este valor desencadena es
+    /// MATAR el turno del usuario, asi que un valor que no se supo leer nunca se convierte en
+    /// esa accion. El precio de la eleccion hay que saberlo y esta medido: el propio bucle
+    /// produce un resultado que no es JSON cuando el modelo llama a una herramienta que no
+    /// existe (`error: no tool named …`), y ese caso se queda FUERA del presupuesto. Tambien se
+    /// queda fuera `DUPLICATE_CALL_IGNORED`, y ahi es lo correcto: una mutacion repetida ya se
+    /// ejecuto con exito.
+    ///
+    /// Y UN FALLO NO ES LO CONTRARIO DE UN EXITO. `esFallo` y `esExito` NO son complementarios,
+    /// a proposito: hay un tercer estado —no se pudo leer— que ni gasta presupuesto ni lo
+    /// reinicia. Escribir uno como la negacion del otro meteria ese tercer estado en el lado
+    /// equivocado, y los dos lados son peligrosos: negar `esExito` mataria turnos por
+    /// resultados ilegibles, y negar `esFallo` reiniciaria el contador con ellos y volveria el
+    /// presupuesto inoperante justo contra el fallo repetido que no sabemos leer.
+    nonisolated static func esFallo(resultado: String) -> Bool {
+        guard let estado = estadoDelResultado(resultado) else { return false }
+        return estadosDeFallo.contains(estado)
+    }
+
+    /// Si un resultado declara un EXITO, y por tanto reinicia el presupuesto de fallos. Ver
+    /// `esFallo` para por que las dos no son una sola funcion con un `!` delante.
+    nonisolated static func esExito(resultado: String) -> Bool {
+        guard let estado = estadoDelResultado(resultado) else { return false }
+        return estadosDeExito.contains(estado)
+    }
+
+    /// Cuantas acciones seguidas pueden fallar antes de que el turno pare y se lo diga al
+    /// usuario.
+    ///
+    /// EL DEFECTO QUE ARREGLA. El bucle no tenia presupuesto de fallos ninguno: una herramienta
+    /// podia devolver `error` una vez y otra hasta agotar las rondas del turno —diez, en un
+    /// turno que haya tocado el navegador—, y lo que el usuario veia era el agente dando
+    /// vueltas sin avanzar y terminando con un «tool loop did not converge» que no le dice
+    /// nada a nadie.
+    ///
+    /// SE CUENTA POR ACCION Y NO POR RONDA, POR CONSTRUCCION Y NO POR CUIDADO. browser-use
+    /// tiene este mismo tope y su implementacion esta rota: en `_post_process` el contador solo
+    /// sube si el paso tuvo EXACTAMENTE una accion, asi que un paso con cinco acciones todas
+    /// fallidas cuenta cero. Su tope acota el caso bueno —un paso, una accion— y deja libre el
+    /// malo. Aqui el contador vive fuera de la ronda y sube por accion EJECUTADA, asi que el
+    /// peor caso es justo el que queda acotado: la prueba que su implementacion no pasaria es
+    /// `test_cinco_acciones_fallidas_en_una_sola_ronda_agotan_el_presupuesto`.
+    ///
+    /// POR QUE CINCO. Cuatro reintentos cubren el fallo transitorio de verdad (un `timeout` de
+    /// red, una pagina que todavia no habia pintado el elemento, un `get url` que no respondio)
+    /// y cinco sigue siendo menos que `maxBrowserIterations`, asi que el presupuesto muerde
+    /// antes que el tope de rondas: el turno para diciendo QUE fallo en lugar de morir sin
+    /// explicacion.
+    ///
+    /// LAS DOS DECISIONES QUE EL ENCARGO DEJO ABIERTAS, Y SU RAZON.
+    ///
+    /// (2) Una accion que falla Y ADEMAS cambia la pagina: ¿se corta la cola, se gasta
+    /// presupuesto, o las dos? Son dos hechos independientes sobre la misma accion, luego la
+    /// respuesta de salon es «las dos». Pero contra el codigo real solo pasa una, y no por
+    /// descuido: `cortaLaCola` exige `status == success` porque una accion que fallo no actuo,
+    /// y lo que no actuo no pudo invalidar ninguna `@eN`. La duda razonable era si un
+    /// `browser_click` que devuelve `error` puede ser un clic que SI funciono y cuyo acuse se
+    /// perdio al cambiar la pagina — porque entonces gastar presupuesto castigaria al modelo
+    /// por acertar. Esta medido y no es asi: en `BrowserInteractionTools` el clic devuelve
+    /// `error` solo cuando el propio comando `click` del CLI fallo (`AgentBrowserToolOutput
+    /// .resolve` devolvio `.failure`), y el caso del «acuse perdido» —la accion funciono pero el
+    /// `get url` que viene detras no— devuelve `success` SIN la clave `url`, no `error`. O sea
+    /// que el fallo que gasta presupuesto es un fallo de verdad. Queda un unico hueco honesto,
+    /// `.malformed` (el CLI devolvio algo ilegible y la accion pudo haber ocurrido), que es raro
+    /// y ya era indistinguible antes de esto.
+    ///   Consecuencia agradable: las dos salidas son DISJUNTAS por construccion. Un fallo nunca
+    /// corta la cola, y un exito reinicia el contador, asi que la accion que corta la cola no
+    /// puede ser nunca la que agota el presupuesto.
+    ///
+    /// (3) El tope alcanzado en la MISMA ronda en que se agotan las iteraciones: dos caminos de
+    /// salida compitiendo, y el usuario tiene que recibir UN mensaje. Gana el presupuesto, y no
+    /// por estar escrito antes en el fichero: gana porque dice algo cierto y concreto —esta
+    /// herramienta ha fallado cinco veces seguidas y esto fue lo que devolvio— mientras que la
+    /// otra salida solo sabe decir «tool loop did not converge», que no es informacion para
+    /// nadie. La salida por presupuesto termina con `.completed`, asi que el `.failed` de la no
+    /// convergencia no se llega a emitir: un mensaje, ni dos ni ninguno.
+    nonisolated static let maxConsecutiveFailures = 5
+
+    /// El mensaje con el que el turno termina cuando se agota el presupuesto de fallos.
+    ///
+    /// Va al USUARIO y no al modelo, asi que va en espanol y sin JSON: es lo que se queda en el
+    /// chat. Y viaja como respuesta (`.token` + `.completed`), no como `.failed` ni como
+    /// excepcion, porque el usuario tiene derecho a que se le diga que se ha parado y por que,
+    /// no a una fila roja con el nombre de un tipo de Swift.
+    ///
+    /// Dice QUE paso —la herramienta y las veces— y, cuando el resultado lo declara, POR QUE.
+    /// Si el resultado no trae un motivo legible no se inventa ninguno: la frase se queda en el
+    /// hecho, que es la regla de honestidad del proyecto («never dress a failure as a refusal:
+    /// say which step failed and why, in those words»).
+    nonisolated static func mensajeDePresupuestoAgotado(herramienta: String,
+                                                        fallos: Int,
+                                                        resultado: String) -> String {
+        var frase = "He llamado a `\(herramienta)` \(fallos) veces seguidas y las \(fallos) han fallado, "
+            + "así que me paro aquí en lugar de seguir intentando lo mismo."
+        if let motivo = motivoDelResultado(resultado) {
+            frase += " Lo último que devolvió fue: \(motivo)"
+        }
+        return frase
+    }
+
+    /// El `message` que un resultado de herramienta declara, o `nil` si no lo dice o el
+    /// resultado no se puede leer. No recorta: ver el porque en el bucle de `run`.
+    nonisolated static func motivoDelResultado(_ resultado: String) -> String? {
+        guard let objeto = (try? JSONSerialization.jsonObject(with: Data(resultado.utf8))) as? [String: Any],
+              let mensaje = objeto["message"] as? String,
+              !mensaje.isEmpty else { return nil }
+        return mensaje
+    }
+
     /// Rondas de herramientas que se le permiten a un turno normal.
     nonisolated static let maxIterations = 5
 
@@ -294,6 +455,15 @@ final class Agent {
     /// les recuerda cuál es el paso siguiente. En inglés, como el resto de las notas de este
     /// bucle y el prompt del sistema: mezclar idiomas en el prompt vivo sale peor que la
     /// regla de español del proyecto, que aplica a lo que ve el usuario.
+    ///
+    /// EL `result` VIAJA ENTERO, Y NO ES UN DESCUIDO. browser-use recorta el resultado de la
+    /// herramienta a los primeros 100 caracteres mas los ultimos 100 con un `......` en medio.
+    /// Cortar un error justo por el medio es la forma mas segura de perder la parte que explica
+    /// que paso: el `message` de nuestras herramientas lleva el motivo, las instrucciones de
+    /// instalacion o el valor que el CLI rechazo, y todo eso vive en el medio. Si algun dia hay
+    /// que recortar por la ventana de contexto, se recorta lo que el modelo puede volver a
+    /// pedir (un `content` de pagina), nunca el motivo de un fallo.
+    /// Lo clava `test_el_error_vuelve_al_modelo_entero_y_sin_recortar`.
     nonisolated static func toolResultNote(toolName: String, args: String, result: String) -> String {
         let outcome = "[You called the tool `\(toolName)` with arguments \(args); it returned: \(result)."
         guard browserToolNames.contains(toolName) else {
@@ -403,6 +573,12 @@ final class Agent {
                     // Una vez por turno: se pone a true con la primera herramienta de
                     // navegador y ya no vuelve a false hasta el turno siguiente.
                     var browserGuideInjected = false
+                    // PRESUPUESTO DE FALLOS DEL TURNO, CONTADO POR ACCION. Vive fuera del bucle
+                    // de rondas a proposito, y eso es la mitad del arreglo: una ronda con cinco
+                    // acciones fallidas tiene que agotar el presupuesto igual que cinco rondas
+                    // de una accion. Ver `maxConsecutiveFailures` para por que la version de
+                    // browser-use, que cuenta por ronda, no acota el peor caso.
+                    var fallosConsecutivos = 0
                     let mutationToolNames: Set<String> = [
                         "add_shift", "drop_shift", "create_event", "cancel_event", "update_event", "create_task", "complete_task"
                     ]
@@ -460,6 +636,9 @@ final class Agent {
 
                         var resultsNote = currentPrompt
                         var anyMutationExecuted = false
+                        // La accion con la que se agoto el presupuesto, cuando se agoto en esta
+                        // ronda: es la que el mensaje al usuario nombra.
+                        var presupuestoAgotado: (herramienta: String, resultado: String)?
                         for (indice, tc) in pendingToolCalls.enumerated() {
                             let key = tc.name + "\u{001F}" + tc.args
                             let result: String
@@ -480,6 +659,19 @@ final class Agent {
                             if Self.browserToolNames.contains(tc.name) {
                                 maxIterations = max(maxIterations, Self.maxBrowserIterations)
                             }
+                            // EL PRESUPUESTO DE FALLOS, CONTADO AQUI: por accion ejecutada, sea
+                            // de navegador o no. Tres estados y no dos —el exito reinicia, el
+                            // fallo gasta, y un resultado que no se supo leer no hace ninguna de
+                            // las dos cosas—; ver `esFallo` para por que ese tercer estado no se
+                            // reparte entre los otros con una negacion.
+                            if Self.esFallo(resultado: result) {
+                                fallosConsecutivos += 1
+                                if fallosConsecutivos >= Self.maxConsecutiveFailures {
+                                    presupuestoAgotado = (tc.name, result)
+                                }
+                            } else if Self.esExito(resultado: result) {
+                                fallosConsecutivos = 0
+                            }
                             continuation.yield(.toolCallFinished(name: tc.name, result: result))
                             resultsNote += "\n\n" + Self.toolResultNote(toolName: tc.name, args: tc.args, result: result)
                             // La guia oficial del CLI viaja con la nota de la PRIMERA
@@ -492,6 +684,18 @@ final class Agent {
                                 browserGuideInjected = true
                                 resultsNote += "\n\n" + Self.browserGuideBlock()
                             }
+                            // PRESUPUESTO AGOTADO: se para aqui mismo y lo que quedaba de la
+                            // ronda no se ejecuta. El `.toolCallFinished` de arriba ya salio, asi
+                            // que la fila de la herramienta se cierra en el registro del chat; lo
+                            // unico que se abandona es el trabajo pendiente.
+                            //
+                            // Va DELANTE del corte de cola, no detras. Hoy las dos salidas no
+                            // pueden coincidir —un fallo no corta (`cortaLaCola` exige `success`)
+                            // y un exito reinicia el contador, luego son disjuntas—, pero el
+                            // orden deja el invariante escrito en el codigo: si alguna vez un
+                            // fallo llegara a cortar la cola, el presupuesto seguiria ganando, y
+                            // no habria que descubrirlo depurando.
+                            if presupuestoAgotado != nil { break }
                             // CORTAR LA COLA. El modelo pide varias acciones por ronda y las
                             // planifico contra la pagina que tenia delante; si esta accion la ha
                             // cambiado, las que vienen detras llevan referencias de la pagina
@@ -518,6 +722,35 @@ final class Agent {
                             }
                         }
                         currentPrompt = resultsNote
+
+                        // SALIDA POR PRESUPUESTO AGOTADO, Y GANA A LA SALIDA POR ITERACIONES.
+                        //
+                        // Las dos pueden caer en la MISMA ronda —el quinto fallo seguido en la
+                        // ultima ronda que al turno le quedaba— y entonces el usuario recibiria
+                        // dos mensajes o, segun como se escribiera, ninguno. Gana esta, que esta
+                        // arriba, por una razon y no por el orden: dice algo cierto y concreto
+                        // (esta herramienta ha fallado cinco veces y esto devolvio) mientras que
+                        // la de abajo solo sabe decir «tool loop did not converge».
+                        //
+                        // Termina con `.completed` y no con `.failed`: el turno se cierra con un
+                        // mensaje para el usuario, no en silencio, no con una fila de error y no
+                        // con una excepcion. El `break loop` se lleva por delante la rama de la
+                        // no convergencia, asi que sale UN mensaje.
+                        if let presupuestoAgotado {
+                            let mensaje = Self.mensajeDePresupuestoAgotado(
+                                herramienta: presupuestoAgotado.herramienta,
+                                fallos: fallosConsecutivos,
+                                resultado: presupuestoAgotado.resultado)
+                            continuation.yield(.token(mensaje))
+                            continuation.yield(.completed(GenerationResult(
+                                text: mensaje,
+                                metrics: completed?.metrics ?? RuntimeMetrics(tokensGenerated: 0,
+                                                                             elapsedSeconds: 0,
+                                                                             timeToFirstTokenSeconds: 0,
+                                                                             peakResidentMemoryBytes: 0,
+                                                                             draftAcceptanceRate: nil))))
+                            break loop
+                        }
 
                         // If a state-changing mutation tool ran, disable tools for subsequent rounds
                         // so the model is strictly forced to generate the conversational reply instead of looping.

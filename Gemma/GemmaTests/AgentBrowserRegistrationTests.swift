@@ -3,7 +3,7 @@ import XCTest
 
 #if os(macOS)
 
-/// Comprueba que las nueve herramientas de navegador quedan registradas y que el prompt
+/// Comprueba que las herramientas del navegador quedan registradas y que el prompt
 /// del sistema enseña al modelo a usarlas. `browserToolRegistry()` y `runAgentTurn` comparten
 /// la lista de herramientas (`registerBrowserTools(into:)`), pero que `runAgentTurn` llame a ese
 /// método no lo prueba un registro: lo fija `test_run_agent_turn_calls_registerBrowserTools`
@@ -11,15 +11,35 @@ import XCTest
 @MainActor
 final class AgentBrowserRegistrationTests: XCTestCase {
 
-    private let names = ["read_webpage", "browser_open", "browser_snapshot", "browser_click",
-                         "browser_fill", "browser_press", "browser_wait", "browser_get", "browser_close"]
+    /// El inventario esperado se DERIVA, no se escribe a mano. Son dos cosas distintas y la
+    /// diferencia importa, así que se nombra en vez de borrarse: las herramientas que CONDUCEN
+    /// una página son `Agent.browserToolNames`, y `read_webpage` se registra por este mismo
+    /// camino (comparte el `AgentBrowserService`) sin ser una de ellas — es de una sola llamada
+    /// y el bucle la trata como cualquier otra herramienta del registro.
+    ///
+    /// Escrito a mano, el día que aparezca una herramienta nueva este test se pone rojo sin
+    /// decir por qué: la lista literal se queda vieja y el fallo que se lee es «9 != 10», que
+    /// no nombra nada. Derivado, la herramienta nueva entra sola en cuanto se añada a
+    /// `browserToolNames`, y si alguien la registra SIN añadirla ahí el fallo dice exactamente
+    /// qué nombre sobra o falta.
+    private var esperadas: Set<String> { Agent.browserToolNames.union(["read_webpage"]) }
 
-    func test_the_nine_browser_tools_are_registered() {
+    private func nombresRegistrados(_ registry: ToolRegistry) -> Set<String> {
+        Set(registry.tools.map { type(of: $0).name })
+    }
+
+    func test_the_browser_tools_are_registered() {
         let registry = HarnessModel.browserToolRegistry()
-        for name in names {
+        XCTAssertEqual(nombresRegistrados(registry), esperadas)
+        // Un `Set` oculta los duplicados: el registro tiene que traer una instancia por nombre.
+        XCTAssertEqual(registry.tools.count, esperadas.count)
+        for name in esperadas {
             XCTAssertNotNil(registry.tool(named: name), "falta \(name)")
         }
-        XCTAssertEqual(registry.tools.count, names.count)
+        // La distinción que no hay que borrar: `read_webpage` está registrada y NO es del
+        // navegador. Si algún día lo fuera, esta línea es la que lo dice en voz alta.
+        XCTAssertFalse(Agent.browserToolNames.contains("read_webpage"))
+        XCTAssertEqual(esperadas.count, Agent.browserToolNames.count + 1)
     }
 
     func test_every_browser_tool_has_a_valid_function_spec() {
@@ -31,11 +51,12 @@ final class AgentBrowserRegistrationTests: XCTestCase {
         }
     }
 
-    func test_registering_into_an_existing_registry_adds_the_nine_tools() {
+    func test_registering_into_an_existing_registry_adds_the_browser_tools() {
         let registry = ToolRegistry()
         registry.register(WebSearchTool())
         HarnessModel.registerBrowserTools(into: registry)
-        XCTAssertEqual(registry.tools.count, names.count + 1)
+        XCTAssertEqual(nombresRegistrados(registry), esperadas.union(["web_search"]))
+        XCTAssertEqual(registry.tools.count, esperadas.count + 1)
         XCTAssertNotNil(registry.tool(named: "web_search"))
     }
 

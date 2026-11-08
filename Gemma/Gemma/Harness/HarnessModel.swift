@@ -55,7 +55,7 @@ public final class HarnessModel {
     @ObservationIgnored let voice = VoiceController(recorder: AudioRecorder())
     /// Always-listening "Hey Jarvis". Built lazily (loads ONNX models) so a load failure doesn't crash init.
     @ObservationIgnored private(set) var wake: WakeListener?
-    @ObservationIgnored private var lastTurnEndedAt: Double = UserDefaults.standard.double(forKey: "lastTurnEndedAt")
+    @ObservationIgnored var lastTurnEndedAt: Double = UserDefaults.standard.double(forKey: "lastTurnEndedAt")
     private static let wakeGapSeconds: Double = 180   // first turn or a gap > this = a "wake"
 
     /// Build the per-turn "wake context" appended to the system prompt: what the agent was
@@ -442,14 +442,21 @@ public final class HarnessModel {
         // service so the harness can surface them again without GRDB access.
     }
 
+    /// Solo pruebas: sustituye `runAgentTurn` para probar `startAgentTurn` sin modelo ni red.
+    @ObservationIgnored var turnRunnerOverride: (@MainActor (String) async -> Void)?
+
     public func startAgentTurn(_ prompt: String) {
         currentTurnTask?.cancel()
         // Determinista: el panel del turno anterior se cierra por orden, no por la carrera
         // con la cancelación (si perdiera, el turno nuevo se quedaría sin panel).
-        browserPanels.endTurn()
+        // Interrumpir para decir algo es lo mismo que detener: el turno que se abandona no acabó
+        // por su pie, así que su panel se congela aunque el navegador siga abierto. Esto NO toca
+        // el panel vivo de un turno anterior (con `activeID == nil` es un no-op): que el usuario
+        // hable de otra cosa no debe cortarle el video. Por eso aquí NO va `retireLivePanel()`.
+        browserPanels.endTurn(survive: false)
         currentTurnTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            await self.runAgentTurn(prompt)
+            if let runner = self.turnRunnerOverride { await runner(prompt) } else { await self.runAgentTurn(prompt) }
         }
     }
 
@@ -539,6 +546,104 @@ public final class HarnessModel {
         return registry
     }
 
+    /// Consume los eventos de un turno: pinta el registro del chat y gobierna el panel del
+    /// navegador. Separado de `runAgentTurn` para poder probar el cableado sin modelo ni red.
+    /// Devuelve el texto final del asistente, para la transcripción.
+    func consumeAgentEvents<S: AsyncSequence>(_ events: S) async -> String where S.Element == AgentEvent {
+        var answer = ""
+        var finalAssistantText = ""
+        var currentThought = ""
+        var activeGemmaIdx: Int? = nil
+
+        do {
+            for try await event in events {
+                switch event {
+                case .thought(let th):
+                    currentThought += th
+                    if let idx = activeGemmaIdx {
+                        agentLog[idx].thought = currentThought
+                    } else {
+                        agentLog.append(ChatLogEntry(role: "gemma", text: "", thought: currentThought))
+                        activeGemmaIdx = agentLog.count - 1
+                    }
+                case .token(let t):
+                    answer += t
+                    finalAssistantText = answer
+                    let stripped = GemmaToolCallParser.strip(answer)
+                    let trimmed = stripped.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty && trimmed != "<|" && !trimmed.hasPrefix("<|") {
+                        if let idx = activeGemmaIdx {
+                            agentLog[idx].text = stripped
+                        } else {
+                            agentLog.append(ChatLogEntry(role: "gemma", text: stripped, thought: currentThought.isEmpty ? nil : currentThought))
+                            activeGemmaIdx = agentLog.count - 1
+                        }
+                    }
+                case .toolCallStarted(let n, _):
+                    if let idx = activeGemmaIdx {
+                        // A tool call has started: any text streamed prior to this tool call
+                        // was an internal tool invocation fragment and must never remain as user answer.
+                        if agentLog[idx].thought?.isEmpty ?? true {
+                            agentLog.remove(at: idx)
+                        } else {
+                            agentLog[idx].text = ""
+                        }
+                    }
+                    agentLog.append(ChatLogEntry(role: "tool", text: "", toolName: n))
+                    if let id = browserPanels.openIfNeeded(toolName: n) {
+                        agentLog.append(ChatLogEntry(role: "browserPanel", text: "", panelID: id))
+                    }
+                    activeGemmaIdx = nil
+                    currentThought = ""
+                    answer = ""
+                    finalAssistantText = ""
+                case .toolCallFinished(let n, let r):
+                    ToolLogRow.closeRow(in: &agentLog, toolName: n, result: r)
+                    browserPanels.toolFinished(toolName: n, result: r)
+                    activeGemmaIdx = nil
+                    currentThought = ""
+                    answer = ""
+                    finalAssistantText = ""
+                case .completed(let res):
+                    let chosen = !res.text.isEmpty ? res.text : answer
+                    let stripped = GemmaToolCallParser.strip(chosen)
+                    finalAssistantText = stripped
+                    if let idx = activeGemmaIdx {
+                        agentLog[idx].text = stripped
+                    } else if !stripped.isEmpty {
+                        agentLog.append(ChatLogEntry(role: "gemma", text: stripped))
+                    }
+                case .failed(let m):
+                    agentLog.append(ChatLogEntry(role: "error", text: m))
+                }
+            }
+        } catch is CancellationError {
+            browserPanels.endTurn(survive: false)
+            if let idx = activeGemmaIdx {
+                let current = agentLog[idx].text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if current.isEmpty && (agentLog[idx].thought?.isEmpty ?? true) {
+                    agentLog.remove(at: idx)
+                }
+            }
+        } catch {
+            browserPanels.endTurn(survive: false)
+            agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
+        }
+        // Salida normal del bucle: congela el panel (no-op si ya lo cerró un catch).
+        browserPanels.endTurn()
+        return finalAssistantText
+    }
+
+    /// Tras más de 30 min de silencio empieza un episodio nuevo. Con él se retira también el panel
+    /// de navegador que siguiera vivo: es una conversación distinta y nadie lo está mirando.
+    func startNewChatIfIdle(now: Double) {
+        guard ChatSession.shouldStartNewChat(lastActivity: lastTurnEndedAt, now: now) else { return }
+        threadId = UUID().uuidString   // new episode → new chat_id; server restarts seq at 1
+        UserDefaults.standard.set(threadId, forKey: "activeThreadId")
+        turnIndex = 0
+        browserPanels.retireLivePanel()
+    }
+
     public func runAgentTurn(_ prompt: String) async {
         let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
         if !(self.runtime is LlamaCppRuntime && provider.kind == .onDevice) {
@@ -620,11 +725,7 @@ public final class HarnessModel {
         let now = Date().timeIntervalSince1970
         let isWake = (lastTurnEndedAt == 0) || (now - lastTurnEndedAt > Self.wakeGapSeconds)
         _ = isWake // followUps / focus are service-driven now (no per-turn HTTP for them in M3a)
-        if ChatSession.shouldStartNewChat(lastActivity: lastTurnEndedAt, now: now) {
-            threadId = UUID().uuidString   // new episode → new chat_id; server restarts seq at 1
-            UserDefaults.standard.set(threadId, forKey: "activeThreadId")
-            turnIndex = 0
-        }
+        startNewChatIfIdle(now: now)
         let wakeContext: String = {
             guard lastTurnEndedAt > 0 else {
                 return "Last interaction with user: none recorded (first interaction or new session)."
@@ -659,87 +760,7 @@ public final class HarnessModel {
             return turns.map { ChatMessage(role: $0.role == "assistant" ? .assistant : .user, content: $0.text) }
         }()
         let agent = Agent(runtime: runtime, registry: registry, recallTail: recallTail, wakeContext: wakeContext)
-        var answer = ""
-        var finalAssistantText = ""
-        var currentThought = ""
-        var activeGemmaIdx: Int? = nil
-
-        do {
-            for try await event in agent.run(prompt: prompt, options: makeGenerationOptions(history: history)) {
-                switch event {
-                case .thought(let th):
-                    currentThought += th
-                    if let idx = activeGemmaIdx {
-                        agentLog[idx].thought = currentThought
-                    } else {
-                        agentLog.append(ChatLogEntry(role: "gemma", text: "", thought: currentThought))
-                        activeGemmaIdx = agentLog.count - 1
-                    }
-                case .token(let t):
-                    answer += t
-                    finalAssistantText = answer
-                    let stripped = GemmaToolCallParser.strip(answer)
-                    let trimmed = stripped.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty && trimmed != "<|" && !trimmed.hasPrefix("<|") {
-                        if let idx = activeGemmaIdx {
-                            agentLog[idx].text = stripped
-                        } else {
-                            agentLog.append(ChatLogEntry(role: "gemma", text: stripped, thought: currentThought.isEmpty ? nil : currentThought))
-                            activeGemmaIdx = agentLog.count - 1
-                        }
-                    }
-                case .toolCallStarted(let n, _):
-                    if let idx = activeGemmaIdx {
-                        // A tool call has started: any text streamed prior to this tool call
-                        // was an internal tool invocation fragment and must never remain as user answer.
-                        if agentLog[idx].thought?.isEmpty ?? true {
-                            agentLog.remove(at: idx)
-                        } else {
-                            agentLog[idx].text = ""
-                        }
-                    }
-                    agentLog.append(ChatLogEntry(role: "tool", text: "", toolName: n))
-                    if let id = browserPanels.openIfNeeded(toolName: n) {
-                        agentLog.append(ChatLogEntry(role: "browserPanel", text: "", panelID: id))
-                    }
-                    activeGemmaIdx = nil
-                    currentThought = ""
-                    answer = ""
-                    finalAssistantText = ""
-                case .toolCallFinished(let n, let r):
-                    ToolLogRow.closeRow(in: &agentLog, toolName: n, result: r)
-                    browserPanels.toolFinished(toolName: n, result: r)
-                    activeGemmaIdx = nil
-                    currentThought = ""
-                    answer = ""
-                    finalAssistantText = ""
-                case .completed(let res):
-                    let chosen = !res.text.isEmpty ? res.text : answer
-                    let stripped = GemmaToolCallParser.strip(chosen)
-                    finalAssistantText = stripped
-                    if let idx = activeGemmaIdx {
-                        agentLog[idx].text = stripped
-                    } else if !stripped.isEmpty {
-                        agentLog.append(ChatLogEntry(role: "gemma", text: stripped))
-                    }
-                case .failed(let m):
-                    agentLog.append(ChatLogEntry(role: "error", text: m))
-                }
-            }
-        } catch is CancellationError {
-            browserPanels.endTurn(survive: false)
-            if let idx = activeGemmaIdx {
-                let current = agentLog[idx].text.trimmingCharacters(in: .whitespacesAndNewlines)
-                if current.isEmpty && (agentLog[idx].thought?.isEmpty ?? true) {
-                    agentLog.remove(at: idx)
-                }
-            }
-        } catch {
-            browserPanels.endTurn(survive: false)
-            agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
-        }
-        // Salida normal del bucle: congela el panel (no-op si ya lo cerró un catch).
-        browserPanels.endTurn()
+        let finalAssistantText = await consumeAgentEvents(agent.run(prompt: prompt, options: makeGenerationOptions(history: history)))
         // Append both turns to the transcript over HTTP. Failures are silent (service-down
         // shouldn't crash a successful turn — the user can see Gemma's reply).
         if let client {

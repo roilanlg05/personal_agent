@@ -30,10 +30,24 @@ public final class BrowserPanelCoordinator {
     /// Cualquier herramienta de navegador salvo `browser_close` lo deja abierto; un
     /// `browser_close` que terminó bien lo cierra; uno que falló no cambia nada.
     private var browserLeftOpen = false
+    /// Tras cuánto tiempo sin que el turno siguiente toque el navegador se retira un panel vivo.
+    private let liveIdleLimit: Duration
+    private var idleTask: Task<Void, Never>?
+
+    /// Tope de un panel vivo sin nadie que lo use. NO HAY MEDICIÓN: es un juicio, y se elige así.
+    /// El visor cuesta del orden de 10 Mbit/s contra el servidor casero del usuario mientras
+    /// dure, y esta clase no puede saber si él mira (no hay señal de ventana visible ni de
+    /// actividad). Muy corto: se le muere el video mientras lo ve (una serie o una peli dura
+    /// más de 20 min). Muy largo: el servidor emite para nadie. 30 min coincide con el corte de
+    /// «episodio» de `ChatSession` (`defaultGapSeconds`): pasado ese silencio el chat ya se
+    /// considera otra conversación. Qué lo cambiaría: una señal real de «la ventana está
+    /// oculta» (acortarlo mucho) o medir cuánto dura de verdad lo que el usuario deja puesto.
+    public static let defaultLiveIdleLimit: Duration = .seconds(30 * 60)
     private var consumers: [String: Task<Void, Never>] = [:]
 
-    public init(stream: @escaping StreamFactory) {
+    public init(stream: @escaping StreamFactory, liveIdleLimit: Duration = BrowserPanelCoordinator.defaultLiveIdleLimit) {
         self.makeStream = stream
+        self.liveIdleLimit = liveIdleLimit
     }
 
     /// Abre el panel del turno si `toolName` es de navegador y aún no hay uno activo.
@@ -42,13 +56,18 @@ public final class BrowserPanelCoordinator {
     public func openIfNeeded(toolName: String) -> String? {
         guard Self.isBrowserTool(toolName) else { return nil }
         // Dentro del turno, cada herramienta que actúa sobre la página la deja (o la mantiene)
-        // abierta. `browser_close` no se anota al empezar: puede fallar; se decide en `toolFinished`.
-        if activeID != nil, toolName != Self.closeToolName { browserLeftOpen = true }
+        // Nada se anota al empezar una herramienta: puede fallar. Se decide en `toolFinished`.
         guard activeID == nil, let stream = makeStream() else { return nil }
+        // El panel de este turno hereda lo que se sabía: si había uno vivo, el navegador estaba
+        // abierto, y así sigue hasta que un `browser_close` EXITOSO diga lo contrario. Empezar
+        // en «cerrado» congelaría la ventana de un video que sigue sonando cuando el primer
+        // uso del turno es un `browser_close` que falla (el mismo defecto, por otro camino).
+        // Si el navegador se hubiera cerrado por fuera, el relé lo cuenta en el panel y el tope
+        // de inactividad lo retira; es el error del lado seguro.
+        browserLeftOpen = livePanelID != nil
         // Un panel nuevo toma el relevo del vivo del turno anterior. Nunca se vuelve a emitir en
         // un panel viejo, y dos visores a la vez sobre la misma sesión no tienen sentido.
         retireLivePanel()
-        browserLeftOpen = toolName != Self.closeToolName
         let id = UUID().uuidString
         let state = BrowserPanelState()
         panels[id] = state
@@ -67,16 +86,16 @@ public final class BrowserPanelCoordinator {
         return id
     }
 
-    /// Resultado de una herramienta. Solo importa `browser_close`: si terminó con éxito, el
-    /// navegador ya no existe y no hay nada que seguir mostrando.
+    /// Resultado de una herramienta de navegador: aquí se decide si el navegador quedó abierto.
+    /// Una herramienta que TERMINÓ BIEN lo deja abierto, salvo `browser_close`, que lo cierra.
+    /// Una que falló no cambia nada: ni un `browser_open` que no cargó la página abre el
+    /// navegador (el panel quedaría vivo contra nada), ni un `browser_close` que falló lo cierra
+    /// (congelar escondería una página que sigue ahí).
     ///
-    /// Se lee el `status` del JSON y no se supone: una herramienta que falla (`browser_close`
-    /// con el servicio caído) deja el navegador como estaba, y congelar entonces escondería una
-    /// página que sigue ahí. Ante un resultado ilegible se asume que NO cerró (el error cae del
-    /// lado de seguir mostrando, no de ocultar).
+    /// Se lee el `status` del JSON y no se supone. Un resultado ilegible cuenta como fallo.
     public func toolFinished(toolName: String, result: String) {
-        guard toolName == Self.closeToolName, activeID != nil else { return }
-        if Self.reportsSuccess(result) { browserLeftOpen = false }
+        guard Self.isBrowserTool(toolName), activeID != nil, Self.reportsSuccess(result) else { return }
+        browserLeftOpen = toolName != Self.closeToolName
     }
 
     /// Fin del turno. Con el navegador cerrado congela el panel y corta su flujo (el panel queda
@@ -87,7 +106,8 @@ public final class BrowserPanelCoordinator {
     /// otro panel (`openIfNeeded` lo retira), lo que cubre también el `browser_close` de un turno
     /// posterior, que abre su panel antes de cerrar; (2) el flujo termina (el cliente se rindió
     /// tras sus reintentos, o el relé cerró para siempre) y la red de seguridad lo congela;
-    /// (3) `retireLivePanel()` por orden de quien tenga una señal mejor (cerrar el chat).
+    /// (3) el tope de inactividad (`defaultLiveIdleLimit`); (4) `retireLivePanel()`, que el
+    /// arnés llama al empezar un chat nuevo tras mucho tiempo en silencio.
     ///
     /// `survive: false` es para el turno que NO acabó por su pie (el usuario pulsó detener, o
     /// falló): ahí se congela siempre, aunque el navegador siga abierto. Detener es una orden
@@ -98,6 +118,7 @@ public final class BrowserPanelCoordinator {
         activeID = nil
         if survive, browserLeftOpen {
             livePanelID = id
+            armIdleCap(for: id)
             return
         }
         retire(id)
@@ -105,9 +126,23 @@ public final class BrowserPanelCoordinator {
 
     /// Congela el panel vivo, si lo hay, y corta su flujo.
     public func retireLivePanel() {
+        idleTask?.cancel()
+        idleTask = nil
         guard let id = livePanelID else { return }
         livePanelID = nil
         retire(id)
+    }
+
+    /// Arma el tope de inactividad del panel que acaba de quedar vivo. Vale la identidad: si
+    /// para cuando despierta ya es otro el panel vivo (o ninguno), no toca nada.
+    private func armIdleCap(for id: String) {
+        idleTask?.cancel()
+        let limit = liveIdleLimit
+        idleTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: limit)
+            guard !Task.isCancelled, let self, self.livePanelID == id else { return }
+            self.retireLivePanel()
+        }
     }
 
     private func retire(_ id: String) {

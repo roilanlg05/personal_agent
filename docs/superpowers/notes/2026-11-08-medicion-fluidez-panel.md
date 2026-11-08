@@ -119,7 +119,29 @@ fps. **El agente tiene que saber arrancar la reproducción**, y hoy no lo sabe: 
 hay nada en el prompt ni en las herramientas que lo diga. Pendiente, con dueño sin
 asignar.
 
-### 2. `open` dijo éxito y la página no cambió
+### 2. ~~`open` dijo éxito y la página no cambió~~ — RETIRADO, la causa era yo
+
+**⚠️ RETIRADO el 2026-11-08, el mismo día, tras leer el chat del usuario.** Lo
+que sigue de esta sección se conserva porque describe una medición real, pero
+**la conclusión era falsa y la causa era mía.**
+
+Mientras yo medía, el usuario estaba usando el navegador con su agente, y los dos
+íbamos contra **la misma sesión del CLI** (`--session gemma`). Su agente navegó a
+AuronPlay en medio de mi medición; mi `get url` vio eso y yo lo leí como «`open`
+no navegó». No era eso. Y en el otro sentido: el «Never Gonna Give You Up» que su
+agente reportó a las 11:19 lo abrí yo, igual que el `press k`.
+
+**Lo que de verdad hay aquí, y es más grave que el fallo que creí encontrar:** el
+navegador es **una sola sesión compartida sin ningún control de concurrencia**.
+Dos clientes que la conduzcan a la vez se corrompen la página mutuamente. Está
+demostrado — por accidente, pero demostrado. Detalle completo, con el chat, en
+`2026-11-08-defectos-del-agente-en-el-chat-de-youtube.md`.
+
+**Y la lección sobre el método:** no se mide contra un sistema que el usuario está
+usando en ese momento. Una medición que comparte estado con la sesión viva del
+usuario no mide el sistema: mide la pelea entre los dos.
+
+Lo que se midió (verdadero) y lo que se concluyó (falso):
 
 Durante la primera medición: lancé
 `agent-browser --session gemma open "https://www.youtube.com/watch?v=dQw4w9WgXcQ"`,

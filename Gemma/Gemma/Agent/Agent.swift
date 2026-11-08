@@ -173,6 +173,104 @@ final class Agent {
         "browser_press", "browser_wait", "browser_get", "browser_close"
     ]
 
+    /// Las herramientas de navegador que LEEN la pagina sin tocarla.
+    ///
+    /// Se nombran EN POSITIVO (las que leen) y no por su complemento a proposito: la pregunta
+    /// que este conjunto contesta es «¿puede esto haber movido la pagina?», y una herramienta
+    /// nueva que nadie anada aqui se tratara como si actuara, que es el lado barato del error.
+    /// `browser_wait` esta aqui porque ESPERA a que la pagina alcance un estado; no lo provoca.
+    nonisolated static let browserReadOnlyToolNames: Set<String> = [
+        "browser_snapshot", "browser_get", "browser_wait"
+    ]
+
+    /// Las que invalidan las referencias por su exito, sin necesidad de comparar nada:
+    /// `browser_open` carga otro documento —o recarga el mismo, que destruye las `@eN`
+    /// igualmente— y `browser_close` termina la sesion, cosa que su propia descripcion ya le
+    /// dice al modelo («las referencias '@eN' dejan de valer»).
+    nonisolated static let browserToolNamesThatResetThePage: Set<String> = [
+        "browser_open", "browser_close"
+    ]
+
+    /// El `status` que declara un resultado de herramienta, o `nil` si el resultado no es un
+    /// objeto JSON legible (el bucle mismo produce resultados que no lo son, p. ej.
+    /// `error: no tool named …`).
+    nonisolated static func estadoDelResultado(_ resultado: String) -> String? {
+        guard let objeto = (try? JSONSerialization.jsonObject(with: Data(resultado.utf8))) as? [String: Any]
+        else { return nil }
+        return objeto["status"] as? String
+    }
+
+    /// La URL que un resultado de herramienta de navegador DEMUESTRA, o `nil` cuando no la dice
+    /// o no se puede leer.
+    ///
+    /// DE DONDE SALE LA URL. Medido contra las herramientas reales, no contra la forma que uno
+    /// imaginaria del JSON:
+    ///   - `BrowserOpenTool` devuelve `url`: la de ATERRIZAJE, que no tiene que ser la pedida
+    ///     si hubo redireccion. Es la unica herramienta que la da siempre.
+    ///   - `BrowserGetTool` con `what=url` la devuelve en `value`, y `what` dice que ese valor
+    ///     es una URL; de ahi se lee.
+    ///   - `BrowserClickTool`, `BrowserFillTool` y `BrowserPressTool` NO la devuelven: su exito
+    ///     es `{"status":"success","message":"…"}` y el resto del JSON del CLI se tira
+    ///     (`BrowserInteractionTools.swift`). `BrowserSnapshotTool` devuelve `origin`, que es
+    ///     esquema+host y NO distingue dos paginas del mismo sitio, asi que no sirve para esto.
+    ///
+    /// Consecuencia honesta, y conviene saberla antes de leer el corte: hoy la comparacion de
+    /// URL solo puede dispararse detras de `browser_open` y de `browser_get(url)`. Un `click`
+    /// que navegue no lo demuestra en su propio resultado, asi que cae en la rama que NO corta.
+    /// Cerrar ese hueco es trabajo de las herramientas (devolver la URL posterior a la accion,
+    /// que el CLI si conoce), no de este bucle.
+    nonisolated static func urlDelResultado(_ resultado: String) -> String? {
+        guard let objeto = (try? JSONSerialization.jsonObject(with: Data(resultado.utf8))) as? [String: Any]
+        else { return nil }
+        if let url = objeto["url"] as? String, !url.isEmpty { return url }
+        if objeto["what"] as? String == "url", let valor = objeto["value"] as? String, !valor.isEmpty {
+            return valor
+        }
+        return nil
+    }
+
+    /// Si tras ejecutar `nombre` hay que DESCARTAR el resto de las acciones que el modelo pidio
+    /// en la misma ronda, porque esa accion pudo invalidar sus referencias `@eN`.
+    ///
+    /// EL DEFECTO QUE ARREGLA. El prompt del sistema le dice al modelo, con estas palabras, que
+    /// «the `@eN` references change after every action, so NEVER reuse an old one»
+    /// (`BrowserRules.text`), pero el bucle ejecutaba la ronda entera en fila sin comprobarlo:
+    /// `browser_click @e5` + `browser_fill @e9` con un clic que navega disparaba el `@e9`
+    /// contra la pagina NUEVA, donde esa referencia es otro elemento o ninguno. La regla estaba
+    /// escrita y nadie la hacia cumplir. Esto la hace cumplir.
+    ///
+    /// Pura y estatica para que se pueda probar sin navegador, sin red y sin modelo: toda la
+    /// decision sale del nombre de la herramienta, de su resultado y de la ultima URL conocida.
+    ///
+    /// LA DUDA NO CORTA. Un resultado ilegible, sin `status`, fallido, o sin URL cuando la URL
+    /// es lo unico que demostraria el cambio, NO corta. Es la direccion segura de este proyecto
+    /// aplicada aqui: cortar de mas tampoco es gratis —cuesta una ronda del presupuesto del
+    /// turno y le pide al modelo que vuelva a mirar una pagina que no se habia movido—, asi que
+    /// un valor que no se supo leer nunca se convierte en un corte. El precio de esa eleccion
+    /// esta escrito arriba, en `urlDelResultado`: mientras las herramientas de interaccion no
+    /// devuelvan URL, un clic que navegue no se detecta por aqui.
+    ///
+    /// Y UNA ACCION FALLIDA NO CORTA. Si el CLI devolvio `error`, `refused` o `invalid_arguments`
+    /// no hizo nada, luego no pudo invalidar nada: las `@eN` de la cola siguen siendo tan buenas
+    /// (o tan malas) como eran. El caso tipico es el `refused` del candado de cierre, que deja
+    /// la pagina abierta y donde cortar seria mentirle al modelo sobre lo que acaba de pasar.
+    nonisolated static func cortaLaCola(trasHerramienta nombre: String,
+                                        resultado: String,
+                                        urlConocida: String? = nil) -> Bool {
+        // Las `@eN` son del navegador: ninguna otra herramienta del registro las toca.
+        guard browserToolNames.contains(nombre) else { return false }
+        guard estadoDelResultado(resultado) == "success" else { return false }
+        // Mirar la pagina no la mueve. Ademas el snapshot es justo el paso con el que el modelo
+        // se recupera de un corte: cortar detras de el convertiria el arreglo en un bucle.
+        guard !browserReadOnlyToolNames.contains(nombre) else { return false }
+        if browserToolNamesThatResetThePage.contains(nombre) { return true }
+        // Accion sobre la pagina: corta solo si el resultado DEMUESTRA que la pagina es otra.
+        // Sin URL conocida previa no hay con que comparar, y una URL nueva sola no demuestra un
+        // cambio (podria ser la primera que vemos de la misma pagina): las dos ramas no cortan.
+        guard let urlConocida, let urlNueva = urlDelResultado(resultado) else { return false }
+        return urlNueva != urlConocida
+    }
+
     /// Rondas de herramientas que se le permiten a un turno normal.
     nonisolated static let maxIterations = 5
 
@@ -295,6 +393,10 @@ final class Agent {
                     var currentPrompt = recallTail.isEmpty ? prompt : recallTail + "\n\n" + prompt
                     var activeTools = tools
                     var executedMutations: [String: String] = [:]
+                    // La ultima URL que un resultado de herramienta DEMOSTRO en este turno. Vive
+                    // fuera de la ronda a proposito: el `browser_open` de una ronda es lo que le
+                    // da a la siguiente con que comparar.
+                    var urlConocidaDelNavegador: String?
                     // Una vez por turno: se pone a true con la primera herramienta de
                     // navegador y ya no vuelve a false hasta el turno siguiente.
                     var browserGuideInjected = false
@@ -355,7 +457,7 @@ final class Agent {
 
                         var resultsNote = currentPrompt
                         var anyMutationExecuted = false
-                        for tc in pendingToolCalls {
+                        for (indice, tc) in pendingToolCalls.enumerated() {
                             let key = tc.name + "\u{001F}" + tc.args
                             let result: String
                             if mutationToolNames.contains(tc.name), let previous = executedMutations[key] {
@@ -386,6 +488,30 @@ final class Agent {
                                                      budgetTokens: self.runtime.contextTokenBudget) {
                                 browserGuideInjected = true
                                 resultsNote += "\n\n" + Self.browserGuideBlock()
+                            }
+                            // CORTAR LA COLA. El modelo pide varias acciones por ronda y las
+                            // planifico contra la pagina que tenia delante; si esta accion la ha
+                            // cambiado, las que vienen detras llevan referencias de la pagina
+                            // vieja y disparar las contra la nueva acierta a otra cosa, o falla
+                            // sin decir por que. Ver `cortaLaCola` para cuando se decide que si.
+                            if Self.browserToolNames.contains(tc.name) {
+                                let corta = Self.cortaLaCola(trasHerramienta: tc.name,
+                                                             resultado: result,
+                                                             urlConocida: urlConocidaDelNavegador)
+                                // Se actualiza DESPUES de decidir: la comparacion es contra la
+                                // pagina en la que el modelo planifico la ronda.
+                                if let url = Self.urlDelResultado(result) { urlConocidaDelNavegador = url }
+                                let pendientes = pendingToolCalls[(indice + 1)...].map(\.name)
+                                if corta, !pendientes.isEmpty {
+                                    // Lo que no se ejecuta NO se descarta en silencio: el modelo
+                                    // recibe cuantas acciones quedaron y por que, para volver a
+                                    // pedirlas con la pagina nueva delante. El texto vive en
+                                    // `BrowserRules`, que es la unica fuente de nuestras reglas
+                                    // del navegador — esta es una de ellas.
+                                    resultsNote += "\n\n" + BrowserRules.queueCutNote(tras: tc.name,
+                                                                                       pendientes: pendientes)
+                                    break
+                                }
                             }
                         }
                         currentPrompt = resultsNote

@@ -84,4 +84,11 @@ enum BrowserRules {
     You are not a gatekeeper, and you never need to withhold a step in order to be safe: the limits that matter are enforced by the app, not by your judgement — you cannot complete a purchase without the app's own confirmation. So when a request looks unwise, say so in ONE short line and then do what was asked. Advice, not refusal. \
     And never dress a failure as a refusal: if a tool failed or a page would not load, say which step failed and why, in those words.
     """
+
+    static func queueCutNote(tras herramienta: String, pendientes: [String]) -> String {
+        let nombres = pendientes.map { "`\($0)`" }.joined(separator: ", ")
+        let cuenta = pendientes.count
+        let verbo = cuenta == 1 ? "action, \(nombres), was" : "actions, \(nombres), were"
+        return "[Nothing failed, and nothing is wrong with what you asked for: `\(herramienta)` changed the page, so the round stopped right there. The \(cuenta) further \(verbo) NOT run. Their `@eN` references were read off the page as it was BEFORE that change, and on the page you are on now the same reference points at a different element — or at nothing. This is the normal rhythm of driving a page, not a mistake of yours and not a failure to report: take a fresh `browser_snapshot` to see where you are now, then ask for those actions again with the new references. Do not apologise and do not start the task over; you have lost one round, nothing else.]"
+    }
 }

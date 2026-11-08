@@ -185,4 +185,253 @@ final class AgentTests: XCTestCase {
         XCTAssertTrue(second.contains("You MAY keep calling browser tools"), "prompt: \(second)")
         XCTAssertFalse(second.contains("DO NOT call"), "prompt: \(second)")
     }
+
+    // MARK: - Cortar la cola de acciones cuando la página cambia
+
+    /// Herramienta de navegador de prueba: devuelve un resultado fijo y cuenta las veces que
+    /// se ejecutó. Hacen falta DOS tipos (uno por nombre) porque `AgentTool.name` es estática.
+    final class FakeBrowserOpen: AgentTool {
+        static let name = "browser_open"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        nonisolated(unsafe) static var resultado = #"{"status":"success","url":"https://a.test/"}"#
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return Self.resultado
+        }
+    }
+
+    final class FakeBrowserFill: AgentTool {
+        static let name = "browser_fill"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return #"{"status":"success","message":"Campo '@e9' rellenado."}"#
+        }
+    }
+
+    final class FakeBrowserClick: AgentTool {
+        static let name = "browser_click"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        nonisolated(unsafe) static var resultado = #"{"status":"success","url":"https://b.test/x","message":"Clic ejecutado en '@e3'."}"#
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return Self.resultado
+        }
+    }
+
+    /// Runtime que pide VARIAS acciones en la MISMA ronda, guionizadas ronda a ronda. Es lo que
+    /// `RepeatingToolRuntime` no puede hacer (pide una sola) y es justo el caso que el corte
+    /// gobierna. Una ronda vacía termina el turno.
+    final class ScriptedRuntime: ToolCallingRuntime {
+        var rondas: [[(name: String, args: String)]]
+        var prompts: [String] = []
+        private var ronda = 0
+        init(_ rondas: [[(name: String, args: String)]]) { self.rondas = rondas }
+        func generate(prompt: String, tools: [AgentTool], options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
+            prompts.append(prompt)
+            let calls = ronda < rondas.count ? rondas[ronda] : []
+            ronda += 1
+            return AsyncThrowingStream { c in
+                for call in calls { c.yield(.toolCallStarted(name: call.name, args: call.args)) }
+                c.yield(.completed(GenerationResult(text: calls.isEmpty ? "listo" : "",
+                                                    metrics: .init(tokensGenerated: 0, elapsedSeconds: 0, timeToFirstTokenSeconds: 0, peakResidentMemoryBytes: 0, draftAcceptanceRate: nil))))
+                c.finish()
+            }
+        }
+    }
+
+    private func registroDeNavegadorFalso() -> ToolRegistry {
+        FakeBrowserOpen.calls = 0
+        FakeBrowserClick.calls = 0
+        FakeBrowserFill.calls = 0
+        let r = ToolRegistry()
+        r.register(FakeBrowserOpen())
+        r.register(FakeBrowserClick())
+        r.register(FakeBrowserFill())
+        return r
+    }
+
+    /// Marca estable del aviso de corte, DERIVADA del propio aviso: así el test no vuelve a
+    /// escribir a mano un texto que ya vive en `BrowserRules` (que es su única fuente).
+    private var marcaDelCorte: String {
+        String(BrowserRules.queueCutNote(tras: "browser_open", pendientes: ["browser_click"]).prefix(40))
+    }
+
+    /// Abrir una página es navegar por definición: el documento es otro y las `@eN` de
+    /// cualquier snapshot anterior apuntan a elementos que ya no existen. Corta incluso
+    /// aterrizando en la MISMA URL, porque una recarga también destruye las referencias.
+    func test_cortaLaCola_navegar_invalida_las_referencias() {
+        XCTAssertTrue(Agent.cortaLaCola(trasHerramienta: "browser_open",
+                                        resultado: #"{"status":"success","url":"https://b.test/"}"#,
+                                        urlConocida: "https://a.test/"))
+        XCTAssertTrue(Agent.cortaLaCola(trasHerramienta: "browser_open",
+                                        resultado: #"{"status":"success","url":"https://a.test/"}"#,
+                                        urlConocida: "https://a.test/"))
+        // Cerrar mata la sesión entera: su propia descripción dice que las `@eN` dejan de valer.
+        XCTAssertTrue(Agent.cortaLaCola(trasHerramienta: "browser_close",
+                                        resultado: #"{"status":"success","message":"Navegador cerrado."}"#,
+                                        urlConocida: "https://a.test/"))
+    }
+
+    /// Las herramientas que LEEN la página no cortan nunca, ni aunque el resultado traiga una
+    /// URL distinta: un snapshot es justo el paso con el que el modelo se recupera de un
+    /// corte, y cortar detrás de él convertiría el arreglo en un bucle.
+    func test_cortaLaCola_leer_la_pagina_no_corta_nunca() {
+        XCTAssertFalse(Agent.browserReadOnlyToolNames.isEmpty)
+        XCTAssertTrue(Agent.browserReadOnlyToolNames.isSubset(of: Agent.browserToolNames))
+        for nombre in Agent.browserReadOnlyToolNames {
+            XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: nombre,
+                                             resultado: #"{"status":"success","url":"https://b.test/"}"#,
+                                             urlConocida: "https://a.test/"),
+                           nombre)
+        }
+    }
+
+    /// Una acción sobre la página corta SI el resultado demuestra que la página cambió, y no
+    /// corta si demuestra que no cambió. Es el caso del encargo: `click` que navega.
+    func test_cortaLaCola_una_accion_corta_solo_si_la_pagina_cambio() {
+        XCTAssertTrue(Agent.cortaLaCola(trasHerramienta: "browser_click",
+                                        resultado: #"{"status":"success","url":"https://b.test/x"}"#,
+                                        urlConocida: "https://a.test/"))
+        XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "browser_click",
+                                         resultado: #"{"status":"success","url":"https://a.test/"}"#,
+                                         urlConocida: "https://a.test/"))
+    }
+
+    /// Dirección segura: ante un resultado sin URL, ilegible o fallido, NO se corta. Incluye
+    /// lo que las herramientas de interacción devuelven HOY de verdad (status + message, sin
+    /// URL): mientras sea así, el corte por URL no se dispara detrás de ellas.
+    func test_cortaLaCola_la_duda_no_corta() {
+        let conocida = "https://a.test/"
+        // Lo que `BrowserClickTool` devuelve hoy: ni una URL.
+        XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "browser_click",
+                                         resultado: #"{"status":"success","message":"Clic ejecutado en '@e3'."}"#,
+                                         urlConocida: conocida))
+        // Resultado que no es JSON (p. ej. el `error: no tool named …` del propio bucle).
+        XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "browser_click",
+                                         resultado: "error: no tool named browser_click",
+                                         urlConocida: conocida))
+        // La acción falló: no pasó nada que pueda invalidar una referencia.
+        XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "browser_click",
+                                         resultado: #"{"status":"error","url":"https://b.test/x"}"#,
+                                         urlConocida: conocida))
+        XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "browser_open",
+                                         resultado: #"{"status":"error","message":"timeout"}"#,
+                                         urlConocida: conocida))
+        // `browser_close` rechazado por el candado de la app: la página sigue abierta.
+        XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "browser_close",
+                                         resultado: #"{"status":"refused","message":"No se ha cerrado"}"#,
+                                         urlConocida: conocida))
+        // No sabíamos en qué página estábamos: un cambio no se puede demostrar.
+        XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "browser_click",
+                                         resultado: #"{"status":"success","url":"https://b.test/x"}"#,
+                                         urlConocida: nil))
+        // Una herramienta que no es del navegador no manda sobre las `@eN`.
+        XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "web_search",
+                                         resultado: #"{"status":"success","url":"https://b.test/"}"#,
+                                         urlConocida: conocida))
+    }
+
+    /// EL DEFECTO. El modelo pide `browser_open` + `browser_click` en la misma ronda: el clic
+    /// lleva una `@eN` de la página anterior, así que no se ejecuta. Y lo que queda sin
+    /// ejecutar NO se descarta en silencio: el aviso viaja en la nota con cuántas acciones
+    /// quedaron y por qué.
+    func test_la_cola_se_corta_cuando_la_pagina_cambia_y_el_modelo_se_entera() async throws {
+        let runtime = ScriptedRuntime([
+            [(name: "browser_open", args: #"{"url":"https://a.test/"}"#),
+             (name: "browser_click", args: #"{"selector":"@e3"}"#)],
+            []
+        ])
+        let registro = registroDeNavegadorFalso()
+        for try await _ in Agent(runtime: runtime, registry: registro).run(prompt: "x", options: GenerationOptions()) {}
+
+        XCTAssertEqual(FakeBrowserOpen.calls, 1, "la primera acción de la ronda sí se ejecuta")
+        XCTAssertEqual(FakeBrowserClick.calls, 0, "el clic llevaba una referencia de la página anterior")
+        let segundo = try XCTUnwrap(runtime.prompts.dropFirst().first, "el bucle no volvió a llamar al modelo")
+        XCTAssertTrue(segundo.contains(BrowserRules.queueCutNote(tras: "browser_open", pendientes: ["browser_click"])),
+                      "el modelo tiene que recibir el aviso del corte, con la cuenta y el motivo")
+    }
+
+    /// Y lo vuelve a pedir: la acción cortada NUNCA se ejecutó, así que el siguiente intento
+    /// tiene que correr de verdad. Si algún freno la tomara por repetida, habríamos cambiado
+    /// un defecto por otro peor (una acción que ya nadie puede ejecutar en el turno).
+    func test_la_accion_cortada_se_puede_volver_a_pedir() async throws {
+        let runtime = ScriptedRuntime([
+            [(name: "browser_open", args: #"{"url":"https://a.test/"}"#),
+             (name: "browser_click", args: #"{"selector":"@e3"}"#)],
+            [(name: "browser_click", args: #"{"selector":"@e3"}"#)],
+            []
+        ])
+        let registro = registroDeNavegadorFalso()
+        for try await _ in Agent(runtime: runtime, registry: registro).run(prompt: "x", options: GenerationOptions()) {}
+
+        XCTAssertEqual(FakeBrowserClick.calls, 1, "el clic re-pedido tiene que ejecutarse")
+        let tercero = try XCTUnwrap(runtime.prompts.dropFirst(2).first, "faltó la tercera ronda")
+        XCTAssertTrue(tercero.contains("Clic ejecutado"), "el resultado real del clic: \(tercero.suffix(400))")
+        XCTAssertFalse(tercero.contains("DUPLICATE_CALL_IGNORED"),
+                       "una acción que no se ejecutó no es una repetición")
+    }
+
+    /// Una ronda con UNA sola acción se comporta igual que hoy: se ejecuta y no hay aviso de
+    /// corte, porque detrás de ella no quedaba nada en la cola.
+    func test_una_ronda_de_una_sola_accion_no_cambia() async throws {
+        let runtime = ScriptedRuntime([
+            [(name: "browser_open", args: #"{"url":"https://a.test/"}"#)],
+            [(name: "browser_click", args: #"{"selector":"@e3"}"#)],
+            []
+        ])
+        let registro = registroDeNavegadorFalso()
+        for try await _ in Agent(runtime: runtime, registry: registro).run(prompt: "x", options: GenerationOptions()) {}
+
+        XCTAssertEqual(FakeBrowserOpen.calls, 1)
+        XCTAssertEqual(FakeBrowserClick.calls, 1)
+        for prompt in runtime.prompts {
+            XCTAssertFalse(prompt.contains(marcaDelCorte), "no había cola que cortar: \(prompt.suffix(300))")
+        }
+        let segundo = try XCTUnwrap(runtime.prompts.dropFirst().first)
+        XCTAssertTrue(segundo.contains(Agent.toolResultNote(toolName: "browser_open",
+                                                            args: #"{"url":"https://a.test/"}"#,
+                                                            result: FakeBrowserOpen.resultado)),
+                      "la nota de resultado de siempre sigue entera")
+    }
+
+    /// El aviso del corte es una regla del navegador, así que vive en `BrowserRules` (su única
+    /// fuente), dice CUÁNTAS acciones quedaron y no se lee como un fallo del modelo.
+    func test_el_aviso_del_corte_cuenta_lo_que_quedo_y_no_culpa_al_modelo() {
+        let una = BrowserRules.queueCutNote(tras: "browser_open", pendientes: ["browser_click"])
+        XCTAssertTrue(una.contains("browser_click"), una)
+        XCTAssertTrue(una.contains("browser_open"), una)
+        XCTAssertTrue(una.contains("browser_snapshot"), "el paso de recuperación: \(una)")
+        XCTAssertTrue(una.contains("1"), "la cuenta de lo que quedó sin ejecutar: \(una)")
+
+        let dos = BrowserRules.queueCutNote(tras: "browser_click", pendientes: ["browser_fill", "browser_press"])
+        XCTAssertTrue(dos.contains("2"), dos)
+        XCTAssertTrue(dos.contains("browser_fill") && dos.contains("browser_press"), dos)
+        XCTAssertNotEqual(una, dos)
+    }
+
+    /// El caso literal del encargo, y el que obliga a RECORDAR la URL de una ronda a la
+    /// siguiente: el modelo abre la pagina en una ronda y en la siguiente pide `browser_click`
+    /// + `browser_fill`; el clic navega, asi que el `@e9` del fill es de la pagina vieja. Sin
+    /// memoria de la URL entre rondas no habria con que comparar y el fill se ejecutaria.
+    func test_la_url_conocida_cruza_las_rondas_y_el_fill_no_se_ejecuta() async throws {
+        let runtime = ScriptedRuntime([
+            [(name: "browser_open", args: #"{"url":"https://a.test/"}"#)],
+            [(name: "browser_click", args: #"{"selector":"@e3"}"#),
+             (name: "browser_fill", args: #"{"selector":"@e9","value":"hola"}"#)],
+            []
+        ])
+        let registro = registroDeNavegadorFalso()
+        for try await _ in Agent(runtime: runtime, registry: registro).run(prompt: "x", options: GenerationOptions()) {}
+
+        XCTAssertEqual(FakeBrowserOpen.calls, 1)
+        XCTAssertEqual(FakeBrowserClick.calls, 1, "el clic es la accion que si se ejecuta")
+        XCTAssertEqual(FakeBrowserFill.calls, 0, "el `@e9` era de la pagina de antes del clic")
+        let tercero = try XCTUnwrap(runtime.prompts.dropFirst(2).first, "falto la tercera ronda")
+        XCTAssertTrue(tercero.contains(BrowserRules.queueCutNote(tras: "browser_click", pendientes: ["browser_fill"])),
+                      "el aviso del corte tiene que llegar al prompt vivo")
+    }
 }

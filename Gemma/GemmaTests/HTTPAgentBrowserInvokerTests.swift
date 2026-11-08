@@ -71,6 +71,37 @@ final class HTTPAgentBrowserInvokerTests: XCTestCase {
         XCTAssertEqual(json["timeout"] as? Double, 60)
     }
 
+    func test_el_argv_con_acentos_comillas_y_emoji_viaja_intacto() async throws {
+        let argv = ["--session", "gemma", "fill", "input[name=\"q\"]", "canción “ñandú” \"hola\" 🚀", "--json"]
+        let (invoker, stub) = Self.invoker(responding: #"{"exitCode":0,"stdout":"{}","stderr":""}"#)
+        _ = await invoker.invoke(arguments: argv, timeout: 30)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: try XCTUnwrap(stub.lastBody)) as? [String: Any])
+        XCTAssertEqual(json["arguments"] as? [String], argv)
+    }
+
+    /// Una conexión colgada vence por el plazo de red: el motivo tiene que nombrar el i3, no al CLI.
+    func test_un_timeout_de_red_nombra_el_i3_y_no_dice_que_el_cli_tardo() async {
+        let (invoker, _) = Self.invoker(failingWith: URLError(.timedOut))
+        guard case .failure(.launchFailed(let detail)) = await invoker.invoke(arguments: ["open", "https://a.test"], timeout: 10)
+        else { return XCTFail("esperaba .launchFailed, no .timedOut") }
+        XCTAssertTrue(detail.contains("i3"))
+    }
+
+    func test_el_token_con_salto_de_linea_o_espacios_se_recorta_en_la_cabecera() async {
+        let capture = Capture()
+        VoiceClientTests.StubProtocol.stub = { req in
+            capture.lastRequest = req
+            return (HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    Data(#"{"exitCode":0,"stdout":"{}","stderr":""}"#.utf8))
+        }
+        let cfg = URLSessionConfiguration.ephemeral
+        cfg.protocolClasses = [VoiceClientTests.StubProtocol.self]
+        let d = defaults(url: "http://100.1.2.3:8083", token: "  t0k3n\n")
+        let invoker = HarnessModel.browserInvoker(defaults: d, session: URLSession(configuration: cfg))
+        _ = await invoker.invoke(arguments: ["stream", "status"], timeout: 10)
+        XCTAssertEqual(capture.lastRequest?.value(forHTTPHeaderField: "Authorization"), "Bearer t0k3n")
+    }
+
     func test_manda_el_bearer_y_pega_la_ruta_al_base() async {
         let (invoker, stub) = Self.invoker(responding: #"{"exitCode":0,"stdout":"{}","stderr":""}"#)
         _ = await invoker.invoke(arguments: ["stream", "status"], timeout: 10)

@@ -425,7 +425,8 @@ public final class HarnessModel {
 
     /// Con `browserBaseURL` configurada el navegador es el del i3 (HTTP); sin ella, el
     /// `agent-browser` local de siempre. Se lee en cada registro, así que Ajustes surte efecto en el turno siguiente.
-    static func browserInvoker(defaults: UserDefaults = .standard) -> any AgentBrowserInvoking {
+    static func browserInvoker(defaults: UserDefaults = .standard,
+                               session: URLSession = .shared) -> any AgentBrowserInvoking {
         let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         // Solo el campo VACÍO es "sin i3" (comportamiento de siempre). Una URL escrita pero
@@ -438,8 +439,9 @@ public final class HarnessModel {
         // Token vacío con URL válida: se usa el HTTP igualmente. El servicio responderá 401 y
         // el invocador lo traduce a "el i3 rechazó el token", que es accionable; desviar al
         // navegador local sería peor (ver arriba).
-        let token = defaults.string(forKey: SettingsKeys.browserBearerToken) ?? ""
-        return HTTPAgentBrowserInvoker(baseURL: url, bearerToken: token)
+        let token = (defaults.string(forKey: SettingsKeys.browserBearerToken) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return HTTPAgentBrowserInvoker(baseURL: url, bearerToken: token, session: session)
     }
 
     /// Registro con solo las herramientas de navegador, para poder probarlas sin arrancar un turno.

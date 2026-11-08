@@ -97,10 +97,10 @@ struct SettingsView: View {
             .onChange(of: memoryBaseURL) { _, _ in model.ensureMemory() }
             .onChange(of: memoryBearerToken) { _, _ in model.ensureMemory() }
             Section("Navegador (i3)") {
-                TextField("Browser base URL (opcional)", text: $browserBaseURL)
+                TextField("URL base del navegador (opcional)", text: $browserBaseURL)
                     .textFieldStyle(.roundedBorder)
                     .help("Servicio del navegador en el i3, p. ej. http://100.x.y.z:8083. Vacío = navegador local.")
-                SecureField("Bearer token", text: $browserBearerToken)
+                SecureField("Token de acceso", text: $browserBearerToken)
                     .textFieldStyle(.roundedBorder)
                     .help("Token del servicio del navegador en el i3.")
                 Text("Vacío → el agente usa agent-browser en este Mac. Con URL, conduce el navegador del i3. Se aplica en el siguiente turno.")

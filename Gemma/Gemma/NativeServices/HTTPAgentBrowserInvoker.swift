@@ -59,7 +59,15 @@ public struct HTTPAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            if (error as? URLError)?.code == .timedOut { return .failure(.timedOut(seconds: timeout)) }
+            // `URLError.timedOut` aquí es siempre el plazo de RED (`timeout + networkMargin`): el del
+            // CLI lo aplica el servicio del i3 en su lado. Mapearlo a `.timedOut` diría "el CLI
+            // tardó" y el usuario buscaría en el sitio equivocado; con la conexión colgada el
+            // problema es llegar al i3, así que se informa como fallo de comunicación con el i3.
+            if (error as? URLError)?.code == .timedOut {
+                return .failure(.launchFailed(
+                    "El i3 (\(baseURL.host ?? "sin host")) no respondió a tiempo. "
+                    + "Revisa que el servicio del navegador esté arriba y que Tailscale esté conectado."))
+            }
             return .failure(.launchFailed(
                 "No pude hablar con el navegador del i3 (\(baseURL.host ?? "sin host")): "
                 + "\(error.localizedDescription) Revisa que el servicio esté arriba y Tailscale conectado."))

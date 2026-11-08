@@ -397,6 +397,21 @@ internet, y hoy solo está en Tailscale; abrirlo para recibir un SMS sería la
 superficie nueva más grande del proyecto por el beneficio más pequeño. Consultar
 no necesita nada expuesto.
 
+**Corrección del usuario (2026-11-08, posterior a la primera versión de este
+documento):** no se habla con Telnyx directamente. Él ya tiene **un proyecto
+propio, Boxia, con un MCP que trabaja contra Telnyx y gestiona los números de
+teléfono**, y por ahí van a salir los SMS. Textual: «el SMS creo que lo voy a
+utilizar a través de un MCP de mi proyecto Boxia, que ya trabaja con Telnix y
+gestiona números de teléfono».
+
+Esto **cambia el subsistema D y lo abarata**: el i3 no guarda ninguna credencial
+de Telnyx, no hay cliente de su API que escribir, y la decisión de «consultar en
+vez de webhook» pasa a ser problema de Boxia y no de este proyecto. Lo que queda
+por decidir, y que **no se decide aquí porque el subsistema D aún no se ha
+planificado**: quién habla con ese MCP (el agente de la app, o el servicio del i3),
+y si Boxia es alcanzable desde el i3. Cuando le toque el turno a D, se empieza por
+mirar Boxia, no por escribir un cliente de Telnyx.
+
 Lo que el agente necesita poder hacer, y nada más:
 
 - **Leer su propio correo**, para sacar un código de verificación o una

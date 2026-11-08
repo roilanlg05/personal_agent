@@ -47,8 +47,34 @@ final class AgentSystemPromptTests: XCTestCase {
             .first { $0.contains("browser_open(url)") }
             .map(String.init), "falta la línea del navegador en el prompt")
         XCTAssertFalse(line.contains("logins"), "el prompt no debe mandar al modelo a hacer logins: \(line)")
-        XCTAssertTrue(line.contains("NEVER type a secret into a page"), "falta la prohibición de teclear secretos: \(line)")
-        XCTAssertTrue(line.contains("ask the user to authenticate"), "la cláusula debe decir qué hacer en su lugar: \(line)")
+        // Las dos intenciones que este candado protege desde el principio: que no
+        // teclee un secreto, y que diga qué hacer en su lugar en vez de dejar al
+        // usuario colgado. Se afirman por intención y no por la frase literal: la
+        // redacción cambió en 2026-11-08 y la versión vieja afirmaba palabras,
+        // así que se puso roja por un cambio que conservaba las dos intenciones.
+        XCTAssertTrue(line.contains("must not type is a password"),
+                      "falta la prohibición de teclear una contraseña: \(line)")
+        XCTAssertTrue(line.contains("ask them to do that step"),
+                      "la cláusula debe decir qué hacer en su lugar: \(line)")
+    }
+
+    /// Regresión de 2026-11-08: el agente se negó a escribir la DIRECCIÓN DE CORREO
+    /// del usuario en el portal de Gmail. La causa estaba en el prompt, no en el
+    /// modelo: decía «If a page asks for credentials, say that you cannot sign in
+    /// for them», y una página de acceso pide credenciales, así que la cláusula se
+    /// disparaba con un campo que no es un secreto. El usuario lo dijo así: «se
+    /// negó aunque sólo le pedí el correo no la contraseña… me puede dar un
+    /// consejo, pero no se puede negar así».
+    func test_el_prompt_no_convierte_un_campo_de_correo_en_una_negativa() throws {
+        let p = Agent.systemPromptText
+        XCTAssertTrue(p.contains("An email address is NOT a secret"),
+                      "el prompt debe decir que una dirección de correo no es un secreto")
+        XCTAssertFalse(p.contains("cannot sign in for them"),
+                       "la negativa en bloque ante una página de acceso no debe volver")
+        XCTAssertTrue(p.contains("Advice, not refusal"),
+                      "el prompt debe pedir consejo en una línea y luego hacer lo pedido")
+        XCTAssertTrue(p.contains("never dress a failure as a refusal"),
+                      "un fallo de herramienta no se disfraza de negativa")
     }
 
     func test_system_prompt_asks_to_mention_all_matching_memories() async throws {

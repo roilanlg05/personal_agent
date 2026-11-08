@@ -46,7 +46,7 @@ public final class ReadWebpageTool: AgentTool, Sendable {
         }
 
         var command = ["read", url]
-        if args["outline"] as? Bool == true { command.append("--outline") }
+        if CancelAlarmTool.coerceBool(args["outline"]) == true { command.append("--outline") }
         if let filter = args["filter"] as? String,
            !filter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if AgentBrowserToolOutput.looksLikeCLIFlag(filter) {

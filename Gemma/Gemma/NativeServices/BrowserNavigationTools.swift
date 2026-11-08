@@ -92,7 +92,7 @@ public final class BrowserSnapshotTool: AgentTool, Sendable {
         let args = AgentBrowserToolOutput.parseArguments(argsJSON)
 
         var command = ["snapshot"]
-        if args["interactive_only"] as? Bool ?? true { command.append("-i") }
+        if CancelAlarmTool.coerceBool(args["interactive_only"]) ?? true { command.append("-i") }
         if let selector = args["selector"] as? String,
            !selector.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if AgentBrowserToolOutput.looksLikeCLIFlag(selector) {

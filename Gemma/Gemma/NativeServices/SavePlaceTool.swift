@@ -36,9 +36,12 @@ public final class SavePlaceTool: AgentTool, Sendable {
             return ToolJSONOutput.error("Se requiere el argumento 'name'.")
         }
 
-        var lat = dict["latitude"] as? Double
-        var lon = dict["longitude"] as? Double
-        let radius = dict["radius_meters"] as? Double ?? 25.0
+        // Con `as? Double` una coordenada escrita como cadena ("25.76") se leía como ausente y
+        // el lugar se guardaba en la ubicación ACTUAL del usuario, en silencio y mal. Ahora se
+        // acepta la forma en cadena; una cadena que no es número sigue contando como ausente.
+        var lat = CancelAlarmTool.coerceDouble(dict["latitude"])
+        var lon = CancelAlarmTool.coerceDouble(dict["longitude"])
+        let radius = CancelAlarmTool.coerceDouble(dict["radius_meters"]) ?? 25.0
 
         var locationFailure: String? = nil
         if lat == nil || lon == nil {

@@ -77,6 +77,9 @@ struct AddShiftTool: AgentTool {
     func run(argsJSON: String) async -> String {
         let args = obj(argsJSON)
         let oppId = ((args["shift_opportunity_id"] as? String) ?? "").trimmingCharacters(in: .whitespaces)
+        // Estricto a propósito: solo un booleano nativo `true` confirma. Una confirmación no debe
+        // convertirse en `true` porque una cadena sea «verdadera»; con `"true"` falla hacia el
+        // lado SEGURO (no acepta ni renuncia al turno y se vuelve a pedir la confirmación).
         let confirmed = (args["confirmed"] as? Bool) ?? false
 
         guard !oppId.isEmpty else {
@@ -128,6 +131,9 @@ struct DropShiftTool: AgentTool {
     func run(argsJSON: String) async -> String {
         let args = obj(argsJSON)
         let oppId = ((args["shift_opportunity_id"] as? String) ?? "").trimmingCharacters(in: .whitespaces)
+        // Estricto a propósito: solo un booleano nativo `true` confirma. Una confirmación no debe
+        // convertirse en `true` porque una cadena sea «verdadera»; con `"true"` falla hacia el
+        // lado SEGURO (no acepta ni renuncia al turno y se vuelve a pedir la confirmación).
         let confirmed = (args["confirmed"] as? Bool) ?? false
 
         guard !oppId.isEmpty else {

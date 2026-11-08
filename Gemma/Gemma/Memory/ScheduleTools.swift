@@ -328,9 +328,9 @@ struct CreateEventTool: AgentTool {
         case .problem(let json): return json
         case .ok(let start, let end): s = start; e = end
         }
-        let allDay = (o["allDay"] as? Bool) ?? false
+        let allDay = CancelAlarmTool.coerceBool(o["allDay"]) ?? false
         let location = (o["location"] as? String)?.trimmingCharacters(in: .whitespaces)
-        let force = (o["force"] as? Bool) ?? false
+        let force = CancelAlarmTool.coerceBool(o["force"]) ?? false
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: title) }
         let result: String = await {
             guard let m = await mem() else { return ScheduleToolSupport.memoryUnavailable("agendar el evento") }
@@ -421,8 +421,8 @@ struct UpdateEventTool: AgentTool {
         let newEnd = (o["newEnd"] as? String).flatMap(ScheduleTime.epoch)
         let newTitle = (o["newTitle"] as? String)?.trimmingCharacters(in: .whitespaces)
         let location = o["location"] as? String
-        let allDay = o["allDay"] as? Bool
-        let force = (o["force"] as? Bool) ?? false
+        let allDay = CancelAlarmTool.coerceBool(o["allDay"])
+        let force = CancelAlarmTool.coerceBool(o["force"]) ?? false
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: title ?? ScheduleTime.human(fromEpoch: s)) }
         let result: String = await {
             guard let m = await mem() else { return "memory unavailable" }
@@ -477,7 +477,7 @@ struct QueryScheduleTool: AgentTool {
         case .problem(let json): return json
         case .ok(let start, let end): f = start; t = end
         }
-        let includeCancelled = (o["includeCancelled"] as? Bool) ?? false
+        let includeCancelled = CancelAlarmTool.coerceBool(o["includeCancelled"]) ?? false
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: "\(ScheduleTime.human(fromEpoch: f))–\(ScheduleTime.human(fromEpoch: t))") }
         let result: String = await {
             guard let m = await mem() else { return ScheduleToolSupport.memoryUnavailable("consultar la agenda") }

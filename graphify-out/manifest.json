@@ -10849,1748 +10849,1998 @@
     "ast_hash": "2bf99816b1abdc775ea7ada530fa9eb6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/amazon_scheduler.py": {
-    "mtime": 1793986779.3885863,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/amazon_scheduler.py": {
+    "mtime": 1794098095.1263638,
     "ast_hash": "9d3f518852db369ddcb118341dcd1d04",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/spike-mlx/serve_mlx_vlm.py": {
-    "mtime": 1793986779.475544,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/spike-mlx/serve_mlx_vlm.py": {
+    "mtime": 1794098095.248483,
     "ast_hash": "c15683bd4690d00fbd4a8ebca5590c2b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/GemmaApp.swift": {
-    "mtime": 1793986779.300877,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/GemmaApp.swift": {
+    "mtime": 1794098095.0114172,
     "ast_hash": "084d812b384d24b71e46e6c259862c9d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Settings/GenerationSettings.swift": {
-    "mtime": 1793986779.32099,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Settings/GenerationSettings.swift": {
+    "mtime": 1794098095.0460832,
     "ast_hash": "4ebca62f861d1f431f767a3285671ff8",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Settings/SettingsView.swift": {
-    "mtime": 1793986779.3221033,
-    "ast_hash": "e1164a2b890f96bcf016f96320f7096a",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Settings/SettingsView.swift": {
+    "mtime": 1794118166.7726626,
+    "ast_hash": "15c18f592cca3dd4dd1619c59734ce2d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Settings/SettingsKeys.swift": {
-    "mtime": 1793986779.3217812,
-    "ast_hash": "83a571b27af47a82b19175ca55bfe7ea",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Settings/SettingsKeys.swift": {
+    "mtime": 1794105492.0690603,
+    "ast_hash": "6182e575b7bc310ec014ec79dcb01efb",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Settings/KeychainStore.swift": {
-    "mtime": 1793986779.3214006,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Settings/KeychainStore.swift": {
+    "mtime": 1794098095.0465634,
     "ast_hash": "c22d0460027fe7f9c933856049086e57",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Settings/SettingsStore.swift": {
-    "mtime": 1793986779.3219779,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Settings/SettingsStore.swift": {
+    "mtime": 1794098095.0475364,
     "ast_hash": "f4f5f6f82bb81d6a5883ee16012c9c09",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/MirroredStorage.swift": {
-    "mtime": 1793986779.3040066,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/MirroredStorage.swift": {
+    "mtime": 1794098095.0168502,
     "ast_hash": "d3a9fcb61f232f7a043f65a1a8e1c2ff",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/LoadMessagesTool.swift": {
-    "mtime": 1793986779.3031397,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/LoadMessagesTool.swift": {
+    "mtime": 1794098095.0154276,
     "ast_hash": "163bb24c0006a8674c0fcb9b6682c468",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/MemoryClient.swift": {
-    "mtime": 1793986779.3033502,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/MemoryClient.swift": {
+    "mtime": 1794098095.0157351,
     "ast_hash": "20a089b8734c38b6dd46f2459849985a",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/SearchMemoryTool.swift": {
-    "mtime": 1793986779.3049922,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/SearchMemoryTool.swift": {
+    "mtime": 1794098095.0182655,
     "ast_hash": "45ef8371e7dc553da31cbc63dca2a3ea",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/TaskTools.swift": {
-    "mtime": 1793986779.3051877,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/TaskTools.swift": {
+    "mtime": 1794098095.0186675,
     "ast_hash": "67e3996e6938f5c5b717121d6b543e5e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/ForgetTool.swift": {
-    "mtime": 1793986779.302943,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/ForgetTool.swift": {
+    "mtime": 1794098095.014877,
     "ast_hash": "33ce8cf2997e98a2178dd84ab5b98bb5",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/RoutineTools.swift": {
-    "mtime": 1793986779.304436,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/RoutineTools.swift": {
+    "mtime": 1794098095.0173943,
     "ast_hash": "139f3e07c2c9540f3e39f8bcc3b9d4fd",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/ScheduleTools.swift": {
-    "mtime": 1793986779.3048632,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/ScheduleTools.swift": {
+    "mtime": 1794098095.017911,
     "ast_hash": "5ac51d5d9e9b72ea004e621d381d9599",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/SaveMemoryTool.swift": {
-    "mtime": 1793986779.3046212,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/SaveMemoryTool.swift": {
+    "mtime": 1794098095.0176923,
     "ast_hash": "a68aa028e7b8b9e0fb64662bfd11a4a7",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/MemoryTopicTools.swift": {
-    "mtime": 1793986779.3037524,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/MemoryTopicTools.swift": {
+    "mtime": 1794098095.0164826,
     "ast_hash": "670eb6cae0ab8690cf0aa18a5e5b159d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/MemoryToolbox.swift": {
-    "mtime": 1793986779.3035536,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/MemoryToolbox.swift": {
+    "mtime": 1794098095.016136,
     "ast_hash": "653f5b8db15e012e9460db5b91e75099",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Memory/ReflectTool.swift": {
-    "mtime": 1793986779.3042138,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Memory/ReflectTool.swift": {
+    "mtime": 1794098095.0170803,
     "ast_hash": "e936ae80934b5f1da62ce680f12933f1",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/GetDeviceStatusTool.swift": {
-    "mtime": 1793986779.3092992,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/GetDeviceStatusTool.swift": {
+    "mtime": 1794098095.0298178,
     "ast_hash": "38cd0e480f3fca74ac07ea910da2cab6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/CreateCalendarEventTool.swift": {
-    "mtime": 1793986779.307209,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/CreateCalendarEventTool.swift": {
+    "mtime": 1794098095.0239892,
     "ast_hash": "e04bb2de1a7887aba29fc919969efb8e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/CurrentActivityTool.swift": {
-    "mtime": 1793986779.3078547,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/CurrentActivityTool.swift": {
+    "mtime": 1794098095.0251422,
     "ast_hash": "146e15d359ad110c16cb455d947033b3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/AgentBrowserInvoker.swift": {
-    "mtime": 1793994656.9501574,
-    "ast_hash": "e51f27bcc0d4f71ee29e3af687b54aba",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/AgentBrowserInvoker.swift": {
+    "mtime": 1794118166.7691479,
+    "ast_hash": "3d6d2d86059321e097ca58cdcf7215da",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/MessageSender.swift": {
-    "mtime": 1793986779.3103738,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/MessageSender.swift": {
+    "mtime": 1794098095.0317419,
     "ast_hash": "182f317e08f337e018816550e1fc7e3f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/OpenNavigationTool.swift": {
-    "mtime": 1793986779.3117907,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/OpenNavigationTool.swift": {
+    "mtime": 1794098095.0339937,
     "ast_hash": "67b2e3754e538af053a855126260d5bb",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/DeletePlaceTool.swift": {
-    "mtime": 1793986779.30833,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/DeletePlaceTool.swift": {
+    "mtime": 1794098095.0262077,
     "ast_hash": "db8876f126bb06c41615aead1c55de70",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ShortcutInstallTool.swift": {
-    "mtime": 1793986779.314229,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ShortcutInstallTool.swift": {
+    "mtime": 1794098095.0377474,
     "ast_hash": "b143b7c03b1cbea91372127badcccb1a",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/SendMessageTool.swift": {
-    "mtime": 1793986779.3136942,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/SendMessageTool.swift": {
+    "mtime": 1794098095.0370162,
     "ast_hash": "845592b3ffdbca6cbddefc961515a470",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ShareTool.swift": {
-    "mtime": 1793986779.3138065,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ShareTool.swift": {
+    "mtime": 1794098095.0372014,
     "ast_hash": "4b7eb1092b1fff54742fd729a91c9efb",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ReminderMonitor.swift": {
-    "mtime": 1793986779.3126113,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ReminderMonitor.swift": {
+    "mtime": 1794098095.0355194,
     "ast_hash": "eaa836791cfdf756cbc64add4ea0909c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ShortcutRunner.swift": {
-    "mtime": 1793986779.3147016,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ShortcutRunner.swift": {
+    "mtime": 1794098095.0381703,
     "ast_hash": "6870c41d7a82200462a6de60cb4d7c34",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/WeatherService.swift": {
-    "mtime": 1793986779.3165202,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/WeatherService.swift": {
+    "mtime": 1794098095.040866,
     "ast_hash": "a7e7318998ccdfbac816a93adea67c2f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/CurrentLocationTool.swift": {
-    "mtime": 1793986779.3079917,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/CurrentLocationTool.swift": {
+    "mtime": 1794098095.0253925,
     "ast_hash": "0623a173376d91f870409016425e2fcc",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/MusicLibrary.swift": {
-    "mtime": 1793986779.3106873,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/MusicLibrary.swift": {
+    "mtime": 1794098095.0323083,
     "ast_hash": "6e049cb9a60f09c898e97be95114e7fd",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ReminderLeadTime.swift": {
-    "mtime": 1793986779.3125098,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ReminderLeadTime.swift": {
+    "mtime": 1794098095.0354128,
     "ast_hash": "6c326ca7f5a864f405c40c16b79c7410",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/DeviceStatusService.swift": {
-    "mtime": 1793986779.3084471,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/HTTPAgentBrowserInvoker.swift": {
+    "mtime": 1794119546.9786854,
+    "ast_hash": "08c9cb2a13a0f68efd4ec1beebdda4ee",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/DeviceStatusService.swift": {
+    "mtime": 1794098095.0265906,
     "ast_hash": "7e1b0c7a98643abfb5e3a2c89198fef0",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/CreateAlarmTool.swift": {
-    "mtime": 1793986779.307013,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/CreateAlarmTool.swift": {
+    "mtime": 1794098095.0236504,
     "ast_hash": "c0c9001fef95921f6bbfcfa3bd227ccb",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/AppleCalendarService.swift": {
-    "mtime": 1793986779.3058228,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/AppleCalendarService.swift": {
+    "mtime": 1794098095.020947,
     "ast_hash": "e8e9b2dd7b34745714f5540381f4940d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/DraftMessageTool.swift": {
-    "mtime": 1793986779.3086357,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/DraftMessageTool.swift": {
+    "mtime": 1794098095.0280006,
     "ast_hash": "2bfa9a077dcbaac87e51ba7c4298a425",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/DeleteCalendarEventTool.swift": {
-    "mtime": 1793986779.308216,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/DeleteCalendarEventTool.swift": {
+    "mtime": 1794098095.025674,
     "ast_hash": "e4bcd2a4cbae8da15fe2938d91392009",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/AppLauncherService.swift": {
-    "mtime": 1793986779.3056345,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/AppLauncherService.swift": {
+    "mtime": 1794098095.0207422,
     "ast_hash": "d3553ce7b30f847012f6f521ac3f475b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/PlayMusicTool.swift": {
-    "mtime": 1793986779.3121111,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/PlayMusicTool.swift": {
+    "mtime": 1794098095.0344548,
     "ast_hash": "65f1ef635bf332a087140ed14ed6ac62",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/MusicService.swift": {
-    "mtime": 1793986779.3111298,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/MusicService.swift": {
+    "mtime": 1794098095.0329056,
     "ast_hash": "d21054ecd1de9ec929107057a0f10080",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/WebSearchTool.swift": {
-    "mtime": 1793986779.3169818,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/WebSearchTool.swift": {
+    "mtime": 1794098095.041462,
     "ast_hash": "4db17052d8e038dbc3f55b0931ed8518",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ContactAliasStore.swift": {
-    "mtime": 1793986779.3065941,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ContactAliasStore.swift": {
+    "mtime": 1794098095.0227942,
     "ast_hash": "0c15b8ffbf377de13eaf3317e134709c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/DwellDetector.swift": {
-    "mtime": 1793986779.3088336,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/DwellDetector.swift": {
+    "mtime": 1794098095.028903,
     "ast_hash": "178d81149542adfdb7d002d84e021e81",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ReadWebpageTool.swift": {
-    "mtime": 1793994250.0930526,
-    "ast_hash": "0da7a4a66580ab3e70af295e10727731",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ReadWebpageTool.swift": {
+    "mtime": 1794119546.9795723,
+    "ast_hash": "78bbcfed037de4eca313da6167814b7a",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/GemmaContact.swift": {
-    "mtime": 1793986779.3092062,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/GemmaContact.swift": {
+    "mtime": 1794098095.0294971,
     "ast_hash": "bdedd7fc8326f43079d9c9772de91328",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/MakePhoneCallTool.swift": {
-    "mtime": 1793986779.3102744,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/MakePhoneCallTool.swift": {
+    "mtime": 1794098095.0315406,
     "ast_hash": "59ed87a4c4b840bf226ccb85adb3d6c5",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/CancelAlarmTool.swift": {
-    "mtime": 1793986779.306167,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/CancelAlarmTool.swift": {
+    "mtime": 1794098095.022139,
     "ast_hash": "e1f9e06442205b4216325ef089649aa3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/CreateTimerTool.swift": {
-    "mtime": 1793986779.307726,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/CreateTimerTool.swift": {
+    "mtime": 1794098095.0248165,
     "ast_hash": "0bff51e77795577d56c7bce8b8ba6100",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/BrowserInspectionTools.swift": {
-    "mtime": 1793994699.9943683,
-    "ast_hash": "c8fd608634333e2f26be208f1da173a7",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/BrowserInspectionTools.swift": {
+    "mtime": 1794118166.770501,
+    "ast_hash": "51efa2dda01191d425b76a0c2674795c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/UpdateCalendarEventTool.swift": {
-    "mtime": 1793986779.3160727,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/UpdateCalendarEventTool.swift": {
+    "mtime": 1794098095.0403407,
     "ast_hash": "00c122c5365d9cfd60fc061ce94db633",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/NoteResolver.swift": {
-    "mtime": 1793986779.3113525,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/NoteResolver.swift": {
+    "mtime": 1794098095.0334005,
     "ast_hash": "aa7e27d783394d019a5998bc2c190b4e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/GetWeatherTool.swift": {
-    "mtime": 1793986779.309503,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/GetWeatherTool.swift": {
+    "mtime": 1794098095.0302074,
     "ast_hash": "59327b83c605ff87c7e65720c5fb2673",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/BrowserNavigationTools.swift": {
-    "mtime": 1793994250.0931613,
-    "ast_hash": "4a484990e6767abe5edd89b48eed756e",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/BrowserNavigationTools.swift": {
+    "mtime": 1794118166.7707708,
+    "ast_hash": "00239d79a285353ed89abd58411a6ade",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ShortcutRegistry.swift": {
-    "mtime": 1793986779.314461,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ShortcutRegistry.swift": {
+    "mtime": 1794098095.0379357,
     "ast_hash": "50edfa84464330cf3601af79a214144c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ListAlarmsTool.swift": {
-    "mtime": 1793986779.309757,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ListAlarmsTool.swift": {
+    "mtime": 1794098095.0306647,
     "ast_hash": "a49e87c7030bb97ca2b4899d9344845b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ReminderCRUDTools.swift": {
-    "mtime": 1793986779.312311,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ReminderCRUDTools.swift": {
+    "mtime": 1794098095.0350993,
     "ast_hash": "015655637a72bb5c8cb80e9cd6d8d13d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ToolJSONOutput.swift": {
-    "mtime": 1793986779.3156776,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ToolJSONOutput.swift": {
+    "mtime": 1794098095.0398524,
     "ast_hash": "634f780a6bd1a5c3f90ea9f69a2b5cd6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/NotesService.swift": {
-    "mtime": 1793986779.3115673,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/NotesService.swift": {
+    "mtime": 1794098095.0337422,
     "ast_hash": "2ba6aa309bb4a5cb2b939cefd4358cb7",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/SearchContactsTool.swift": {
-    "mtime": 1793986779.3134673,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/SearchContactsTool.swift": {
+    "mtime": 1794098095.0366187,
     "ast_hash": "aeb7a193487f87da1f09713a9788e59f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/KnownPlace.swift": {
-    "mtime": 1793986779.3096452,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/KnownPlace.swift": {
+    "mtime": 1794098095.030546,
     "ast_hash": "194c6a131c83ec971529fea9cbdb1f6b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/NoteCRUDTools.swift": {
-    "mtime": 1793986779.3112438,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/NoteCRUDTools.swift": {
+    "mtime": 1794098095.0332305,
     "ast_hash": "a56c66d269b7d87f8b41401456782a4c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/UpdateAlarmTool.swift": {
-    "mtime": 1793986779.3158605,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/UpdateAlarmTool.swift": {
+    "mtime": 1794098095.0401077,
     "ast_hash": "8587c668765b63250f5592006167aa9e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ClockService.swift": {
-    "mtime": 1793986779.3063834,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ClockService.swift": {
+    "mtime": 1794098095.022483,
     "ast_hash": "cae7c3dac840f75cc352286b4c770eb9",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ShortcutFileInstaller.swift": {
-    "mtime": 1793986779.3141184,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ShortcutFileInstaller.swift": {
+    "mtime": 1794098095.0375464,
     "ast_hash": "f4d64c72b3101bbaff01e73ba3a23310",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ForgetTools.swift": {
-    "mtime": 1793986779.3090131,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ForgetTools.swift": {
+    "mtime": 1794098095.0292788,
     "ast_hash": "b3e11708d0dfc2b6294a7f5b78500def",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/SearchNotesTool.swift": {
-    "mtime": 1793986779.3135843,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/BrowserRelayClient.swift": {
+    "mtime": 1794111448.130382,
+    "ast_hash": "f3ca522ce4722020425f1781ce7a07fb",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/SearchNotesTool.swift": {
+    "mtime": 1794098095.0367785,
     "ast_hash": "858eb03b5b322dec93277c4b000067ad",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ReminderService.swift": {
-    "mtime": 1793986779.3128135,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ReminderService.swift": {
+    "mtime": 1794098095.0357447,
     "ast_hash": "15e8ccd0b89548d4d22a57e4b55252bc",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ListCalendarEventsTool.swift": {
-    "mtime": 1793986779.309872,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ListCalendarEventsTool.swift": {
+    "mtime": 1794098095.030847,
     "ast_hash": "54c77e564e2a8ad0c2ae843553ab2738",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ShortcutSeed.swift": {
-    "mtime": 1793986779.3148115,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ShortcutSeed.swift": {
+    "mtime": 1794098095.0382974,
     "ast_hash": "1f4254369dd20212e5a75e4b5df24de5",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/GetForecastTool.swift": {
-    "mtime": 1793986779.309404,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/GetForecastTool.swift": {
+    "mtime": 1794098095.0300071,
     "ast_hash": "31512d0fcf2faedab78bac383ecfeb45",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/CreateNoteTool.swift": {
-    "mtime": 1793986779.3073626,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/CreateNoteTool.swift": {
+    "mtime": 1794098095.0242083,
     "ast_hash": "1a2bb3924971d49f00096a3275d82896",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/BrowserInteractionTools.swift": {
-    "mtime": 1793994680.5275283,
-    "ast_hash": "56e593525b9e1147309b1fa5419ef984",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/BrowserInteractionTools.swift": {
+    "mtime": 1794118166.770645,
+    "ast_hash": "fda5b095b8f1999031efe27bf1c10843",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ShortcutCatalogTools.swift": {
-    "mtime": 1793986779.3140042,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ShortcutCatalogTools.swift": {
+    "mtime": 1794098095.0374072,
     "ast_hash": "cd9a8726ae656a849cefe9df23582b32",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/AlarmKitScheduler.swift": {
-    "mtime": 1793986779.3054545,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/AlarmKitScheduler.swift": {
+    "mtime": 1794098095.0204334,
     "ast_hash": "ffd82993cefc894bd2ac0ba6ef6f99fd",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/AgentBrowserService.swift": {
-    "mtime": 1793992533.9703379,
-    "ast_hash": "5cd496f6992d8a6a04c796a617420b1e",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/AgentBrowserService.swift": {
+    "mtime": 1794119546.9783401,
+    "ast_hash": "5073d04cd9481d0662545a2714def741",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/NoteStore.swift": {
-    "mtime": 1793986779.3114538,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/NoteStore.swift": {
+    "mtime": 1794098095.0336356,
     "ast_hash": "f81b0001b2c8eb3a81a2b54a335189ae",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/WeatherForecast.swift": {
-    "mtime": 1793986779.3162875,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/WeatherForecast.swift": {
+    "mtime": 1794098095.0405753,
     "ast_hash": "954d565a4bf85660107196e3133697db",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/SpatialResolver.swift": {
-    "mtime": 1793986779.3155613,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/SpatialResolver.swift": {
+    "mtime": 1794098095.0395875,
     "ast_hash": "89f247d30b70914107ab7dbce5d70b59",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/AgentBrowserToolOutput.swift": {
-    "mtime": 1793994680.5273845,
-    "ast_hash": "536e0f8bb04538ac911c38e5ab28a19e",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/AgentBrowserToolOutput.swift": {
+    "mtime": 1794119546.9785204,
+    "ast_hash": "3a3c2079debe43d88be1cd267acc6ed8",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/SingleUseFlag.swift": {
-    "mtime": 1793986779.3151622,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/SingleUseFlag.swift": {
+    "mtime": 1794098095.0389845,
     "ast_hash": "0691e7282683ba3473a7dd4ac85aeddc",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/MusicPlaybackControl.swift": {
-    "mtime": 1793986779.3108938,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/MusicPlaybackControl.swift": {
+    "mtime": 1794098095.032577,
     "ast_hash": "3aaaf0213a3fa51d9d194fb2160436fa",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/SavePlaceTool.swift": {
-    "mtime": 1793986779.3132718,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/SavePlaceTool.swift": {
+    "mtime": 1794098095.0363286,
     "ast_hash": "abbb185754d0c10cce3b88ca4367e177",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ListPlacesTool.swift": {
-    "mtime": 1793986779.3099806,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ListPlacesTool.swift": {
+    "mtime": 1794098095.0310552,
     "ast_hash": "d137e48fd9d1ea60607a6014647ecc94",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/RunShortcutTool.swift": {
-    "mtime": 1793986779.3131082,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/RunShortcutTool.swift": {
+    "mtime": 1794098095.03611,
     "ast_hash": "5bd6bb5e3ef3eb63e9f0b17dd2351c65",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/RenamePlaceTool.swift": {
-    "mtime": 1793986779.3129687,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/RenamePlaceTool.swift": {
+    "mtime": 1794098095.0359929,
     "ast_hash": "f2efbdab15e1683035552e995ac92495",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/WebSearchService.swift": {
-    "mtime": 1793986779.3168027,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/WebSearchService.swift": {
+    "mtime": 1794098095.0412006,
     "ast_hash": "7c29e481a1a984639092ba8886fa6129",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/OpenAppTool.swift": {
-    "mtime": 1793986779.3116765,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/OpenAppTool.swift": {
+    "mtime": 1794098095.0338516,
     "ast_hash": "bb82b154f623efb81dc95c3acbc3b31f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/SmartMessageDrafter.swift": {
-    "mtime": 1793986779.3153582,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/SmartMessageDrafter.swift": {
+    "mtime": 1794098095.0392542,
     "ast_hash": "6ba3c0fb07642e404bb4fabb0741db7e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ReminderCheckpoints.swift": {
-    "mtime": 1793986779.3124177,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ReminderCheckpoints.swift": {
+    "mtime": 1794098095.0352147,
     "ast_hash": "52bdb0ce81f374b37e4f1e8a0d1a3b4d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/MotionActivityService.swift": {
-    "mtime": 1793986779.310477,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/MotionActivityService.swift": {
+    "mtime": 1794098095.0319302,
     "ast_hash": "63baad642f6f447e6d3256f02f00579f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/CreateReminderTool.swift": {
-    "mtime": 1793986779.307611,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/CreateReminderTool.swift": {
+    "mtime": 1794098095.0244129,
     "ast_hash": "a8fe9bb01c3bf07fbecb8dfeb56d8335",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/PlaceStore.swift": {
-    "mtime": 1793986779.311997,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/PlaceStore.swift": {
+    "mtime": 1794098095.0342293,
     "ast_hash": "22f96d72346d7fc27f2bf43379fddf09",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/MusicCatalog.swift": {
-    "mtime": 1793986779.3105724,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/MusicCatalog.swift": {
+    "mtime": 1794098095.0321293,
     "ast_hash": "a33c20ae390a110a1cd9eca13d046ab6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/LocationService.swift": {
-    "mtime": 1793986779.3101616,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/LocationService.swift": {
+    "mtime": 1794098095.0313134,
     "ast_hash": "1109bdff9a6234f4924dc7c0d77be62d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/NativeServices/ContactsService.swift": {
-    "mtime": 1793986779.3068006,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/NativeServices/ContactsService.swift": {
+    "mtime": 1794098095.0234087,
     "ast_hash": "477a4dc93ecb029b62cdf7703edb7b08",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Assets.xcassets/Contents.json": {
-    "mtime": 1793986779.2975729,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Assets.xcassets/Contents.json": {
+    "mtime": 1794098095.007712,
     "ast_hash": "9deb2ada1cc834bbebf8bbad9c8978a1",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Assets.xcassets/AppIcon.appiconset/Contents.json": {
-    "mtime": 1793986779.297351,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Assets.xcassets/AppIcon.appiconset/Contents.json": {
+    "mtime": 1794098095.0074792,
     "ast_hash": "cbe75704b2680422c4156009a528e292",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Assets.xcassets/AccentColor.colorset/Contents.json": {
-    "mtime": 1793986779.297173,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Assets.xcassets/AccentColor.colorset/Contents.json": {
+    "mtime": 1794098095.0072012,
     "ast_hash": "55019f7265dde0a78318b0807f98e847",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Assets.xcassets/bench-image-1.imageset/Contents.json": {
-    "mtime": 1793986779.2981102,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Assets.xcassets/bench-image-1.imageset/Contents.json": {
+    "mtime": 1794098095.0081525,
     "ast_hash": "e26d3327fa7051995538d258054f6cc2",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/LlamaContext.swift": {
-    "mtime": 1793986779.3178318,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/LlamaContext.swift": {
+    "mtime": 1794098095.04271,
     "ast_hash": "bd3a22f684b6431974400908b030154b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/HTTPServerHealth.swift": {
-    "mtime": 1793986779.317622,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/HTTPServerHealth.swift": {
+    "mtime": 1794098095.0423548,
     "ast_hash": "134724653f78f79e1bce65751cc5df2b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/LlamaCppRuntime.swift": {
-    "mtime": 1793986779.3180435,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/LlamaCppRuntime.swift": {
+    "mtime": 1794098095.042907,
     "ast_hash": "674908b7de2c54044ad3d483d3b73646",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/RuntimeFactory.swift": {
-    "mtime": 1793986779.3193343,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/RuntimeFactory.swift": {
+    "mtime": 1794098095.0440521,
     "ast_hash": "32f074ddeef47f9a736a0d1bb3a90774",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/ModelProvider.swift": {
-    "mtime": 1793986779.318263,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/ModelProvider.swift": {
+    "mtime": 1794098095.0431538,
     "ast_hash": "adc8d7109b87145b8404a3321e692128",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/ServerRuntime.swift": {
-    "mtime": 1793986779.320343,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/ServerRuntime.swift": {
+    "mtime": 1794098095.0453186,
     "ast_hash": "57ffece6498c82938f20477481fd20a7",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/ModelRuntime.swift": {
-    "mtime": 1793986779.31866,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/ModelRuntime.swift": {
+    "mtime": 1794098095.043342,
     "ast_hash": "12ba0a71172ed5e2080e94575e4fdc54",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/ServerManager.swift": {
-    "mtime": 1793986779.3197203,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/ServerManager.swift": {
+    "mtime": 1794098095.0446231,
     "ast_hash": "520345f10666cc1f09d2f857a3112e7e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/GemmaToolCallParser.swift": {
-    "mtime": 1793986779.317416,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/GemmaToolCallParser.swift": {
+    "mtime": 1794098095.0420163,
     "ast_hash": "bd960f9def12f5269fae559ed91011f1",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/ToolCallingRuntime.swift": {
-    "mtime": 1793986779.320589,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/ToolCallingRuntime.swift": {
+    "mtime": 1794098095.04563,
     "ast_hash": "f238a8a34a89317b23635f84950b7d47",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/DummyRuntime.swift": {
-    "mtime": 1793986779.317221,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/DummyRuntime.swift": {
+    "mtime": 1794098095.0417252,
     "ast_hash": "a6453e214f0330d364e8eedf605a26f2",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Runtime/ServerProcess.swift": {
-    "mtime": 1793986779.3201964,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Runtime/ServerProcess.swift": {
+    "mtime": 1794098095.045004,
     "ast_hash": "e85812403e9b1d1fca0811d4b2f714a1",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Agent/ScheduleTime.swift": {
-    "mtime": 1793986779.2967176,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Agent/ScheduleTime.swift": {
+    "mtime": 1794098095.0062246,
     "ast_hash": "bac26433e96e4d176865fae81c9f898d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Agent/Agent.swift": {
-    "mtime": 1793995254.7782564,
-    "ast_hash": "e8313651a793ddc4d0acbd979e6553d2",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Agent/Agent.swift": {
+    "mtime": 1794098095.0049927,
+    "ast_hash": "03cf28f90384747d22b63f16d0dc3f34",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Agent/ToolRegistry.swift": {
-    "mtime": 1793986779.2969193,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Agent/ToolRegistry.swift": {
+    "mtime": 1794098095.006779,
     "ast_hash": "84f6ae088c9092e356b4faf2e6b2a517",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Agent/AgentTool.swift": {
-    "mtime": 1793986779.2962933,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Agent/AgentTool.swift": {
+    "mtime": 1794098095.005582,
     "ast_hash": "df7a3769cc8c373c7e0437dd65541dab",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Agent/CurrentTimeTool.swift": {
-    "mtime": 1793986779.2965114,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Agent/CurrentTimeTool.swift": {
+    "mtime": 1794098095.0058453,
     "ast_hash": "5db728ebf29cd207273436fc63a7745b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Harness/MemoryInspectorView.swift": {
-    "mtime": 1793986779.3023996,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/MemoryInspectorView.swift": {
+    "mtime": 1794098095.0140684,
     "ast_hash": "1ad024b95118352ff156cc7f57f92141",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Harness/MemoryGraphView.swift": {
-    "mtime": 1793986779.302195,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/MemoryGraphView.swift": {
+    "mtime": 1794098095.0136557,
     "ast_hash": "35f6c1837d484da112bf246217f97239",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Harness/ChatSession.swift": {
-    "mtime": 1793986779.3013115,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/BrowserPanelState.swift": {
+    "mtime": 1794123578.0716858,
+    "ast_hash": "2adbdfba9cc2cdddf200b072aab22ca4",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/ChatSession.swift": {
+    "mtime": 1794098095.012115,
     "ast_hash": "1f10c53d2d707ef3b7d3a133b53d2495",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Harness/HarnessModel.swift": {
-    "mtime": 1793996135.743464,
-    "ast_hash": "61978b545b1bcd44c758784729d1301d",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/HarnessModel.swift": {
+    "mtime": 1794121740.0422616,
+    "ast_hash": "3085f27dd10e500355858b181d93ef61",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Harness/HarnessView.swift": {
-    "mtime": 1793986779.3019903,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/HarnessView.swift": {
+    "mtime": 1794098095.0133817,
     "ast_hash": "780f05e7e72846b772cafe9e2fef046d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Harness/ForceDirectedLayout.swift": {
-    "mtime": 1793986779.3015363,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/ForceDirectedLayout.swift": {
+    "mtime": 1794098095.0124571,
     "ast_hash": "d43bd9a386433a8625aa77ba37b64ea0",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Harness/AgentChatView.swift": {
-    "mtime": 1793986779.301114,
-    "ast_hash": "6848ee34e119146e581ccc9695a27a63",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/AgentChatView.swift": {
+    "mtime": 1794112418.4507785,
+    "ast_hash": "0840620b7afb45a29da57eaec9a84476",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Harness/TranscriptInspectorView.swift": {
-    "mtime": 1793986779.302793,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/TranscriptInspectorView.swift": {
+    "mtime": 1794098095.0145316,
     "ast_hash": "398f91723346a62a846e489f87061618",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Harness/MemoryView.swift": {
-    "mtime": 1793986779.3025906,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/BrowserPanelCoordinator.swift": {
+    "mtime": 1794121780.197494,
+    "ast_hash": "18eec63371b46a94baad39f6708c6364",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/MemoryView.swift": {
+    "mtime": 1794098095.0143428,
     "ast_hash": "8dc98b346653e9dd2937f5e0d6a19729",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Voice/WakeWordEnrollmentView.swift": {
-    "mtime": 1793986779.3376899,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Harness/BrowserPanelView.swift": {
+    "mtime": 1794121753.9464984,
+    "ast_hash": "8c949c0514fdb42223c1ed1b65e95a2b",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Voice/WakeWordEnrollmentView.swift": {
+    "mtime": 1794098095.0652597,
     "ast_hash": "eac6fefe4da9fe70a5f9e4c50fd085ca",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Voice/VoiceClient.swift": {
-    "mtime": 1793986779.336806,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Voice/VoiceClient.swift": {
+    "mtime": 1794098095.0629394,
     "ast_hash": "14f0a56edf53edcbaf9db827f3ff6ecf",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Voice/EnergyEndpointer.swift": {
-    "mtime": 1793986779.322501,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Voice/EnergyEndpointer.swift": {
+    "mtime": 1794098095.0482216,
     "ast_hash": "5de082366500f0d5d8025d58cf6ae8f4",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Voice/WakeWordDetector.swift": {
-    "mtime": 1793986779.3374763,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Voice/WakeWordDetector.swift": {
+    "mtime": 1794098095.0647953,
     "ast_hash": "21aec0dfc42efcdafdba051f4f47c7ff",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Voice/VoiceController.swift": {
-    "mtime": 1793986779.3370275,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Voice/VoiceController.swift": {
+    "mtime": 1794098095.0640776,
     "ast_hash": "66fd2a404f09337527f1806871463eea",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Voice/WakeListener.swift": {
-    "mtime": 1793986779.3372521,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Voice/WakeListener.swift": {
+    "mtime": 1794098095.0644426,
     "ast_hash": "bd8c4ca87d3789e0e76c259efe3a269c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Voice/AudioRecorder.swift": {
-    "mtime": 1793986779.322335,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Voice/AudioRecorder.swift": {
+    "mtime": 1794098095.0480032,
     "ast_hash": "cf7d5a1cd2811342e3dd9c92453ea47d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/Voice/SpeechDictationManager.swift": {
-    "mtime": 1793986779.3365805,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Voice/SpeechDictationManager.swift": {
+    "mtime": 1794098095.0621943,
     "ast_hash": "50d501a484fd332eff6004dd8ee8d0f2",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/AtoZ/AtoZClient.swift": {
-    "mtime": 1793986779.2988603,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/AtoZ/AtoZClient.swift": {
+    "mtime": 1794098095.0091193,
     "ast_hash": "014d05a10b155cc1a4f97341a1fad8b6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/AtoZ/AtoZModels.swift": {
-    "mtime": 1793986779.2998946,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/AtoZ/AtoZModels.swift": {
+    "mtime": 1794098095.0102792,
     "ast_hash": "275a43425e6e754000d057a8b6fee668",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/AtoZ/AtoZBrowserAuthenticator.swift": {
-    "mtime": 1793986779.2986143,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/AtoZ/AtoZBrowserAuthenticator.swift": {
+    "mtime": 1794098095.0088146,
     "ast_hash": "7d155f2c7cbdb951265024619cb6f425",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/AtoZ/AtoZGraphQL.swift": {
-    "mtime": 1793986779.2993724,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/AtoZ/AtoZGraphQL.swift": {
+    "mtime": 1794098095.00969,
     "ast_hash": "50f38289a006f7f205746db762718a26",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/AtoZ/AtoZLoginView.swift": {
-    "mtime": 1793986779.299667,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/AtoZ/AtoZLoginView.swift": {
+    "mtime": 1794098095.0100698,
     "ast_hash": "a68b26cc716331b5506696975fb2016a",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/AtoZ/AtoZTools.swift": {
-    "mtime": 1793986779.300102,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/AtoZ/AtoZTools.swift": {
+    "mtime": 1794098095.0105894,
     "ast_hash": "baf50a6c62e65519744118e1bb769dfb",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/Gemma/AtoZ/AtoZConfig.swift": {
-    "mtime": 1793986779.2990525,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/AtoZ/AtoZConfig.swift": {
+    "mtime": 1794098095.0093172,
     "ast_hash": "96c623c791e99ee96e5ba7bfa7d30d97",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/VoiceControllerTests.swift": {
-    "mtime": 1793986779.3702326,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/llama.framework/Versions/A/Headers/ggml-blas.h": {
+    "mtime": 1793678336.8085368,
+    "ast_hash": "dc5dcce4c26b0504d1b61aa73ed19fb3",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/llama.framework/Versions/A/Headers/ggml-backend.h": {
+    "mtime": 1793678336.80889,
+    "ast_hash": "972b747226fc1d4a70806d883fc8ce55",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/llama.framework/Versions/A/Headers/ggml-alloc.h": {
+    "mtime": 1793678336.8091464,
+    "ast_hash": "b5d7b6a98c234755acc1e760046ffadf",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/llama.framework/Versions/A/Headers/ggml-opt.h": {
+    "mtime": 1793678336.8093953,
+    "ast_hash": "420f2f402ad5f7ab928e275bd9041f8c",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/llama.framework/Versions/A/Headers/llama.h": {
+    "mtime": 1793678336.8096528,
+    "ast_hash": "8406499e0c48a906719dd569f0d85064",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/llama.framework/Versions/A/Headers/ggml-metal.h": {
+    "mtime": 1793678336.8099127,
+    "ast_hash": "e1c9e42cae8b4e68832fa6fa095d4d7d",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/llama.framework/Versions/A/Headers/ggml-cpu.h": {
+    "mtime": 1793678336.8101811,
+    "ast_hash": "b1f4b0ad78d7542f6f3a32fac6e2eeaa",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/llama.framework/Versions/A/Headers/gguf.h": {
+    "mtime": 1793678336.8104615,
+    "ast_hash": "c06ff6e1ffc22593fdc64553fb5aca83",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/llama.framework/Versions/A/Headers/ggml.h": {
+    "mtime": 1793678336.8107142,
+    "ast_hash": "6a3892aeb34b18aab27770876e033a72",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/llama.framework/Headers/ggml-blas.h": {
+    "mtime": 1793678336.8948333,
+    "ast_hash": "dc5dcce4c26b0504d1b61aa73ed19fb3",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/llama.framework/Headers/ggml-backend.h": {
+    "mtime": 1793678336.8950548,
+    "ast_hash": "972b747226fc1d4a70806d883fc8ce55",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/llama.framework/Headers/ggml-alloc.h": {
+    "mtime": 1793678336.895286,
+    "ast_hash": "b5d7b6a98c234755acc1e760046ffadf",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/llama.framework/Headers/ggml-opt.h": {
+    "mtime": 1793678336.8955088,
+    "ast_hash": "420f2f402ad5f7ab928e275bd9041f8c",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/llama.framework/Headers/llama.h": {
+    "mtime": 1793678336.8957593,
+    "ast_hash": "8406499e0c48a906719dd569f0d85064",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/llama.framework/Headers/ggml-metal.h": {
+    "mtime": 1793678336.896059,
+    "ast_hash": "e1c9e42cae8b4e68832fa6fa095d4d7d",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/llama.framework/Headers/ggml-cpu.h": {
+    "mtime": 1793678336.896349,
+    "ast_hash": "b1f4b0ad78d7542f6f3a32fac6e2eeaa",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/llama.framework/Headers/gguf.h": {
+    "mtime": 1793678336.8966165,
+    "ast_hash": "c06ff6e1ffc22593fdc64553fb5aca83",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/llama.framework/Headers/ggml.h": {
+    "mtime": 1793678336.8969357,
+    "ast_hash": "6a3892aeb34b18aab27770876e033a72",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64/llama.framework/Headers/ggml-blas.h": {
+    "mtime": 1793678336.9827573,
+    "ast_hash": "dc5dcce4c26b0504d1b61aa73ed19fb3",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64/llama.framework/Headers/ggml-backend.h": {
+    "mtime": 1793678336.9829671,
+    "ast_hash": "972b747226fc1d4a70806d883fc8ce55",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64/llama.framework/Headers/ggml-alloc.h": {
+    "mtime": 1793678336.9831572,
+    "ast_hash": "b5d7b6a98c234755acc1e760046ffadf",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64/llama.framework/Headers/ggml-opt.h": {
+    "mtime": 1793678336.9833531,
+    "ast_hash": "420f2f402ad5f7ab928e275bd9041f8c",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64/llama.framework/Headers/llama.h": {
+    "mtime": 1793678336.9835694,
+    "ast_hash": "8406499e0c48a906719dd569f0d85064",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64/llama.framework/Headers/ggml-metal.h": {
+    "mtime": 1793678336.983762,
+    "ast_hash": "e1c9e42cae8b4e68832fa6fa095d4d7d",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64/llama.framework/Headers/ggml-cpu.h": {
+    "mtime": 1793678336.983955,
+    "ast_hash": "b1f4b0ad78d7542f6f3a32fac6e2eeaa",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64/llama.framework/Headers/gguf.h": {
+    "mtime": 1793678336.9841352,
+    "ast_hash": "c06ff6e1ffc22593fdc64553fb5aca83",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64/llama.framework/Headers/ggml.h": {
+    "mtime": 1793678336.984334,
+    "ast_hash": "6a3892aeb34b18aab27770876e033a72",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/VoiceControllerTests.swift": {
+    "mtime": 1794098095.1035092,
     "ast_hash": "3cc9240ef4c4007bc6f8a77c1b328974",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/MemoryClientTests.swift": {
-    "mtime": 1793986779.3468692,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/MemoryClientTests.swift": {
+    "mtime": 1794098095.0771008,
     "ast_hash": "df81dff36f6b3a4774d49a31bcd1eaee",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/HybridReminderTests.swift": {
-    "mtime": 1793986779.3452744,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/HybridReminderTests.swift": {
+    "mtime": 1794098095.0751758,
     "ast_hash": "24dee0b64cbabebb49de385d235ae2d5",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ProactiveMessagesTests.swift": {
-    "mtime": 1793986779.3511903,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ProactiveMessagesTests.swift": {
+    "mtime": 1794098095.0822716,
     "ast_hash": "a65e54c7cf951f723423c33546811a21",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/HarnessResidencyTests.swift": {
-    "mtime": 1793986779.3446171,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/HarnessResidencyTests.swift": {
+    "mtime": 1794098095.0742643,
     "ast_hash": "46f80cc06b59fac6426e658b1a132857",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/WakeWordDetectorTests.swift": {
-    "mtime": 1793986779.3709085,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/WakeWordDetectorTests.swift": {
+    "mtime": 1794098095.104599,
     "ast_hash": "bfeb6eefcb0fdc857f3adeaba1a17fdf",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ReadWebpageToolTests.swift": {
-    "mtime": 1793993079.7116344,
-    "ast_hash": "41516167aa66952edf7040ce245f52a2",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ReadWebpageToolTests.swift": {
+    "mtime": 1794098095.0824966,
+    "ast_hash": "1809583493f78819a4f7deadbea13241",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/RuntimeFactoryTests.swift": {
-    "mtime": 1793986779.36557,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/RuntimeFactoryTests.swift": {
+    "mtime": 1794098095.0959585,
     "ast_hash": "5fde9d2183a3f7cc26c88373b0dcfc38",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ReminderMonitorTests.swift": {
-    "mtime": 1793986779.3531444,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ReminderMonitorTests.swift": {
+    "mtime": 1794098095.0847945,
     "ast_hash": "34bcd23c77dfc830be3d88cac18f73e3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/RecallInjectionTests.swift": {
-    "mtime": 1793986779.3513696,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/RecallInjectionTests.swift": {
+    "mtime": 1794098095.082743,
     "ast_hash": "4cc83837dba5bd0db5abb0445bf7b5db",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/MusicControlTests.swift": {
-    "mtime": 1793986779.3491623,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/MusicControlTests.swift": {
+    "mtime": 1794098095.0794086,
     "ast_hash": "694087ca50a119df741e5059180c10a3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ModelRuntimeTypesTests.swift": {
-    "mtime": 1793986779.3489537,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ModelRuntimeTypesTests.swift": {
+    "mtime": 1794098095.0791438,
     "ast_hash": "a1a36529677d28a6c89379db0ed8dd56",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/InfoPlistPrivacyKeysTests.swift": {
-    "mtime": 1793986779.3457825,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/InfoPlistPrivacyKeysTests.swift": {
+    "mtime": 1794098095.0754094,
     "ast_hash": "8b23fa1136cc4e394ec68fc786773a2b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/TaskRoutineCRUDTests.swift": {
-    "mtime": 1793986779.3689468,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/TaskRoutineCRUDTests.swift": {
+    "mtime": 1794098095.1018565,
     "ast_hash": "d8d8c4e1fa8e96db7eb9b30c30acb808",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ShortcutRunnerTests.swift": {
-    "mtime": 1793986779.3688214,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ShortcutRunnerTests.swift": {
+    "mtime": 1794098095.1007516,
     "ast_hash": "5e44642824e90616518ba2ffb21482e9",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/RunShortcutToolTests.swift": {
-    "mtime": 1793986779.3651958,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/RunShortcutToolTests.swift": {
+    "mtime": 1794098095.095718,
     "ast_hash": "b618d1c734f2879abbc97086305b963b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ListAlarmsToolTests.swift": {
-    "mtime": 1793986779.3461547,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ListAlarmsToolTests.swift": {
+    "mtime": 1794098095.0759385,
     "ast_hash": "7f7050b605b69737d86e055d16eea09c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/VoiceClientTests.swift": {
-    "mtime": 1793986779.3700159,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/VoiceClientTests.swift": {
+    "mtime": 1794098095.1032805,
     "ast_hash": "d1a99436a2ab91383040e87d64e8b9b4",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ServerRuntimeTests.swift": {
-    "mtime": 1793986779.3683305,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ServerRuntimeTests.swift": {
+    "mtime": 1794098095.0994318,
     "ast_hash": "c9493355a7dbbf9669dc4aaf1cdaf16f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/MakePhoneCallToolTests.swift": {
-    "mtime": 1793986779.3463407,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/MakePhoneCallToolTests.swift": {
+    "mtime": 1794098095.0761595,
     "ast_hash": "3a15635b86a0f1a1238057b5827ed477",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ToolJSONEscapingTests.swift": {
-    "mtime": 1793986779.3693595,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ToolJSONEscapingTests.swift": {
+    "mtime": 1794098095.1025715,
     "ast_hash": "e423c740eb4b3dbb4376fc23844d0cf7",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/NotesServiceTests.swift": {
-    "mtime": 1793986779.350186,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/NotesServiceTests.swift": {
+    "mtime": 1794098095.0808113,
     "ast_hash": "4623126bae00b0ea41afbd7e160f6b9b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AgentJarvisPromptTests.swift": {
-    "mtime": 1793986779.3379204,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AgentJarvisPromptTests.swift": {
+    "mtime": 1794098095.066548,
     "ast_hash": "09c25f93949f8185d96e2a9a6798a59c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/PendingDefectsTests.swift": {
-    "mtime": 1793986779.3507888,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/PendingDefectsTests.swift": {
+    "mtime": 1794098095.081478,
     "ast_hash": "293009bc0c8d7c89abed68990e13db7b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AlarmKitListProbe.swift": {
-    "mtime": 1793986779.340386,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AlarmKitListProbe.swift": {
+    "mtime": 1794098095.068561,
     "ast_hash": "9d3900ad3330baf120f5d8a799874ce4",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ToolCallingRuntimeTests.swift": {
-    "mtime": 1793986779.3691497,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ToolCallingRuntimeTests.swift": {
+    "mtime": 1794098095.1023338,
     "ast_hash": "602d2595a5e0c5feaaa8dff789ccbfc7",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/GemmaTests.swift": {
-    "mtime": 1793986779.343206,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/GemmaTests.swift": {
+    "mtime": 1794098095.0726664,
     "ast_hash": "c71bd7ea8d6d616909b9b6b969649b06",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/MemorySettingTests.swift": {
-    "mtime": 1793986779.347854,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/MemorySettingTests.swift": {
+    "mtime": 1794098095.078074,
     "ast_hash": "1361a68556e8bc2be192cb60568d2dca",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/SendMessageToolTests.swift": {
-    "mtime": 1793986779.3667445,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/SendMessageToolTests.swift": {
+    "mtime": 1794098095.0973153,
     "ast_hash": "82ae67c27e7d8ab6b766456f4ccc67f2",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ToolRegistryTests.swift": {
-    "mtime": 1793986779.3695443,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ToolRegistryTests.swift": {
+    "mtime": 1794098095.102763,
     "ast_hash": "c2b24569fa9f698ce48c242b19332a47",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ContactToolsTests.swift": {
-    "mtime": 1793986779.341897,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ContactToolsTests.swift": {
+    "mtime": 1794098095.0707822,
     "ast_hash": "5bef61eb4f36cb03a24eaf36aa80d864",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ChatSessionTests.swift": {
-    "mtime": 1793986779.3416975,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ChatSessionTests.swift": {
+    "mtime": 1794098095.0705035,
     "ast_hash": "68debcc3f1f022cea819f46cef7239d2",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ServerRuntimeStreamingTests.swift": {
-    "mtime": 1793986779.3681304,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/BrowserPanelWiringTests.swift": {
+    "mtime": 1794113685.8639188,
+    "ast_hash": "dc9ae2d6b41ef6c626c8d50c319c180d",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ServerRuntimeStreamingTests.swift": {
+    "mtime": 1794098095.0990825,
     "ast_hash": "26461beede1c035b2fee308d83166f1c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ScheduleStatusTests.swift": {
-    "mtime": 1793986779.3659208,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/BrowserRelayClientTests.swift": {
+    "mtime": 1794111448.1307952,
+    "ast_hash": "156245ce766a3ec25d65d0df67b4ec5e",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ScheduleStatusTests.swift": {
+    "mtime": 1794098095.0962594,
     "ast_hash": "17be1e679c985c00aeffd670c11e250d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AgentBrowserRegistrationTests.swift": {
-    "mtime": 1793995958.8277366,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AgentBrowserRegistrationTests.swift": {
+    "mtime": 1794098095.0660756,
     "ast_hash": "87938f5521d2c3c363ab02c0b3b50568",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/MemoryToolsTests.swift": {
-    "mtime": 1793986779.3481054,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/BrowserPanelCoordinatorTests.swift": {
+    "mtime": 1794121740.0425076,
+    "ast_hash": "6fda9f43f4566e426a9408d1dd0ca5d5",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/MemoryToolsTests.swift": {
+    "mtime": 1794098095.0783367,
     "ast_hash": "19909ee1bde9f0022a0a25afac616645",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ReflectToolTests.swift": {
-    "mtime": 1793986779.351576,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ReflectToolTests.swift": {
+    "mtime": 1794098095.0829954,
     "ast_hash": "30a181478d55a01592cff81be03a5b02",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/GenerationSettingsTests.swift": {
-    "mtime": 1793986779.3434706,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/GenerationSettingsTests.swift": {
+    "mtime": 1794098095.0728867,
     "ast_hash": "4821be2bdd4b749cbb31695e8c12bf92",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/RoutineConflictTests.swift": {
-    "mtime": 1793986779.3648462,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/RoutineConflictTests.swift": {
+    "mtime": 1794098095.0955017,
     "ast_hash": "ca03b0591e5362b92d9d21edca635064",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ScheduleTimeTests.swift": {
-    "mtime": 1793986779.36624,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ScheduleTimeTests.swift": {
+    "mtime": 1794098095.096768,
     "ast_hash": "f1b050fc32b2814b3d88ec41670309a3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ServerRuntimeProviderTests.swift": {
-    "mtime": 1793986779.3679106,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ServerRuntimeProviderTests.swift": {
+    "mtime": 1794098095.098784,
     "ast_hash": "e36d1b33b4d52466b13138445c7cd2cc",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/CoreLocationProviderTests.swift": {
-    "mtime": 1793986779.3421192,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/CoreLocationProviderTests.swift": {
+    "mtime": 1794098095.071028,
     "ast_hash": "f9bcafe8c03e117edefbf4a3d4aa94f1",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/WeatherForecastTests.swift": {
-    "mtime": 1793986779.3713226,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/WeatherForecastTests.swift": {
+    "mtime": 1794098095.1048317,
     "ast_hash": "f3ac97916e23ec4a69102791259caa86",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/WakeContextTests.swift": {
-    "mtime": 1793986779.370456,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/WakeContextTests.swift": {
+    "mtime": 1794098095.1039827,
     "ast_hash": "ff86c9488541907492684bb090f9945e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/CalendarHonestyTests.swift": {
-    "mtime": 1793986779.341219,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/CalendarHonestyTests.swift": {
+    "mtime": 1794098095.070033,
     "ast_hash": "a070ffe7ed97a89c1d2541a3c4832f39",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ModelProviderTests.swift": {
-    "mtime": 1793986779.3487318,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ModelProviderTests.swift": {
+    "mtime": 1794098095.078842,
     "ast_hash": "e5335f2231da41d1a219f494b2e37a52",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/HarnessModelTests.swift": {
-    "mtime": 1793986779.344368,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/HarnessModelTests.swift": {
+    "mtime": 1794098095.0738015,
     "ast_hash": "a21ab820b7c53e14a2333525949ba076",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ReminderCRUDTests.swift": {
-    "mtime": 1793986779.351958,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ReminderCRUDTests.swift": {
+    "mtime": 1794098095.0835857,
     "ast_hash": "96dc2d85be0a81c0fc47b19ceb389fca",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/BrowserInspectionToolsTests.swift": {
-    "mtime": 1793994656.933232,
-    "ast_hash": "f6b03b42cc6a84d62652722f0648500d",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/BrowserInspectionToolsTests.swift": {
+    "mtime": 1794098095.0689917,
+    "ast_hash": "74d7ee4657ab4aae5920f38075e8bf51",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/WebSearchHonestyTests.swift": {
-    "mtime": 1793986779.372344,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/WebSearchHonestyTests.swift": {
+    "mtime": 1794098095.1058114,
     "ast_hash": "75a0a9359bb639c4aee0baf379b57c5d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/Mutex.swift": {
-    "mtime": 1793986779.3498309,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/Mutex.swift": {
+    "mtime": 1794098095.0803456,
     "ast_hash": "57c2f2e4a35c0ed44da43b7a64d9b6bd",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/RemainingCRUDTests.swift": {
-    "mtime": 1793986779.3517659,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/RemainingCRUDTests.swift": {
+    "mtime": 1794098095.0833852,
     "ast_hash": "1681dc061e9dbe6ed49303742f7c782b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ServerManagerLiveTests.swift": {
-    "mtime": 1793986779.3670053,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ServerManagerLiveTests.swift": {
+    "mtime": 1794098095.0976317,
     "ast_hash": "e785e8519ae25da70d96c453147a44e6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AgentSystemPromptTests.swift": {
-    "mtime": 1793986779.3386688,
-    "ast_hash": "2eb9c3598eb23bcd71fdbff74d887a15",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AgentSystemPromptTests.swift": {
+    "mtime": 1794098095.067424,
+    "ast_hash": "e22d3b1a26968f338b14583f495ddd5d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/EnergyEndpointerTests.swift": {
-    "mtime": 1793986779.3429995,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/EnergyEndpointerTests.swift": {
+    "mtime": 1794098095.0723846,
     "ast_hash": "f46fd99f8f34a419f792fe02a53c46a3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/HarnessModelProviderTests.swift": {
-    "mtime": 1793986779.3439589,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/HarnessModelProviderTests.swift": {
+    "mtime": 1794098095.0735533,
     "ast_hash": "aab2a82e949f1e0471466e6b587e6ebc",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/MirroredStorageTests.swift": {
-    "mtime": 1793986779.3483834,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/MirroredStorageTests.swift": {
+    "mtime": 1794098095.0786235,
     "ast_hash": "f7f8deb5584f9dce1e8f7e221ebabb60",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/MemoryServiceLiveTests.swift": {
-    "mtime": 1793986779.347509,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/MemoryServiceLiveTests.swift": {
+    "mtime": 1794098095.077852,
     "ast_hash": "220161891103ec98183cb0b2ee6ca5d0",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/DummyRuntimeTests.swift": {
-    "mtime": 1793986779.3428013,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/DummyRuntimeTests.swift": {
+    "mtime": 1794098095.0720677,
     "ast_hash": "228725cd6dc4ca86f78afaa0b18bf0ba",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/NoteCRUDTests.swift": {
-    "mtime": 1793986779.3500004,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/NoteCRUDTests.swift": {
+    "mtime": 1794098095.0805938,
     "ast_hash": "605cc7d0053cdffa489fbacb20ab3ded",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ServerRuntimeHistoryTests.swift": {
-    "mtime": 1793986779.3677135,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ServerRuntimeHistoryTests.swift": {
+    "mtime": 1794098095.0984862,
     "ast_hash": "6938d202cfa6ed6c252efacc39460b60",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AgentTests.swift": {
-    "mtime": 1793986779.3391132,
-    "ast_hash": "b3989f366a751fcf54014a1d63a59061",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AgentTests.swift": {
+    "mtime": 1794098095.0676718,
+    "ast_hash": "81020433ceab078442dcd283211e00fd",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/SettingsStoreTests.swift": {
-    "mtime": 1793986779.3685532,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/SettingsStoreTests.swift": {
+    "mtime": 1794098095.1001766,
     "ast_hash": "6b2b0a0b6a79ebf9bed48520d2b52265",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/WeatherLocationTests.swift": {
-    "mtime": 1793986779.3719006,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/WeatherLocationTests.swift": {
+    "mtime": 1794098095.1052456,
     "ast_hash": "a459ef1448375743e26f6afc73c18ab5",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/MusicServiceTests.swift": {
-    "mtime": 1793986779.3496473,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/MusicServiceTests.swift": {
+    "mtime": 1794098095.080103,
     "ast_hash": "4003e5fa226baf33d3a369355e8be7d5",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AgentMemoryTests.swift": {
-    "mtime": 1793986779.3381515,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/HTTPAgentBrowserInvokerTests.swift": {
+    "mtime": 1794110603.9819615,
+    "ast_hash": "e9c077878868b872f5ea151a3671acba",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AgentMemoryTests.swift": {
+    "mtime": 1794098095.0667663,
     "ast_hash": "fa60027906d6bb06e3a6d7445e723f23",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/MusicLibraryTests.swift": {
-    "mtime": 1793986779.3494055,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/MusicLibraryTests.swift": {
+    "mtime": 1794098095.0798051,
     "ast_hash": "a51635bf119e063cfdf2f6ee680db57b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/WeatherHonestyTests.swift": {
-    "mtime": 1793986779.3716109,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/WeatherHonestyTests.swift": {
+    "mtime": 1794098095.1050477,
     "ast_hash": "6539c79cab7139ee68489ff22166f150",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ServerProcessTests.swift": {
-    "mtime": 1793986779.3674846,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ServerProcessTests.swift": {
+    "mtime": 1794098095.0980995,
     "ast_hash": "d154e20d301d101f5a1018fb9403987a",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/DateParsingTests.swift": {
-    "mtime": 1793986779.3424404,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/DateParsingTests.swift": {
+    "mtime": 1794098095.0714989,
     "ast_hash": "5a0b01b626d61539ca1488d72909cd01",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/MemoryRecallToolsContractTests.swift": {
-    "mtime": 1793986779.3472698,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/MemoryRecallToolsContractTests.swift": {
+    "mtime": 1794098095.0773854,
     "ast_hash": "f56b3faab2ef390148bd8818c8786e5a",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ReminderCRUDToolTests.swift": {
-    "mtime": 1793986779.3526325,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ReminderCRUDToolTests.swift": {
+    "mtime": 1794098095.084069,
     "ast_hash": "ee87bef9cddee3c4a7da5d10f999a411",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ReminderCheckpointTests.swift": {
-    "mtime": 1793986779.3528485,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ReminderCheckpointTests.swift": {
+    "mtime": 1794098095.0843685,
     "ast_hash": "4350aaf1a2718cc51be4b71d7c4c5f80",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/WakeListenerTests.swift": {
-    "mtime": 1793986779.3706648,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/WakeListenerTests.swift": {
+    "mtime": 1794098095.1042924,
     "ast_hash": "f35c643d6be75e89b62a29972bb6144b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AgentBrowserServiceTests.swift": {
-    "mtime": 1793992477.805335,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AgentBrowserServiceTests.swift": {
+    "mtime": 1794098095.0663676,
     "ast_hash": "ba1782fe339464d4543996be4e261faf",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AtoZTests.swift": {
-    "mtime": 1793986779.3407538,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AtoZTests.swift": {
+    "mtime": 1794098095.0687535,
     "ast_hash": "4637729a1e9c6a62696c4fbf361d988a",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/BrowserNavigationToolsTests.swift": {
-    "mtime": 1793994206.6882756,
-    "ast_hash": "547a24d2d7c28c025200b93ca0414141",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/BrowserNavigationToolsTests.swift": {
+    "mtime": 1794098095.0695271,
+    "ast_hash": "95fb0d8516aac6d01510531b020e4b2f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/CurrentTimeToolTests.swift": {
-    "mtime": 1793986779.3422968,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/CurrentTimeToolTests.swift": {
+    "mtime": 1794098095.071337,
     "ast_hash": "44f39d13878cd5864089159c94785bd8",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ScheduleToolsContractTests.swift": {
-    "mtime": 1793986779.3665931,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ScheduleToolsContractTests.swift": {
+    "mtime": 1794098095.097004,
     "ast_hash": "5c115f0a666deb938513e0293d06102c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/MemoryClientScheduleTests.swift": {
-    "mtime": 1793986779.3466678,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/MemoryClientScheduleTests.swift": {
+    "mtime": 1794098095.076816,
     "ast_hash": "e819ea88732cbf8f4711ccd7b3be1aa2",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AgentBrowserLiveTests.swift": {
-    "mtime": 1793996281.87519,
-    "ast_hash": "a6743056c36ceaccdcd6f2e0935ccf7b",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AgentBrowserLiveTests.swift": {
+    "mtime": 1794119099.9339473,
+    "ast_hash": "5d19fed8ecb6d8bc5395c6fc2c775592",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AgentPromptTests.swift": {
-    "mtime": 1793986779.3384361,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AgentPromptTests.swift": {
+    "mtime": 1794098095.067136,
     "ast_hash": "50bcca204354e89fb3d09921ee716857",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ServerManagerTests.swift": {
-    "mtime": 1793986779.3672464,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ServerManagerTests.swift": {
+    "mtime": 1794098095.0978677,
     "ast_hash": "afe01f6255ff064752fd6a56fd026092",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/HTTPServerHealthTests.swift": {
-    "mtime": 1793986779.343736,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/HTTPServerHealthTests.swift": {
+    "mtime": 1794098095.0732365,
     "ast_hash": "b4a1925000a4312dd228f4fd6e564bb6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/PlaceToolsTests.swift": {
-    "mtime": 1793986779.351013,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/PlaceToolsTests.swift": {
+    "mtime": 1794098095.0818696,
     "ast_hash": "65c1ab9df5ade8b8f8dc7799f3e92522",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AgentBrowserInvokerTests.swift": {
-    "mtime": 1793991508.1982427,
-    "ast_hash": "e9aac056b379a35b0e25a474f5649a61",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AgentBrowserInvokerTests.swift": {
+    "mtime": 1794098095.065627,
+    "ast_hash": "c307ee553ab844cc3bad4a63704e9dd3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/OnnxRuntimeSmokeTests.swift": {
-    "mtime": 1793986779.3505504,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/OnnxRuntimeSmokeTests.swift": {
+    "mtime": 1794098095.081114,
     "ast_hash": "0e777929c92455147986b7c472da7b3f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/KeychainStoreTests.swift": {
-    "mtime": 1793986779.3459485,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/BrowserPanelStateTests.swift": {
+    "mtime": 1794121753.9462447,
+    "ast_hash": "2e5f901dcb4aa4c07d387d2d7c64d199",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/KeychainStoreTests.swift": {
+    "mtime": 1794098095.0757148,
     "ast_hash": "423f43b03bfa7fb39b1cf29a4f6e0bad",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ReminderLeadTimeTests.swift": {
-    "mtime": 1793986779.352957,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/BrowserCrossPlatformTests.swift": {
+    "mtime": 1794119504.4120967,
+    "ast_hash": "94bee797a68f2fbbd5b2f48b42c82837",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ReminderLeadTimeTests.swift": {
+    "mtime": 1794098095.0844753,
     "ast_hash": "7b5726bf9fc5bf3d9bd59bf0f97a4b2b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/DeviceStatusHonestyTests.swift": {
-    "mtime": 1793986779.3425853,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/DeviceStatusHonestyTests.swift": {
+    "mtime": 1794098095.0716622,
     "ast_hash": "c809eb0fe088b8c0dee0a3bb05ef6030",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/CancelAlarmTests.swift": {
-    "mtime": 1793986779.34153,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/CancelAlarmTests.swift": {
+    "mtime": 1794098095.070311,
     "ast_hash": "7416e7b2e82c4719aba64d86b70eb9a3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AlarmKitDeviceTests.swift": {
-    "mtime": 1793986779.3397858,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AlarmKitDeviceTests.swift": {
+    "mtime": 1794098095.068375,
     "ast_hash": "fb0e3a47516e72ed09297cfb298b03c8",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/ShortcutInstallToolTests.swift": {
-    "mtime": 1793986779.3686883,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/ShortcutInstallToolTests.swift": {
+    "mtime": 1794098095.1005335,
     "ast_hash": "2edf8354d27f019c0230077d453a3876",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/CalendarCreateDeleteHonestyTests.swift": {
-    "mtime": 1793986779.3409693,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/CalendarCreateDeleteHonestyTests.swift": {
+    "mtime": 1794098095.0698068,
     "ast_hash": "bf12808c1d9b7fcf7a1763b9589d3a0c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/UpdateEventToolTests.swift": {
-    "mtime": 1793986779.3697906,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/UpdateEventToolTests.swift": {
+    "mtime": 1794098095.1030276,
     "ast_hash": "e63f5c7b4312bcb6c1bf30ab3bba917a",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/AgentToolTests.swift": {
-    "mtime": 1793986779.339482,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/AgentToolTests.swift": {
+    "mtime": 1794098095.068122,
     "ast_hash": "9ab31bbbf831008bd2ac6e141a45ceef",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/BrowserInteractionToolsTests.swift": {
-    "mtime": 1793994680.5276492,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/BrowserInteractionToolsTests.swift": {
+    "mtime": 1794098095.0692117,
     "ast_hash": "34071fe141534941925abdbb7c159681",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/Helpers/FakeMemoryClient.swift": {
-    "mtime": 1793986779.3449154,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/Helpers/FakeMemoryClient.swift": {
+    "mtime": 1794098095.074812,
     "ast_hash": "f31cf815527d312dcac22951f987363c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/scripts/m3a-e2e.sh": {
-    "mtime": 1793986779.4751682,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/scripts/m3a-e2e.sh": {
+    "mtime": 1794098095.2476962,
     "ast_hash": "0e5af6d62b9a4738c313024ae095684b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/gemma-atoz-sync.user.js": {
-    "mtime": 1793986779.388163,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/gemma-atoz-sync.user.js": {
+    "mtime": 1794098095.126067,
     "ast_hash": "b93d6d7762938bc0736e557abae3613b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/Resources/popup.js": {
-    "mtime": 1793986779.3880317,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/Resources/popup.js": {
+    "mtime": 1794098095.1259332,
     "ast_hash": "629963770de74a38b691743c74c580b1",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/Resources/background.js": {
-    "mtime": 1793986779.3875663,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/Resources/background.js": {
+    "mtime": 1794098095.1250696,
     "ast_hash": "c7637dbec348ed93c23b736e5c93c81c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/Resources/content_script.js": {
-    "mtime": 1793986779.3876808,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/Resources/content_script.js": {
+    "mtime": 1794098095.1252906,
     "ast_hash": "eb2392ea56aa29cc98437ddbe0b5ef86",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/Resources/manifest.json": {
-    "mtime": 1793986779.3877814,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/Resources/manifest.json": {
+    "mtime": 1794098095.1254146,
     "ast_hash": "7a1e843e33b21a71f699b3895e7f4953",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/GemmaSafari/GemmaSafari/ViewController.swift": {
-    "mtime": 1793986779.3873081,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/GemmaSafari/GemmaSafari/ViewController.swift": {
+    "mtime": 1794098095.1245923,
     "ast_hash": "85312cb8630e8a5b387e5c415e62ba4a",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/GemmaSafari/GemmaSafari/AppDelegate.swift": {
-    "mtime": 1793986779.3859138,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/GemmaSafari/GemmaSafari/AppDelegate.swift": {
+    "mtime": 1794098095.1223712,
     "ast_hash": "05f9904cb9bf827b47a2ffdc4117ffab",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/GemmaSafari/GemmaSafari/SceneDelegate.swift": {
-    "mtime": 1793986779.3871973,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/GemmaSafari/GemmaSafari/SceneDelegate.swift": {
+    "mtime": 1794098095.1244662,
     "ast_hash": "a7d2ac3b179a5fbc5438a502ebe7d665",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/GemmaSafari/GemmaSafari/Assets.xcassets/Contents.json": {
-    "mtime": 1793986779.3862836,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/GemmaSafari/GemmaSafari/Assets.xcassets/Contents.json": {
+    "mtime": 1794098095.122729,
     "ast_hash": "9deb2ada1cc834bbebf8bbad9c8978a1",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/GemmaSafari/GemmaSafari/Assets.xcassets/LargeIcon.imageset/Contents.json": {
-    "mtime": 1793986779.3864415,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/GemmaSafari/GemmaSafari/Assets.xcassets/LargeIcon.imageset/Contents.json": {
+    "mtime": 1794098095.1228862,
     "ast_hash": "24a872b26b3f1f80719e1d7d53d10f8f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/GemmaSafari/GemmaSafari/Assets.xcassets/AppIcon.appiconset/Contents.json": {
-    "mtime": 1793986779.3861828,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/GemmaSafari/GemmaSafari/Assets.xcassets/AppIcon.appiconset/Contents.json": {
+    "mtime": 1794098095.1226525,
     "ast_hash": "cbe75704b2680422c4156009a528e292",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/GemmaSafari/GemmaSafari/Assets.xcassets/AccentColor.colorset/Contents.json": {
-    "mtime": 1793986779.386057,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/GemmaSafari/GemmaSafari/Assets.xcassets/AccentColor.colorset/Contents.json": {
+    "mtime": 1794098095.1225376,
     "ast_hash": "55019f7265dde0a78318b0807f98e847",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/GemmaSafari/GemmaSafari Extension/SafariWebExtensionHandler.swift": {
-    "mtime": 1793986779.3838444,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/GemmaSafari/GemmaSafari Extension/SafariWebExtensionHandler.swift": {
+    "mtime": 1794098095.1205654,
     "ast_hash": "7e463baf6b3d09252607b7b2a329013b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/logs.txt": {
-    "mtime": 1793986779.4748166,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/logs.txt": {
+    "mtime": 1794098095.2470047,
     "ast_hash": "aad328a838c18f39dc9d8d2be3081996",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/voice_mode.md": {
-    "mtime": 1793986779.4759274,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/voice_mode.md": {
+    "mtime": 1794098095.249189,
     "ast_hash": "606672dd143d491a93c5bac75b414312",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/CLAUDE.md": {
-    "mtime": 1793986779.2937386,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/CLAUDE.md": {
+    "mtime": 1794098095.0015244,
     "ast_hash": "932d1d210f48f5c82b91a75c77d7cd79",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/Decisiones bloqueadas.txt": {
-    "mtime": 1793986779.3888578,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/dSYMs/llama.dSYM/Contents/Resources/Relocations/aarch64/llama.yml": {
+    "mtime": 1793678336.8246005,
+    "ast_hash": "719d06a039cde597e8409324eb5609b9",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/macos-arm64_x86_64/dSYMs/llama.dSYM/Contents/Resources/Relocations/x86_64/llama.yml": {
+    "mtime": 1793678336.8273594,
+    "ast_hash": "d782333fdfd07ed90f7b02e28864f3bc",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/dSYMs/llama.dSYM/Contents/Resources/Relocations/aarch64/llama.yml": {
+    "mtime": 1793678336.9114356,
+    "ast_hash": "7a93ac6e6c66cf78fadd6efe61459709",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64_x86_64-simulator/dSYMs/llama.dSYM/Contents/Resources/Relocations/x86_64/llama.yml": {
+    "mtime": 1793678336.913625,
+    "ast_hash": "7dea41dc8a96ec979a83a9d3dd9a89f8",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/Gemma/Frameworks/llama.xcframework/ios-arm64/dSYMs/llama.dSYM/Contents/Resources/Relocations/aarch64/llama.yml": {
+    "mtime": 1793678336.9931397,
+    "ast_hash": "201ef13e4b9a1c99ccac14eaeeb64ca1",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/Decisiones bloqueadas.txt": {
+    "mtime": 1794098095.126618,
     "ast_hash": "4e794eb6e546da21cb396d76d486ad95",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/initial_idea.txt": {
-    "mtime": 1793986779.3890522,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/initial_idea.txt": {
+    "mtime": 1794098095.1268458,
     "ast_hash": "7210345b10e37b1a2265627a4d55fbf9",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/spikes/2026-06-02-llamacpp-fork-vs-mlx.md": {
-    "mtime": 1793986779.389309,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/spikes/2026-06-02-llamacpp-fork-vs-mlx.md": {
+    "mtime": 1794098095.1271958,
     "ast_hash": "2b2b9399003d9fd44bf5bab15d7e09f3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-11-06-agent-browser-integration.md": {
-    "mtime": 1793988172.3645945,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-11-06-agent-browser-integration.md": {
+    "mtime": 1794098095.1444209,
     "ast_hash": "7b57580c95a7b1e6803c0a50f912be6b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-05-agent-gateway-phase1a.md": {
-    "mtime": 1793986779.4007385,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-05-agent-gateway-phase1a.md": {
+    "mtime": 1794098095.142197,
     "ast_hash": "cb0c207614b334d2ccf91f230dcad4da",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-06-voice-in-app-recorder.md": {
-    "mtime": 1793986779.4013832,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-06-voice-in-app-recorder.md": {
+    "mtime": 1794098095.1427884,
     "ast_hash": "8ed013bd6d5313ddfd95ab8e2dcffaf5",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-31-mlx-vlm-mtp-migration.md": {
-    "mtime": 1793986779.3947752,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-31-mlx-vlm-mtp-migration.md": {
+    "mtime": 1794098095.1346009,
     "ast_hash": "7bcb75d9aabd9629d3445b38ed087b7f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-03-sp1-plan2-agent-schedule-tools.md": {
-    "mtime": 1793986779.3977911,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-03-sp1-plan2-agent-schedule-tools.md": {
+    "mtime": 1794098095.1384382,
     "ast_hash": "2edfdc4d469e174b155a129593cc5ac0",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-08-wake-word-phase2.md": {
-    "mtime": 1793986779.402243,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-08-wake-word-phase2.md": {
+    "mtime": 1794098095.1438837,
     "ast_hash": "640b652c136320e25a115a717783ff2d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-31-m2c-1-memory-residency.md": {
-    "mtime": 1793986779.3945434,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-31-m2c-1-memory-residency.md": {
+    "mtime": 1794098095.1343095,
     "ast_hash": "e1634b07ec6e60114a4b77d6a75cf654",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-05-agent-uses-memory-sp-c.md": {
-    "mtime": 1793986779.4010859,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-05-agent-uses-memory-sp-c.md": {
+    "mtime": 1794098095.1424634,
     "ast_hash": "cd409d080d9c9a8c71e3f4c181a62415",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-04-agent-prompt-jarvis.md": {
-    "mtime": 1793986779.3983924,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-04-agent-prompt-jarvis.md": {
+    "mtime": 1794098095.1390398,
     "ast_hash": "304e19a13150a05ba7e9e598c39f3832",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-02-mlx-ttft-quickwin.md": {
-    "mtime": 1793986779.3974354,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-02-mlx-ttft-quickwin.md": {
+    "mtime": 1794098095.1381047,
     "ast_hash": "262ada2fa4fe1eb83ff7ca7409535b9b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-04-model-router.md": {
-    "mtime": 1793986779.399485,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-04-model-router.md": {
+    "mtime": 1794098095.1404252,
     "ast_hash": "c979e3775f2fdde0d881b2638cb3ef0f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-04-traceable-summaries-retrieval-first.md": {
-    "mtime": 1793986779.4004529,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-04-traceable-summaries-retrieval-first.md": {
+    "mtime": 1794098095.1417477,
     "ast_hash": "8ab92f9a89897bc0492e6984df5f2f6e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-30-m2a-server-lifecycle.md": {
-    "mtime": 1793986779.3927698,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-30-m2a-server-lifecycle.md": {
+    "mtime": 1794098095.132383,
     "ast_hash": "96df4bb5e847ae4089af5bdf6ba3b2bb",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-28-s1-litertlm-core.md": {
-    "mtime": 1793986779.3902962,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-11-07-panel-streaming-navegador.md": {
+    "mtime": 1794098095.1448283,
+    "ast_hash": "c5c53a7ad1cf4c2141d54da84cc89ec1",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-28-s1-litertlm-core.md": {
+    "mtime": 1794098095.1295884,
     "ast_hash": "e646db5165277bfc05276dccfaa5aa26",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-29-s5a-memoria-ondevice.md": {
-    "mtime": 1793986779.392522,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-29-s5a-memoria-ondevice.md": {
+    "mtime": 1794098095.1320014,
     "ast_hash": "019d3084d34b1dbde65fe369f4a28a97",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-31-m2b-2-sleep-consolidation.md": {
-    "mtime": 1793986779.3940127,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-31-m2b-2-sleep-consolidation.md": {
+    "mtime": 1794098095.133665,
     "ast_hash": "43277e5a97502d429941397806b114ea",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-01-m2d-3-drilldown-and-ui.md": {
-    "mtime": 1793986779.395503,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-01-m2d-3-drilldown-and-ui.md": {
+    "mtime": 1794098095.135576,
     "ast_hash": "3fd8ab33ca34d50104a8d741b9e6628f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md": {
-    "mtime": 1793986779.3957176,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-01-recall-and-consolidation-fixes.md": {
+    "mtime": 1794098095.1359413,
     "ast_hash": "f1f28186455956a11d6ee84989585d0b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-28-s1-mtp-comparison.md": {
-    "mtime": 1793986779.3908892,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-28-s1-mtp-comparison.md": {
+    "mtime": 1794098095.1302094,
     "ast_hash": "ed9b2c4f17bed49a0ce451568bc6e625",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-03-sp1-server-events-schedule.md": {
-    "mtime": 1793986779.398146,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-03-sp1-server-events-schedule.md": {
+    "mtime": 1794098095.138718,
     "ast_hash": "e5b5b0218bd89baa5cadf5a1cdadf7c5",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-28-s1-perf-benchmark.md": {
-    "mtime": 1793986779.3911197,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-28-s1-perf-benchmark.md": {
+    "mtime": 1794098095.130432,
     "ast_hash": "97686e5eea9a582851cedd6cb1772f79",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-04-self-identity-sp2.md": {
-    "mtime": 1793986779.4001777,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-04-self-identity-sp2.md": {
+    "mtime": 1794098095.1414092,
     "ast_hash": "6c490bf733f195d571da998001444d2e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-08-update-event.md": {
-    "mtime": 1793986779.4019744,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-08-update-event.md": {
+    "mtime": 1794098095.143592,
     "ast_hash": "b860b13f19591c8de373ffccc41854e9",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md": {
-    "mtime": 1793986779.3950353,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-01-m2d-1-live-context-clean-capture.md": {
+    "mtime": 1794098095.1349463,
     "ast_hash": "0eed75bdd2352681beac3521cd5e5afb",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-28-s1.1-multimodal.md": {
-    "mtime": 1793986779.391705,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-28-s1.1-multimodal.md": {
+    "mtime": 1794098095.1311622,
     "ast_hash": "c2fa5296249bf2fdf4196cbd77de6eb3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-30-macos-mlx-m0-m1.md": {
-    "mtime": 1793986779.3931587,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-30-macos-mlx-m0-m1.md": {
+    "mtime": 1794098095.1327314,
     "ast_hash": "342a65ffd48e9ba0d2ecea9c89e3f156",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-28-s1-settings-ui.md": {
-    "mtime": 1793986779.3913784,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-28-s1-settings-ui.md": {
+    "mtime": 1794098095.1308246,
     "ast_hash": "4999111b6b75a3e76a25bd6352e1bc21",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-02-m3a-memory-service-docker.md": {
-    "mtime": 1793986779.3970103,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-02-m3a-memory-service-docker.md": {
+    "mtime": 1794098095.1376324,
     "ast_hash": "e736962fa1505297a3a9e15c3a73da0c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-29-s4-agent-core.md": {
-    "mtime": 1793986779.3920243,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-29-s4-agent-core.md": {
+    "mtime": 1794098095.131464,
     "ast_hash": "e9512f2423eddf1f3f254aae75884cc6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-31-m2b-3-resume-followup.md": {
-    "mtime": 1793986779.3942904,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-31-m2b-3-resume-followup.md": {
+    "mtime": 1794098095.1339877,
     "ast_hash": "9cb751f591881c17a7d68a10dc28a2f6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-04-consolidation-clustering-sp-b1.md": {
-    "mtime": 1793986779.398679,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-04-consolidation-clustering-sp-b1.md": {
+    "mtime": 1794098095.1394355,
     "ast_hash": "162bf36b5437e444e0e8b1ad9bcba95d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md": {
-    "mtime": 1793986779.3952713,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-01-m2d-2-semantic-summaries-consolidation.md": {
+    "mtime": 1794098095.1352592,
     "ast_hash": "f8cc4abbae869a710e3a2d1345d7e821",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-28-s1-model-infra.md": {
-    "mtime": 1793986779.3906403,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-28-s1-model-infra.md": {
+    "mtime": 1794098095.129954,
     "ast_hash": "b0667741220a35a34986836341c04c54",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-09-elevenlabs-stt.md": {
-    "mtime": 1793986779.4024794,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-09-elevenlabs-stt.md": {
+    "mtime": 1794098095.1441152,
     "ast_hash": "d85ec618336ab8b78fe2f4de14017b99",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-27-s1-runtime-scaffold.md": {
-    "mtime": 1793986779.3899934,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-27-s1-runtime-scaffold.md": {
+    "mtime": 1794098095.1290839,
     "ast_hash": "a765b23622a6977b2f3acb96ace0d8dc",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-04-consolidation-identity-provenance-sp-b2.md": {
-    "mtime": 1793986779.399214,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-04-consolidation-identity-provenance-sp-b2.md": {
+    "mtime": 1794098095.1400902,
     "ast_hash": "8dabbf872dc6f54eabd23f5c541a0dfb",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-04-recent-turns-recall-cloud-efficiency.md": {
-    "mtime": 1793986779.399749,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-04-recent-turns-recall-cloud-efficiency.md": {
+    "mtime": 1794098095.1407623,
     "ast_hash": "aee817988dcb9dc4a1a87d7a14cb83a3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-05-31-m2b-1-foundations.md": {
-    "mtime": 1793986779.393516,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-05-31-m2b-1-foundations.md": {
+    "mtime": 1794098095.1331527,
     "ast_hash": "9f9dbc10a03dfe8ae1a8052386f6c12c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-01-temporal-events-proactive.md": {
-    "mtime": 1793986779.3959577,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-01-temporal-events-proactive.md": {
+    "mtime": 1794098095.1362758,
     "ast_hash": "be9bbdc94df59d289d57f60cc06f21d6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-04-consolidation-hardening.md": {
-    "mtime": 1793986779.3989549,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-04-consolidation-hardening.md": {
+    "mtime": 1794098095.139767,
     "ast_hash": "a04be4088ad9544f824036bcd5faa41c",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-04-schedule-date-hardening.md": {
-    "mtime": 1793986779.39997,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-04-schedule-date-hardening.md": {
+    "mtime": 1794098095.1411219,
     "ast_hash": "5a14cc987201c87148be2e6682d6d759",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/plans/2026-06-06-voice-mode-phase1b.md": {
-    "mtime": 1793986779.4016793,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/plans/2026-06-06-voice-mode-phase1b.md": {
+    "mtime": 1794098095.143166,
     "ast_hash": "125ca91c9ff4003167a73cec5c18ddcc",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-30-s5a-v2-capture-redesign-design.md": {
-    "mtime": 1793986779.4055636,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-30-s5a-v2-capture-redesign-design.md": {
+    "mtime": 1794098095.1485746,
     "ast_hash": "7d683d495621771778512a9a9d89eba1",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-04-consolidation-hardening-design.md": {
-    "mtime": 1793986779.4085455,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-04-consolidation-hardening-design.md": {
+    "mtime": 1794098095.1518984,
     "ast_hash": "f3515c1dcaf6486d7ff640145efa3760",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-30-macos-mlx-m1-design.md": {
-    "mtime": 1793986779.405311,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-30-macos-mlx-m1-design.md": {
+    "mtime": 1794098095.148346,
     "ast_hash": "cf1cd0ca7a40b4c543e08bde781b7690",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-11-06-agent-browser-integration-design.md": {
-    "mtime": 1793987821.2510679,
-    "ast_hash": "89329a0f15c6994be1dd2d7da7eab7b6",
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-11-06-agent-browser-integration-design.md": {
+    "mtime": 1794098095.1562762,
+    "ast_hash": "da7a894bada86061c78b4adf1a24362e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-05-agent-gateway-phase1a-design.md": {
-    "mtime": 1793986779.410309,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-05-agent-gateway-phase1a-design.md": {
+    "mtime": 1794098095.1540678,
     "ast_hash": "0df7743b4376044afeafeb7dbe16e55b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md": {
-    "mtime": 1793986779.4071736,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-01-m2d-live-context-clean-capture-design.md": {
+    "mtime": 1794098095.1504366,
     "ast_hash": "f3ecbefb713a1476eaf2137045a783df",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-28-s1-perf-benchmark-design.md": {
-    "mtime": 1793986779.4037833,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-28-s1-perf-benchmark-design.md": {
+    "mtime": 1794098095.1465757,
     "ast_hash": "a7a8aa0bd4ff6dcfa0ee99e9534ae8b4",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-31-m2c-1-memory-residency-design.md": {
-    "mtime": 1793986779.4066563,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-31-m2c-1-memory-residency-design.md": {
+    "mtime": 1794098095.1498907,
     "ast_hash": "49a3845834f1c8eb44edc60b078251d6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-06-voice-in-app-recorder-design.md": {
-    "mtime": 1793986779.4107442,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-06-voice-in-app-recorder-design.md": {
+    "mtime": 1794098095.1546564,
     "ast_hash": "54d7e11714c5c2ec4c5f17f8feec843e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-09-elevenlabs-stt-design.md": {
-    "mtime": 1793986779.4116356,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-09-elevenlabs-stt-design.md": {
+    "mtime": 1794098095.1557283,
     "ast_hash": "c186d50b3b2bf26d54803c3f8235f855",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-04-consolidation-pipeline-clustering-design.md": {
-    "mtime": 1793986779.4088552,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-04-consolidation-pipeline-clustering-design.md": {
+    "mtime": 1794098095.1521742,
     "ast_hash": "b2f04f26aefe8cce88eca884181cb011",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/01-s1-runtime-report.md": {
-    "mtime": 1793986779.403108,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/01-s1-runtime-report.md": {
+    "mtime": 1794098095.145388,
     "ast_hash": "60174ce1677fc28b0206efd0439e8258",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-31-m2b-1-foundations-design.md": {
-    "mtime": 1793986779.4058402,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-31-m2b-1-foundations-design.md": {
+    "mtime": 1794098095.148785,
     "ast_hash": "9e12e35e05662b523c295f3d181e7839",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-28-s1-settings-ui-design.md": {
-    "mtime": 1793986779.4040067,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-28-s1-settings-ui-design.md": {
+    "mtime": 1794098095.1467528,
     "ast_hash": "20f5b8ac69cd15720114310bbc20a90e",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-10-realtime-stt-phase1-design.md": {
-    "mtime": 1793986779.411897,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-10-realtime-stt-phase1-design.md": {
+    "mtime": 1794098095.156014,
     "ast_hash": "f2303beb8d6496a1cd4682579584d8b2",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-04-agent-prompt-jarvis-design.md": {
-    "mtime": 1793986779.4082475,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-04-agent-prompt-jarvis-design.md": {
+    "mtime": 1794098095.1515374,
     "ast_hash": "ee4371527c42fceebb441feed62f1b22",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-31-m2b-2-sleep-consolidation-design.md": {
-    "mtime": 1793986779.4061358,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-31-m2b-2-sleep-consolidation-design.md": {
+    "mtime": 1794098095.149439,
     "ast_hash": "bcbc5d0699254bf55578dce06f39019d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-29-s5a-memoria-ondevice-design.md": {
-    "mtime": 1793986779.404781,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-29-s5a-memoria-ondevice-design.md": {
+    "mtime": 1794098095.1477396,
     "ast_hash": "78fb390cfd7a4a39c415da30bfde3e80",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-29-s4-agent-core-design.md": {
-    "mtime": 1793986779.4044886,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-29-s4-agent-core-design.md": {
+    "mtime": 1794098095.1473575,
     "ast_hash": "7b16e9068969f5892e9ae5fae92b4ba8",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-03-sp1-events-conflict-detection-design.md": {
-    "mtime": 1793986779.4079897,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-03-sp1-events-conflict-detection-design.md": {
+    "mtime": 1794098095.1512163,
     "ast_hash": "4956cb977755bb14a3733d5499c1abfa",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-04-schedule-date-hardening-design.md": {
-    "mtime": 1793986779.409655,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-04-schedule-date-hardening-design.md": {
+    "mtime": 1794098095.1531596,
     "ast_hash": "c1c4718c313b82b4e40a1776e8de7c8f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-02-m3a-memory-service-docker-design.md": {
-    "mtime": 1793986779.4074686,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-02-m3a-memory-service-docker-design.md": {
+    "mtime": 1794098095.150708,
     "ast_hash": "58d792ef898e0fd33abf7742c8af8681",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-04-model-router-design.md": {
-    "mtime": 1793986779.409241,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-04-model-router-design.md": {
+    "mtime": 1794098095.1525612,
     "ast_hash": "189b117900507317ef9fcdc011d416c3",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-05-agent-uses-memory-design.md": {
-    "mtime": 1793986779.4105148,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-05-agent-uses-memory-design.md": {
+    "mtime": 1794098095.15432,
     "ast_hash": "6946d78f41680ce5957b7906769e6d8b",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-31-sleep-consolidation-vision.md": {
-    "mtime": 1793986779.4068937,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-31-sleep-consolidation-vision.md": {
+    "mtime": 1794098095.150156,
     "ast_hash": "b28be1cb46ae57acd609537835399178",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-08-update-event-design.md": {
-    "mtime": 1793986779.4111762,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-08-update-event-design.md": {
+    "mtime": 1794098095.155209,
     "ast_hash": "53cc86d9c9801bf4d3559c6384e8d6f1",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-04-self-identity-sp2-design.md": {
-    "mtime": 1793986779.4098568,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-04-self-identity-sp2-design.md": {
+    "mtime": 1794098095.153433,
     "ast_hash": "1c8da67419b2efa18328b3f82422ed16",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-28-s1-mtp-comparison-design.md": {
-    "mtime": 1793986779.403564,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-11-06-panel-streaming-navegador-design.md": {
+    "mtime": 1794098095.156614,
+    "ast_hash": "172c3c478b58b27d0b65705addbc488b",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-28-s1-mtp-comparison-design.md": {
+    "mtime": 1794098095.1462336,
     "ast_hash": "c93485d1cedc1ea24d56f6e2f2c80abd",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-08-wake-word-phase2-design.md": {
-    "mtime": 1793986779.4114006,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-08-wake-word-phase2-design.md": {
+    "mtime": 1794098095.155485,
     "ast_hash": "207dbb8fdcea9a6ea7633fa3802a5ed5",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-04-traceable-summaries-retrieval-first-design.md": {
-    "mtime": 1793986779.4100747,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-04-traceable-summaries-retrieval-first-design.md": {
+    "mtime": 1794098095.1537454,
     "ast_hash": "159ac20f1001cbd8ad196bc16d5b46d1",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-02-mlx-ttft-quickwin-design.md": {
-    "mtime": 1793986779.4077365,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-02-mlx-ttft-quickwin-design.md": {
+    "mtime": 1794098095.1509824,
     "ast_hash": "634f35fdf3da96925487c143580f9107",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-30-m2a-server-lifecycle-design.md": {
-    "mtime": 1793986779.4050531,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-30-m2a-server-lifecycle-design.md": {
+    "mtime": 1794098095.148038,
     "ast_hash": "502970d49ca78b7b6467c13b0a59dbf2",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-31-m2b-3-resume-followup-design.md": {
-    "mtime": 1793986779.4063864,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-11-06-secretos-y-puerta-de-compra-design.md": {
+    "mtime": 1794098095.156995,
+    "ast_hash": "9acef8f3763ad2099c8160b1a1f91dc4",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-31-m2b-3-resume-followup-design.md": {
+    "mtime": 1794098095.1496649,
     "ast_hash": "b65c926ee760356270f9c1b377f82458",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-04-recent-turns-recall-cloud-efficiency-design.md": {
-    "mtime": 1793986779.409473,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-04-recent-turns-recall-cloud-efficiency-design.md": {
+    "mtime": 1794098095.152958,
     "ast_hash": "e7bce3b1080f0393d4b22dec74a15062",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/00-roadmap.md": {
-    "mtime": 1793986779.4028342,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/00-roadmap.md": {
+    "mtime": 1794098095.1451445,
     "ast_hash": "f075f03908a68e12139bfa43570f32a7",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-06-06-voice-mode-phase1b-design.md": {
-    "mtime": 1793986779.4109683,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-06-06-voice-mode-phase1b-design.md": {
+    "mtime": 1794098095.1549654,
     "ast_hash": "c5297f5e51d0bce7c38b89ada343424f",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/2026-05-28-s1.1-multimodal-design.md": {
-    "mtime": 1793986779.4042687,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/2026-05-28-s1.1-multimodal-design.md": {
+    "mtime": 1794098095.1471803,
     "ast_hash": "c6db939c9b7dad905686758dc4c8eb61",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/specs/01-s1-runtime.md": {
-    "mtime": 1793986779.4033344,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/specs/01-s1-runtime.md": {
+    "mtime": 1794098095.1458588,
     "ast_hash": "65226063e654ba01a31a62a03506e307",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/docs/superpowers/handoffs/2026-11-06-herramientas-apple-contrato-honestidad.md": {
-    "mtime": 1793986779.3896446,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/notes/2026-11-06-compras-decisiones.md": {
+    "mtime": 1794098095.1279159,
+    "ast_hash": "7c7650f4d0ec7b7b6457e5bf0a794301",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/notes/2026-11-06-defectos-preexistentes-en-main.md": {
+    "mtime": 1794098095.1282666,
+    "ast_hash": "8816b9315b00caada9aac6a61d2f2cce",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/notes/2026-11-06-recon-streaming-agent-browser.md": {
+    "mtime": 1794098095.1288042,
+    "ast_hash": "1608960625e96be5807b51374bebd246",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/notes/2026-11-06-recon-contencion-y-confirmacion.md": {
+    "mtime": 1794098095.1285505,
+    "ast_hash": "d2c6533f11999c0e6f7375c6185fb1f2",
+    "semantic_hash": ""
+  },
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/docs/superpowers/handoffs/2026-11-06-herramientas-apple-contrato-honestidad.md": {
+    "mtime": 1794098095.1274872,
     "ast_hash": "2bf99816b1abdc775ea7ada530fa9eb6",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/README.md": {
-    "mtime": 1793986779.3874135,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/README.md": {
+    "mtime": 1794098095.1247418,
     "ast_hash": "3b150c17ec049d6068067a952c7c56d7",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/Resources/popup.html": {
-    "mtime": 1793986779.3879085,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/Resources/popup.html": {
+    "mtime": 1794098095.125804,
     "ast_hash": "7a5f06aa69902d2691f81fe5deacc33d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/GemmaSafariExtension/GemmaSafari/GemmaSafari/Resources/Base.lproj/Main.html": {
-    "mtime": 1793986779.386983,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/GemmaSafariExtension/GemmaSafari/GemmaSafari/Resources/Base.lproj/Main.html": {
+    "mtime": 1794098095.1240988,
     "ast_hash": "71a044b399187e509646fa070185d4cd",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/Resources/non_wake.wav": {
-    "mtime": 1793986779.3642707,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/Resources/non_wake.wav": {
+    "mtime": 1794098095.0952442,
     "ast_hash": "25a9733b9e1ddabf916368b31871fe9d",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/Resources/bench-audio-1.m4a": {
-    "mtime": 1793986779.353679,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/Resources/bench-audio-1.m4a": {
+    "mtime": 1794098095.0850067,
     "ast_hash": "d2dd96b672030388cc0410f367b697d7",
     "semantic_hash": ""
   },
-  "/Users/hashdown/Projects/personal_agent/.worktrees/agent-browser/Gemma/GemmaTests/Resources/hey_jarvis.wav": {
-    "mtime": 1793986779.357718,
+  "/Users/hashdown/Projects/personal_agent/.worktrees/panel-streaming/Gemma/GemmaTests/Resources/hey_jarvis.wav": {
+    "mtime": 1794098095.0891583,
     "ast_hash": "1d28ed2b7bba03dd203dfb8e98a0f517",
     "semantic_hash": ""
   }

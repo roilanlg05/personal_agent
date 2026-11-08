@@ -143,8 +143,15 @@ encendido para contarlo.
    pantalla.
 6. **La búsqueda normal pasa por `agent-browser`**, sin panel y sin vídeo, y el
    cliente viejo de DuckDuckGo desaparece.
-7. **`read_webpage` y la búsqueda dejan de conducir la sesión que el panel
-   transmite.**
+7. **La búsqueda corre en una sesión propia, aislada de la que el panel
+   transmite.** Corrección de una primera versión de este documento, que
+   afirmaba que `read_webpage` conduce hoy la sesión `gemma`: **no lo hace.**
+   Pasa `sessioned: false` (`ReadWebpageTool.swift:59`), así que su argv no
+   lleva `--session` y el CLI la atiende en su sesión por omisión, que el relé
+   no transmite. El riesgo es real pero es del modo buscar, que todavía no
+   existe: si se implementa reutilizando la `AgentBrowserService` compartida,
+   heredará `defaultSessionName = "gemma"` y entonces sí moverá la página que
+   el usuario está mirando.
 
 ## No objetivos
 
@@ -227,7 +234,13 @@ suposiciones y no hay que volver a comprobarlas.
 | Esa API es *Instant Answer*, no un buscador: «Cuba» y «python programming language» devuelven abstract; **«raqueta ping pong Pro Spin mejores» devuelve 0 siempre** | tres llamadas reales a la API |
 | Ninguna herramienta devuelve una imagen al modelo: `snapshot` da texto con `@eN`, `get` da `text\|html\|value\|title\|url\|count` | `ALLOWED_SECOND_WORD` en `cli.py` y los ficheros de herramientas |
 | La fila de herramienta pega el resultado **entero**, sin plegar ni límite de líneas | `HarnessModel.swift:701` (`"🔧 \(n) ✓ \(r)"`) y `AgentChatView.swift:589` |
-| Las nueve herramientas comparten **una** `AgentBrowserService` con `defaultSessionName = "gemma"`, que es la sesión que el panel transmite | `HarnessModel.registerBrowserTools` |
+| Las nueve herramientas comparten **una** `AgentBrowserService` con `defaultSessionName = "gemma"` | `HarnessModel.registerBrowserTools` |
+| …pero `read_webpage` pasa `sessioned: false`, así que **NO** añade `--session` y no toca la sesión que el panel transmite | `ReadWebpageTool.swift:59`, `AgentBrowserService.swift:58` |
+| El bucle de turno concatena el resultado de la herramienta al prompt **como texto**; `ChatMessage.content` es un `String` y no hay bloques de contenido en ningún runtime | `Agent.swift:197,301`, `ModelRuntime.swift:7`, `ServerRuntime.swift:78-111` |
+| El proveedor por omisión es `.onDevice` (GGUF) en iOS y `.cerebras`/`gpt-oss-120b` en macOS: **ninguno de los dos acepta imágenes** | `ModelProvider.swift:13,15,49`, `HarnessModel.swift:101` |
+| No hay perfil persistente: `--profile`, `--state` y `--restore` están rechazados a propósito, así que **cada cierre tira las cookies** | `cli.py:44-62` |
+| El relé no sabe de turnos ni de conversaciones: no hay campo de conversación ni en `/v1/browser/invoke` ni en la URL del stream | `app.py:154,197` |
+| `freeze()` suelta el jpeg a propósito, y hay una prueba que lo exige | `BrowserPanelStateTests.swift:34` («§6.2(g): un panel congelado no deja imagen en el historial») |
 | El CLI tiene **grabación de vídeo nativa**: `record start <path.webm\|.mp4> [url] [--fps] [--cursor] [--contact-sheet]`, captura a 30 fps | `agent-browser record --help` |
 | **`ffmpeg` NO está en la imagen**, y `record` lo necesita | `agent-browser doctor` → `warn ffmpeg not found on PATH` |
 | El i3 tiene **176,2 GB libres** en el directorio de estado | `agent-browser doctor` |
@@ -282,9 +295,12 @@ que el constructor no tenga que adivinar, y son revisables.
    un parseo, no la arquitectura. Si resulta frágil en la práctica, la
    alternativa es Bing o un SearXNG en el i3, y el cambio no toca la app porque
    la decisión vive en el servicio.
-4. **La búsqueda y `read_webpage` corren en una sesión propia, `gemma-search`.**
-   Aislada de `gemma`, que es la que el panel transmite. Esto cierra el defecto
-   medido más arriba.
+4. **La búsqueda corre en una sesión propia, `gemma-search`.** Aislada de
+   `gemma`, que es la que el panel transmite. `read_webpage` ya está aislada por
+   otra vía (`sessioned: false`) y puede quedarse como está o pasar a declarar
+   `gemma-search` explícitamente, que es más legible; lo segundo es preferible
+   porque «no manda `--session`» es una propiedad fácil de perder en un
+   refactor, mientras que un nombre escrito se ve.
 5. **El vídeo se guarda en el i3, no en el teléfono.** Se deriva del contexto
    del usuario: si viviera en el teléfono, un cliente de navegador no podría
    reproducirlo nunca. Va atado al identificador de conversación, servido solo
@@ -354,3 +370,119 @@ propósito, porque depende de medir.
 6. **El modelo decidiendo cuándo quedarse abierto es nuevo**, y es la primera
    vez que una decisión del modelo deja un recurso vivo en el i3. El plazo del
    i3 es la red, y tiene que existir antes de que la intención funcione.
+
+---
+
+## Revisión del diseño: las ocho preguntas y sus respuestas (2026-11-08)
+
+Un revisor leyó este documento como si tuviera que planificarlo sin poder
+preguntar, y devolvió ocho preguntas. Cuatro las contestó el usuario; cuatro las
+decido yo. Todas las respuestas están ya incorporadas arriba o aquí.
+
+### Las que contestó el usuario
+
+**1. ¿Qué modelo conduce el navegador, si ninguno de los dos por omisión acepta
+imágenes?**
+
+> «no te compliques mucho porque yo sólo voy a usar modelo que vean imagen. Lo
+> de gpt-oss 120B es algo legacy que voy a retirar después.»
+
+La herramienta de visión existe **solo cuando el proveedor seleccionado acepta
+imágenes**. Con un proveedor que no ve, el agente lo dice y sigue con texto; no
+se cambia de proveedor a espaldas del usuario y no se refactorizan todos los
+runtimes ahora. Los bloques de contenido se añaden únicamente en el runtime que
+los necesita.
+
+El usuario preguntó además si Gemma 4 en local puede recibir imágenes, siendo
+multimodal. Medido, y la respuesta tiene dos mitades:
+
+- **En el Mac, el modelo sí puede.** El servidor que la app lanza es
+  `mlx_vlm.server` (`ServerManager.swift:19`, `ServerProcess.swift:3`), un
+  servidor de visión-lenguaje. Lo que lo impide está entero en el cliente:
+  `ChatMessage.content` es un `String` y `ServerRuntime` lo envía como texto
+  plano (`:78-111`). Habilitarlo es un cambio de cliente, no un límite del
+  modelo, y es el camino más corto a tener visión con el modelo local.
+- **En el iPhone está lejos.** `.onDevice` es GGUF por llama.cpp dentro de la
+  app; la visión necesita el proyector `mmproj` y plomería en `LlamaContext`.
+  `ModelLoadOptions.supportsImage` existe (`ModelRuntime.swift:55`) y **nadie lo
+  lee**: es un resto de la época de LiteRT-LM. Queda anotado como trabajo
+  posterior, no entra aquí.
+
+**2. ¿Puede quedar una imagen del navegador en reposo, contra §6.2(g)?**
+
+Decisión del usuario: **sí, pero muere con la conversación.** El fotograma fijo
+del modo mirar y la portada del panel plegado se quedan visibles mientras la
+conversación viva y se borran con ella, igual que el vídeo. **Nunca** se suben al
+servicio de memoria ni a ningún historial persistente. La prueba
+`BrowserPanelStateTests.swift:34` se reescribe para decir la regla nueva, no se
+borra: `freeze()` sigue soltando el jpeg del panel **en vivo**, y lo que
+sobrevive es un fotograma distinto, elegido a propósito y con caducidad.
+
+**3. ¿Debe sobrevivir el login del sitio a los cierres?**
+
+> «las cookies se borran en cada sesión, pero el navegador no se cierra para
+> preguntarme, porque si él abre el navegador me muestra la escalera, se queda
+> ahí esperando respuesta, y yo le digo OK cómprala; es la misma sesión, solo que
+> el modelo estaba esperando instrucciones.»
+
+**No hay perfil persistente**, y la contradicción que el revisor vio no existe:
+el plazo de 10 minutos es para el **abandono**, no para el ir y venir normal.
+Esperar la respuesta del usuario **es** la sesión siguiendo abierta, con sus
+cookies intactas, así que «compra esa misma» funciona porque nada se cerró. El
+login solo se pierde si el usuario tarda más de diez minutos en contestar, y ese
+caso es el que debe perderlo.
+
+Consecuencia que el plan tiene que decir en voz alta: una compra que empieza
+después de un cierre por inactividad empieza **sin sesión**, y el agente debe
+decirlo en vez de fingir que sigue dentro. `--profile`, `--state` y `--restore`
+siguen rechazados; abrir esa puerta se decide junto a la puerta de compra.
+
+**4. ¿Entra el despliegue, y dónde vive el compose?**
+
+Decisión del usuario: **el compose del navegador se versiona como fichero propio
+en el repositorio y se sigue desplegando aparte.** Deja de haber un fichero
+suelto sin historial —hoy la nitidez, el plazo y la grabación vivirían fuera de
+todo control de versiones— y no se toca el compose que levanta memoria y voz, que
+es el que conviene no mover mientras el checkout del i3 tenga trabajo sin
+commitear encima (ver `snapshot/main-sin-commitear-2026-11-08` en `gemma-memory`).
+
+### Las que decido yo
+
+Marcadas como mías, con el por qué. Revisables.
+
+**9. El servidor es dueño de los modos, los plazos, la grabación y la identidad
+de la sesión. La app dibuja.** El revisor preguntó si bastaba con un cambio
+mínimo en Swift (que el coordinador se quede y reciba un «no congeles»). No
+basta, y no por purismo: elegir el mínimo **es** el anti-objetivo que este
+documento nombra, porque el día que el usuario abra esto desde el navegador
+habría que escribirlo otra vez. `BrowserPanelCoordinator` pasa a ser lo que su
+nombre promete —el que pinta el panel del turno— y deja de decidir cuándo se
+congela.
+
+**10. La grabación la arranca y la para el servidor, colgada de una noción de
+conversación y turno que hoy no existe.** El revisor tiene razón en que no hay
+campo de conversación ni en `/v1/browser/invoke` ni en la URL del stream. Hay que
+añadirlo: es contrato de cable nuevo, y es la pieza que hace que **el modo voz
+también grabe**, que es donde «quiero revisar si lo hizo bien» más importa,
+porque ahí el usuario no vio nada en directo. Colgar la grabación de la presencia
+de un visor sería lo fácil y dejaría el modo voz sin vídeo para siempre.
+
+**11. El modo mirar sí abre panel en vivo mientras trabaja.** Se cierra al
+terminar y deja el fijo y el vídeo. Razón: el usuario pidió ver, y ver en directo
+cuesta lo mismo que no verlo una vez que el relé ya está ahí. Lo que distingue
+mirar de conducir no es si se ve, es **si la sesión sobrevive al turno**.
+
+**12. Una fila de panel por turno, aunque la sesión siga viva.** El panel en vivo
+pertenece a la fila del turno más nuevo; las anteriores se plegan y quedan como
+portada de su propio vídeo. Razón: el resumen y el vídeo son **por turno**, y una
+sola fila larga borraría esa frontera — que es justo lo que
+`relay.begin_viewer_session()` existe para mantener (`relay.py:195`). Varias filas
+apuntando a una sesión viva es más fiel a lo que pasó.
+
+### Corrección de este documento
+
+El revisor encontró un error mío: la primera versión afirmaba que `read_webpage`
+conduce hoy la sesión que el panel transmite. **No lo hace** — pasa
+`sessioned: false`. Ya está corregido arriba, en el objetivo 7, en la tabla de
+hechos y en la decisión 4. El riesgo es real pero pertenece al modo buscar, que
+todavía no existe.

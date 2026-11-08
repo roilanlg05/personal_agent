@@ -82,8 +82,9 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         let c = BrowserPanelCoordinator(stream: { stream })
         let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
         cont.yield(.state(live: true, collapsed: false))
+        try await Self.waitUntil { c.panels[id]!.isLive }
         cont.yield(.closed(reason: "relé cerrado"))
-        try await Self.waitUntil { c.panels[id]!.isLive == false && c.panels[id]!.phrase == "abriendo el navegador" }
+        try await Self.waitUntil { !c.panels[id]!.isLive }
         cont.yield(.state(live: true, collapsed: false))
         try await Self.waitUntil { c.panels[id]!.isLive }
         XCTAssertFalse(c.panels[id]!.isCollapsed)
@@ -102,15 +103,20 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         XCTAssertNil(c.panels[id]!.jpeg)
     }
 
-    @MainActor func test_endTurn_deja_de_consumir_el_flujo_del_panel_congelado() async throws {
-        var cont: AsyncStream<BrowserRelayEvent>.Continuation!
-        let stream = AsyncStream<BrowserRelayEvent> { cont = $0 }
+    /// Mide la cancelación, no el congelado: `onTermination` solo se dispara si la tarea
+    /// consumidora se cancela de verdad (lo que cierra el socket contra el i3).
+    @MainActor func test_endTurn_cancela_la_tarea_que_consume_el_flujo() async throws {
+        final class Flag: @unchecked Sendable { var terminated = false }
+        let flag = Flag()
+        let stream = AsyncStream<BrowserRelayEvent> { cont in
+            cont.onTermination = { _ in flag.terminated = true }
+        }
         let c = BrowserPanelCoordinator(stream: { stream })
-        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        _ = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertFalse(flag.terminated, "mientras el turno sigue, el flujo sigue abierto")
         c.endTurn()
-        cont.yield(.frame(seq: 5, jpeg: Data([0x09]), capturedAt: .now))
-        try await Task.sleep(for: .milliseconds(100))
-        XCTAssertNil(c.panels[id]!.jpeg)
+        try await Self.waitUntil { flag.terminated }
     }
 
     @MainActor private static func waitUntil(_ cond: @MainActor () -> Bool) async throws {

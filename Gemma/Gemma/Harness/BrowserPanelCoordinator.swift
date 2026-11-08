@@ -30,7 +30,7 @@ public final class BrowserPanelCoordinator {
         let state = BrowserPanelState()
         panels[id] = state
         activeID = id
-        consumers[id] = Task { @MainActor [weak state] in
+        consumers[id] = Task { @MainActor [weak self, weak state] in
             for await event in stream {
                 state?.apply(event)
             }
@@ -38,6 +38,8 @@ public final class BrowserPanelCoordinator {
             // consumidor lento puede perder un `.closed`. Que el flujo termine congela el panel
             // por sí solo. No borrar por parecer redundante con `.closed`.
             state?.freeze()
+            // El id es único por panel, así que esta entrada es la de esta tarea.
+            self?.consumers[id] = nil
         }
         return id
     }

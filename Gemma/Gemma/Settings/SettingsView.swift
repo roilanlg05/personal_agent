@@ -3,6 +3,81 @@ import UniformTypeIdentifiers
 
 /// macOS Settings (⌘,). M2c-1 hosts the "keep model resident" toggle; later M2c slices add
 /// host/port/model and image options here.
+/// Un campo de ajustes con botón de borrar. Existe por una avería concreta: en el iPhone
+/// no había forma de vaciar la URL ni el token del servicio de memoria. Dos causas, y las
+/// dos están cerradas aquí y en `HarnessModel.ensureMemory()`:
+///
+///  1. `ensureMemory()` reescribía el ajuste cuando lo encontraba vacío, y Ajustes lo llama
+///     en cada pulsación de tecla, así que el valor viejo se volvía a escribir completo.
+///     Eso se arregló allí: un ajuste solo se escribe donde el usuario lo escribe.
+///  2. Un `SecureField` es, para iOS, un campo de contraseña: el relleno automático se
+///     ofrece a repoblarlo y el teclado le aplica mayúsculas y autocorrección. De ahí que
+///     un token pegado llegara con una mayúscula de más o con un espacio al final.
+///
+/// El botón de borrar, además de ser la vía rápida, es la que no depende del teclado:
+/// pone la cadena vacía de una vez, sin pasar por el relleno automático.
+private struct SettingsCredentialField: View {
+    let titulo: String
+    /// `true` para un secreto (se pinta con puntos y se puede revelar).
+    let esSecreto: Bool
+    @Binding var texto: String
+    /// Se muestra debajo del campo cuando está vacío y vacío significa algo.
+    var avisoSiVacio: String? = nil
+    @State private var revelado = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                campo
+                    .textFieldStyle(.roundedBorder)
+                    #if os(iOS)
+                    // Sin esto el teclado mete una mayúscula inicial y la autocorrección
+                    // cambia lo pegado: un token hexadecimal no sobrevive a ninguna de las dos.
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(esSecreto ? .asciiCapable : .URL)
+                    // `.none` apaga el relleno automático de contraseñas, que es lo que
+                    // repoblaba el campo en cuanto se quedaba vacío.
+                    .textContentType(.none)
+                    #endif
+                if esSecreto {
+                    Button {
+                        revelado.toggle()
+                    } label: {
+                        Image(systemName: revelado ? "eye.slash" : "eye")
+                    }
+                    .buttonStyle(.borderless)
+                    .help(revelado ? "Ocultar" : "Mostrar")
+                    .accessibilityLabel(revelado ? "Ocultar \(titulo)" : "Mostrar \(titulo)")
+                }
+                Button {
+                    texto = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .disabled(texto.isEmpty)
+                .help("Borrar \(titulo)")
+                .accessibilityLabel("Borrar \(titulo)")
+            }
+            if let avisoSiVacio, texto.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(avisoSiVacio)
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    @ViewBuilder private var campo: some View {
+        if esSecreto && !revelado {
+            SecureField(titulo, text: $texto)
+        } else {
+            TextField(titulo, text: $texto)
+        }
+    }
+}
+
 struct SettingsView: View {
     let model: HarnessModel
     @AppStorage(SettingsKeys.keepModelResident) private var keepResident = false
@@ -84,24 +159,24 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
             Section("Memory Service") {
-                TextField("Base URL", text: $memoryBaseURL)
-                    .textFieldStyle(.roundedBorder)
-                    .help("URL del servicio de memoria. Si lo movés al i3, cambia esto a la Tailscale IP.")
-                SecureField("Bearer token", text: $memoryBearerToken)
-                    .textFieldStyle(.roundedBorder)
+                SettingsCredentialField(titulo: "Base URL", esSecreto: false, texto: $memoryBaseURL,
+                                        avisoSiVacio: "Sin URL no hay memoria: el agente no recuerda nada entre turnos.")
+                    .help("URL del servicio de memoria en el i3, p. ej. http://100.x.y.z:8081.")
+                SettingsCredentialField(titulo: "Bearer token", esSecreto: true, texto: $memoryBearerToken,
+                                        avisoSiVacio: "Sin token el servidor responde 401 a todo.")
                     .help("Mismo valor que MEMORY_BEARER_TOKEN en el .env del docker-compose.")
-                Text("La app reconecta al cambiar estos valores. Default: http://localhost:8081.")
+                Text("La app reconecta al cambiar estos valores. Puerto del servicio de memoria: 8081 "
+                     + "(la voz es 8082 y el navegador 8083 — son tres servicios distintos en la misma máquina).")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
             .onChange(of: memoryBaseURL) { _, _ in model.ensureMemory() }
             .onChange(of: memoryBearerToken) { _, _ in model.ensureMemory() }
             Section("Navegador (i3)") {
-                TextField("URL base del navegador (opcional)", text: $browserBaseURL)
-                    .textFieldStyle(.roundedBorder)
+                SettingsCredentialField(titulo: "URL base del navegador (opcional)",
+                                        esSecreto: false, texto: $browserBaseURL)
                     .help("Servicio del navegador en el i3, p. ej. http://100.x.y.z:8083.")
-                SecureField("Token de acceso", text: $browserBearerToken)
-                    .textFieldStyle(.roundedBorder)
+                SettingsCredentialField(titulo: "Token de acceso", esSecreto: true, texto: $browserBearerToken)
                     .help("Token del servicio del navegador en el i3.")
                 #if os(macOS)
                 Text("Vacío → el agente usa agent-browser en este Mac. Con URL, conduce el navegador del i3. Se aplica en el siguiente turno.")
@@ -114,8 +189,8 @@ struct SettingsView: View {
                 #endif
             }
             Section("Voice Service") {
-                TextField("Voice base URL (opcional)", text: $voiceBaseURL)
-                    .textFieldStyle(.roundedBorder)
+                SettingsCredentialField(titulo: "Voice base URL (opcional)",
+                                        esSecreto: false, texto: $voiceBaseURL)
                     .help("Override del servicio de voz. Vacío = usa el host de Memory en el puerto 8082.")
                 Text("Vacío → deriva del Memory Service en :8082 (mismo i3). Usa el mismo bearer token.")
                     .font(.footnote)

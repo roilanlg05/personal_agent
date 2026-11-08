@@ -64,12 +64,13 @@ struct ToolSyntaxStreamGate {
         return drain()
     }
 
-    /// Fin del mensaje. Una cola retenida que empieza por `<` es un inicio de llamada
-    /// truncado y se descarta; cualquier otra retención (un «ca» sin resolver) es prosa.
+    /// Fin del mensaje. Lo retenido que nunca llegó a confirmarse como sintaxis de herramienta
+    /// (un `<`, `<f`, `<p`, `<|` o un «ca» final) es texto del usuario y se EMITE: soltarlo
+    /// perdía en silencio el final del mensaje en la vista en vivo, aunque `.completed` lo
+    /// llevara. Solo se descarta lo que sí se confirmó (`.suppressing`).
     mutating func finish() -> String {
         defer { held = "" }
         if phase == .suppressing { return "" }
-        if held.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("<") { return "" }
         return record(held)
     }
 

@@ -52,9 +52,21 @@ final class ToolSyntaxStreamGateTests: XCTestCase {
         XCTAssertTrue(joined(["Antes. ", "<|tool_response>x"]).hasPrefix("Antes. "))
     }
 
-    func test_una_cola_retenida_que_nunca_se_resuelve_se_descarta_al_terminar() {
-        XCTAssertEqual(joined(["Voy a abrirlo. ", "<func"]), "Voy a abrirlo. ")
-        XCTAssertEqual(joined(["Voy a abrirlo. ", "<"]), "Voy a abrirlo. ")
+    /// Revisión del 2026-11-08: un mensaje que termina en un `<` (o `<f`, `<p`, `<|`) perdía ese
+    /// fragmento en la vista en vivo. Lo retenido que no se confirmó como llamada es texto.
+    func test_una_cola_retenida_que_nunca_se_resuelve_se_emite_al_terminar() {
+        for tail in ["<", "<f", "<p", "<|", "<func", "<execute_"] {
+            XCTAssertEqual(joined(["Voy a abrirlo. ", tail]), "Voy a abrirlo. " + tail, tail)
+            XCTAssertEqual(joined(["Voy a abrirlo. " + tail], checksStart: false), "Voy a abrirlo. " + tail, tail)
+        }
+    }
+
+    func test_un_mensaje_que_es_solo_un_fragmento_dudoso_tambien_se_emite() {
+        for t in ["<", "<f", "<|", "ca"] { XCTAssertEqual(joined([t]), t, t) }
+    }
+
+    func test_lo_confirmado_como_llamada_sigue_sin_emitirse_al_terminar() {
+        XCTAssertEqual(joined(["Voy. ", "<function name=\"a\">sin cerrar"]), "Voy. ")
     }
 
     func test_el_inicio_del_mensaje_conserva_la_regla_historica() {

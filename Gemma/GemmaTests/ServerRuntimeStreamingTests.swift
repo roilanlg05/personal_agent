@@ -146,4 +146,10 @@ final class ServerRuntimeStreamingTests: XCTestCase {
         XCTAssertTrue(r.tokens.isEmpty)
         XCTAssertEqual(r.calls.first?.0, "web_search")
     }
+
+    /// Un mensaje que termina en `<` no debe perder ese fragmento en la vista en vivo.
+    func test_un_mensaje_que_termina_en_menor_que_lo_emite_al_cerrar_el_stream() async throws {
+        let r = try await run(["Resultado: x ", "<"])
+        XCTAssertEqual(r.tokens.joined(), "Resultado: x <")
+    }
 }

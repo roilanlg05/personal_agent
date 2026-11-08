@@ -155,12 +155,7 @@ final class Agent {
     When the user asks to take a note (e.g. "anótame esto", "crea una nota"): call `create_note(title: ..., content: ...)` immediately. It saves the note in Gemma, copies it to the clipboard, and opens the Notes app so the user can paste it.
     - Web Flow: \
     `web_search` only FINDS URLs and short snippets; `read_webpage(url)` reads the WHOLE page. When a search snippet is not enough to answer, call `read_webpage` on the best result BEFORE answering — do not guess from snippets. \
-    For tasks that need interacting with a page rather than reading it (forms, buttons, results that appear after a click), use the loop: `browser_open(url)` → `browser_snapshot` (lists the elements with `@eN` references) → act on an `@eN` reference with `browser_click`, `browser_fill` or `browser_press` → `browser_snapshot` again to see the new state. The `@eN` references change after every action, so NEVER reuse an old one. You do NOT close the browser. The open page is usually the thing the user asked for (a video playing, a page to read, a cart or form to review), so leaving it open is the normal ending, not an oversight. `browser_close` is gated by the app: it works only when the user asked to close in this turn, and otherwise returns `refused` with the page still open. That refusal is correct behaviour, not an error to retry. When you are done, just say what is on screen. \
-    The browser you drive is the user's own machine at home, and the accounts in it are the user's or your own. Typing the user's email address, name, phone number or shipping address into a form is ordinary clerical work on their own data: just do it. An email address is NOT a secret. \
-    What you must not type is a password, an API key or an access token — not even one the user hands you, because a value that travels through the chat is a value that ends up in a log. If a page needs a password, do everything else on the page, then name the ONE step that needs them and ask them to do that step. Never answer "I cannot sign in for you" and stop there: that refuses the whole task over one field. \
-    A verification code is different from a password: you may read and type a code that arrived in YOUR OWN inbox or phone, for an account of yours. Never ask the user to paste a code of theirs into the chat. \
-    You are not a gatekeeper, and you never need to withhold a step in order to be safe: the limits that matter are enforced by the app, not by your judgement — you cannot complete a purchase without the app's own confirmation. So when a request looks unwise, say so in ONE short line and then do what was asked. Advice, not refusal. \
-    And never dress a failure as a refusal: if a tool failed or a page would not load, say which step failed and why, in those words.
+    \(BrowserRules.text)
     \(scheduleConventions)
     """
 
@@ -203,7 +198,42 @@ final class Agent {
         guard browserToolNames.contains(toolName) else {
             return outcome + " Tool execution is complete for this action. Formulate your final response to the user in a natural, friendly sentence explaining this result. DO NOT call `\(toolName)` or any other tool again. NEVER volunteer the current date or time.]"
         }
-        return outcome + " You MAY keep calling browser tools if the user's task is not finished yet: after acting on a page the normal next step is `browser_snapshot`, to see what the action actually did before acting again. When the task IS finished, leave the browser open and just tell the user what is on screen: the open page is usually the result they asked for. You do not close it — `browser_close` works only if the user asked to close in this turn, and otherwise returns `refused` with the page intact, which is correct and must not be retried. Either way, then answer the user in a natural, friendly sentence describing what you found or did. NEVER volunteer the current date or time.]"
+        return outcome + " You MAY keep calling browser tools if the user's task is not finished yet: after acting on a page the normal next step is `browser_snapshot`, to see what the action actually did before acting again. \(BrowserRules.closeRule) When the task IS finished, answer the user in a natural, friendly sentence describing what you found or did. NEVER volunteer the current date or time.]"
+    }
+
+    /// Linea que precede a la guia oficial cuando se inyecta, y que fija quien gana si las
+    /// dos se contradicen.
+    ///
+    /// La guia la escribio el autor del CLI y no puede conocer tres reglas de ESTE proyecto:
+    /// que `browser_close` lo guarda un candado de la app (y que su `refused` es la respuesta
+    /// correcta, no algo que reintentar), que el modelo no teclea contrasenas pero una
+    /// direccion de correo no es un secreto, y que la pagina abierta suele ser el entregable
+    /// y por eso se deja abierta. La guia, de hecho, termina con un `agent-browser close`
+    /// y con un "Never echo or paste secrets" que a secas se lee como "no escribas tampoco
+    /// el correo"; esta linea desactiva las dos lecturas.
+    ///
+    /// Tambien avisa de que la guia habla de una CLI de shell: sus bloques `bash` describen
+    /// lo que hacen nuestras herramientas, no son ordenes que el modelo pueda ejecutar.
+    ///
+    /// En ingles, como la nota de resultado a la que se pega y como el prompt del sistema.
+    nonisolated static let browserGuidePreamble = "[The rules above are THIS APP'S OWN browser rules, and they are the ones that govern. What follows is the OFFICIAL agent-browser guide, written by the author of the command-line tool that your `browser_*` tools drive: read it before deciding your next step on this page. Where the guide disagrees with the rules above, THE RULES ABOVE WIN — the guide cannot know them. It tells you, for instance, to run `agent-browser close` when you are done, and you do not close the browser. The guide also documents a shell CLI, so its `agent-browser ...` command lines describe what your tools do — they are not commands for you to run.]"
+
+    /// La guia oficial, con su linea de precedencia delante, lista para pegarse al prompt vivo.
+    ///
+    /// Se inyecta UNA VEZ POR TURNO, enganchada a la nota de resultado de la PRIMERA
+    /// herramienta de navegador del turno (ver el bucle de `run`). Esa colocacion es
+    /// deliberada y conviene no moverla:
+    ///   - Un turno que nunca toca el navegador no paga nada: la inmensa mayoria de los
+    ///     turnos son preguntas que se contestan de memoria, y meter la guia en el prompt
+    ///     del sistema les cobraria ~14 KB a todos. El usuario tiene aparcada precisamente
+    ///     una tarea de recortar el prompt para mejorar el TTFT en caliente.
+    ///   - Llega en el momento en que sirve: la nota de resultado es lo ULTIMO que el modelo
+    ///     lee antes de decidir el paso siguiente sobre una pagina ya abierta.
+    ///   - Una sola vez: el prompt vivo es acumulativo (cada ronda anade su nota al anterior),
+    ///     asi que inyectarla en cada llamada de navegador la repetiria hasta diez veces en un
+    ///     unico turno de conduccion.
+    nonisolated static func browserGuideBlock() -> String {
+        BrowserRules.text + "\n\n" + browserGuidePreamble + "\n\n" + BrowserCoreSkill.text
     }
 
     func run(prompt: String, options: GenerationOptions) -> AsyncThrowingStream<AgentEvent, Error> {
@@ -224,6 +254,9 @@ final class Agent {
                     var currentPrompt = recallTail.isEmpty ? prompt : recallTail + "\n\n" + prompt
                     var activeTools = tools
                     var executedMutations: [String: String] = [:]
+                    // Una vez por turno: se pone a true con la primera herramienta de
+                    // navegador y ya no vuelve a false hasta el turno siguiente.
+                    var browserGuideInjected = false
                     let mutationToolNames: Set<String> = [
                         "add_shift", "drop_shift", "create_event", "cancel_event", "update_event", "create_task", "complete_task"
                     ]
@@ -303,6 +336,13 @@ final class Agent {
                             }
                             continuation.yield(.toolCallFinished(name: tc.name, result: result))
                             resultsNote += "\n\n" + Self.toolResultNote(toolName: tc.name, args: tc.args, result: result)
+                            // La guia oficial del CLI viaja con la nota de la PRIMERA
+                            // herramienta de navegador del turno, y solo con esa. Ver
+                            // `browserGuideBlock()` para el porque de esta colocacion.
+                            if Self.browserToolNames.contains(tc.name), !browserGuideInjected {
+                                browserGuideInjected = true
+                                resultsNote += "\n\n" + Self.browserGuideBlock()
+                            }
                         }
                         currentPrompt = resultsNote
 

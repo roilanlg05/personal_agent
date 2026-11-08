@@ -12,14 +12,22 @@ public struct ChatLogEntry: Identifiable, Sendable, Equatable {
     public var isThoughtExpanded: Bool = false
     /// Solo para `role == "browserPanel"`: id del panel en `HarnessModel.browserPanels`.
     public var panelID: String?
+    /// Solo para `role == "tool"`: nombre de la herramienta, su resultado crudo
+    /// (nil mientras corre) y si la fila está abierta. El resultado no va en `text`.
+    public var toolName: String?
+    public var toolDetail: String?
+    public var isToolExpanded: Bool = false
 
-    public init(id: String = UUID().uuidString, role: String, text: String, thought: String? = nil, isThoughtExpanded: Bool = false, panelID: String? = nil) {
+    public init(id: String = UUID().uuidString, role: String, text: String, thought: String? = nil, isThoughtExpanded: Bool = false, panelID: String? = nil, toolName: String? = nil, toolDetail: String? = nil, isToolExpanded: Bool = false) {
         self.id = id
         self.role = role
         self.text = text
         self.thought = thought
         self.isThoughtExpanded = isThoughtExpanded
         self.panelID = panelID
+        self.toolName = toolName
+        self.toolDetail = toolDetail
+        self.isToolExpanded = isToolExpanded
     }
 }
 
@@ -689,7 +697,7 @@ public final class HarnessModel {
                             agentLog[idx].text = ""
                         }
                     }
-                    agentLog.append(ChatLogEntry(role: "tool", text: "🔧 \(n)…"))
+                    agentLog.append(ChatLogEntry(role: "tool", text: "", toolName: n))
                     if let id = browserPanels.openIfNeeded(toolName: n) {
                         agentLog.append(ChatLogEntry(role: "browserPanel", text: "", panelID: id))
                     }
@@ -698,7 +706,7 @@ public final class HarnessModel {
                     answer = ""
                     finalAssistantText = ""
                 case .toolCallFinished(let n, let r):
-                    agentLog.append(ChatLogEntry(role: "tool", text: "🔧 \(n) ✓ \(r)"))
+                    agentLog.append(ChatLogEntry(role: "tool", text: "", toolName: n, toolDetail: r))
                     activeGemmaIdx = nil
                     currentThought = ""
                     answer = ""

@@ -587,17 +587,7 @@ struct ChatLogRow: View {
                 }
 
             case "tool":
-                HStack(spacing: 6) {
-                    Text(entry.text)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .textSelection(.enabled)
-                    Spacer()
-                }
+                ToolLogRow(entry: $entry)
 
             case "browserPanel":
                 if let panel { BrowserPanelView(state: panel) }

@@ -12,9 +12,18 @@ enum GemmaToolCallParser {
     /// 1. call:tool_name{args}
     /// 2. <execute_tool>tool_name{args}</execute_tool> or <tool_call>...
     /// 3. {"name": "...", "arguments": {...}}
+    /// 4. <function name="tool"><parameter name="k">valor</parameter></function>
     static func parseToolCalls(from text: String) -> (toolCalls: [ExtractedToolCall], cleanText: String) {
         var calls: [ExtractedToolCall] = []
         var clean = text
+
+        // Format 4 va PRIMERO: es el único con delimitadores que encierran valores de texto
+        // libre (un `selector`, un `text` a teclear), y esos valores pueden contener `call:x{..}`,
+        // llaves o JSON que los otros formatos confundirían con llamadas propias. Quitado el
+        // bloque entero, los demás ya no lo ven.
+        let (xmlCalls, withoutXml) = extractFunctionTagCalls(from: clean)
+        calls.append(contentsOf: xmlCalls)
+        clean = withoutXml
 
         // Format 1: call:tool_name{args} or <|call:tool_name{args}> or call:tool_name\n{args}
         let pattern1 = #"(?:<\|)?call:([a-zA-Z0-9_]+)\s*(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})(?:>|\s*\|>)?"#
@@ -75,6 +84,57 @@ enum GemmaToolCallParser {
 
         clean = strip(clean)
         return (calls, clean)
+    }
+
+    /// Formato `<function name="x"><parameter name="k">v</parameter></function>`: lo que el
+    /// modelo emitió como texto en el chat del 2026-11-08 en lugar de un bloque `tool_use`.
+    ///
+    /// Reglas deliberadas:
+    /// - Solo cuenta un bloque CERRADO (`</function>`, o `<function name="x"/>`). Uno sin cerrar
+    ///   puede ser una llamada a medio escribir o prosa que cita la etiqueta; ejecutarlo sería
+    ///   inventar una llamada, así que no produce ninguna (y `strip` lo retira del texto visible).
+    /// - Los valores se toman literales, sin interpretar: `<`, `>`, comillas, saltos de línea y
+    ///   JSON viajan intactos. El valor termina en el primer `</parameter>`.
+    /// - `args` sale como OBJETO JSON en cadena, igual que los otros tres formatos y lo que
+    ///   consume el resto del pipeline. Los valores son cadenas, salvo los que son un objeto o
+    ///   un array JSON válidos, que se incrustan estructurados; los números quedan como cadena
+    ///   porque los lectores de argumentos de las herramientas ya aceptan `"5"` como entero.
+    private static func extractFunctionTagCalls(from text: String) -> (calls: [ExtractedToolCall], clean: String) {
+        let blockPattern = #"<function\s+name\s*=\s*["']([A-Za-z0-9_\-.]+)["']\s*(?:/>|>(.*?)</function\s*>)"#
+        guard let blockRegex = try? NSRegularExpression(pattern: blockPattern, options: [.dotMatchesLineSeparators]),
+              let paramRegex = try? NSRegularExpression(
+                pattern: #"<parameter\s+name\s*=\s*["']([^"']+)["']\s*>(.*?)</parameter\s*>"#,
+                options: [.dotMatchesLineSeparators]) else { return ([], text) }
+        let ns = text as NSString
+        let blocks = blockRegex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+        guard !blocks.isEmpty else { return ([], text) }
+
+        var calls: [ExtractedToolCall] = []
+        for b in blocks {
+            let name = ns.substring(with: b.range(at: 1))
+            var params: [String: Any] = [:]
+            if b.range(at: 2).location != NSNotFound {
+                let body = ns.substring(with: b.range(at: 2)) as NSString
+                for p in paramRegex.matches(in: body as String, range: NSRange(location: 0, length: body.length)) {
+                    let key = body.substring(with: p.range(at: 1))
+                    let raw = body.substring(with: p.range(at: 2))
+                    params[key] = structuredValue(raw) ?? raw
+                }
+            }
+            let data = (try? JSONSerialization.data(withJSONObject: params, options: [.sortedKeys, .withoutEscapingSlashes])) ?? Data("{}".utf8)
+            calls.append(ExtractedToolCall(name: name, args: String(decoding: data, as: UTF8.self)))
+        }
+        let clean = blockRegex.stringByReplacingMatches(in: text, range: NSRange(location: 0, length: ns.length), withTemplate: "")
+        return (calls, clean)
+    }
+
+    /// Un valor de parámetro que es un objeto o array JSON bien formado; cualquier otra cosa
+    /// (incluidos números y `true`) se queda como la cadena que escribió el modelo.
+    private static func structuredValue(_ raw: String) -> Any? {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = t.first, first == "{" || first == "[",
+              let obj = try? JSONSerialization.jsonObject(with: Data(t.utf8)) else { return nil }
+        return obj
     }
 
     /// Strips `<|channel>thought...<channel|>`, `<thought>...</thought>`, turn markers, and tool call invocations.
@@ -146,6 +206,10 @@ enum GemmaToolCallParser {
         clean = clean.replacingOccurrences(of: "<channel|", with: "")
         clean = clean.replacingOccurrences(of: "<|think|>", with: "")
         clean = clean.replacingOccurrences(of: "<|thought|>", with: "")
+        // Bloques `<function name=..>..</function>` completos o sin cerrar: una llamada a medio
+        // escribir no debe llegar a pantalla, y sin cerrar se descarta hasta el final del texto.
+        clean = clean.replacingOccurrences(of: #"(?s)<function\s+name\s*=.*?(?:</function\s*>|$)"#, with: "", options: .regularExpression)
+        clean = clean.replacingOccurrences(of: #"(?s)<parameter\s+name\s*=.*?(?:</parameter\s*>|$)"#, with: "", options: .regularExpression)
         // Strip call:tool_name{...}, <execute_tool>...</execute_tool>, <tool_call>...</tool_call>
         clean = clean.replacingOccurrences(of: #"(?s)call:[a-zA-Z0-9_]+\s*\{.*?\}"#, with: "", options: .regularExpression)
         clean = clean.replacingOccurrences(of: #"(?s)<execute_tool>.*?</execute_tool>"#, with: "", options: .regularExpression)

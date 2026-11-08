@@ -1,7 +1,5 @@
 import Foundation
 
-#if os(macOS)
-
 /// Navega la sesión del navegador del agente a una URL.
 public final class BrowserOpenTool: AgentTool, Sendable {
     public static let name = "browser_open"
@@ -158,4 +156,3 @@ public final class BrowserCloseTool: AgentTool, Sendable {
     }
 }
 
-#endif

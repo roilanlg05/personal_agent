@@ -1,7 +1,5 @@
 import Foundation
 
-#if os(macOS)
-
 /// Lee el contenido completo de una URL como markdown. El comando `read` del CLI
 /// descarga por HTTP sin lanzar Chrome, por eso no usa la sesión del navegador.
 public final class ReadWebpageTool: AgentTool, Sendable {
@@ -19,7 +17,7 @@ public final class ReadWebpageTool: AgentTool, Sendable {
     recortó), 'no_content' (la página cargó pero no tiene texto legible: dilo tal cual), \
     'refused' (el sitio o el navegador rechazó la lectura, por ejemplo HTTP 404; el \
     motivo va en 'message'), 'not_available' (el navegador del agente no está \
-    instalado; 'message' dice cómo instalarlo) y 'error' (argumento inválido o fallo \
+    disponible; 'message' dice por qué y qué hacer) y 'error' (argumento inválido o fallo \
     inesperado). \(AgentBrowserToolOutput.honestyNotice) \(AgentBrowserToolOutput.untrustedContentNotice)
     """
     public static let parameters: [AgentToolParam] = [
@@ -92,4 +90,3 @@ public final class ReadWebpageTool: AgentTool, Sendable {
     }
 }
 
-#endif

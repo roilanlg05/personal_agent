@@ -6,17 +6,20 @@ import UIKit
 
 public struct ChatLogEntry: Identifiable, Sendable, Equatable {
     public let id: String
-    public var role: String // "you", "gemma", "tool", "system", "error"
+    public var role: String // "you", "gemma", "tool", "system", "error", "browserPanel"
     public var text: String
     public var thought: String?
     public var isThoughtExpanded: Bool = false
+    /// Solo para `role == "browserPanel"`: id del panel en `HarnessModel.browserPanels`.
+    public var panelID: String?
 
-    public init(id: String = UUID().uuidString, role: String, text: String, thought: String? = nil, isThoughtExpanded: Bool = false) {
+    public init(id: String = UUID().uuidString, role: String, text: String, thought: String? = nil, isThoughtExpanded: Bool = false, panelID: String? = nil) {
         self.id = id
         self.role = role
         self.text = text
         self.thought = thought
         self.isThoughtExpanded = isThoughtExpanded
+        self.panelID = panelID
     }
 }
 
@@ -29,6 +32,9 @@ public final class HarnessModel {
     var hasProactive: Bool = false
 
     @ObservationIgnored private var currentTurnTask: Task<Void, Never>?
+    /// Paneles de navegador del chat (uno por turno). Inyectable para poder probar el cierre
+    /// del panel sin abrir un socket real; por omisión usa el relé del i3 si está configurado.
+    @ObservationIgnored public private(set) var browserPanels: BrowserPanelCoordinator
 
     @ObservationIgnored private var runtime: ModelRuntime & ToolCallingRuntime
     @ObservationIgnored private let settingsStore = SettingsStore()
@@ -129,12 +135,14 @@ public final class HarnessModel {
         preheatRuntime()
     }
 
-    public init() {
+    public init(browserPanels: BrowserPanelCoordinator? = nil) {
+        self.browserPanels = browserPanels ?? BrowserPanelCoordinator(stream: { Self.makeRelayStream() })
         var cfg = ServerConfig.default
         cfg.wiredLimitBytes = Self.wiredLimitBytes(
             keepResident: UserDefaults.standard.bool(forKey: SettingsKeys.keepModelResident))
         self.serverManager = ServerManager(config: cfg)
         self.settings = settingsStore.load()
+        Self.migrateMemoryBaseURLIfNeeded()
         self.runtime = RuntimeFactory.make(Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") }))
         #if os(macOS)
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
@@ -246,15 +254,62 @@ public final class HarnessModel {
                           history: history)
     }
 
-    /// Build (or rebuild) the `MemoryClient` from `UserDefaults` settings. The Settings UI
-    /// (Task 14) will surface these keys; today users may override via `defaults write`.
+    /// Clave de la migración de una sola vez de `memoryBaseURL` en iOS. Lleva versión en el
+    /// nombre porque una migración futura necesitará su propia bandera, no reutilizar esta.
+    static let memoryURLMigrationKey = "memoryBaseURLMigratedToTailscale.v1"
+
+    /// Las dos direcciones que un iPhone NO puede alcanzar y que quedaron guardadas de
+    /// cuando la app era de escritorio: `localhost` es el propio teléfono, y la IP de LAN
+    /// solo vale dentro de casa. Se sustituyen UNA VEZ por la del i3 en Tailscale.
+    static let unreachableMemoryHostsOnPhone = ["http://localhost:8081", "http://192.168.1.50:8081"]
+
+    /// Migración de una sola vez: corre al construir el modelo, NUNCA desde Ajustes.
     ///
-    /// Keys:
-    /// - `memoryBaseURL` (String, default `http://localhost:8081`)
-    /// - `memoryBearerToken` (String, default empty)
+    /// Antes esto vivía dentro de `ensureMemory()`, y de ahí salió una avería fea: Ajustes
+    /// llama a `ensureMemory()` en CADA PULSACIÓN de tecla, y la versión antigua reescribía
+    /// los ajustes cuando el campo estaba vacío. Resultado: borrabas el campo para poner un
+    /// token nuevo y la app te lo volvía a escribir entero, así que cambiarlo era imposible
+    /// — no un fastidio, imposible. Un ajuste solo se escribe donde el usuario lo escribe.
     ///
-    /// Mirrors the client into `MemoryToolbox.shared.memory` so the memory tools
-    /// (Save / Forget / Reflect / LoadMessages) can reach the same instance.
+    /// Por eso aquí **el campo vacío no se toca**: vacío significa «lo he borrado yo», y la
+    /// respuesta correcta es quedarse sin memoria y decirlo, no inventar un servidor.
+    static func migrateMemoryBaseURLIfNeeded(defaults: UserDefaults = .standard) {
+        #if os(iOS)
+        guard !defaults.bool(forKey: memoryURLMigrationKey) else { return }
+        defaults.set(true, forKey: memoryURLMigrationKey)
+        let guardado = (defaults.string(forKey: "memoryBaseURL") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard unreachableMemoryHostsOnPhone.contains(guardado) else { return }
+        defaults.set("http://100.91.174.81:8081", forKey: "memoryBaseURL")
+        #endif
+    }
+
+    /// Lee la dirección del servicio de memoria y su token de lo GUARDADO, **sin escribir
+    /// nada**. `nil` cuando el campo de la URL está vacío o no es una URL http(s) con host:
+    /// en los dos casos la respuesta es quedarse sin cliente de memoria, que es visible,
+    /// en vez de fabricar uno contra un servidor que nadie pidió.
+    ///
+    /// El token vacío **sí** devuelve cliente: el servidor contesta 401 y eso se ve. Meterle
+    /// un token por omisión a espaldas del usuario es lo que hacía que el placeholder débil
+    /// reapareciera solo cada vez que alguien intentaba quitarlo.
+    static func memorySettings(defaults: UserDefaults = .standard) -> (url: URL, token: String)? {
+        let raw = (defaults.string(forKey: "memoryBaseURL") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
+              url.host != nil else { return nil }
+        let token = (defaults.string(forKey: "memoryBearerToken") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return (url, token)
+    }
+
+    /// Construye (o reconstruye) el `MemoryClient` desde `UserDefaults`.
+    ///
+    /// Claves:
+    /// - `memoryBaseURL` (String; vacía o inválida → sin memoria)
+    /// - `memoryBearerToken` (String; vacío → se usa vacío y el servidor da 401)
+    ///
+    /// Espeja el cliente en `MemoryToolbox.shared.memory` para que las herramientas de
+    /// memoria (Save / Forget / Reflect / LoadMessages) alcancen la misma instancia.
     func ensureMemory() {
         guard settings.memoryEnabled ?? true else {
             self.memory = nil
@@ -262,19 +317,7 @@ public final class HarnessModel {
             MemoryToolbox.shared.reflectionRequest = nil
             return
         }
-        var urlString = UserDefaults.standard.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
-        #if os(iOS)
-        if urlString == "http://localhost:8081" || urlString == "http://192.168.1.50:8081" || urlString.isEmpty {
-            urlString = "http://100.91.174.81:8081"
-            UserDefaults.standard.set(urlString, forKey: "memoryBaseURL")
-        }
-        #endif
-        var token = UserDefaults.standard.string(forKey: "memoryBearerToken") ?? ""
-        if token.isEmpty {
-            token = "replace-me-with-a-long-random-string"
-            UserDefaults.standard.set(token, forKey: "memoryBearerToken")
-        }
-        guard let baseURL = URL(string: urlString) else {
+        guard let (baseURL, token) = Self.memorySettings() else {
             self.memory = nil
             MemoryToolbox.shared.memory = nil
             return
@@ -297,7 +340,7 @@ public final class HarnessModel {
         // dispositivo, no datos del usuario.
         // La clave es la dirección del servidor: si el usuario la cambia en Ajustes, se
         // vuelve a hidratar desde el servidor nuevo en vez de seguir con lo del viejo.
-        MirrorSyncer.shared.start(serverKey: urlString)
+        MirrorSyncer.shared.start(serverKey: baseURL.absoluteString)
     }
 
     /// Resolve the voice base URL: the explicit `voiceBaseURL` if set, otherwise the Memory host
@@ -393,6 +436,9 @@ public final class HarnessModel {
 
     public func startAgentTurn(_ prompt: String) {
         currentTurnTask?.cancel()
+        // Determinista: el panel del turno anterior se cierra por orden, no por la carrera
+        // con la cancelación (si perdiera, el turno nuevo se quedaría sin panel).
+        browserPanels.endTurn()
         currentTurnTask = Task { @MainActor [weak self] in
             guard let self else { return }
             await self.runAgentTurn(prompt)
@@ -402,16 +448,42 @@ public final class HarnessModel {
     public func cancelAgentTurn() {
         currentTurnTask?.cancel()
         currentTurnTask = nil
+        browserPanels.endTurn()
         agentRunning = false
         agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
     }
 
-    #if os(macOS)
+    /// Flujo del relé del i3 para un panel nuevo, o `nil` sin `browserBaseURL` válida (sin
+    /// dependencias de plataforma: sirve igual en macOS y en iOS). `BrowserRelayClient` es un actor y su `events()`
+    /// es `async`, así que se puentea: un `Task` reenvía los eventos y, al terminar el flujo
+    /// (cierre del panel), se cancela y se llama a `stop()` para no dejar el socket abierto.
+    static func makeRelayStream(defaults: UserDefaults = .standard) -> AsyncStream<BrowserRelayEvent>? {
+        let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
+              url.host != nil else { return nil }
+        let token = (defaults.string(forKey: SettingsKeys.browserBearerToken) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let client = BrowserRelayClient(baseURL: url, bearerToken: token)
+        let (stream, continuation) = AsyncStream<BrowserRelayEvent>.makeStream(bufferingPolicy: .bufferingNewest(64))
+        let forwarder = Task {
+            for await event in await client.events() {
+                continuation.yield(event)
+            }
+            continuation.finish()
+        }
+        continuation.onTermination = { _ in
+            forwarder.cancel()
+            Task { await client.stop() }
+        }
+        return stream
+    }
+
     /// Registra en `registry` las nueve herramientas de navegador (`read_webpage` y `browser_*`).
     /// Comparten una única instancia de `AgentBrowserService`, y por tanto la misma sesión de
     /// `agent-browser`. Es la única ruta de registro: `runAgentTurn` y `browserToolRegistry()` la usan.
     static func registerBrowserTools(into registry: ToolRegistry) {
-        let service = AgentBrowserService()
+        let service = AgentBrowserService(invoker: browserInvoker())
         registry.register(ReadWebpageTool(service: service))
         registry.register(BrowserOpenTool(service: service))
         registry.register(BrowserSnapshotTool(service: service))
@@ -423,13 +495,40 @@ public final class HarnessModel {
         registry.register(BrowserCloseTool(service: service))
     }
 
+    /// Con `browserBaseURL` configurada el navegador es el del i3 (HTTP); sin ella, en macOS el
+    /// `agent-browser` local de siempre y en iOS ninguno (hay que configurarla en Ajustes). Se lee en cada registro, así que Ajustes surte efecto en el turno siguiente.
+    static func browserInvoker(defaults: UserDefaults = .standard,
+                               session: URLSession = .shared) -> any AgentBrowserInvoking {
+        let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Solo el campo VACÍO es "sin i3" (comportamiento de siempre). Una URL escrita pero
+        // inválida no debe caer al navegador local a espaldas del usuario: ver `InvalidBrowserURLInvoker`.
+        if raw.isEmpty {
+            #if os(macOS)
+            return ProcessAgentBrowserInvoker()
+            #else
+            // iOS no tiene navegador local: el campo vacío manda a Ajustes, no a instalar nada.
+            return UnconfiguredBrowserInvoker()
+            #endif
+        }
+        guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
+              url.host != nil else {
+            return InvalidBrowserURLInvoker()
+        }
+        // Token vacío con URL válida: se usa el HTTP igualmente. El servicio responderá 401 y
+        // el invocador lo traduce a "el i3 rechazó el token", que es accionable; desviar al
+        // navegador local sería peor (ver arriba).
+        let token = (defaults.string(forKey: SettingsKeys.browserBearerToken) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return HTTPAgentBrowserInvoker(baseURL: url, bearerToken: token, session: session)
+    }
+
     /// Registro con solo las herramientas de navegador, para poder probarlas sin arrancar un turno.
     static func browserToolRegistry() -> ToolRegistry {
         let registry = ToolRegistry()
         registerBrowserTools(into: registry)
         return registry
     }
-    #endif
 
     public func runAgentTurn(_ prompt: String) async {
         let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
@@ -475,9 +574,7 @@ public final class HarnessModel {
         registry.register(GetDeviceStatusTool())
         registry.register(OpenAppTool())
         registry.register(WebSearchTool())
-        #if os(macOS)
         Self.registerBrowserTools(into: registry)
-        #endif
         registry.register(GetWeatherTool())
         registry.register(GetForecastTool())
         registry.register(CreateAlarmTool())
@@ -593,6 +690,9 @@ public final class HarnessModel {
                         }
                     }
                     agentLog.append(ChatLogEntry(role: "tool", text: "🔧 \(n)…"))
+                    if let id = browserPanels.openIfNeeded(toolName: n) {
+                        agentLog.append(ChatLogEntry(role: "browserPanel", text: "", panelID: id))
+                    }
                     activeGemmaIdx = nil
                     currentThought = ""
                     answer = ""
@@ -617,6 +717,7 @@ public final class HarnessModel {
                 }
             }
         } catch is CancellationError {
+            browserPanels.endTurn()
             if let idx = activeGemmaIdx {
                 let current = agentLog[idx].text.trimmingCharacters(in: .whitespacesAndNewlines)
                 if current.isEmpty && (agentLog[idx].thought?.isEmpty ?? true) {
@@ -624,8 +725,11 @@ public final class HarnessModel {
                 }
             }
         } catch {
+            browserPanels.endTurn()
             agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
         }
+        // Salida normal del bucle: congela el panel (no-op si ya lo cerró un catch).
+        browserPanels.endTurn()
         // Append both turns to the transcript over HTTP. Failures are silent (service-down
         // shouldn't crash a successful turn — the user can see Gemma's reply).
         if let client {

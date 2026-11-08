@@ -84,11 +84,25 @@ final class AgentSystemPromptTests: XCTestCase {
     /// cerrar sin condición. Cerrar se trataba como limpieza, pero si lo pedido ES un estado
     /// que el usuario sigue mirando, cerrar destruye el entregable.
     ///
-    /// Se afirman las intenciones y no las frases (la lección del test de logins de arriba):
-    /// (1) toda mención de `browser_close` va dentro de una oración condicionada;
-    /// (2) la nota nombra el caso «lo pedido se sigue mirando» y el caso «el usuario dijo que
-    /// lo dejara abierto»; (3) la nota cede ante lo que dijo el usuario, porque ella misma
-    /// es lo último que lee el modelo y de nada sirve que el prompt ceda si ella no lo hace.
+    /// Qué protege este test: DOS propiedades del texto, no una redacción.
+    ///   (A) cerrar el navegador es condicional: ninguna mención de `browser_close` es una
+    ///       orden incondicional, y el texto nombra el caso en que lo pedido es algo que el
+    ///       usuario sigue mirando (un vídeo, una página, un carrito).
+    ///   (B) la nota de resultado —que se añade la última y el código declara que gana sobre el
+    ///       prompt— cede ante lo que el usuario dijo, incluida la orden de dejar el navegador
+    ///       abierto. De nada sirve que solo el prompt ceda si la nota no lo hace.
+    ///
+    /// Los asertos de abajo usan fragmentos literales (`keep looking at`, `leave the browser
+    /// open`, `outranks this note`) porque sobre prosa no se puede afirmar nada sin alguna
+    /// palabra: SON ANCLAS de esas dos propiedades, no la propiedad misma. Si alguien reescribe
+    /// la nota y este test se pone rojo, la reacción correcta es releer (A) y (B), comprobar que
+    /// la nueva redacción las conserva y RE-APUNTAR las anclas a las palabras nuevas que las
+    /// llevan; no borrar el test ni forzar la redacción antigua. Ya se perdió un día con un test
+    /// de prompt que se puso rojo ante una reescritura que conservaba el sentido (ver el de
+    /// logins, arriba).
+    ///
+    /// Además se comprueba (A) por estructura —cada oración con `browser_close` lleva una
+    /// condición— y no solo por palabras, que es la parte menos frágil.
     func test_cerrar_el_navegador_es_condicional_y_cede_ante_el_usuario() throws {
         func sentences(_ text: String) -> [String] {
             text.components(separatedBy: CharacterSet(charactersIn: ".:;\n")).map { $0.lowercased() }

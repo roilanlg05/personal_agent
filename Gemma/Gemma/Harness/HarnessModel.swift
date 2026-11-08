@@ -456,7 +456,8 @@ public final class HarnessModel {
     public func cancelAgentTurn() {
         currentTurnTask?.cancel()
         currentTurnTask = nil
-        browserPanels.endTurn()
+        // Detener es una orden explícita: congela aunque el navegador siga abierto.
+        browserPanels.endTurn(survive: false)
         agentRunning = false
         agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
     }
@@ -707,6 +708,7 @@ public final class HarnessModel {
                     finalAssistantText = ""
                 case .toolCallFinished(let n, let r):
                     ToolLogRow.closeRow(in: &agentLog, toolName: n, result: r)
+                    browserPanels.toolFinished(toolName: n, result: r)
                     activeGemmaIdx = nil
                     currentThought = ""
                     answer = ""
@@ -725,7 +727,7 @@ public final class HarnessModel {
                 }
             }
         } catch is CancellationError {
-            browserPanels.endTurn()
+            browserPanels.endTurn(survive: false)
             if let idx = activeGemmaIdx {
                 let current = agentLog[idx].text.trimmingCharacters(in: .whitespacesAndNewlines)
                 if current.isEmpty && (agentLog[idx].thought?.isEmpty ?? true) {
@@ -733,7 +735,7 @@ public final class HarnessModel {
                 }
             }
         } catch {
-            browserPanels.endTurn()
+            browserPanels.endTurn(survive: false)
             agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
         }
         // Salida normal del bucle: congela el panel (no-op si ya lo cerró un catch).

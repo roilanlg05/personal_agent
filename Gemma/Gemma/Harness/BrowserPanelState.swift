@@ -25,10 +25,22 @@ public final class BrowserPanelState {
     /// volvió a llegar un `state`/`frame` (la conexión revivió). Vacío = el i3 no dio motivo.
     public private(set) var closedReason: String?
     /// `true` en cuanto llega un mensaje DEL RELÉ (`state`, `frame`, `narration`, `host`,
-    /// `summary`). La vista no pinta nada antes: sin i3 detrás (caído, token malo, sin puerto
-    /// de streaming) el panel nunca aparece (spec §6.2(e), §8). `closed` NO cuenta: lo fabrica
-    /// también el cliente al fallar la conexión, y no prueba que haya nada detrás. Solo `apply`
-    /// lo sube y `freeze()` no lo resucita.
+    /// `summary`). La vista no pinta nada antes, así que **si el i3 no habla, el panel no
+    /// aparece** (spec §6.2(e), §8): es el caso del servicio caído y el del token rechazado,
+    /// donde no se llega a abrir el socket.
+    ///
+    /// La línea exacta es «¿habló el servidor?», no «¿hay streaming?», y la diferencia es
+    /// deliberada. Si el i3 responde pero no hay puerto de streaming, el relé manda un
+    /// `state{live:false}` igualmente, así que el panel **sí** aparece, apagado y con su
+    /// motivo. Eso es lo que queremos: las herramientas están funcionando —el agente está
+    /// conduciendo el navegador— y el único roto es la vista, de modo que callar dejaría al
+    /// usuario con un misterio en vez de con una explicación. Esconder el panel solo es la
+    /// respuesta correcta cuando no hay nada ni nadie al otro lado.
+    ///
+    /// `closed` NO cuenta: lo fabrica también el cliente al fallar la conexión, y no prueba
+    /// que haya nada detrás. Por eso el servidor manda un `state` antes del `closed` cuando
+    /// rechaza por sesión equivocada (ver `browser/app.py`), que es su forma de decir «he
+    /// hablado yo». Solo `apply` lo sube y `freeze()` no lo resucita.
     public private(set) var hasReceivedMessage: Bool = false
     /// Plegado: porque el relé lo dijo (reversible) o porque se congeló (irreversible).
     public var isCollapsed: Bool { relayCollapsed || isFrozen }

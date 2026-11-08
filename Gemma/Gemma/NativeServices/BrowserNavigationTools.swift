@@ -164,10 +164,12 @@ public final class BrowserCloseTool: AgentTool, Sendable {
         guard userAskedToClose else {
             return ToolJSONOutput.object([
                 "status": "refused",
-                "message": "El usuario no ha pedido cerrar el navegador en este turno, así que no "
-                    + "se ha cerrado y la página sigue abierta. Esto no es un fallo: muchas veces la "
-                    + "página abierta ES lo que el usuario pidió. No vuelvas a intentarlo; dile qué "
-                    + "hay en pantalla y termina.",
+                "message": "No se ha cerrado el navegador y la página sigue abierta, porque el "
+                    + "mensaje del usuario en este turno no pedía cerrarla. Esto no es un fallo: "
+                    + "muchas veces la página abierta ES lo que el usuario pidió. NO vuelvas a "
+                    + "intentarlo. Si crees que sí quiere cerrarla, no insistas con la herramienta: "
+                    + "dile en una línea que se lo cierras si te lo dice (por ejemplo «cierra el "
+                    + "navegador») y termina.",
             ])
         }
         let outcome = await service.run(command: ["close"], sessioned: true, timeout: Self.timeout)

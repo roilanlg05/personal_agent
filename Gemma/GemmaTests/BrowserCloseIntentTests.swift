@@ -56,8 +56,37 @@ final class BrowserCloseIntentTests: XCTestCase {
 
     func test_un_mensaje_vacio_o_cualquier_otra_cosa_no_cierra() {
         for frase in ["", "   ", "hola", "qué hora es", "¿cuánto cuesta el envío?",
-                      "cierra el trato con ese proveedor"] {
+                      "la tienda está cerrada", "the shop is closed",
+                      "pon el video de AuronPlay", "abre la wikipedia"] {
             XCTAssertFalse(BrowserCloseIntent.userAskedToClose(frase), "no debía autorizar: \(frase)")
+        }
+    }
+
+    /// El precio que se paga a sabiendas por la regla de verbo, escrito como prueba para que
+    /// nadie lo «arregle» sin leer el razonamiento. «Cierra el trato» cerrará el navegador.
+    ///
+    /// Se acepta porque de los dos errores posibles solo este se arregla solo: el usuario reabre
+    /// la página. El error contrario —rechazar un cierre que el usuario sí pidió— deja al agente
+    /// diciéndole que no pidió lo que acaba de pedir, y eso no se arregla, se sufre. Pasó en la
+    /// primera prueba real del candado, con una lista de frases hechas que no contenía su manera
+    /// de decirlo.
+    ///
+    /// Si algún día cerrar llega a costar algo real (perder una sesión autenticada, que es lo que
+    /// traerá el perfil persistente), este intercambio deja de valer y hay que volver a un acto
+    /// explícito en la interfaz, no a una lista de frases más larga.
+    func test_el_precio_asumido_de_la_regla_de_verbo() {
+        XCTAssertTrue(BrowserCloseIntent.userAskedToClose("cierra el trato con ese proveedor"),
+                      "el verbo cerrar autoriza, aunque hable de otra cosa: es el precio asumido")
+    }
+
+    /// Las maneras sueltas de pedirlo que una lista de frases hechas no cubría. Esta es la
+    /// regresión del 2026-11-08: el candado rechazó varias veces un cierre que el usuario pidió.
+    func test_maneras_sueltas_de_pedirlo_que_la_lista_de_frases_no_cubria() {
+        for frase in ["bueno ya cierra", "cierra eso", "puedes cerrarlo ya",
+                      "venga, a cerrar", "ciérramelo", "cerrá el navegador",
+                      "apaga el navegador", "quita esa pestaña", "close it",
+                      "ya está, cierra"] {
+            XCTAssertTrue(BrowserCloseIntent.userAskedToClose(frase), "debía autorizar: \(frase)")
         }
     }
 

@@ -347,7 +347,8 @@ struct AgentChatView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach($model.agentLog) { $entry in
-                        ChatLogRow(entry: $entry)
+                        ChatLogRow(entry: $entry,
+                                   panel: entry.panelID.flatMap { model.browserPanels.panels[$0] })
                             .id(entry.id)
                     }
                     Color.clear.frame(height: 75)
@@ -568,6 +569,8 @@ struct AgentChatView: View {
 
 struct ChatLogRow: View {
     @Binding var entry: ChatLogEntry
+    /// Estado del panel de navegador de esta fila; `nil` si no es una fila de panel o ya no existe.
+    let panel: BrowserPanelState?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -595,6 +598,9 @@ struct ChatLogRow: View {
                         .textSelection(.enabled)
                     Spacer()
                 }
+
+            case "browserPanel":
+                if let panel { BrowserPanelView(state: panel) }
 
             case "system":
                 HStack {

@@ -10,13 +10,16 @@ public struct ChatLogEntry: Identifiable, Sendable, Equatable {
     public var text: String
     public var thought: String?
     public var isThoughtExpanded: Bool = false
+    /// Solo para `role == "browserPanel"`: id del panel en `HarnessModel.browserPanels`.
+    public var panelID: String?
 
-    public init(id: String = UUID().uuidString, role: String, text: String, thought: String? = nil, isThoughtExpanded: Bool = false) {
+    public init(id: String = UUID().uuidString, role: String, text: String, thought: String? = nil, isThoughtExpanded: Bool = false, panelID: String? = nil) {
         self.id = id
         self.role = role
         self.text = text
         self.thought = thought
         self.isThoughtExpanded = isThoughtExpanded
+        self.panelID = panelID
     }
 }
 
@@ -29,6 +32,9 @@ public final class HarnessModel {
     var hasProactive: Bool = false
 
     @ObservationIgnored private var currentTurnTask: Task<Void, Never>?
+    /// Paneles de navegador del chat (uno por turno). Inyectable para poder probar el cierre
+    /// del panel sin abrir un socket real; por omisión usa el relé del i3 si está configurado.
+    @ObservationIgnored public private(set) var browserPanels: BrowserPanelCoordinator
 
     @ObservationIgnored private var runtime: ModelRuntime & ToolCallingRuntime
     @ObservationIgnored private let settingsStore = SettingsStore()
@@ -129,7 +135,8 @@ public final class HarnessModel {
         preheatRuntime()
     }
 
-    public init() {
+    public init(browserPanels: BrowserPanelCoordinator? = nil) {
+        self.browserPanels = browserPanels ?? BrowserPanelCoordinator(stream: { Self.makeRelayStream() })
         var cfg = ServerConfig.default
         cfg.wiredLimitBytes = Self.wiredLimitBytes(
             keepResident: UserDefaults.standard.bool(forKey: SettingsKeys.keepModelResident))
@@ -402,6 +409,7 @@ public final class HarnessModel {
     public func cancelAgentTurn() {
         currentTurnTask?.cancel()
         currentTurnTask = nil
+        browserPanels.endTurn()
         agentRunning = false
         agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
     }
@@ -442,6 +450,36 @@ public final class HarnessModel {
         let token = (defaults.string(forKey: SettingsKeys.browserBearerToken) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return HTTPAgentBrowserInvoker(baseURL: url, bearerToken: token, session: session)
+    }
+
+    /// Flujo del relé del i3 para un panel nuevo, o `nil` sin `browserBaseURL` válida (en
+    /// iOS tampoco hay navegador del agente). `BrowserRelayClient` es un actor y su `events()`
+    /// es `async`, así que se puentea: un `Task` reenvía los eventos y, al terminar el flujo
+    /// (cierre del panel), se cancela y se llama a `stop()` para no dejar el socket abierto.
+    static func makeRelayStream(defaults: UserDefaults = .standard) -> AsyncStream<BrowserRelayEvent>? {
+        #if os(macOS)
+        let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
+              url.host != nil else { return nil }
+        let token = (defaults.string(forKey: SettingsKeys.browserBearerToken) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let client = BrowserRelayClient(baseURL: url, bearerToken: token)
+        let (stream, continuation) = AsyncStream<BrowserRelayEvent>.makeStream(bufferingPolicy: .bufferingNewest(64))
+        let forwarder = Task {
+            for await event in await client.events() {
+                continuation.yield(event)
+            }
+            continuation.finish()
+        }
+        continuation.onTermination = { _ in
+            forwarder.cancel()
+            Task { await client.stop() }
+        }
+        return stream
+        #else
+        return nil
+        #endif
     }
 
     /// Registro con solo las herramientas de navegador, para poder probarlas sin arrancar un turno.
@@ -614,6 +652,9 @@ public final class HarnessModel {
                         }
                     }
                     agentLog.append(ChatLogEntry(role: "tool", text: "🔧 \(n)…"))
+                    if let id = browserPanels.openIfNeeded(toolName: n) {
+                        agentLog.append(ChatLogEntry(role: "browserPanel", text: "", panelID: id))
+                    }
                     activeGemmaIdx = nil
                     currentThought = ""
                     answer = ""
@@ -638,6 +679,7 @@ public final class HarnessModel {
                 }
             }
         } catch is CancellationError {
+            browserPanels.endTurn()
             if let idx = activeGemmaIdx {
                 let current = agentLog[idx].text.trimmingCharacters(in: .whitespacesAndNewlines)
                 if current.isEmpty && (agentLog[idx].thought?.isEmpty ?? true) {
@@ -645,8 +687,11 @@ public final class HarnessModel {
                 }
             }
         } catch {
+            browserPanels.endTurn()
             agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
         }
+        // Salida normal del bucle: congela el panel (no-op si ya lo cerró un catch).
+        browserPanels.endTurn()
         // Append both turns to the transcript over HTTP. Failures are silent (service-down
         // shouldn't crash a successful turn — the user can see Gemma's reply).
         if let client {

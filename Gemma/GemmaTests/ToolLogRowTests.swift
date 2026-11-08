@@ -58,4 +58,68 @@ final class ToolLogRowTests: XCTestCase {
         XCTAssertEqual(ToolLogRow.summarize(toolName: "web_search", resultJSON: json),
                        .count(3, "resultados"))
     }
+
+    private func isFailure(_ r: ToolRowSummary) -> Bool { if case .failure = r { return true }; return false }
+
+    func test_el_estado_ok_no_es_un_fallo() {
+        let r = ToolLogRow.summarize(toolName: "search_memory", resultJSON: #"{"status":"ok","items":[]}"#)
+        XCTAssertFalse(isFailure(r), "\(r)")
+    }
+
+    func test_los_estados_de_exito_del_repositorio_no_son_fallo() {
+        for st in ["ok","created","deleted","updated","found","saved","done","remembered","empty","no_results"] {
+            let r = ToolLogRow.summarize(toolName: "x", resultJSON: #"{"status":"\#(st)"}"#)
+            XCTAssertFalse(isFailure(r), "\(st) -> \(r)")
+        }
+    }
+
+    func test_sin_estado_no_es_un_fallo() {
+        XCTAssertFalse(isFailure(ToolLogRow.summarize(toolName: "x", resultJSON: #"{"count":3}"#)))
+    }
+
+    func test_los_estados_de_fallo_son_fallo() {
+        for st in ["failed","error","timeout","not_found","invalid_date","invalid_coordinates"] {
+            let r = ToolLogRow.summarize(toolName: "x", resultJSON: #"{"status":"\#(st)"}"#)
+            XCTAssertTrue(isFailure(r), "\(st) -> \(r)")
+        }
+    }
+
+    func test_web_search_sin_resultados_cuenta_cero_y_no_falla() {
+        XCTAssertEqual(ToolLogRow.summarize(toolName: "web_search", resultJSON: #"{"status":"no_results","count":0}"#),
+                       .count(0, "resultados"))
+    }
+
+    func test_json_ilegible_sigue_siendo_fallo() {
+        XCTAssertTrue(isFailure(ToolLogRow.summarize(toolName: "x", resultJSON: "{roto")))
+    }
+
+    func test_browser_get_con_count_cuenta_elementos() {
+        XCTAssertEqual(ToolLogRow.summarize(toolName: "browser_get", resultJSON: #"{"status":"success","count":7}"#),
+                       .count(7, "elementos"))
+    }
+
+    func test_browser_open_con_url_sin_host() {
+        XCTAssertEqual(ToolLogRow.summarize(toolName: "browser_open", resultJSON: #"{"status":"success","url":"notaurl"}"#), .ok)
+    }
+
+    func test_un_mensaje_largo_de_estado_no_fallo_se_recorta() {
+        let largo = String(repeating: "m", count: 300)
+        let r = ToolLogRow.summarize(toolName: "x", resultJSON: #"{"status":"no_content","message":"\#(largo)"}"#)
+        guard case .value(let v) = r else { return XCTFail("\(r)") }
+        XCTAssertEqual(v.count, ToolLogRow.messageLimit + 1)
+        XCTAssertTrue(v.hasSuffix("…"))
+        let corto = ToolLogRow.summarize(toolName: "x", resultJSON: #"{"status":"no_content","message":"sin texto"}"#)
+        XCTAssertEqual(corto, .value("sin texto"))
+    }
+
+    func test_cerrar_una_herramienta_rellena_su_fila_abierta_y_no_añade_otra() {
+        var log = [ChatLogEntry(role: "tool", text: "", toolName: "a"),
+                   ChatLogEntry(role: "tool", text: "", toolName: "a")]
+        ToolLogRow.closeRow(in: &log, toolName: "a", result: "R")
+        XCTAssertEqual(log.count, 2)
+        XCTAssertNil(log[0].toolDetail)
+        XCTAssertEqual(log[1].toolDetail, "R", "se cierra la última abierta")
+        ToolLogRow.closeRow(in: &log, toolName: "b", result: "S")
+        XCTAssertEqual(log.count, 3, "un finished sin started no pierde el resultado")
+    }
 }

@@ -28,6 +28,36 @@ public struct ToolLogRow: View {
 
     // MARK: - Lógica pura
 
+    /// Tope del mensaje de un estado no fallido: el resumen es una línea.
+    public nonisolated static let messageLimit = 120
+
+    /// Los únicos estados que pintan la fila en rojo. Medido sobre el repositorio
+    /// el 2026-11-08: las herramientas devuelven 68 estados distintos y solo 11 de
+    /// ellos son "success", así que tratar «no success» como fallo pinta en rojo la
+    /// mayoría de los retornos correctos ("ok", "created", "deleted", "found"…).
+    /// La polaridad va al revés: se enumera el fallo, no el éxito. Además, todo
+    /// estado con prefijo `invalid_` es fallo.
+    private nonisolated static let failureStatuses: Set<String> = [
+        "failed", "error", "timeout", "unavailable", "memory_unavailable",
+        "permission_denied", "rejected", "not_found", "contact_not_found",
+        "place_not_found", "not_in_catalog", "unknown_topic", "unsupported",
+        "unsupported_kind", "limit_reached", "missing_fields", "name_taken",
+        "no_phone_number", "period_in_past",
+    ]
+
+    /// Cierra la fila de una herramienta: rellena el `toolDetail` de la última
+    /// fila abierta con ese nombre. Se busca de atrás hacia delante porque puede
+    /// haber dos llamadas a la misma herramienta en el mismo turno y la que se
+    /// cierra es la última abierta. Si no hay ninguna (un `finished` sin su
+    /// `started`), se añade una fila nueva para no perder el resultado.
+    public nonisolated static func closeRow(in log: inout [ChatLogEntry], toolName: String, result: String) {
+        if let i = log.lastIndex(where: { $0.role == "tool" && $0.toolName == toolName && $0.toolDetail == nil }) {
+            log[i].toolDetail = result
+        } else {
+            log.append(ChatLogEntry(role: "tool", text: "", toolName: toolName, toolDetail: result))
+        }
+    }
+
     /// Qué herramientas devuelven un dato. Es el único sitio donde se decide;
     /// las que no aparecen aquí se resumen como `.ok`.
     private nonisolated enum Kind { case host, lines, valueOrCount, chars, count }
@@ -46,9 +76,10 @@ public struct ToolLogRow: View {
             let t = resultJSON.trimmingCharacters(in: .whitespacesAndNewlines)
             return .failure(t.isEmpty ? "resultado vacío o ilegible" : String(t.prefix(120)))
         }
-        guard (obj["status"] as? String) == "success" else {
-            let m = (obj["message"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return .failure(m.isEmpty ? "la herramienta falló sin dar motivo" : m)
+        let status = obj["status"] as? String
+        let message = (obj["message"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if let status, failureStatuses.contains(status) || status.hasPrefix("invalid_") {
+            return .failure(message.isEmpty ? status : message)
         }
         switch table[toolName] {
         case .host:
@@ -69,7 +100,10 @@ public struct ToolLogRow: View {
             guard let n = obj["count"] as? Int else { return .ok }
             return .count(n, "resultados")
         case nil:
-            return .ok
+            // Herramienta sin dato propio: si trae un mensaje corto y útil
+            // (p. ej. «no_content»), se enseña en vez de un «listo» mudo.
+            guard !message.isEmpty else { return .ok }
+            return .value(message.count > messageLimit ? String(message.prefix(messageLimit)) + "…" : message)
         }
     }
 

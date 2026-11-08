@@ -706,7 +706,7 @@ public final class HarnessModel {
                     answer = ""
                     finalAssistantText = ""
                 case .toolCallFinished(let n, let r):
-                    agentLog.append(ChatLogEntry(role: "tool", text: "", toolName: n, toolDetail: r))
+                    ToolLogRow.closeRow(in: &agentLog, toolName: n, result: r)
                     activeGemmaIdx = nil
                     currentThought = ""
                     answer = ""

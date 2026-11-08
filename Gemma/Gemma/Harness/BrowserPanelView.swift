@@ -14,7 +14,7 @@ struct BrowserPanelView: View {
         }
         // `lastFrameAt` identifica el frame con una comparación de fechas; usar el JPEG como id
         // obligaría a SwiftUI a comparar los bytes enteros en el hilo principal en cada evaluación.
-        .task(id: state.lastFrameAt) {
+        .task(id: Self.frameID(jpeg: state.jpeg, lastFrameAt: state.lastFrameAt)) {
             guard let jpeg = state.jpeg else { image = nil; return }
             // ImageIO fuera del hilo principal: un frame de 1280x720 decodificado aquí haría saltar el chat.
             let decoded = await Self.decodeOffMain(jpeg)
@@ -79,6 +79,13 @@ struct BrowserPanelView: View {
         .padding(8)
         .background(Color.secondary.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    /// Id del `.task` que decodifica. Es opcional A PROPÓSITO: debe pasar a `nil` cuando el estado
+    /// suelta el JPEG (panel plegado), o el efecto no se reejecuta y la imagen decodificada
+    /// sobrevive en la vista (secreto en reposo, §6.2(g)). No simplificar a `lastFrameAt` a secas.
+    static func frameID(jpeg: Data?, lastFrameAt: Date?) -> Date? {
+        jpeg == nil ? nil : lastFrameAt
     }
 
     /// Decodifica el JPEG en una tarea de fondo. `nil` si los bytes no son una imagen.

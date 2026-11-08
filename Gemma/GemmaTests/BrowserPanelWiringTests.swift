@@ -66,4 +66,28 @@ final class BrowserPanelWiringTests: XCTestCase {
         let image = await BrowserPanelView.decodeOffMain(Data([0, 1, 2, 3]))
         XCTAssertNil(image)
     }
+
+    /// §6.2(g): plegar suelta el JPEG, y el id del task debe cambiar para que la vista suelte la imagen.
+    func test_plegar_cambia_el_id_del_task_para_soltar_la_imagen() {
+        let state = BrowserPanelState()
+        state.apply(.frame(seq: 1, jpeg: Self.realJPEG(), capturedAt: Date(timeIntervalSince1970: 100)))
+        let vivo = BrowserPanelView.frameID(jpeg: state.jpeg, lastFrameAt: state.lastFrameAt)
+        XCTAssertNotNil(vivo)
+
+        state.apply(.state(live: true, collapsed: true))
+        XCTAssertNil(state.jpeg)
+        let plegado = BrowserPanelView.frameID(jpeg: state.jpeg, lastFrameAt: state.lastFrameAt)
+        XCTAssertNil(plegado, "sin JPEG el id debe ser nil, o el efecto no se reejecuta y la imagen sobrevive")
+        XCTAssertNotEqual(vivo, plegado)
+
+        // Desplegar sin frame nuevo no resucita nada: el id sigue siendo nil.
+        state.apply(.state(live: true, collapsed: false))
+        XCTAssertNil(BrowserPanelView.frameID(jpeg: state.jpeg, lastFrameAt: state.lastFrameAt))
+
+        // Un frame nuevo vuelve a dar un id distinto del anterior: la vista repinta.
+        state.apply(.frame(seq: 2, jpeg: Self.realJPEG(), capturedAt: Date(timeIntervalSince1970: 101)))
+        let nuevo = BrowserPanelView.frameID(jpeg: state.jpeg, lastFrameAt: state.lastFrameAt)
+        XCTAssertNotNil(nuevo)
+        XCTAssertNotEqual(nuevo, vivo)
+    }
 }

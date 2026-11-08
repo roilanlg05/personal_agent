@@ -59,7 +59,28 @@ struct BrowserPanelView: View {
                         .resizable()
                         .scaledToFit()
                 } else {
-                    Color.secondary.opacity(0.1)
+                    // NUNCA un rectángulo mudo. Sin imagen, el relleno era
+                    // `Color.secondary.opacity(0.1)` a secas: en modo claro se lee como un hueco
+                    // gris, pero en MODO OSCURO —que es como el usuario lleva el teléfono— es un
+                    // rectángulo negro sin una sola palabra. El usuario lo describió como «la
+                    // pantalla del navegador se veía negra», y no tenía forma de saber si era el
+                    // stream, la app o la página. Hay dos momentos normales en que no hay imagen
+                    // (antes del primer fotograma, mientras el demonio arranca, que son varios
+                    // segundos; y después de que el panel suelte la imagen al cerrarse), así que
+                    // el hueco es frecuente y tiene que explicarse solo.
+                    ZStack {
+                        Color.secondary.opacity(0.1)
+                        VStack(spacing: 8) {
+                            if Self.esperandoLaPrimera(closedReason: state.closedReason, isLive: state.isLive) {
+                                ProgressView().controlSize(.small)
+                            }
+                            Text(Self.textoSinImagen(closedReason: state.closedReason, isLive: state.isLive))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 12)
+                        }
+                    }
                 }
             }
             // Altura estable: el primer frame no debe mover el resto del historial.
@@ -88,6 +109,21 @@ struct BrowserPanelView: View {
         .padding(8)
         .background(Color.secondary.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    /// Qué decir en el hueco de la imagen. Puro y estático para poder probarlo sin montar la
+    /// vista: lo que importa es que NINGUNA combinación de estado devuelva una cadena vacía, que
+    /// es lo que dejaría otra vez un rectángulo mudo.
+    static func textoSinImagen(closedReason: String?, isLive: Bool) -> String {
+        if closedReason != nil { return "Sin imagen: la conexión con el navegador se cerró." }
+        if !isLive { return "Sin imagen: el panel está congelado." }
+        return "Esperando la primera imagen del navegador…"
+    }
+
+    /// Solo se gira la ruedecita cuando de verdad se espera algo. Girar sobre un panel cerrado o
+    /// congelado prometería una imagen que no va a llegar.
+    static func esperandoLaPrimera(closedReason: String?, isLive: Bool) -> Bool {
+        closedReason == nil && isLive
     }
 
     /// Id del `.task` que decodifica. Es opcional A PROPÓSITO: debe pasar a `nil` cuando el estado

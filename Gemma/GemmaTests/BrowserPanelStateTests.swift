@@ -149,3 +149,40 @@ final class BrowserPanelStateTests: XCTestCase {
         XCTAssertEqual(s.host, "example.com")
     }
 }
+
+/// El hueco de la imagen del panel. Ver `BrowserPanelView.textoSinImagen`: antes, sin imagen, la
+/// vista pintaba un color plano y nada más, y en modo oscuro eso es un rectángulo negro mudo. El
+/// usuario lo reportó como «la pantalla del navegador se veía negra» y no podía saber si era el
+/// stream, la app o la página.
+final class BrowserPanelHuecoSinImagenTests: XCTestCase {
+
+    /// La propiedad que de verdad importa: NINGUNA combinación de estado puede dejar el hueco sin
+    /// texto. Un rectángulo mudo es el defecto, y lo fácil es reintroducirlo con un `return ""`.
+    func test_ninguna_combinacion_deja_el_hueco_mudo() {
+        for motivo in [nil, "", "socket caído"] as [String?] {
+            for vivo in [true, false] {
+                let texto = BrowserPanelView.textoSinImagen(closedReason: motivo, isLive: vivo)
+                XCTAssertFalse(texto.trimmingCharacters(in: .whitespaces).isEmpty,
+                               "hueco mudo con motivo=\(String(describing: motivo)) vivo=\(vivo)")
+            }
+        }
+    }
+
+    func test_cerrado_lo_dice_aunque_el_motivo_venga_vacio() {
+        XCTAssertTrue(BrowserPanelView.textoSinImagen(closedReason: "", isLive: true).contains("cerró"))
+        XCTAssertTrue(BrowserPanelView.textoSinImagen(closedReason: "socket caído", isLive: false).contains("cerró"))
+    }
+
+    func test_congelado_y_esperando_se_distinguen() {
+        XCTAssertTrue(BrowserPanelView.textoSinImagen(closedReason: nil, isLive: false).contains("congelado"))
+        XCTAssertTrue(BrowserPanelView.textoSinImagen(closedReason: nil, isLive: true).contains("Esperando"))
+    }
+
+    /// La ruedecita solo gira cuando de verdad va a llegar algo: prometer una imagen sobre un
+    /// panel cerrado o congelado es peor que no decir nada.
+    func test_la_ruedecita_solo_gira_cuando_se_espera_una_imagen() {
+        XCTAssertTrue(BrowserPanelView.esperandoLaPrimera(closedReason: nil, isLive: true))
+        XCTAssertFalse(BrowserPanelView.esperandoLaPrimera(closedReason: nil, isLive: false))
+        XCTAssertFalse(BrowserPanelView.esperandoLaPrimera(closedReason: "socket caído", isLive: true))
+    }
+}

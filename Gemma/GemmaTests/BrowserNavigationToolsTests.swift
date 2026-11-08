@@ -62,6 +62,36 @@ final class BrowserNavigationToolsTests: XCTestCase {
         XCTAssertTrue(mock.receivedArguments.isEmpty)
     }
 
+    /// EL BUG EN SU ORIGEN. `AgentBrowserToolOutput.resolve(_:extra:)` mezcla el `extra` TAMBIEN
+    /// en el objeto de fallo, asi que un `open` que no llego a la pagina devolvia de todas
+    /// formas la URL que se PIDIO. El bucle la leia (`Agent.urlDelResultado`) y la guardaba como
+    /// «la pagina en la que estamos», que es lo que deja ciego al corte de la cola. Una URL a la
+    /// que no llegamos no viaja en un fallo: `open` era la unica de las nueve que lo hacia.
+    func test_un_open_fallido_no_reporta_la_url_que_se_pidio() async throws {
+        let mock = MockAgentBrowserInvoker.succeeding(stdout: #"{"success":false,"error":"no se pudo cargar"}"#)
+        let out = await BrowserOpenTool(service: AgentBrowserService(invoker: mock, sessionName: "gemma"))
+            .run(argsJSON: #"{"url":"https://b.test/"}"#)
+        let json = try parse(out)
+        XCTAssertEqual(json["status"] as? String, "refused")
+        XCTAssertNil(json["url"], "la URL pedida no es una pagina en la que estuvimos: \(out)")
+        XCTAssertNil(Agent.urlDelResultado(out), "y el bucle no puede sacar ninguna de ahi: \(out)")
+    }
+
+    /// La URL del exito tampoco se da a ciegas. `browser_snapshot` ya filtra lo que no sea una
+    /// pagina web («para que una URL ilegible no pueda fabricar un cambio de pagina que no
+    /// hubo») y las tres herramientas de interaccion lo mismo (`InteractionSupport
+    /// .urlSiEsUnaPagina`); `open` era la unica que pasaba al bucle lo que dijera el CLI, y de
+    /// ahi sale la URL conocida contra la que se compara. Si el CLI no trae una pagina, se
+    /// reporta la pedida, que es la mejor estimacion que hay y la que ya estaba.
+    func test_open_no_reporta_como_pagina_una_url_absurda_del_cli() async throws {
+        let out = await BrowserOpenTool(service: svc(#"{"success":true,"data":{"title":"T","url":"about:blank"},"error":null}"#))
+            .run(argsJSON: #"{"url":"https://a.test/"}"#)
+        let json = try parse(out)
+        XCTAssertEqual(json["status"] as? String, "success")
+        XCTAssertEqual(json["url"] as? String, "https://a.test/",
+                       "'about:blank' no es una pagina web: no puede ser la URL conocida")
+    }
+
     // MARK: browser_snapshot
 
     func test_snapshot_returns_the_tree_and_the_refs_marked_untrusted() async throws {

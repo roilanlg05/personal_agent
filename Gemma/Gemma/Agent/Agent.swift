@@ -191,9 +191,32 @@ final class Agent {
         "browser_open", "browser_close"
     ]
 
+    /// El resultado con el que el bucle contesta a una herramienta que NO esta en el registro.
+    ///
+    /// HABLA EL CONTRATO JSON, Y ESO ES EL ARREGLO. Antes era la cadena `error: no tool named X`,
+    /// que no es un objeto JSON: `esFallo` no le podia leer el `status`, el resultado caia en la
+    /// direccion segura —no gasta presupuesto— y un modelo empenado en una herramienta
+    /// inexistente seguia dando vueltas hasta agotar las rondas del turno, que es exactamente el
+    /// caso para el que el presupuesto se escribio. Con `status: error` cuenta como fallo igual
+    /// que el de una herramienta de verdad, y ademas sale con cruz roja en la fila del chat
+    /// (`ToolLogRow.failureStatuses` contiene `error`), que es lo que el usuario deberia ver.
+    ///
+    /// Dice el nombre que se pidio y que no existe, y NO sugiere ninguno parecido: mandar al
+    /// modelo a una herramienta que no es la que queria es peor que decirle que esa no esta. El
+    /// inventario completo ya viaja en la peticion, en la lista de herramientas.
+    nonisolated static func resultadoDeHerramientaInexistente(nombre: String) -> String {
+        ToolJSONOutput.object([
+            "status": "error",
+            "message": "No existe ninguna herramienta llamada '\(nombre)'. No la vuelvas a llamar: "
+                + "usa una de las herramientas que tienes disponibles, o responde al usuario con "
+                + "lo que ya sabes."
+        ])
+    }
+
     /// El `status` que declara un resultado de herramienta, o `nil` si el resultado no es un
-    /// objeto JSON legible (el bucle mismo produce resultados que no lo son, p. ej.
-    /// `error: no tool named …`).
+    /// objeto JSON legible (el bucle mismo produce resultados que no lo son, p. ej. el
+    /// `DUPLICATE_CALL_IGNORED` de una mutacion repetida; y las herramientas de fuera del
+    /// contrato del navegador contestan en prosa, como `forget`).
     nonisolated static func estadoDelResultado(_ resultado: String) -> String? {
         guard let objeto = (try? JSONSerialization.jsonObject(with: Data(resultado.utf8))) as? [String: Any]
         else { return nil }
@@ -230,6 +253,36 @@ final class Agent {
             return valor
         }
         return nil
+    }
+
+    /// La URL que un resultado DEMUESTRA que es la pagina del navegador AHORA, y que por tanto
+    /// puede convertirse en «la ultima URL conocida» contra la que se comparan las acciones
+    /// siguientes. `nil` cuando el resultado no la demuestra.
+    ///
+    /// EL DEFECTO QUE ARREGLA, Y ERA EL MISMO QUE EL CORTE EXISTE PARA EVITAR. El bucle grababa
+    /// cualquier URL que `urlDelResultado` supiera leer, sin mirar el `status`. Y
+    /// `AgentBrowserToolOutput.resolve(_:extra:)` mezcla el `extra` TAMBIEN en el objeto de
+    /// fallo, asi que un `browser_open` que no llego a la pagina devolvia de todas formas la URL
+    /// que se PIDIO. La cadena entera: estamos en a.test, falla el `open` a b.test, la URL
+    /// conocida pasa a b.test —una pagina en la que nunca estuvimos—, y el clic que navega DE
+    /// VERDAD a b.test COINCIDE con ella, luego `cortaLaCola` no corta y las `@eN` viejas de la
+    /// cola se disparan contra la pagina nueva. Lo clava
+    /// `test_un_open_fallido_no_envenena_la_url_conocida_y_el_clic_posterior_si_corta`.
+    ///
+    /// EXIGE `success`, QUE ES EL MISMO ESTANDAR DE PRUEBA QUE EL CORTE. No `esExito`, que es
+    /// mas ancho: `no_content` significa «la operacion funciono pero no hay nada que reportar»,
+    /// y eso no demuestra ninguna pagina. Lo unico que puede fijar «donde estamos» es una
+    /// herramienta que dice que SI hizo lo que se le pidio.
+    ///
+    /// Y EL FALLO SE TAPA DOS VECES, A PROPOSITO. `BrowserOpenTool` ya no manda la URL pedida en
+    /// su JSON de fallo (ver alli), asi que hoy no habria nada que leer; esta guarda sigue
+    /// puesta porque el camino de salida de nueve herramientas no puede depender de que ninguna
+    /// de las nueve vuelva a meter una URL en un fallo. El caso honesto que queda: `.malformed`
+    /// —el CLI devolvio algo ilegible y la accion pudo haber ocurrido— no es `success`, luego no
+    /// fija nada, que es la direccion segura.
+    nonisolated static func urlDemostrada(porResultado resultado: String) -> String? {
+        guard estadoDelResultado(resultado) == "success" else { return nil }
+        return urlDelResultado(resultado)
     }
 
     /// Si tras ejecutar `nombre` hay que DESCARTAR el resto de las acciones que el modelo pidio
@@ -288,25 +341,44 @@ final class Agent {
     ///   - `not_available`: el navegador del agente no esta instalado. Reintentarlo no lo
     ///     instala, y el mensaje con las instrucciones ya viajo al modelo en el primer intento.
     ///
+    /// Y CINCO ESTADOS DE FUERA DEL CONTRATO DEL NAVEGADOR, porque el presupuesto no es una
+    /// regla del navegador sino del bucle, y cualquiera de las setenta y tantas herramientas del
+    /// registro puede fallar en bucle. Son los de infraestructura, los que dicen que la
+    /// herramienta NO LLEGO A INTENTARLO o no obtuvo respuesta:
+    ///   - `timeout`: no hubo respuesta a tiempo (`CurrentLocationTool`).
+    ///   - `unavailable`: el servicio del sistema no esta (`SendMessageTool`, `ShareTool`).
+    ///   - `memory_unavailable`: el servicio de memoria no responde (todas las de memoria).
+    ///   - `permission_denied`: el usuario no ha dado el permiso; reintentar no lo concede.
+    ///   - `failed`: la operacion se intento y no salio (las de tareas, `LoadMessagesTool`).
+    ///
+    /// EL CRITERIO, Y ES LA LINEA QUE DIVIDE ESTE CONJUNTO DEL ANCHO. Entra el estado que
+    /// significa «NO PUDE»: la herramienta no hizo el trabajo y repetirla no va a cambiar eso.
+    /// Se queda fuera el que significa «CONTESTE, Y LA RESPUESTA ES NO»: la herramienta SI hizo
+    /// el trabajo, lo que devuelve es informacion, y un turno en el que el modelo consulta cinco
+    /// cosas que no existen esta trabajando, no dando vueltas. De ahi que sigan fuera
+    /// `not_found`, `contact_not_found`, `place_not_found`, `not_in_catalog`, `unknown_topic`,
+    /// `unsupported`, `unsupported_kind`, `limit_reached`, `missing_fields`, `name_taken`,
+    /// `no_phone_number`, `period_in_past` y `rejected`. Lo clava
+    /// `test_los_estados_de_no_pude_gastan_presupuesto_y_los_de_conteste_que_no_siguen_fuera`.
+    ///
     /// MAS ESTRECHO QUE `ToolLogRow.failureStatuses`, Y A PROPOSITO. Ese otro conjunto —el que
-    /// decide si la fila del chat sale con cruz roja— tiene veintitantos estados, censados con
-    /// un grep sobre toda la app. Aqui NO se reutiliza, y la diferencia no es un olvido: la
-    /// mitad de los suyos significan «la herramienta contesto, y la respuesta es que no»
-    /// (`not_found`, `contact_not_found`, `unknown_topic`, `not_in_catalog`), y un turno en el
-    /// que el modelo consulta cinco cosas que no existen esta trabajando, no dando vueltas.
-    /// Matarlo seria peor que el defecto que esto arregla. El criterio de este conjunto es
-    /// estricto: solo entra el estado que significa «la herramienta NO PUDO hacerlo». Y como el
-    /// presupuesto MATA el turno del usuario, ante la duda se queda fuera, que es la direccion
-    /// segura del proyecto. El hueco conocido que eso deja esta anotado en el informe de la
-    /// tarea: estados de infraestructura de otras herramientas (`timeout`, `unavailable`,
-    /// `memory_unavailable`, `permission_denied`) que hoy NO gastan presupuesto.
+    /// decide si la fila del chat sale con cruz roja— tiene veintiun estados, censados con un
+    /// grep sobre toda la app. Aqui NO se reutiliza: pintar una cruz roja no le cuesta nada al
+    /// usuario y MATARLE el turno si, asi que el que decide una muerte es mas corto por
+    /// construccion. Este es un subconjunto estricto del otro, nunca al reves, y ante la duda el
+    /// estado se queda fuera, que es la direccion segura del proyecto.
     ///
     /// Lo que si se clava contra el otro conjunto es la coherencia de lo que el usuario ve:
     /// `test_lo_que_gasta_presupuesto_sale_con_cruz_roja_en_el_chat` exige que todo lo que aqui
     /// cuenta como fallo se pinte como fallo en la fila, y que nada de `estadosDeExito` se
     /// pinte como fallo. Un turno que muere por un estado que el chat pintaba en verde seria
     /// inexplicable para quien lo mira.
-    nonisolated static let estadosDeFallo: Set<String> = ["error", "refused", "not_available"]
+    nonisolated static let estadosDeFallo: Set<String> = [
+        // El contrato de las nueve herramientas de navegador (`AgentBrowserToolOutput`).
+        "error", "refused", "not_available",
+        // «No pude» en las demas herramientas del registro.
+        "timeout", "unavailable", "memory_unavailable", "permission_denied", "failed",
+    ]
 
     /// Los `status` con los que una herramienta declara que SI hizo lo que se le pidio, y que
     /// por tanto REINICIAN el presupuesto de fallos.
@@ -328,11 +400,14 @@ final class Agent {
     /// uno con un `status` que no esta en ninguno de los dos conjuntos, devuelve `false`. Es la
     /// direccion segura de este proyecto aplicada aqui: la accion que este valor desencadena es
     /// MATAR el turno del usuario, asi que un valor que no se supo leer nunca se convierte en
-    /// esa accion. El precio de la eleccion hay que saberlo y esta medido: el propio bucle
-    /// produce un resultado que no es JSON cuando el modelo llama a una herramienta que no
-    /// existe (`error: no tool named …`), y ese caso se queda FUERA del presupuesto. Tambien se
-    /// queda fuera `DUPLICATE_CALL_IGNORED`, y ahi es lo correcto: una mutacion repetida ya se
-    /// ejecuto con exito.
+    /// esa accion. El precio de la eleccion hay que saberlo y esta medido: quedan fuera del
+    /// presupuesto los resultados en prosa de las herramientas que no hablan el contrato de
+    /// `status` (`forget` contesta «Forgot 3 item(s)…») y el `DUPLICATE_CALL_IGNORED` del propio
+    /// bucle, y en el segundo es lo correcto: una mutacion repetida ya se ejecuto con exito.
+    ///   La llamada a una herramienta que NO EXISTE estaba en esa lista y ya no: era la cadena
+    /// `error: no tool named X`, un modelo que insistia en ella no gastaba presupuesto y daba
+    /// vueltas hasta el tope de rondas. Hoy habla JSON — ver
+    /// `resultadoDeHerramientaInexistente(nombre:)`.
     ///
     /// Y UN FALLO NO ES LO CONTRARIO DE UN EXITO. `esFallo` y `esExito` NO son complementarios,
     /// a proposito: hay un tercer estado —no se pudo leer— que ni gasta presupuesto ni lo
@@ -651,7 +726,10 @@ final class Agent {
                                     anyMutationExecuted = true
                                 }
                             } else {
-                                result = "error: no tool named \(tc.name)"
+                                // Habla el contrato JSON como cualquier otra herramienta, para
+                                // que el presupuesto de fallos pueda leerlo. Ver
+                                // `resultadoDeHerramientaInexistente(nombre:)`.
+                                result = Self.resultadoDeHerramientaInexistente(nombre: tc.name)
                             }
                             // Conducir una página son varias rondas: el turno se gana el
                             // presupuesto mayor en cuanto toca el navegador, y la retirada de
@@ -706,8 +784,13 @@ final class Agent {
                                                              resultado: result,
                                                              urlConocida: urlConocidaDelNavegador)
                                 // Se actualiza DESPUES de decidir: la comparacion es contra la
-                                // pagina en la que el modelo planifico la ronda.
-                                if let url = Self.urlDelResultado(result) { urlConocidaDelNavegador = url }
+                                // pagina en la que el modelo planifico la ronda. Y solo desde un
+                                // resultado con EXITO: una accion que fallo no demuestra ninguna
+                                // pagina, y creerle la URL convertia el corte en lo contrario de
+                                // si mismo. Ver `urlDemostrada(porResultado:)`.
+                                if let url = Self.urlDemostrada(porResultado: result) {
+                                    urlConocidaDelNavegador = url
+                                }
                                 let pendientes = pendingToolCalls[(indice + 1)...].map(\.name)
                                 if corta, !pendientes.isEmpty {
                                     // Lo que no se ejecuta NO se descarta en silencio: el modelo

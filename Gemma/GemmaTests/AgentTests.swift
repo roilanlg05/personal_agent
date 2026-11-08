@@ -171,14 +171,22 @@ final class AgentTests: XCTestCase {
 
     /// Un bucle de navegador realista (`open → snapshot → fill → snapshot → click → snapshot
     /// → get → close`) son ocho rondas; con las cinco de un turno normal no cabía.
+    /// Las herramientas se registran de verdad —y tienen EXITO— a proposito: con un registro
+    /// vacio el bucle contesta a cada llamada con el resultado de «esa herramienta no existe»,
+    /// que desde que habla el contrato JSON gasta presupuesto de fallos y mata el turno en la
+    /// quinta ronda. Lo que se mide aqui es el tope de RONDAS, asi que el turno no puede morir
+    /// por otra razon.
     func test_a_turn_that_touches_the_browser_gets_a_bigger_iteration_budget() async throws {
         let normal = RepeatingToolRuntime(toolName: "web_search")
-        for try await _ in Agent(runtime: normal, registry: ToolRegistry()).run(prompt: "x", options: GenerationOptions()) {}
+        let registroNormal = ToolRegistry()
+        FakeOkSearch.calls = 0
+        registroNormal.register(FakeOkSearch())
+        for try await _ in Agent(runtime: normal, registry: registroNormal).run(prompt: "x", options: GenerationOptions()) {}
         XCTAssertEqual(normal.prompts.count, Agent.maxIterations,
                        "el presupuesto de un turno sin navegador no cambia")
 
         let browser = RepeatingToolRuntime(toolName: "browser_open")
-        for try await _ in Agent(runtime: browser, registry: ToolRegistry()).run(prompt: "x", options: GenerationOptions()) {}
+        for try await _ in Agent(runtime: browser, registry: registroDeNavegadorFalso()).run(prompt: "x", options: GenerationOptions()) {}
         XCTAssertEqual(browser.prompts.count, Agent.maxBrowserIterations)
         XCTAssertGreaterThan(Agent.maxBrowserIterations, Agent.maxIterations)
         // Las herramientas se retiran en `iteration >= max - 2`, así que las rondas que de
@@ -253,6 +261,22 @@ final class AgentTests: XCTestCase {
         }
     }
 
+    /// Herramienta de navegador que LEE la página: nunca corta la cola, y su éxito es la
+    /// manera barata de dejar establecido en qué página está el navegador antes de medir otra
+    /// cosa. Es además lo que `BrowserSnapshotTool` devuelve de verdad cuando el CLI trae la
+    /// URL completa (ver `test_snapshot_reports_the_full_url_when_the_cli_gives_it`).
+    final class FakeBrowserSnapshot: AgentTool {
+        static let name = "browser_snapshot"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        nonisolated(unsafe) static var resultado =
+            #"{"status":"success","url":"https://a.test/","snapshot":"- link \"Más\" [ref=e3]","element_count":1}"#
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return Self.resultado
+        }
+    }
+
     private func registroDeNavegadorFalso() -> ToolRegistry {
         FakeBrowserOpen.calls = 0
         FakeBrowserClick.calls = 0
@@ -261,6 +285,15 @@ final class AgentTests: XCTestCase {
         r.register(FakeBrowserOpen())
         r.register(FakeBrowserClick())
         r.register(FakeBrowserFill())
+        return r
+    }
+
+    /// El registro falso más el snapshot. Va aparte para no cambiarle el registro a las
+    /// pruebas que ya había.
+    private func registroDeNavegadorFalsoConSnapshot() -> ToolRegistry {
+        FakeBrowserSnapshot.calls = 0
+        let r = registroDeNavegadorFalso()
+        r.register(FakeBrowserSnapshot())
         return r
     }
 
@@ -320,9 +353,10 @@ final class AgentTests: XCTestCase {
         XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "browser_click",
                                          resultado: #"{"status":"success","message":"Clic ejecutado en '@e3'."}"#,
                                          urlConocida: conocida))
-        // Resultado que no es JSON (p. ej. el `error: no tool named …` del propio bucle).
+        // Resultado que no es JSON de ninguna manera: prosa, y prosa que encima NOMBRA una URL
+        // distinta. Lo que corta es el contrato JSON, nunca una URL leida de un texto suelto.
         XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "browser_click",
-                                         resultado: "error: no tool named browser_click",
+                                         resultado: "Clic ejecutado; la página quedó en https://b.test/x",
                                          urlConocida: conocida))
         // La acción falló: no pasó nada que pueda invalidar una referencia.
         XCTAssertFalse(Agent.cortaLaCola(trasHerramienta: "browser_click",
@@ -445,6 +479,53 @@ final class AgentTests: XCTestCase {
                       "el aviso del corte tiene que llegar al prompt vivo")
     }
 
+    /// EL BUG, MEDIDO HASTA EL CORTE. `AgentBrowserToolOutput.resolve(_:extra:)` mezcla el
+    /// `extra` TAMBIEN en el objeto de fallo, asi que un `browser_open` que no llego a la
+    /// pagina devolvia de todas formas la URL que se PIDIO; y el bucle la grababa como «la
+    /// pagina en la que estamos» sin mirar el `status`. El efecto es exactamente el defecto que
+    /// el corte existe para evitar: estamos en a.test, falla el `open` a b.test, la URL
+    /// conocida pasa a b.test —una pagina en la que nunca estuvimos—, y el clic que navega DE
+    /// VERDAD a b.test COINCIDE con ella, no corta, y el `@e9` de la cola se dispara contra la
+    /// pagina nueva.
+    ///
+    /// Recorre el camino entero a proposito. Afirmar que la variable no cambio verdearia
+    /// aunque el corte siguiera ciego por cualquier otro lado; lo que esta prueba exige es que
+    /// el clic posterior SI corte.
+    func test_un_open_fallido_no_envenena_la_url_conocida_y_el_clic_posterior_si_corta() async throws {
+        let anterior = FakeBrowserOpen.resultado
+        defer { FakeBrowserOpen.resultado = anterior }
+        // Un fallo que arrastra la URL pedida: la forma que `BrowserOpenTool` devolvia. Y la URL
+        // es EXACTAMENTE la pagina a la que el clic de detras navega de verdad —el caso del
+        // encargo: el modelo intenta ir directo, no puede, y llega pulsando un enlace—. Tiene
+        // que coincidir al caracter: si no coincide, el corte se dispara por otro motivo y la
+        // prueba verdea con el envenenamiento intacto. (Pasó: con `https://b.test/` contra el
+        // `https://b.test/x` del clic, esta prueba pasaba ANTES del arreglo.)
+        FakeBrowserOpen.resultado = #"{"status":"error","url":"https://b.test/x","message":"no se pudo cargar"}"#
+        let runtime = ScriptedRuntime([
+            // Ronda 1: leer la pagina deja establecido que estamos en a.test (y leer no corta).
+            [(name: "browser_snapshot", args: "{}")],
+            // Ronda 2: el `open` a b.test/x FALLA. El clic de detras SI navega a b.test/x, asi
+            // que el `@e9` del fill es de la pagina de antes del clic.
+            [(name: "browser_open", args: #"{"url":"https://b.test/x"}"#),
+             (name: "browser_click", args: #"{"selector":"@e3"}"#),
+             (name: "browser_fill", args: #"{"selector":"@e9","text":"hola"}"#)],
+            []
+        ])
+        let registro = registroDeNavegadorFalsoConSnapshot()
+        _ = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(FakeBrowserSnapshot.calls, 1)
+        XCTAssertEqual(FakeBrowserOpen.calls, 1)
+        XCTAssertEqual(FakeBrowserClick.calls, 1,
+                       "el `open` fallo, luego no actuo y no corta: el clic se ejecuta")
+        XCTAssertEqual(FakeBrowserFill.calls, 0,
+                       "el clic navego de a.test a b.test/x: el `@e9` es de la pagina vieja")
+        let tercero = try XCTUnwrap(runtime.prompts.dropFirst(2).first, "falto la tercera ronda")
+        XCTAssertTrue(tercero.contains(BrowserRules.queueCutNote(tras: "browser_click",
+                                                                 pendientes: ["browser_fill"])),
+                      "el corte tiene que dispararse tras el clic: \(tercero.suffix(400))")
+    }
+
     // MARK: - Presupuesto de fallos consecutivos, contado POR ACCION
 
     /// Herramienta de navegador que SIEMPRE falla, con el contrato de estados real de las
@@ -484,6 +565,36 @@ final class AgentTests: XCTestCase {
         static let description = "fake"
         nonisolated(unsafe) static var calls = 0
         static let resultado = #"{"status":"error","message":"la pagina no respondio"}"#
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return Self.resultado
+        }
+    }
+
+    /// Herramienta REGISTRADA cuyo resultado no es JSON de ninguna manera. No es un caso de
+    /// laboratorio: `ForgetTool` (`forget`) contesta en prosa de verdad («Forgot 3 item(s)
+    /// matching 'x'.»), y el propio bucle produce otro resultado que tampoco es JSON
+    /// (`DUPLICATE_CALL_IGNORED`). Es lo que hace falta para medir el tercer estado —ni exito
+    /// ni fallo— desde que el resultado de una herramienta inexistente SI habla JSON.
+    final class FakeIlegible: AgentTool {
+        static let name = "forget"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        static let resultado = "Forgot 3 item(s) matching 'x'."
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return Self.resultado
+        }
+    }
+
+    /// Herramienta que no pudo, y lo dice con un estado que NO es del contrato del navegador.
+    /// Forma real: `CurrentLocationTool` devuelve `status: timeout` cuando el sistema no
+    /// entrega una posicion a tiempo.
+    final class FakeTimeoutTool: AgentTool {
+        static let name = "current_location"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        static let resultado = #"{"status":"timeout","message":"no llego ninguna posicion a tiempo"}"#
         func run(argsJSON: String) async -> String {
             Self.calls += 1
             return Self.resultado
@@ -554,7 +665,7 @@ final class AgentTests: XCTestCase {
     /// Un resultado que no es JSON valido no cuenta como exito (no reinicia), no cuenta como
     /// fallo (no gasta presupuesto) y no revienta el bucle. Son TRES estados, no dos.
     func test_un_resultado_ilegible_no_es_exito_ni_fallo() {
-        for ilegible in ["error: no tool named browser_wait", "", "12:00", "[1,2,3]",
+        for ilegible in [FakeIlegible.resultado, "", "12:00", "[1,2,3]",
                          #"{"status":42}"#, #"{"status":"una_cosa_que_no_existe"}"#, #"{"message":"sin status"}"#] {
             XCTAssertFalse(Agent.esFallo(resultado: ilegible), "no gasta presupuesto: \(ilegible)")
             XCTAssertFalse(Agent.esExito(resultado: ilegible), "no reinicia la cuenta: \(ilegible)")
@@ -562,20 +673,21 @@ final class AgentTests: XCTestCase {
     }
 
     /// Lo anterior por la via larga, que es donde se puede medir que no REINICIA: cuatro
-    /// fallos, el resultado ilegible que produce el propio bucle cuando el modelo llama a una
-    /// herramienta que no existe, y un quinto fallo. Si lo ilegible contara como exito, el
-    /// presupuesto no se agotaria y la ronda terminaria entera.
+    /// fallos, un resultado que no es JSON —`forget` contesta en prosa— y un quinto fallo. Si
+    /// lo ilegible contara como exito, el presupuesto no se agotaria y la ronda terminaria
+    /// entera.
     func test_un_resultado_ilegible_no_reinicia_el_presupuesto_ni_revienta_el_bucle() async throws {
         let tope = Agent.maxConsecutiveFailures
         var ronda = pulsaciones(0..<(tope - 1))
-        // `browser_wait` NO esta en este registro: el bucle devuelve `error: no tool named …`,
-        // que no es JSON.
-        ronda.append((name: "browser_wait", args: "{}"))
+        ronda.append((name: "forget", args: "{}"))
         ronda += pulsaciones((tope - 1)..<tope)
         let runtime = ScriptedRuntime([ronda, []])
         let registro = registroConLaQueFalla()
+        FakeIlegible.calls = 0
+        registro.register(FakeIlegible())
         let visto = try await ejecuta(runtime, registro)
 
+        XCTAssertEqual(FakeIlegible.calls, 1, "el resultado ilegible se ejecuto de verdad")
         XCTAssertEqual(FakeBrowserAlwaysFails.calls, tope, "los \(tope) fallos siguen siendo seguidos")
         XCTAssertEqual(runtime.prompts.count, 1, "el presupuesto se agoto: no hay segunda ronda")
         XCTAssertEqual(visto.fallados, [], "un resultado ilegible no revienta el bucle: \(visto.fallados)")
@@ -594,7 +706,7 @@ final class AgentTests: XCTestCase {
                       "el motivo que dio la herramienta: \(conMotivo)")
 
         let sinMotivo = Agent.mensajeDePresupuestoAgotado(
-            herramienta: "browser_click", fallos: 5, resultado: "error: no tool named browser_click")
+            herramienta: "browser_click", fallos: 5, resultado: FakeIlegible.resultado)
         XCTAssertTrue(sinMotivo.contains("browser_click"), sinMotivo)
         XCTAssertFalse(sinMotivo.contains("devolvió"), "sin motivo legible no se inventa uno: \(sinMotivo)")
         XCTAssertNotEqual(conMotivo, sinMotivo)
@@ -710,10 +822,78 @@ final class AgentTests: XCTestCase {
         }
     }
 
+    /// EL SEGUNDO HUECO. Una herramienta que NO existe tambien gasta presupuesto. El bucle
+    /// contestaba con la cadena `error: no tool named X`, que no es JSON: `esFallo` no le podia
+    /// leer el `status`, el resultado caia en la direccion segura (no gasta) y un modelo
+    /// empenado en una herramienta inexistente seguia dando vueltas hasta el tope de rondas del
+    /// turno — que es justo el caso para el que el presupuesto se escribio.
+    ///
+    /// Por la via larga: cinco llamadas a una herramienta que no esta en el registro agotan el
+    /// presupuesto, y la sexta accion de la ronda ya no se ejecuta.
+    func test_insistir_en_una_herramienta_que_no_existe_agota_el_presupuesto() async throws {
+        let tope = Agent.maxConsecutiveFailures
+        var ronda = (0..<tope).map { (name: "browser_wait", args: "{\"n\":\($0)}") }
+        ronda.append((name: "browser_fill", args: #"{"selector":"@e9","text":"hola"}"#))
+        let runtime = ScriptedRuntime([ronda, []])
+        // `browser_wait` NO esta registrada aqui.
+        let registro = registroDeNavegadorFalso()
+        let visto = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(runtime.prompts.count, 1, "el presupuesto se agoto: no hay segunda ronda")
+        XCTAssertEqual(FakeBrowserFill.calls, 0, "lo que quedaba de la ronda no se ejecuta")
+        XCTAssertEqual(visto.fallados, [], "el turno se cierra con un mensaje, no con un `.failed`")
+        XCTAssertEqual(visto.completados.count, 1, "un mensaje, ni dos ni ninguno: \(visto.completados)")
+        XCTAssertTrue(visto.completados.first?.contains("browser_wait") ?? false,
+                      "el mensaje nombra la herramienta: \(visto.completados)")
+    }
+
+    /// EL TERCER HUECO. Los cinco estados de «NO PUDE» que no gastaban presupuesto, y el limite
+    /// que sigue sin cruzarse: los estados con los que una herramienta CONTESTA que la respuesta
+    /// es no. Un turno en el que el modelo consulta cinco cosas que no existen esta trabajando,
+    /// y matarlo seria peor que el defecto. El criterio esta escrito en `estadosDeFallo`.
+    func test_los_estados_de_no_pude_gastan_presupuesto_y_los_de_conteste_que_no_siguen_fuera() {
+        for estado in ["timeout", "unavailable", "memory_unavailable", "permission_denied", "failed"] {
+            XCTAssertTrue(Agent.esFallo(resultado: "{\"status\":\"\(estado)\"}"),
+                          "«no pude» y no gasta presupuesto: \(estado)")
+        }
+        // El limite. Todos son de `ToolLogRow.failureStatuses` —el censo ancho, el que pinta la
+        // cruz roja— y ninguno puede matar el turno: la herramienta contesto.
+        for estado in ["not_found", "contact_not_found", "place_not_found", "not_in_catalog",
+                       "unknown_topic", "unsupported", "unsupported_kind", "limit_reached",
+                       "missing_fields", "name_taken", "no_phone_number", "period_in_past",
+                       "rejected"] {
+            XCTAssertFalse(Agent.esFallo(resultado: "{\"status\":\"\(estado)\"}"),
+                           "«conteste que no» y mata el turno del usuario: \(estado)")
+        }
+    }
+
+    /// El tercer hueco por la via larga, y con un estado de FUERA del contrato del navegador:
+    /// cinco `timeout` seguidos de una herramienta cualquiera paran el turno, y la sexta accion
+    /// de la ronda no se ejecuta. El presupuesto no es una regla del navegador.
+    func test_cinco_timeouts_seguidos_paran_el_turno() async throws {
+        let tope = Agent.maxConsecutiveFailures
+        var ronda = (0..<tope).map { (name: "current_location", args: "{\"n\":\($0)}") }
+        ronda.append((name: "browser_fill", args: #"{"selector":"@e9","text":"hola"}"#))
+        let runtime = ScriptedRuntime([ronda, []])
+        let registro = registroDeNavegadorFalso()
+        FakeTimeoutTool.calls = 0
+        registro.register(FakeTimeoutTool())
+        let visto = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(FakeTimeoutTool.calls, tope, "la accion que sobrepasa el presupuesto no se ejecuta")
+        XCTAssertEqual(FakeBrowserFill.calls, 0, "lo que quedaba de la ronda no se ejecuta")
+        XCTAssertEqual(runtime.prompts.count, 1, "el turno no llega a una segunda ronda")
+        XCTAssertEqual(visto.completados.count, 1, "un mensaje: \(visto.completados)")
+        XCTAssertTrue(visto.completados.first?.contains("current_location") ?? false,
+                      "el mensaje nombra la herramienta que no pudo: \(visto.completados)")
+    }
+
     /// Los dos conjuntos de estados son los del contrato real de las herramientas
-    /// (`AgentBrowserToolOutput`), y son disjuntos: ningun estado gasta y reinicia a la vez.
+    /// (`AgentBrowserToolOutput`) mas los estados de infraestructura de las demas, y son
+    /// disjuntos: ningun estado gasta y reinicia a la vez.
     func test_los_estados_de_fallo_y_de_exito_son_el_contrato_real_y_son_disjuntos() {
-        for estado in ["error", "refused", "not_available"] {
+        for estado in ["error", "refused", "not_available",
+                       "timeout", "unavailable", "memory_unavailable", "permission_denied", "failed"] {
             XCTAssertTrue(Agent.esFallo(resultado: "{\"status\":\"\(estado)\"}"), estado)
             XCTAssertFalse(Agent.esExito(resultado: "{\"status\":\"\(estado)\"}"), estado)
         }

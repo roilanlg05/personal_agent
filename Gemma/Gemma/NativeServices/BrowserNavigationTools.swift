@@ -38,7 +38,16 @@ public final class BrowserOpenTool: AgentTool, Sendable {
 
         let outcome = await service.run(command: ["open", url], sessioned: true, timeout: Self.timeout)
         let data: Data
-        switch AgentBrowserToolOutput.resolve(outcome, extra: ["url": url]) {
+        // SIN `extra`, Y ESO ES UN ARREGLO. `AgentBrowserToolOutput.resolve(_:extra:)` mezcla el
+        // `extra` también en el objeto de FALLO, así que esta llamada —que pasaba
+        // `extra: ["url": url]`— hacía que un `open` que NO llegó a la página devolviera de
+        // todas formas la URL que se pidió. Y el bucle la leía (`Agent.urlDelResultado`) y la
+        // guardaba como «la página en la que estamos»: a partir de ahí el corte de la cola
+        // quedaba ciego justo donde existe para ver, porque un clic que navegara DE VERDAD a esa
+        // página coincidiría con la URL conocida y no cortaría. Era la única de las nueve
+        // herramientas que mandaba una URL en un fallo. El motivo del fallo sigue viajando en el
+        // `message`, que es lo que el modelo necesita; la URL la tiene en sus propios argumentos.
+        switch AgentBrowserToolOutput.resolve(outcome) {
         case .failure(let json): return json
         case .data(let ok): data = ok
         }
@@ -50,7 +59,19 @@ public final class BrowserOpenTool: AgentTool, Sendable {
         return ToolJSONOutput.object([
             "status": "success",
             "title": fields["title"] as? String,
-            "url": fields["url"] as? String ?? url,
+            // La URL de ATERRIZAJE que dé el CLI, y solo si es una página web. `browser_snapshot`
+            // ya filtra lo mismo («para que una URL ilegible no pueda fabricar un cambio de
+            // página que no hubo») y las tres herramientas de interacción también
+            // (`InteractionSupport.urlSiEsUnaPagina`); `open` era la única que pasaba al bucle
+            // lo que dijera el CLI, y de aquí sale la URL contra la que se compara el corte: un
+            // `about:blank` o un `chrome-error://…` no puede convertirse en «donde estamos».
+            // Si el CLI no trae una página se reporta la pedida, que es la mejor estimación que
+            // hay —y la que ya estaba—: omitirla dejaría al corte sin nada que comparar, y sin
+            // línea base NINGUNA navegación posterior se detecta, que es peor que una base que
+            // puede estar a una redirección de distancia.
+            "url": AgentBrowserToolOutput.isAllowedWebURL(fields["url"] as? String ?? "")
+                ? fields["url"] as? String ?? url
+                : url,
             "content_is_untrusted": true
         ])
     }

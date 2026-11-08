@@ -195,8 +195,25 @@ final class BrowserCoreSkillTests: XCTestCase {
                        "nuestras reglas la acompañan exactamente una vez")
         // Y llega pegada a la nota de ESA herramienta, que es el sitio donde sirve: lo último
         // que el modelo lee antes de decidir el paso siguiente sobre la página.
-        let nota = Agent.toolResultNote(toolName: "browser_open", args: "{}", result: "error: no tool named browser_open")
-        let indiceNota = try XCTUnwrap(prompt.range(of: nota)?.lowerBound)
+        //
+        // La nota se localiza por su CABECERA, y el resultado se comprueba por su motivo. El
+        // resultado entero no se puede buscar: el bucle contesta a una herramienta que no está
+        // en el registro —el caso de `lastLivePrompt`, con su registro vacío— con el JSON de
+        // `Agent.resultadoDeHerramientaInexistente`, y `ToolJSONOutput.object` serializa un
+        // diccionario sin pedir `.sortedKeys`, así que **el orden de las claves no es estable
+        // entre dos llamadas del mismo proceso**: está medido, el mismo proceso produjo
+        // `{"status":…,"message":…}` para la nota esperada y `{"message":…,"status":…}` para la
+        // del prompt, y la prueba se puso roja 1 de cada 3 veces. Las dos piezas de aquí sí son
+        // estables, y las dos se DERIVAN de producción en vez de escribirse a mano.
+        let notaConSenal = Agent.toolResultNote(toolName: "browser_open", args: "{}", result: "\u{1}R\u{1}")
+        let finDeLaCabecera = try XCTUnwrap(notaConSenal.range(of: "\u{1}R\u{1}")?.lowerBound)
+        let cabeceraDeLaNota = String(notaConSenal[..<finDeLaCabecera])
+        let motivo = try XCTUnwrap(
+            Agent.motivoDelResultado(Agent.resultadoDeHerramientaInexistente(nombre: "browser_open")))
+        XCTAssertTrue(prompt.contains(motivo),
+                      "el resultado de la herramienta tiene que viajar en la nota: \(prompt.suffix(300))")
+        let indiceNota = try XCTUnwrap(prompt.range(of: cabeceraDeLaNota)?.lowerBound,
+                                       "la cabecera de la nota no esta en el prompt vivo: \(cabeceraDeLaNota)")
         let indiceGuia = try XCTUnwrap(prompt.range(of: BrowserCoreSkill.text)?.lowerBound)
         XCTAssertLessThan(indiceNota, indiceGuia, "la guía va DETRÁS de la nota de la herramienta que la trae")
     }

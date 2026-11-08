@@ -455,7 +455,7 @@ public final class HarnessModel {
         // por su pie, así que su panel se congela aunque el navegador siga abierto. Esto NO toca
         // el panel vivo de un turno anterior (con `activeID == nil` es un no-op): que el usuario
         // hable de otra cosa no debe cortarle el video. Por eso aquí NO va `retireLivePanel()`.
-        browserPanels.endTurn(survive: false)
+        browserPanels.endTurn(survive: false, porque: "el usuario mandó otro mensaje")
         currentTurnTask = Task { @MainActor [weak self] in
             guard let self else { return }
             if let runner = self.turnRunnerOverride { await runner(prompt) } else { await self.runAgentTurn(prompt) }
@@ -466,7 +466,7 @@ public final class HarnessModel {
         currentTurnTask?.cancel()
         currentTurnTask = nil
         // Detener es una orden explícita: congela aunque el navegador siga abierto.
-        browserPanels.endTurn(survive: false)
+        browserPanels.endTurn(survive: false, porque: "el usuario pulsó detener")
         agentRunning = false
         agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
     }
@@ -490,7 +490,11 @@ public final class HarnessModel {
             }
             continuation.finish()
         }
-        continuation.onTermination = { _ in
+        continuation.onTermination = { razon in
+            // El único momento en que la app suelta su visor. Saber si llegó por `.cancelled`
+            // (alguien retiró el panel) o por `.finished` (el cliente del relé se rindió o el
+            // relé cerró) distingue las dos familias de causa sin tener que adivinarlo después.
+            PanelLog.note("el flujo del relé termina (\(razon)): se cierra el socket del visor")
             forwarder.cancel()
             Task { await client.stop() }
         }
@@ -620,7 +624,7 @@ public final class HarnessModel {
                 }
             }
         } catch is CancellationError {
-            browserPanels.endTurn(survive: false)
+            browserPanels.endTurn(survive: false, porque: "el turno fue cancelado")
             if let idx = activeGemmaIdx {
                 let current = agentLog[idx].text.trimmingCharacters(in: .whitespacesAndNewlines)
                 if current.isEmpty && (agentLog[idx].thought?.isEmpty ?? true) {
@@ -628,7 +632,7 @@ public final class HarnessModel {
                 }
             }
         } catch {
-            browserPanels.endTurn(survive: false)
+            browserPanels.endTurn(survive: false, porque: "el turno falló: \(type(of: error))")
             agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
         }
         // Salida normal del bucle: congela el panel (no-op si ya lo cerró un catch).
@@ -643,7 +647,7 @@ public final class HarnessModel {
         threadId = UUID().uuidString   // new episode → new chat_id; server restarts seq at 1
         UserDefaults.standard.set(threadId, forKey: "activeThreadId")
         turnIndex = 0
-        browserPanels.retireLivePanel()
+        browserPanels.retireLivePanel(porque: "más de 30 min en silencio: conversación nueva")
     }
 
     public func runAgentTurn(_ prompt: String) async {

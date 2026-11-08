@@ -167,9 +167,16 @@ public actor BrowserRelayClient {
         var failures = 0
         while !Task.isCancelled {
             let gotFrame = await runOnce(url: url, cont)
-            if Task.isCancelled { return }
+            if Task.isCancelled {
+                PanelLog.note("visor: la conexión acabó y la tarea está cancelada; no se reintenta")
+                return
+            }
             failures = Self.nextFailureCount(current: failures, gotFrame: gotFrame)
-            if Self.shouldGiveUp(failures: failures) { return }
+            PanelLog.note("visor: conexión terminada (llegaron fotogramas=\(gotFrame)), fallos consecutivos=\(failures)")
+            if Self.shouldGiveUp(failures: failures) {
+                PanelLog.note("visor: se rinde tras \(failures) fallos; el panel se congelará")
+                return
+            }
             do { try await Task.sleep(for: .seconds(Self.reconnectDelay(attempt: failures))) }
             catch { return }
         }

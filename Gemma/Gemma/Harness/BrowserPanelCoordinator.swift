@@ -62,7 +62,14 @@ public final class BrowserPanelCoordinator {
         guard Self.isBrowserTool(toolName) else { return nil }
         // Dentro del turno, cada herramienta que actúa sobre la página la deja (o la mantiene)
         // Nada se anota al empezar una herramienta: puede fallar. Se decide en `toolFinished`.
-        guard activeID == nil, let stream = makeStream() else { return nil }
+        guard activeID == nil else {
+            PanelLog.note("openIfNeeded(\(toolName)): ya hay panel activo \(PanelLog.corto(activeID)), no se abre otro")
+            return nil
+        }
+        guard let stream = makeStream() else {
+            PanelLog.note("openIfNeeded(\(toolName)): sin flujo (relé no configurado), no hay panel")
+            return nil
+        }
         // El panel de este turno hereda lo que se sabía: si había uno vivo, el navegador estaba
         // abierto, y así sigue hasta que un `browser_close` EXITOSO diga lo contrario. Empezar
         // en «cerrado» congelaría la ventana de un video que sigue sonando cuando el primer
@@ -77,6 +84,7 @@ public final class BrowserPanelCoordinator {
         let state = BrowserPanelState()
         panels[id] = state
         activeID = id
+        PanelLog.note("panel \(PanelLog.corto(id)) abierto por \(toolName); navegadorAbierto heredado=\(browserLeftOpen)")
         consumers[id] = Task { @MainActor [weak self, weak state] in
             for await event in stream {
                 state?.apply(event)
@@ -84,6 +92,7 @@ public final class BrowserPanelCoordinator {
             // Red de seguridad, no cortesía: el flujo tiene búfer `.bufferingNewest(64)` y un
             // consumidor lento puede perder un `.closed`. Que el flujo termine congela el panel
             // por sí solo. No borrar por parecer redundante con `.closed`.
+            PanelLog.note("el flujo del panel \(PanelLog.corto(id)) terminó por su cuenta: se congela")
             state?.freeze()
             // Un panel vivo cuyo flujo terminó ya está congelado: dejarlo como «el vivo» haría
             // que el panel siguiente naciera creyendo que el navegador sigue abierto.
@@ -106,8 +115,13 @@ public final class BrowserPanelCoordinator {
     ///
     /// Se lee el `status` del JSON y no se supone. Un resultado ilegible cuenta como fallo.
     public func toolFinished(toolName: String, result: String) {
-        guard Self.isBrowserTool(toolName), Self.reportsSuccess(result) else { return }
+        guard Self.isBrowserTool(toolName) else { return }
+        guard Self.reportsSuccess(result) else {
+            PanelLog.note("toolFinished(\(toolName)): no reportó éxito, navegadorAbierto sigue en \(browserLeftOpen)")
+            return
+        }
         browserLeftOpen = toolName != Self.closeToolName
+        PanelLog.note("toolFinished(\(toolName)): éxito → navegadorAbierto=\(browserLeftOpen)")
     }
 
     /// Fin del turno. Con el navegador cerrado congela el panel y corta su flujo (el panel queda
@@ -125,14 +139,22 @@ public final class BrowserPanelCoordinator {
     /// falló): ahí se congela siempre, aunque el navegador siga abierto. Detener es una orden
     /// explícita y no se puede reinterpretar (la pantalla de un pago no debe quedar viva), y tras
     /// un fallo no se sabe en qué estado quedó el navegador.
-    public func endTurn(survive: Bool = true) {
-        guard let id = activeID else { return }
+    /// `porque` NO cambia ninguna decisión: va solo al rastro, para que un corte de panel diga
+    /// cuál de los cinco caminos lo cortó. Sin él, el log muestra el corte y no la causa, que es
+    /// justo lo que ya costó tres rondas de diagnóstico.
+    public func endTurn(survive: Bool = true, porque: String = "fin normal del turno") {
+        guard let id = activeID else {
+            PanelLog.note("endTurn(survive:\(survive)) [\(porque)]: no hay panel de turno; el vivo \(PanelLog.corto(livePanelID)) no se toca")
+            return
+        }
         activeID = nil
         if survive, browserLeftOpen {
             livePanelID = id
             armIdleCap(for: id)
+            PanelLog.note("endTurn(survive:true) [\(porque)]: el panel \(PanelLog.corto(id)) SIGUE VIVO (navegador abierto)")
             return
         }
+        PanelLog.note("endTurn(survive:\(survive)) [\(porque)]: se RETIRA el panel \(PanelLog.corto(id)) (navegadorAbierto=\(browserLeftOpen))")
         retire(id)
     }
 
@@ -144,10 +166,11 @@ public final class BrowserPanelCoordinator {
     }
 
     /// Congela el panel vivo, si lo hay, y corta su flujo.
-    public func retireLivePanel() {
+    public func retireLivePanel(porque: String = "sin motivo declarado") {
         idleTask?.cancel()
         idleTask = nil
         guard let id = livePanelID else { return }
+        PanelLog.note("retireLivePanel [\(porque)]: se retira el panel vivo \(PanelLog.corto(id))")
         livePanelID = nil
         retire(id)
     }
@@ -165,7 +188,7 @@ public final class BrowserPanelCoordinator {
             // otro panel toma el relevo: sin esta identidad retiraría al panel nuevo. No quitar
             // por parecer redundante con las cancelaciones.
             guard !Task.isCancelled, let self, self.livePanelID == id else { return }
-            self.retireLivePanel()
+            self.retireLivePanel(porque: "tope de inactividad agotado")
         }
     }
 

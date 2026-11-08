@@ -201,65 +201,30 @@ próxima rama toca ese fichero:
 
 ---
 
-## El panel enseña la página del turno anterior (2026-11-08)
+## RETIRADO: «el panel enseña la página del turno anterior» (2026-11-08)
 
-**Lo que el usuario vio**, textual: «creo que las pestañas del navegador no se
-están cerrando. Porque pidiéndole diferentes cosas y en diferentes momentos me
-abre la ventana que tenía cargada anteriormente. Por ejemplo, le pedí que me
-buscara en YouTube el canal de AuronPlay y me abrió TikTok en el mismo lugar
-donde estaba antes, como si la pestaña nunca se hubiese cerrado.»
+Escribí aquí un diagnóstico entero sobre el fotograma de apertura del demonio, a
+partir de un reporte del usuario que **interpreté mal**. Él lo corrigió: cuando el
+navegador falló **no se mostró nada**, así que el fotograma de apertura no
+explica lo que vio y mi explicación se cae.
 
-**Su diagnóstico era razonable y resulta que no es el `close`.** Medido contra el
-servicio del i3 el 2026-11-08:
+Lo único que queda en pie de esa medición, porque se midió de verdad contra el
+i3, y vale la pena no volver a medirlo:
 
-| paso | `get url` | `get title` |
-|---|---|---|
-| abrir TikTok | `https://www.tiktok.com/explore` | «Log in \| TikTok» |
-| `close` | `✓ Browser closed` | |
-| **tras el `close`, sin abrir nada** | **`about:blank`** | vacío |
-| abrir YouTube | `…/results?search_query=AuronPlay` | «AuronPlay - YouTube» |
-
-El `close` limpia la página de verdad. Dos observaciones más de la misma medida:
-
-- Tras el `close`, un `get url` **sigue contestando**: el CLI asegura el
-  navegador en cada invocación (es el eco `launch` que `browser/stream.py`
-  descarta en `IGNORED_ACTIONS`). O sea, el proceso sobrevive; la página, no.
+- **`browser_close` cierra la página de verdad.** Tras el `close`, `get url` da
+  `about:blank` y `get title` da vacío.
+- Tras el `close`, un `get url` **sigue contestando**: el CLI asegura el navegador
+  en cada invocación (es el eco `launch` que `browser/stream.py` descarta en
+  `IGNORED_ACTIONS`). El proceso sobrevive; la página, no.
 - **Si nadie llama a `close`, la página se queda donde estaba.** Abrir una sesión
-  distinta no la toca: `gemma` seguía en la URL de YouTube.
+  distinta no la toca.
+- `AGENT_BROWSER_IDLE_TIMEOUT_MS=1800000` (media hora) en los dos composes. El
+  usuario ya decidió en el brainstorming del navegador visible que sean **10
+  minutos**: «si no hay ninguna interacción de la gente con el navegador, o mía
+  con el agente para que interactúe con el navegador, entonces se cierra a los 15
+  minutos automáticamente, o mejor, a los 10 minutos.» Eso sigue pendiente y es
+  trabajo del plan D.
 
-**La mecánica real del síntoma.** El panel arranca vacío —
-`BrowserPanelCoordinator.openIfNeeded` crea un `BrowserPanelState()` nuevo por
-panel, así que no arrastra nada del turno anterior— pero al engancharse, el
-demonio le manda un **fotograma de apertura**, y eso es deliberado: el comentario
-de `DAEMON_MAX_FPS` en `browser/relay.py:98` dice que el `maxFps` viaja en la URL
-y no en un mensaje `config` precisamente «porque es la única forma de que cubra el
-frame de apertura (spec §5.5, §6.2(c))».
-
-Ese fotograma de apertura es de **la página que siga cargada**, que es la del
-turno anterior si nadie cerró. Con el `open` nuevo funcionando son unos dos
-segundos de página vieja antes de que la navegación llegue. **Con el `open`
-fallando, la página vieja es lo único que el usuario llega a ver** — y el caso
-que reportó es exactamente ese: su `browser_open` devolvió «No se pudo hablar con
-el navegador del i3… Could not connect to the server» porque Tailscale se había
-caído en el teléfono (`iphone192`, offline; el servicio respondía 200 desde la
-Mac en ese mismo momento).
-
-**Dos arreglos separables, y el usuario ya decidió el primero:**
-
-1. **Bajar el tiempo de inactividad.** Hoy `AGENT_BROWSER_IDLE_TIMEOUT_MS=1800000`
-   (media hora) en los dos composes. El usuario ya lo decidió en el brainstorming
-   del navegador visible: «si no hay ninguna interacción de la gente con el
-   navegador, o mía con el agente para que interactúe con el navegador, entonces
-   se cierra a los 15 minutos automáticamente, o mejor, a los 10 minutos.»
-   Eso reduce la ventana pero no la cierra: dentro de los 10 minutos el síntoma
-   sigue.
-2. **Que un `open` fallido no deje en pantalla una página ajena a lo pedido.**
-   Es lo que de verdad engañó al usuario: una pantalla que muestra TikTok mientras
-   la herramienta devolvió `status: error`. Dos caminos posibles — que el panel
-   descarte los fotogramas hasta que la URL del demonio sea la que se pidió, o que
-   un fallo de la herramienta congele el panel con el error encima en vez de con
-   el último fotograma. El primero es más correcto y más caro; el segundo es
-   barato y arregla el engaño.
-
-Va al **plan D** del spec `2026-11-08-navegador-visible-y-busqueda-design.md`,
-que es donde viven los tres modos y el ciclo de vida del navegador.
+**Lección de proceso:** convertí una frase del usuario en un diagnóstico técnico
+sin preguntarle qué vio exactamente en la pantalla. El síntoma que él describía y
+el que yo expliqué no eran el mismo.

@@ -1,7 +1,5 @@
 import Foundation
 
-#if os(macOS)
-
 /// Espera a que la página abierta alcance un estado. No devuelve texto de la página, así
 /// que no lleva el aviso de contenido no confiable.
 public final class BrowserWaitTool: AgentTool, Sendable {
@@ -164,4 +162,3 @@ public final class BrowserGetTool: AgentTool, Sendable {
     }
 }
 
-#endif

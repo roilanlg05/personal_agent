@@ -414,12 +414,11 @@ public final class HarnessModel {
         agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
     }
 
-    /// Flujo del relé del i3 para un panel nuevo, o `nil` sin `browserBaseURL` válida (en
-    /// iOS no hay navegador del agente: devuelve `nil`). `BrowserRelayClient` es un actor y su `events()`
+    /// Flujo del relé del i3 para un panel nuevo, o `nil` sin `browserBaseURL` válida (sin
+    /// dependencias de plataforma: sirve igual en macOS y en iOS). `BrowserRelayClient` es un actor y su `events()`
     /// es `async`, así que se puentea: un `Task` reenvía los eventos y, al terminar el flujo
     /// (cierre del panel), se cancela y se llama a `stop()` para no dejar el socket abierto.
     static func makeRelayStream(defaults: UserDefaults = .standard) -> AsyncStream<BrowserRelayEvent>? {
-        #if os(macOS)
         let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
@@ -439,12 +438,8 @@ public final class HarnessModel {
             Task { await client.stop() }
         }
         return stream
-        #else
-        return nil
-        #endif
     }
 
-    #if os(macOS)
     /// Registra en `registry` las nueve herramientas de navegador (`read_webpage` y `browser_*`).
     /// Comparten una única instancia de `AgentBrowserService`, y por tanto la misma sesión de
     /// `agent-browser`. Es la única ruta de registro: `runAgentTurn` y `browserToolRegistry()` la usan.
@@ -469,7 +464,14 @@ public final class HarnessModel {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         // Solo el campo VACÍO es "sin i3" (comportamiento de siempre). Una URL escrita pero
         // inválida no debe caer al navegador local a espaldas del usuario: ver `InvalidBrowserURLInvoker`.
-        if raw.isEmpty { return ProcessAgentBrowserInvoker() }
+        if raw.isEmpty {
+            #if os(macOS)
+            return ProcessAgentBrowserInvoker()
+            #else
+            // iOS no tiene navegador local: el campo vacío manda a Ajustes, no a instalar nada.
+            return UnconfiguredBrowserInvoker()
+            #endif
+        }
         guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
               url.host != nil else {
             return InvalidBrowserURLInvoker()
@@ -488,7 +490,6 @@ public final class HarnessModel {
         registerBrowserTools(into: registry)
         return registry
     }
-    #endif
 
     public func runAgentTurn(_ prompt: String) async {
         let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
@@ -534,9 +535,7 @@ public final class HarnessModel {
         registry.register(GetDeviceStatusTool())
         registry.register(OpenAppTool())
         registry.register(WebSearchTool())
-        #if os(macOS)
         Self.registerBrowserTools(into: registry)
-        #endif
         registry.register(GetWeatherTool())
         registry.register(GetForecastTool())
         registry.register(CreateAlarmTool())

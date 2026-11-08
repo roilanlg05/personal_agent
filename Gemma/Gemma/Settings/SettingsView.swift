@@ -99,13 +99,19 @@ struct SettingsView: View {
             Section("Navegador (i3)") {
                 TextField("URL base del navegador (opcional)", text: $browserBaseURL)
                     .textFieldStyle(.roundedBorder)
-                    .help("Servicio del navegador en el i3, p. ej. http://100.x.y.z:8083. Vacío = navegador local.")
+                    .help("Servicio del navegador en el i3, p. ej. http://100.x.y.z:8083.")
                 SecureField("Token de acceso", text: $browserBearerToken)
                     .textFieldStyle(.roundedBorder)
                     .help("Token del servicio del navegador en el i3.")
+                #if os(macOS)
                 Text("Vacío → el agente usa agent-browser en este Mac. Con URL, conduce el navegador del i3. Se aplica en el siguiente turno.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                #else
+                Text("Pon aquí la URL del navegador del i3 para que el agente pueda navegar. Vacío → el agente no tiene navegador. Se aplica en el siguiente turno.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                #endif
             }
             Section("Voice Service") {
                 TextField("Voice base URL (opcional)", text: $voiceBaseURL)

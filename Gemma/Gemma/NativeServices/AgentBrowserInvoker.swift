@@ -1,7 +1,5 @@
 import Foundation
 
-#if os(macOS)
-
 /// Resultado crudo de una ejecución del CLI `agent-browser`: lo que salió, sin interpretar.
 public struct AgentBrowserInvocation: Sendable, Equatable {
     public let exitCode: Int32
@@ -31,6 +29,8 @@ public protocol AgentBrowserInvoking: Sendable {
     func invoke(arguments: [String], timeout: TimeInterval) async
         -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure>
 }
+
+#if os(macOS)
 
 // MARK: - Descubrimiento del binario
 
@@ -320,6 +320,8 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
     }
 }
 
+#endif
+
 // MARK: - Doble de prueba
 
 /// Doble de prueba. Devuelve lo programado y guarda lo que recibió.
@@ -347,4 +349,3 @@ public final class MockAgentBrowserInvoker: AgentBrowserInvoking, @unchecked Sen
     }
 }
 
-#endif

@@ -1,7 +1,5 @@
 import Foundation
 
-#if os(macOS)
-
 /// Piezas comunes a las nueve herramientas de navegador.
 ///
 /// Todas hablan el mismo contrato de estados (`success`, `no_content`, `refused`,
@@ -144,4 +142,3 @@ public enum AgentBrowserToolOutput {
     }
 }
 
-#endif

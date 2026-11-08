@@ -1,7 +1,5 @@
 import Foundation
 
-#if os(macOS)
-
 /// Conduce `agent-browser` en el servidor doméstico (el i3) en vez de lanzar un proceso local.
 ///
 /// Reenvía el `argv` tal cual a `POST <base>/v1/browser/invoke` y devuelve el `stdout` que el
@@ -116,4 +114,18 @@ public struct InvalidBrowserURLInvoker: AgentBrowserInvoking, Sendable {
     }
 }
 
-#endif
+/// Invocador para cuando NO hay `browserBaseURL` y la plataforma no tiene navegador local (iOS).
+///
+/// No puede reusar `not_available`: ese estado le dice al usuario que instale `agent-browser`,
+/// consejo falso en un teléfono. El estado tiene que llevar a la acción correcta, que es poner
+/// la URL base del navegador (el i3) en Ajustes. Falla siempre.
+public struct UnconfiguredBrowserInvoker: AgentBrowserInvoking, Sendable {
+    public init() {}
+
+    public func invoke(arguments: [String], timeout: TimeInterval) async
+        -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
+        .failure(.launchFailed(
+            "El navegador del agente no está configurado. Pon la URL base del navegador "
+            + "(el i3) en Ajustes, junto con su token."))
+    }
+}

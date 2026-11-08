@@ -1,7 +1,5 @@
 import Foundation
 
-#if os(macOS)
-
 /// Resultado de una orden al navegador, ya interpretado.
 public enum AgentBrowserOutcome: Sendable, Equatable {
     /// `success: true`. `data` es el objeto `data` reserializado **sin** `lifecycle`.
@@ -25,11 +23,20 @@ public struct AgentBrowserService: Sendable {
     private let invoker: any AgentBrowserInvoking
     private let sessionName: String
 
-    public init(invoker: any AgentBrowserInvoking = ProcessAgentBrowserInvoker(),
+    /// Multiplataforma: el invocador es HTTP puro (o un doble de prueba), sin proceso local.
+    public init(invoker: any AgentBrowserInvoking,
                 sessionName: String = AgentBrowserService.environmentSessionName()) {
         self.invoker = invoker
         self.sessionName = sessionName
     }
+
+    #if os(macOS)
+    /// Solo macOS: usa el `agent-browser` local (`ProcessAgentBrowserInvoker`). En iOS no hay
+    /// binario que lanzar, así que este inicializador no existe.
+    public init(sessionName: String = AgentBrowserService.environmentSessionName()) {
+        self.init(invoker: ProcessAgentBrowserInvoker(), sessionName: sessionName)
+    }
+    #endif
 
     /// `AGENT_BROWSER_SESSION` si está definida y no vacía; si no, `defaultSessionName`.
     public static func environmentSessionName() -> String {
@@ -99,4 +106,3 @@ public struct AgentBrowserService: Sendable {
     }
 }
 
-#endif

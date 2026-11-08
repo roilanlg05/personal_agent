@@ -1,7 +1,5 @@
 import Foundation
 
-#if os(macOS)
-
 /// Lee el contenido completo de una URL como markdown. El comando `read` del CLI
 /// descarga por HTTP sin lanzar Chrome, por eso no usa la sesión del navegador.
 public final class ReadWebpageTool: AgentTool, Sendable {
@@ -92,4 +90,3 @@ public final class ReadWebpageTool: AgentTool, Sendable {
     }
 }
 
-#endif

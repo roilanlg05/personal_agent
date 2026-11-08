@@ -1,7 +1,5 @@
 import Foundation
 
-#if os(macOS)
-
 /// Piezas comunes a las tres herramientas de interacción: ninguna devuelve texto de la
 /// página, así que ninguna lleva el aviso de contenido no confiable.
 private enum InteractionSupport {
@@ -136,4 +134,3 @@ public final class BrowserPressTool: AgentTool, Sendable {
     }
 }
 
-#endif

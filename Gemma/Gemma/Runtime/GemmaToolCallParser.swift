@@ -98,8 +98,19 @@ enum GemmaToolCallParser {
     /// - `args` sale como OBJETO JSON en cadena, igual que los otros tres formatos y lo que
     ///   consume el resto del pipeline. Los valores son cadenas, salvo los que son un objeto o
     ///   un array JSON válidos, que se incrustan estructurados; los números quedan como cadena
-    ///   porque los lectores de argumentos de las herramientas ya aceptan `"5"` como entero.
-    private static func extractFunctionTagCalls(from text: String) -> (calls: [ExtractedToolCall], clean: String) {
+    ///   porque las herramientas aceptan la cadena además del tipo nativo (ver
+    ///   `CancelAlarmTool.coerceBool` / `coerceDouble`); el parser no puede conocer el tipo de un
+    ///   argumento sin el esquema de la herramienta y convertir `"123"` corrompería cadenas reales.
+    ///
+    /// Fallo seguro (revisión del 2026-11-08): como el valor termina en el primer `</parameter>`
+    /// y el bloque en el primer `</function>`, un valor que contenga uno de esos cierres
+    /// truncaría la llamada, y una llamada truncada que se EJECUTA es peor que ninguna
+    /// (`browser_fill` tecleando medio texto en la página del usuario sin que él vea por qué).
+    /// Por eso un bloque solo se acepta si, quitados sus `<parameter>` bien formados, no queda
+    /// nada más que espacio, y si no repite parámetros. Si no, es ambiguo: no produce llamada y
+    /// se retira del texto visible desde su inicio hasta el último `</function>`, para que ni
+    /// siquiera quede la cola del valor.
+    static func extractFunctionTagCalls(from text: String) -> (calls: [ExtractedToolCall], clean: String) {
         let blockPattern = #"<function\s+name\s*=\s*["']([A-Za-z0-9_\-.]+)["']\s*(?:/>|>(.*?)</function\s*>)"#
         guard let blockRegex = try? NSRegularExpression(pattern: blockPattern, options: [.dotMatchesLineSeparators]),
               let paramRegex = try? NSRegularExpression(
@@ -110,22 +121,43 @@ enum GemmaToolCallParser {
         guard !blocks.isEmpty else { return ([], text) }
 
         var calls: [ExtractedToolCall] = []
+        var validRanges: [NSRange] = []
+        var ambiguousFrom: Int?
         for b in blocks {
-            let name = ns.substring(with: b.range(at: 1))
             var params: [String: Any] = [:]
+            var ambiguous = false
             if b.range(at: 2).location != NSNotFound {
                 let body = ns.substring(with: b.range(at: 2)) as NSString
-                for p in paramRegex.matches(in: body as String, range: NSRange(location: 0, length: body.length)) {
+                let matches = paramRegex.matches(in: body as String, range: NSRange(location: 0, length: body.length))
+                for p in matches {
                     let key = body.substring(with: p.range(at: 1))
+                    if params[key] != nil { ambiguous = true }
                     let raw = body.substring(with: p.range(at: 2))
                     params[key] = structuredValue(raw) ?? raw
                 }
+                var leftover = body as String
+                for p in matches.reversed() { leftover = (leftover as NSString).replacingCharacters(in: p.range, with: "") }
+                if !leftover.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { ambiguous = true }
             }
+            if ambiguous { ambiguousFrom = b.range.location; break }
             let data = (try? JSONSerialization.data(withJSONObject: params, options: [.sortedKeys, .withoutEscapingSlashes])) ?? Data("{}".utf8)
-            calls.append(ExtractedToolCall(name: name, args: String(decoding: data, as: UTF8.self)))
+            calls.append(ExtractedToolCall(name: ns.substring(with: b.range(at: 1)), args: String(decoding: data, as: UTF8.self)))
+            validRanges.append(b.range)
         }
-        let clean = blockRegex.stringByReplacingMatches(in: text, range: NSRange(location: 0, length: ns.length), withTemplate: "")
-        return (calls, clean)
+
+        var clean = text as NSString
+        if let cut = ambiguousFrom {
+            let tail = NSRange(location: cut, length: clean.length - cut)
+            let lastClose = clean.range(of: "</function", options: .backwards, range: tail)
+            var end = clean.length
+            if lastClose.location != NSNotFound {
+                let after = clean.range(of: ">", range: NSRange(location: lastClose.location, length: clean.length - lastClose.location))
+                end = after.location == NSNotFound ? clean.length : after.location + 1
+            }
+            clean = clean.replacingCharacters(in: NSRange(location: cut, length: end - cut), with: "") as NSString
+        }
+        for r in validRanges.reversed() { clean = clean.replacingCharacters(in: r, with: "") as NSString }
+        return (calls, clean as String)
     }
 
     /// Un valor de parámetro que es un objeto o array JSON bien formado; cualquier otra cosa

@@ -122,4 +122,59 @@ final class GemmaToolCallParserTests: XCTestCase {
         XCTAssertEqual(r.toolCalls.map(\.name), ["web_search"])
         XCTAssertEqual(r.toolCalls.first?.args, #"{"query": "x"}"#)
     }
+
+    // MARK: fallo seguro: un valor con su propio cierre no produce una llamada truncada
+
+    /// Revisión del 2026-11-08: un valor que contiene `</parameter>` o `</function>` truncaba
+    /// el bloque y la llamada se EJECUTABA con el argumento cortado. Peor que no llamar.
+    func test_un_valor_con_cierre_de_parametro_no_produce_llamada_ni_deja_cola() {
+        let t = #"Voy. <function name="browser_fill"><parameter name="selector">@e3</parameter><parameter name="text">hola</parameter> mundo</parameter></function> fin"#
+        let r = GemmaToolCallParser.parseToolCalls(from: t)
+        XCTAssertTrue(r.toolCalls.isEmpty, "llamada truncada ejecutable: \(r.toolCalls.map(\.args))")
+        XCTAssertEqual(r.cleanText, "Voy.  fin")
+    }
+
+    func test_un_valor_con_cierre_de_funcion_no_produce_llamada_ni_deja_cola() {
+        let t = #"Voy. <function name="browser_fill"><parameter name="text">antes</function>despues</parameter></function> fin"#
+        let r = GemmaToolCallParser.parseToolCalls(from: t)
+        XCTAssertTrue(r.toolCalls.isEmpty, "llamada truncada ejecutable: \(r.toolCalls.map(\.args))")
+        XCTAssertEqual(r.cleanText, "Voy.  fin")
+        XCTAssertFalse(r.cleanText.contains("despues"))
+    }
+
+    func test_un_parametro_repetido_es_ambiguo() {
+        let r = GemmaToolCallParser.parseToolCalls(from: #"<function name="x"><parameter name="k">1</parameter><parameter name="k">2</parameter></function>"#)
+        XCTAssertTrue(r.toolCalls.isEmpty)
+        XCTAssertEqual(r.cleanText, "")
+    }
+
+    func test_texto_suelto_dentro_del_bloque_es_ambiguo() {
+        let r = GemmaToolCallParser.parseToolCalls(from: #"<function name="x">basura<parameter name="k">1</parameter></function>"#)
+        XCTAssertTrue(r.toolCalls.isEmpty)
+        XCTAssertEqual(r.cleanText, "")
+    }
+
+    func test_una_llamada_valida_anterior_a_la_ambigua_se_conserva() {
+        let t = #"<function name="a"><parameter name="k">1</parameter></function> y <function name="b"><parameter name="t">x</function>y</parameter></function>"#
+        let r = GemmaToolCallParser.parseToolCalls(from: t)
+        XCTAssertEqual(r.toolCalls.map(\.name), ["a"])
+        XCTAssertEqual(r.cleanText, "y")
+    }
+
+    // MARK: el extractor limpia por sí mismo (no se apoya en strip())
+
+    /// Sobrevivió una mutación: dejar `clean` igual al texto original no rompía nada porque
+    /// `strip()` retira el bloque después. Se prueba el extractor directamente para que, si
+    /// `strip()` se refactoriza, los fragmentos no lleguen a la pantalla.
+    func test_el_extractor_devuelve_su_propio_texto_sin_el_bloque() {
+        let r = GemmaToolCallParser.extractFunctionTagCalls(from: #"Antes. <function name="a"><parameter name="k">v</parameter></function> Después."#)
+        XCTAssertEqual(r.calls.count, 1)
+        XCTAssertEqual(r.clean, "Antes.  Después.")
+    }
+
+    func test_el_extractor_limpia_tambien_el_caso_ambiguo() {
+        let r = GemmaToolCallParser.extractFunctionTagCalls(from: #"Antes. <function name="a"><parameter name="t">x</function>y</parameter></function> Después."#)
+        XCTAssertTrue(r.calls.isEmpty)
+        XCTAssertEqual(r.clean, "Antes.  Después.")
+    }
 }

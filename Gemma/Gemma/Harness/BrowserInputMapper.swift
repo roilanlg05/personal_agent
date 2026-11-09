@@ -27,7 +27,9 @@ import Foundation
 /// toca el usuario, y un rastro de coordenadas sobre un teclado en pantalla reconstruye una
 /// contraseña igual de bien. Este fichero no tiene ningún camino —ni de error— que escriba un
 /// valor de entrada en ninguna parte. Lo afirma una prueba que LEE ESTE FUENTE
-/// (`BrowserInputMapperTests.test_el_mapa_no_registra_nada`), porque una ausencia no se puede
+/// (`BrowserInputMapperTests.test_el_mapa_solo_usa_identificadores_permitidos`, que es
+/// una lista BLANCA de identificadores: una lista negra solo prueba que no está lo que se te
+/// ocurrió nombrar, y la que había aquí dejaba pasar seis fugas reales en verde), porque una ausencia no se puede
 /// observar ejecutando código.
 ///
 ///

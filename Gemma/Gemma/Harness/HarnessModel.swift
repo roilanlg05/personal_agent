@@ -48,9 +48,17 @@ public final class HarnessModel {
     @ObservationIgnored private let settingsStore = SettingsStore()
     @ObservationIgnored private(set) var settings: GenerationSettings
     /// HTTP client to the Memory Service (Docker). Built once in `ensureMemory()` from
-    /// `UserDefaults` (`memoryBaseURL`, `memoryBearerToken`); shared with `MemoryToolbox`
-    /// so tools (Save / Forget / Reflect / LoadMessages) can reach it.
+    /// `UserDefaults` (`memoryBaseURL`) + el llavero (el token, vía `TokenDeMemoria`); shared with
+    /// `MemoryToolbox` so tools (Save / Forget / Reflect / LoadMessages) can reach it.
     @ObservationIgnored private(set) var memory: MemoryClient?
+    /// De dónde salen los secretos de este modelo (hoy: el token del servicio de memoria, que la
+    /// voz comparte). **Inyectable, y no es un adorno de diseño: es lo que impide que una prueba
+    /// toque la entrada de producción del llavero.** `init` llama a `ensureVoice()`, que lee el
+    /// token; tres ficheros de prueba construyen un `HarnessModel`, y el host de las pruebas es la
+    /// propia app, así que sin esto una corrida leería el token real del usuario —y un acceso al
+    /// llavero desde el binario de pruebas puede además abrir un diálogo y colgar la corrida de
+    /// todos. Esas tres pruebas pasan un `AlmacenEnMemoria`.
+    @ObservationIgnored let almacenDeSecretos: any AlmacenDeSecretos
     /// In-app voice: records mic audio, sends it to the i3 voice service, plays the reply.
     @ObservationIgnored let voice = VoiceController(recorder: AudioRecorder())
     /// Always-listening "Hey Jarvis". Built lazily (loads ONNX models) so a load failure doesn't crash init.
@@ -143,7 +151,9 @@ public final class HarnessModel {
         preheatRuntime()
     }
 
-    public init(browserPanels: BrowserPanelCoordinator? = nil) {
+    public init(browserPanels: BrowserPanelCoordinator? = nil,
+                almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido) {
+        self.almacenDeSecretos = almacen
         self.browserPanels = browserPanels ?? BrowserPanelCoordinator(stream: { Self.makeRelayStream() })
         var cfg = ServerConfig.default
         cfg.wiredLimitBytes = Self.wiredLimitBytes(
@@ -300,21 +310,28 @@ public final class HarnessModel {
     /// El token vacío **sí** devuelve cliente: el servidor contesta 401 y eso se ve. Meterle
     /// un token por omisión a espaldas del usuario es lo que hacía que el placeholder débil
     /// reapareciera solo cada vez que alguien intentaba quitarlo.
-    static func memorySettings(defaults: UserDefaults = .standard) -> (url: URL, token: String)? {
+    ///
+    /// LA URL SALE DE `UserDefaults`; EL TOKEN, DEL LLAVERO. No es asimetría por descuido: la
+    /// dirección del i3 no es un secreto y el token lo es todo —con él se lee y se escribe la
+    /// memoria personal entera del usuario—. Ver `TokenDeMemoria`. Migrar es trabajo de
+    /// `migrar`, no de esta función: **leer no escribe**, que es la regla que cerró la avería del
+    /// campo que se volvía a escribir solo.
+    static func memorySettings(defaults: UserDefaults = .standard,
+                               almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido)
+    -> (url: URL, token: String)? {
         let raw = (defaults.string(forKey: "memoryBaseURL") ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
               url.host != nil else { return nil }
-        let token = (defaults.string(forKey: "memoryBearerToken") ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return (url, token)
+        return (url, TokenDeMemoria.leer(almacen: almacen))
     }
 
     /// Construye (o reconstruye) el `MemoryClient` desde `UserDefaults`.
     ///
     /// Claves:
-    /// - `memoryBaseURL` (String; vacía o inválida → sin memoria)
-    /// - `memoryBearerToken` (String; vacío → se usa vacío y el servidor da 401)
+    /// - `memoryBaseURL` (String de `UserDefaults`; vacía o inválida → sin memoria)
+    /// - el token del servicio de memoria, **del llavero** (`TokenDeMemoria`, no de
+    ///   `UserDefaults`; vacío → se usa vacío y el servidor da 401)
     ///
     /// Espeja el cliente en `MemoryToolbox.shared.memory` para que las herramientas de
     /// memoria (Save / Forget / Reflect / LoadMessages) alcancen la misma instancia.
@@ -325,7 +342,7 @@ public final class HarnessModel {
             MemoryToolbox.shared.reflectionRequest = nil
             return
         }
-        guard let (baseURL, token) = Self.memorySettings() else {
+        guard let (baseURL, token) = Self.memorySettings(almacen: almacenDeSecretos) else {
             self.memory = nil
             MemoryToolbox.shared.memory = nil
             return
@@ -392,15 +409,29 @@ public final class HarnessModel {
         self.wake?.isVoiceBusy = { [weak self] in self?.voice.state != .idle }
     }
 
-    /// Build (or rebuild) the voice client from `UserDefaults`. Reuses the memory bearer token
-    /// (the i3 voice service shares it). `voiceBaseURL` (optional) overrides; empty → derive from
-    /// `memoryBaseURL` on port 8082.
+    /// Build (or rebuild) the voice client from `UserDefaults` (las URLs) y del llavero (el
+    /// token). Reuses the memory bearer token (the i3 voice service shares it, así que es el
+    /// MISMO secreto y sale del mismo sitio: ver `TokenDeMemoria`). `voiceBaseURL` (optional)
+    /// overrides; empty → derive from `memoryBaseURL` on port 8082.
     func ensureVoice() {
-        let explicit = UserDefaults.standard.string(forKey: "voiceBaseURL") ?? ""
-        let memory = UserDefaults.standard.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
-        let token = UserDefaults.standard.string(forKey: "memoryBearerToken") ?? ""
-        guard let baseURL = URL(string: Self.voiceURLString(explicit: explicit, memory: memory)) else { return }
+        guard let (baseURL, token) = Self.voiceSettings(almacen: almacenDeSecretos) else { return }
         voice.configure(baseURL: baseURL, token: token)
+    }
+
+    /// La dirección del servicio de voz y su token, de lo GUARDADO y **sin escribir nada**.
+    ///
+    /// Es `static` y toma sus dos fuentes por parámetro por el mismo motivo que `memorySettings`:
+    /// así la decisión «de dónde sale el token» se puede medir sin construir un `HarnessModel`
+    /// (que en el host de las pruebas observa notificaciones de la app) y **sin tocar la entrada
+    /// de producción del llavero**. El token es el del servicio de memoria: el i3 lo comparte
+    /// entre memoria y voz, así que es el mismo secreto y sale del mismo sitio (`TokenDeMemoria`).
+    nonisolated static func voiceSettings(defaults: UserDefaults = .standard,
+                                          almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido)
+    -> (url: URL, token: String)? {
+        let explicit = defaults.string(forKey: "voiceBaseURL") ?? ""
+        let memory = defaults.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
+        guard let baseURL = URL(string: voiceURLString(explicit: explicit, memory: memory)) else { return nil }
+        return (baseURL, TokenDeMemoria.leer(almacen: almacen))
     }
 
     /// Push the consolidation provider config to the i3 (key included, over the authed channel).

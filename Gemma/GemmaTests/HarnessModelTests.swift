@@ -2,8 +2,9 @@ import XCTest
 @testable import Gemma
 
 /// Smoke tests for the `MemoryClient` settings contract used by `HarnessModel.ensureMemory()`:
-/// the harness reads `memoryBaseURL` + `memoryBearerToken` from `UserDefaults` (defaults
-/// `http://localhost:8081` + "") and constructs a client with them. Constructing the full
+/// the harness reads `memoryBaseURL` from `UserDefaults` (default `http://localhost:8081`) and
+/// the bearer token from the KEYCHAIN (`TokenDeMemoria`, Tarea 6b; default "") and constructs a
+/// client with them. Constructing the full
 /// `HarnessModel` in a unit-test process crashes (it observes `NSApplication.willTerminate`
 /// which is unavailable to the XCTest host), so we exercise the construction step here
 /// directly. The wiring path itself is verified manually + by the smoke build.
@@ -51,32 +52,51 @@ final class HarnessModelTests: XCTestCase {
     func test_memorySettings_noEscribeNada_cuandoElCampoEstaVacio() {
         let defaults = UserDefaults(suiteName: "test_\(UUID().uuidString)")!
         defaults.set("", forKey: "memoryBaseURL")
-        defaults.set("", forKey: "memoryBearerToken")
+        // El sitio viejo se siembra con algo NO vacío a propósito: la aserción de abajo es que
+        // leer no lo toca, y «sigue valiendo lo mismo» se cumple sola con la cadena vacía.
+        defaults.set("TOKEN-VIEJO-EN-CLARO", forKey: SettingsKeys.memoryBearerToken)
 
-        XCTAssertNil(HarnessModel.memorySettings(defaults: defaults),
+        XCTAssertNil(HarnessModel.memorySettings(defaults: defaults, almacen: AlmacenEnMemoria()),
                      "URL vacía debe dejar la app sin memoria, no inventar un servidor")
         XCTAssertEqual(defaults.string(forKey: "memoryBaseURL"), "",
                        "leer los ajustes NO puede reescribirlos: eso es lo que impedía borrar el campo")
-        XCTAssertEqual(defaults.string(forKey: "memoryBearerToken"), "",
-                       "el token vacío tiene que quedarse vacío; meterle el placeholder lo resucitaba solo")
+        XCTAssertEqual(defaults.string(forKey: SettingsKeys.memoryBearerToken), "TOKEN-VIEJO-EN-CLARO",
+                       "leer NO migra ni borra: migrar es trabajo de `TokenDeMemoria.migrar`")
     }
 
     func test_memorySettings_tokenVacioDevuelveClienteParaQueElServidorDe401() {
         let defaults = UserDefaults(suiteName: "test_\(UUID().uuidString)")!
         defaults.set("http://100.91.174.81:8081", forKey: "memoryBaseURL")
-        defaults.set("", forKey: "memoryBearerToken")
 
-        let ajustes = HarnessModel.memorySettings(defaults: defaults)
+        let ajustes = HarnessModel.memorySettings(defaults: defaults, almacen: AlmacenEnMemoria())
         XCTAssertEqual(ajustes?.url.absoluteString, "http://100.91.174.81:8081")
         XCTAssertEqual(ajustes?.token, "", "un 401 visible es mejor que un token inventado")
+    }
+
+    /// EL TOKEN SALE DEL LLAVERO, NO DE `UserDefaults` (Tarea 6b).
+    ///
+    /// El estado exacto que tendrá la máquina del usuario a medio migrar: un token viejo en el
+    /// sitio viejo y otro en el almacén. Si este lector volviera a `defaults.string(forKey:)`,
+    /// devolvería el viejo y esto se pone rojo.
+    func test_memorySettings_tomaElTokenDelLlaveroYNoElDeUserDefaults() {
+        let defaults = UserDefaults(suiteName: "test_\(UUID().uuidString)")!
+        defaults.set("http://100.91.174.81:8081", forKey: "memoryBaseURL")
+        defaults.set("TOKEN-VIEJO-EN-CLARO", forKey: SettingsKeys.memoryBearerToken)
+        let almacen = AlmacenEnMemoria([TokenDeMemoria.cuenta: "TOKEN-DEL-LLAVERO"])
+
+        let ajustes = HarnessModel.memorySettings(defaults: defaults, almacen: almacen)
+        XCTAssertEqual(ajustes?.token, "TOKEN-DEL-LLAVERO",
+                       "el token del llavero es el que manda, o el arreglo rompe el acceso al i3")
+        XCTAssertEqual(defaults.string(forKey: SettingsKeys.memoryBearerToken), "TOKEN-VIEJO-EN-CLARO",
+                       "y leer no escribe")
     }
 
     func test_memorySettings_recortaEspacios() {
         let defaults = UserDefaults(suiteName: "test_\(UUID().uuidString)")!
         defaults.set("  http://100.91.174.81:8081  ", forKey: "memoryBaseURL")
-        defaults.set("  secreto  ", forKey: "memoryBearerToken")
+        let almacen = AlmacenEnMemoria([TokenDeMemoria.cuenta: "  secreto  "])
 
-        let ajustes = HarnessModel.memorySettings(defaults: defaults)
+        let ajustes = HarnessModel.memorySettings(defaults: defaults, almacen: almacen)
         XCTAssertEqual(ajustes?.url.absoluteString, "http://100.91.174.81:8081")
         XCTAssertEqual(ajustes?.token, "secreto")
     }
@@ -90,7 +110,8 @@ final class HarnessModelTests: XCTestCase {
                        "ftp://100.91.174.81:8081"] {
             let defaults = UserDefaults(suiteName: "test_\(UUID().uuidString)")!
             defaults.set(basura, forKey: "memoryBaseURL")
-            XCTAssertNil(HarnessModel.memorySettings(defaults: defaults), "debería rechazar: \(basura)")
+            XCTAssertNil(HarnessModel.memorySettings(defaults: defaults, almacen: AlmacenEnMemoria()),
+                         "debería rechazar: \(basura)")
         }
     }
 

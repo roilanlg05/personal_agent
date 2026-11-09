@@ -95,8 +95,13 @@ final class AtoZSessionManager: ObservableObject {
         currentSession != nil
     }
 
+    /// Los ajustes de los que sale la DIRECCIÓN del servicio de memoria (no el token: ése sale
+    /// del llavero). Inyectable para que una prueba no tenga que escribir en el dominio de
+    /// preferencias del usuario, que es donde vive su configuración de verdad.
+    var ajustes: UserDefaults = .standard
+
     private var memoryBaseURL: URL? {
-        var raw = UserDefaults.standard.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
+        var raw = ajustes.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
         #if os(iOS)
         if raw == "http://localhost:8081" || raw == "http://192.168.1.50:8081" || raw.isEmpty {
             raw = "http://100.91.174.81:8081"
@@ -105,9 +110,29 @@ final class AtoZSessionManager: ObservableObject {
         return URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
+    /// De dónde sale el token del servicio de memoria. Inyectable para que una prueba no lea la
+    /// entrada de producción del llavero (el usuario tiene su token real en esta máquina).
+    var almacenDeSecretos: any AlmacenDeSecretos = LlaveroDelSistema.compartido
+
+    /// La red por la que van estas tres peticiones. Inyectable por el mismo motivo por el que lo
+    /// es el almacén: `URLSession.shared` no acepta `protocolClasses`, así que sin esto no hay
+    /// forma de mirar con qué token se firma la petición sin hablar con el i3 de verdad.
+    var red: URLSession = .shared
+
+    /// El token con el que se firman las tres peticiones de A to Z al servicio de memoria.
+    ///
+    /// **DEL LLAVERO, no de `UserDefaults`** (Tarea 6b, ver `TokenDeMemoria`). Éste era el
+    /// TERCER lector del token, y el que no estaba en ningún plan: el camino de A to Z habla con
+    /// el mismo servicio de memoria del i3 con el mismo token, y `GemmaApp` llama a
+    /// `syncSessionFromServer()` al arrancar, así que se usa en cada lanzamiento. Un lector
+    /// olvidado deja el token viejo vivo y el arreglo a medias.
+    ///
+    /// Y AQUÍ HABÍA EL MISMO PLACEHOLDER DÉBIL CABLEADO que en `MemoryClient`
+    /// (`t.isEmpty ? "replace-me-with-a-long-random-string" : t`). Se quita: una credencial
+    /// conocida en el binario no es un valor por omisión razonable, y en cuanto el usuario rote el
+    /// token del servidor lo único que haría es cambiar un fallo visible por un 401 inexplicable.
     private var memoryBearerToken: String {
-        let t = UserDefaults.standard.string(forKey: "memoryBearerToken") ?? ""
-        return t.isEmpty ? "replace-me-with-a-long-random-string" : t
+        TokenDeMemoria.leer(almacen: almacenDeSecretos)
     }
 
     private init() {}
@@ -154,7 +179,7 @@ final class AtoZSessionManager: ObservableObject {
         guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
         req.httpBody = body
         do {
-            let (_, resp) = try await URLSession.shared.data(for: req)
+            let (_, resp) = try await red.data(for: req)
             if let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode) {
                 self.syncStatusMessage = "Sincronizado con el servidor"
             }
@@ -175,7 +200,7 @@ final class AtoZSessionManager: ObservableObject {
         self.isSyncing = true
         defer { self.isSyncing = false }
         do {
-            let (data, resp) = try await URLSession.shared.data(for: req)
+            let (data, resp) = try await red.data(for: req)
             guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { return }
             guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let creds = json["credentials"] as? [String: Any],
@@ -204,7 +229,7 @@ final class AtoZSessionManager: ObservableObject {
         if !memoryBearerToken.isEmpty {
             req.setValue("Bearer \(memoryBearerToken)", forHTTPHeaderField: "Authorization")
         }
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await red.data(for: req)
     }
 }
 

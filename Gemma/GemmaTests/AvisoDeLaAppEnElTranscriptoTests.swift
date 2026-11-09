@@ -17,7 +17,10 @@ final class AvisoDeLaAppEnElTranscriptoTests: XCTestCase {
 
     private func makeModel() -> (HarnessModel, AsyncStream<BrowserRelayEvent>.Continuation) {
         let (stream, cont) = AsyncStream<BrowserRelayEvent>.makeStream()
-        return (HarnessModel(browserPanels: BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) })), cont)
+        // `almacen:` para no leer la entrada de producción del llavero: `init` → `ensureVoice()`
+        // → el token del servicio de memoria.
+        return (HarnessModel(browserPanels: BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) }),
+                             almacen: AlmacenEnMemoria()), cont)
     }
 
     private func turn(_ events: [AgentEvent]) -> AsyncThrowingStream<AgentEvent, Error> {

@@ -308,13 +308,27 @@ final class TokenDeConducirTests: XCTestCase {
         // Guarda de vacuidad 1: que la ruta apunte al fichero de verdad. Todas las aserciones de
         // esta prueba son AUSENCIAS y pasarían solas con el fichero vacío o la ruta mal.
         for ancla in ["protocol AlmacenDeSecretos", "struct LlaveroDelSistema: AlmacenDeSecretos {",
-                      "enum TokenDeConducir {", "kSecUseDataProtectionKeychain",
+                      "enum TokenDeConducir: SecretoDelDispositivo {",
+                      "protocol SecretoDelDispositivo", "extension SecretoDelDispositivo {",
+                      "kSecUseDataProtectionKeychain",
                       "public static let claseDeAccesibilidad"] {
             XCTAssertTrue(fuente.contains(ancla),
                           "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
         }
 
+        // El fichero HERMANO entra en la misma lista blanca, no en una suya: el token del
+        // servicio de memoria pasa por la MISMA lógica (`SecretoDelDispositivo`) y lo único
+        // propio de `TokenDeMemoria.swift` son dos constantes. Una lista blanca por fichero
+        // serían dos sitios donde relajar la regla.
+        let hermano = try fuenteDelHermano()
+        for ancla in ["enum TokenDeMemoria: SecretoDelDispositivo {",
+                      "public static let claveVieja"] {
+            XCTAssertTrue(hermano.contains(ancla),
+                          "la ruta del hermano ya no apunta al fichero de producción: falta \(ancla)")
+        }
+
         let usados = Self.identificadoresDe(fuente: fuente)
+            .union(Self.identificadoresDe(fuente: hermano))
 
         // Guarda de vacuidad 2: que el troceado haya extraído algo reconocible. Sin esto, un
         // fallo del troceado daría el conjunto vacío, que cabe en cualquier lista blanca.
@@ -334,6 +348,13 @@ final class TokenDeConducirTests: XCTestCase {
                        """)
     }
 
+    private func fuenteDelHermano() throws -> String {
+        let aqui = URL(fileURLWithPath: #filePath)
+        let fichero = aqui.deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Gemma/Settings/TokenDeMemoria.swift")
+        return try String(contentsOf: fichero, encoding: .utf8)
+    }
+
     private func fuenteDelAlmacen() throws -> String {
         let aqui = URL(fileURLWithPath: #filePath)
         let fichero = aqui.deletingLastPathComponent().deletingLastPathComponent()
@@ -345,12 +366,12 @@ final class TokenDeConducirTests: XCTestCase {
     private static let identificadoresPermitidos: Set<String> = [
         // los tipos y las importaciones
         "AlmacenDeSecretos", "Any", "Bool", "CFDictionary", "CFTypeRef", "Data", "Foundation",
-        "LlaveroDelSistema", "Security", "Sendable", "SettingsKeys", "String", "TokenDeConducir",
-        "UserDefaults",
+        "LlaveroDelSistema", "Security", "SecretoDelDispositivo", "Sendable", "SettingsKeys",
+        "String", "TokenDeConducir", "TokenDeMemoria", "UserDefaults",
         // palabras clave de Swift, atributos y miembros del lenguaje
-        "any", "as", "discardableResult", "else", "enum", "false", "func", "guard", "if",
-        "import", "in", "init", "let", "nil", "private", "protocol", "public", "return", "self",
-        "Self", "static", "struct", "true", "var", "_",
+        "any", "as", "discardableResult", "else", "enum", "extension", "false", "func", "get",
+        "guard", "if", "import", "in", "init", "let", "nil", "private", "protocol", "public",
+        "return", "self", "Self", "static", "struct", "true", "var", "_",
         // la API del llavero: las tres operaciones y las claves de la consulta
         "SecItemAdd", "SecItemCopyMatching", "SecItemDelete", "errSecSuccess",
         "kSecAttrAccessible", "kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly", "kSecAttrAccount",
@@ -358,12 +379,13 @@ final class TokenDeConducirTests: XCTestCase {
         "kSecMatchLimit", "kSecMatchLimitOne", "kSecReturnData", "kSecValueData",
         "kSecUseDataProtectionKeychain",
         // la API pública del almacén y del token
-        "borrar", "claseDeAccesibilidad", "compartido", "cuenta", "escribir", "guardar", "leer",
-        "migrar", "servicio", "valor",
+        "borrar", "claseDeAccesibilidad", "claveVieja", "compartido", "cuenta", "escribir",
+        "guardar", "leer", "migrar", "servicio", "valor",
         // Foundation, solo lectura y recorte: `removeObject` BORRA la clave vieja, que es el
         // trabajo de esta tarea; `set` (el escritor de UserDefaults) NO está en la lista.
         "defaults", "encoding", "forKey", "isEmpty", "removeObject", "standard", "string",
         "trimmingCharacters", "utf8", "whitespacesAndNewlines", "browserBearerToken",
+        "memoryBearerToken",
         // los nombres locales
         "aceptado", "clave", "consulta", "data", "datos", "limpio", "movido", "nuevo", "salida",
         "texto", "viejo", "almacen",

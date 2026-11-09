@@ -141,43 +141,46 @@ public struct LlaveroDelSistema: AlmacenDeSecretos {
     }
 }
 
-/// El token del servicio del navegador del i3: dónde vive y cómo se sale del sitio donde vivía.
+/// Un secreto del dispositivo que **vivía en `UserDefaults` y ahora vive en el llavero**, con la
+/// migración que lo mueve y lo borra del sitio viejo.
 ///
-/// POR QUÉ EXISTE ESTE FICHERO. Hasta ahora este token servía para **mirar** una pantalla, y vivía
-/// en `UserDefaults` vía `@AppStorage`, en claro, mientras el campo de Ajustes se pintaba como
-/// secreto (`esSecreto: true`). O sea: la interfaz decía la verdad y el almacén mentía, que es
-/// peor que no decir nada, porque el usuario cree que está a salvo. Y con el mando compartido ese
-/// token pasa a servir para **conducir** un Chrome real —teclas y clics— que en cuanto el usuario
-/// inicie sesión una vez tendrá su sesión de Google dentro.
+/// POR QUÉ UN PROTOCOLO CON IMPLEMENTACIÓN POR OMISIÓN Y NO DOS COPIAS. La Tarea 6 escribió esta
+/// lógica para el token del navegador y dejó anotado que servía igual para el token del servicio
+/// de memoria, de dos formas posibles: «`TokenDeConducir` con otra `cuenta`, o mejor un `enum`
+/// hermano sobre el mismo `AlmacenDeSecretos`». La Tarea 6b elige **el `enum` hermano**, y por un
+/// motivo concreto de cada alternativa:
 ///
-/// LO QUE ESTE FICHERO NO HACE, y son dos cosas, las dos a propósito:
+/// - Una sola `enum` con la `cuenta` como parámetro de cada llamada convierte el nombre de la
+///   cuenta en algo que el llamante tiene que acordarse de pasar, y **pasar el equivocado no se
+///   puede detectar**: `leer(cuenta: "memoryBearerToken")` desde el camino del navegador
+///   compilaría y devolvería el token de memoria. Con dos `enum` el tipo lleva la cuenta dentro y
+///   el error deja de existir.
+/// - Dos copias del cuerpo de `migrar` serían **lo que no se puede probar**: la mutación que
+///   borra el `defaults.removeObject` de una de las dos la mataría la prueba de esa, y la otra
+///   copia podría divergir en silencio. La lógica está una sola vez, aquí.
 ///
-/// - **No toca el token del servicio de memoria.** Tiene el mismo defecto y este almacén le
-///   serviría igual, pero ampliarlo no es decisión de esta tarea.
-/// - **No cambia por dónde viaja el token.** Hoy el visor *web* del relé se autentica con
-///   `?token=` en la query; es una restricción aparte del spec, con una excepción firmada por el
-///   usuario, y no se toca aquí. Medido en este cliente: los dos consumidores del token
-///   (`HTTPAgentBrowserInvoker` y `BrowserRelayClient`) lo mandan en la cabecera `Authorization`
-///   y **nunca** en la URL, así que la fuga que nombra esa excepción —«cualquier descripción de
-///   error que imprima la URL imprime el token»— no es alcanzable desde la app nativa. Hay una
-///   prueba que lo fija, para que no deje de ser verdad sin que nadie se entere.
-public enum TokenDeConducir {
-    /// La cuenta dentro del llavero. Coincide con el nombre de la clave vieja a propósito: es el
-    /// mismo secreto, cambiado de sitio.
-    public static let cuenta = "browserBearerToken"
+/// Lo que cada conformidad aporta son los **dos** nombres que la distinguen: la `cuenta` dentro
+/// del llavero y la `claveVieja` de `UserDefaults` de la que se migra. Nada más.
+public protocol SecretoDelDispositivo {
+    /// La cuenta dentro del llavero, bajo el servicio de `LlaveroDelSistema`.
+    static var cuenta: String { get }
+    /// La clave de `UserDefaults` donde este secreto vivía en claro. **Solo se lee para migrar y
+    /// se borra**: nadie vuelve a escribir ahí.
+    static var claveVieja: String { get }
+}
 
+extension SecretoDelDispositivo {
     /// El token, o la cadena vacía si no hay ninguno. **Solo lee el almacén**: no mira
     /// `UserDefaults` ni migra nada.
     ///
     /// POR QUÉ LEER NO MIGRA, y es una decisión medida, no de estilo. La primera versión migraba
     /// dentro de `leer`, y eso convertía cada lectura en una ESCRITURA sobre la configuración de
-    /// verdad del usuario. Los dos lectores del token se alcanzan desde
-    /// `HarnessModel.browserToolRegistry()`, que cinco pruebas de esta suite llaman con
-    /// `UserDefaults.standard` (el host de las pruebas es la propia app, así que su dominio es el
-    /// del usuario): una corrida de la suite le habría movido el token a un almacén de pega y
-    /// **se lo habría borrado del sitio viejo**, dejándole sin token. Separar las dos cosas quita
-    /// la clase entera de accidente: leer no tiene efectos, y migrar se llama una vez, desde
-    /// `GemmaApp` y desde Ajustes.
+    /// verdad del usuario. Los lectores del token se alcanzan desde sitios que varias pruebas de
+    /// esta suite llaman con `UserDefaults.standard` (el host de las pruebas es la propia app, así
+    /// que su dominio es el del usuario): una corrida de la suite le habría movido el token a un
+    /// almacén de pega y **se lo habría borrado del sitio viejo**, dejándole sin token. Separar
+    /// las dos cosas quita la clase entera de accidente: leer no tiene efectos, y migrar se llama
+    /// una vez, al arrancar y al abrir Ajustes.
     public static func leer(almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido) -> String {
         (almacen.leer(cuenta: cuenta) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -203,7 +206,7 @@ public enum TokenDeConducir {
         } else {
             aceptado = almacen.escribir(limpio, cuenta: cuenta)
         }
-        defaults.removeObject(forKey: SettingsKeys.browserBearerToken)
+        defaults.removeObject(forKey: claveVieja)
         return aceptado
     }
 
@@ -211,17 +214,17 @@ public enum TokenDeConducir {
     /// segunda llamada ya no hay nada en `UserDefaults` y no hace nada.
     ///
     /// LAS DOS MITADES SON OBLIGATORIAS, Y LA SEGUNDA ES LA QUE SE OLVIDA. Si la migración mueve
-    /// el token pero no borra el original, esta tarea no arregla nada para el usuario que ya tiene
-    /// el suyo guardado en claro: el fichero de preferencias sigue teniéndolo y ahora hay dos
-    /// copias. Por eso `defaults.removeObject` corre **siempre** que había algo escrito, incluso
-    /// si no se movió nada (porque estaba vacío, o porque el almacén ya tenía un token más nuevo).
+    /// el token pero no borra el original, esto no arregla nada para el usuario que ya tiene el
+    /// suyo guardado en claro: el fichero de preferencias sigue teniéndolo y ahora hay dos copias.
+    /// Por eso `defaults.removeObject` corre **siempre** que había algo escrito, incluso si no se
+    /// movió nada (porque estaba vacío, o porque el almacén ya tenía un token más nuevo).
     ///
     /// Devuelve `true` solo si movió un token. Un `false` no distingue «no había nada» de «ya
     /// estaba migrado», y no hace falta que lo distinga.
     @discardableResult
     public static func migrar(almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido,
                               defaults: UserDefaults = .standard) -> Bool {
-        guard let viejo = defaults.string(forKey: SettingsKeys.browserBearerToken) else { return false }
+        guard let viejo = defaults.string(forKey: claveVieja) else { return false }
         let limpio = viejo.trimmingCharacters(in: .whitespacesAndNewlines)
         var movido = false
         // El almacén manda si ya tiene algo: lo que hay en el llavero es más nuevo que lo que
@@ -229,7 +232,35 @@ public enum TokenDeConducir {
         if !limpio.isEmpty, almacen.leer(cuenta: cuenta) == nil {
             movido = almacen.escribir(limpio, cuenta: cuenta)
         }
-        defaults.removeObject(forKey: SettingsKeys.browserBearerToken)
+        defaults.removeObject(forKey: claveVieja)
         return movido
     }
+}
+
+/// El token del servicio del navegador del i3: dónde vive y cómo se sale del sitio donde vivía.
+///
+/// POR QUÉ EXISTE ESTE FICHERO. Hasta ahora este token servía para **mirar** una pantalla, y vivía
+/// en `UserDefaults` vía `@AppStorage`, en claro, mientras el campo de Ajustes se pintaba como
+/// secreto (`esSecreto: true`). O sea: la interfaz decía la verdad y el almacén mentía, que es
+/// peor que no decir nada, porque el usuario cree que está a salvo. Y con el mando compartido ese
+/// token pasa a servir para **conducir** un Chrome real —teclas y clics— que en cuanto el usuario
+/// inicie sesión una vez tendrá su sesión de Google dentro.
+///
+/// LO QUE ESTE FICHERO NO HACE, y es a propósito:
+///
+/// - **No cambia por dónde viaja el token.** Hoy el visor *web* del relé se autentica con
+///   `?token=` en la query; es una restricción aparte del spec, con una excepción firmada por el
+///   usuario, y no se toca aquí. Medido en este cliente: los dos consumidores del token
+///   (`HTTPAgentBrowserInvoker` y `BrowserRelayClient`) lo mandan en la cabecera `Authorization`
+///   y **nunca** en la URL, así que la fuga que nombra esa excepción —«cualquier descripción de
+///   error que imprima la URL imprime el token»— no es alcanzable desde la app nativa. Hay una
+///   prueba que lo fija, para que no deje de ser verdad sin que nadie se entere.
+public enum TokenDeConducir: SecretoDelDispositivo {
+    /// La cuenta dentro del llavero. Coincide con el nombre de la clave vieja a propósito: es el
+    /// mismo secreto, cambiado de sitio.
+    public static let cuenta = "browserBearerToken"
+
+    /// De dónde se migra. Ver `SettingsKeys.browserBearerToken`: ese sitio ya solo existe para
+    /// que la migración lo vacíe.
+    public static let claveVieja = SettingsKeys.browserBearerToken
 }

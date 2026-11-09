@@ -349,9 +349,24 @@ final class MemoryClient {
         URL(string: path, relativeTo: baseURL) ?? baseURL.appendingPathComponent(path)
     }
 
+    /// El token con el que se firma cada petición: **el que haya, recortado, y nada más.**
+    ///
+    /// AQUÍ HABÍA UN PLACEHOLDER DÉBIL CABLEADO EN EL BINARIO, y se quita en la Tarea 6b. Decía
+    /// `t.isEmpty ? "replace-me-with-a-long-random-string" : t`, o sea: con el ajuste vacío, el
+    /// cliente firmaba con el token de fábrica del `.env` del compose del i3. Tres cosas malas de
+    /// golpe, y la tercera es la que lo hacía invisible:
+    ///
+    /// 1. Una **credencial conocida cableada en el binario**, la misma que `AtoZConfig` y el valor
+    ///    por omisión del campo de Ajustes repetían (tres copias del mismo literal).
+    /// 2. Convertía en mentira lo que `HarnessModel.memorySettings` documenta y una prueba
+    ///    afirma: «el token vacío sí devuelve cliente, el servidor contesta 401 y eso se ve».
+    ///    No se veía: el cliente metía el placeholder y el servidor, que llevaba ese mismo token
+    ///    de fábrica, contestaba 200.
+    /// 3. Por eso mismo **nadie se enteró**: funcionaba. Y en cuanto el usuario rote el token del
+    ///    servidor, firmar con el placeholder deja de dar 200 y empieza a dar un 401 que ya no
+    ///    sabe de dónde viene. Fallar pronto y en voz alta es mejor.
     private var effectiveToken: String {
-        let t = bearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
-        return t.isEmpty ? "replace-me-with-a-long-random-string" : t
+        bearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func get<R: Decodable>(_ path: String) async throws -> R {

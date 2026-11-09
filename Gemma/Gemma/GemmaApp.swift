@@ -2,7 +2,29 @@ import SwiftUI
 
 @main
 struct GemmaApp: App {
-    @State private var model = HarnessModel()
+    /// LA MIGRACIÓN DEL TOKEN DE MEMORIA CORRE AQUÍ, Y TIENE QUE SER AQUÍ: antes de construir el
+    /// `HarnessModel`.
+    ///
+    /// No es estilo, es orden de ejecución medido en el fuente. `HarnessModel.init` llama a
+    /// `ensureVoice()`, que **ya lee el token del llavero**. Si la migración se hiciera en el
+    /// `.task` de abajo —que es donde la hace `TokenDeConducir`, y allí está bien porque nadie lo
+    /// lee en `init`— el primer arranque tras la actualización construiría el cliente de voz con
+    /// el token vacío: el usuario se quedaría sin voz hasta reiniciar la app, sin saber por qué.
+    /// Un valor por omisión de una propiedad almacenada se evalúa antes del cuerpo de cualquier
+    /// `init` de este `App`, así que el único sitio estrictamente anterior a `HarnessModel()` es
+    /// la propia expresión que lo construye.
+    ///
+    /// **Y no puede ir en `HarnessModel.init`**, que sería el sitio obvio (ahí ya vive
+    /// `migrateMemoryBaseURLIfNeeded`): tres ficheros de prueba construyen un `HarnessModel`, el
+    /// host de las pruebas es la propia app, y una corrida de la suite le habría ESCRITO la
+    /// entrada de producción del llavero y borrado el token del sitio viejo. Migrar es una
+    /// escritura; las pruebas no la hacen.
+    ///
+    /// Es idempotente: a la segunda no hay nada que mover.
+    @State private var model: HarnessModel = {
+        TokenDeMemoria.migrar()
+        return HarnessModel()
+    }()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {

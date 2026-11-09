@@ -82,7 +82,13 @@ struct SettingsView: View {
     let model: HarnessModel
     @AppStorage(SettingsKeys.keepModelResident) private var keepResident = false
     @AppStorage("memoryBaseURL") private var memoryBaseURL: String = "http://localhost:8081"
-    @AppStorage("memoryBearerToken") private var memoryBearerToken: String = "replace-me-with-a-long-random-string"
+    /// NO es `@AppStorage`, y ésa es la Tarea 6b. Con este token se lee y se escribe la memoria
+    /// personal entera del usuario en el i3, y la voz comparte el mismo secreto, así que vive en
+    /// el llavero (`TokenDeMemoria`) y no en `UserDefaults`. El campo de abajo ya se pintaba como
+    /// secreto; antes de esto el almacén mentía. Y su valor por omisión **era el placeholder
+    /// débil** `replace-me-with-a-long-random-string`: se va con el `@AppStorage`. Se carga al
+    /// aparecer (lo que además dispara la migración del sitio viejo) y se guarda en cada cambio.
+    @State private var memoryBearerToken: String = ""
     @AppStorage(SettingsKeys.browserBaseURL) private var browserBaseURL: String = ""
     /// NO es `@AppStorage`, y ésa es la Tarea 6. Este token conduce un Chrome con la sesión de
     /// Google del usuario dentro, así que vive en el llavero (`TokenDeConducir`) y no en
@@ -176,7 +182,24 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
             .onChange(of: memoryBaseURL) { _, _ in model.ensureMemory() }
-            .onChange(of: memoryBearerToken) { _, _ in model.ensureMemory() }
+            // El token del servicio de memoria se lee del llavero al abrir Ajustes, NO de
+            // `UserDefaults`. Esta primera lectura es además la que dispara la migración: un
+            // usuario que ya tenía el token escrito en claro lo ve seguir en el campo, y el sitio
+            // viejo queda vacío.
+            .onAppear {
+                TokenDeMemoria.migrar()
+                memoryBearerToken = TokenDeMemoria.leer()
+            }
+            // UN SOLO `onChange` para este token, y el orden importa: primero se GUARDA en el
+            // llavero y solo después se reconstruyen los clientes, porque los dos leen de ahí. Con
+            // los tres efectos en `onChange` separados (como estaban, uno por sección) el orden
+            // entre ellos no está garantizado y `ensureMemory()` podía reconstruir el cliente con
+            // el token ANTERIOR.
+            .onChange(of: memoryBearerToken) { _, nuevo in
+                TokenDeMemoria.guardar(nuevo)
+                model.ensureMemory()
+                model.ensureVoice()
+            }
             Section("Navegador (i3)") {
                 SettingsCredentialField(titulo: "URL base del navegador (opcional)",
                                         esSecreto: false, texto: $browserBaseURL)
@@ -212,7 +235,8 @@ struct SettingsView: View {
             }
             .onChange(of: voiceBaseURL) { _, _ in model.ensureVoice() }
             .onChange(of: memoryBaseURL) { _, _ in model.ensureVoice() }
-            .onChange(of: memoryBearerToken) { _, _ in model.ensureVoice() }
+            // El `onChange` del token vive arriba, junto al `guardar`, para que el guardado pase
+            // antes que los dos `ensure*`. Ver el comentario de la sección "Memory Service".
             
             Section("Wake Word (Activación por voz)") {
                 Toggle("Habilitar activación por voz", isOn: $useWakeWord)

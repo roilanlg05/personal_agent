@@ -13,7 +13,10 @@ final class BrowserPanelWiringTests: XCTestCase {
     static func makeModel() -> (HarnessModel, AsyncStream<BrowserRelayEvent>.Continuation) {
         let (stream, continuation) = AsyncStream<BrowserRelayEvent>.makeStream()
         let coordinator = BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) })
-        return (HarnessModel(browserPanels: coordinator), continuation)
+        // `almacen:` NO es opcional de facto: `HarnessModel.init` llama a `ensureVoice()`, que
+        // lee el token del servicio de memoria. Sin esto esta prueba leería la entrada de
+        // PRODUCCIÓN del llavero, donde vive el token real del usuario.
+        return (HarnessModel(browserPanels: coordinator, almacen: AlmacenEnMemoria()), continuation)
     }
 
     /// JPEG real de 64x48, generado con ImageIO.

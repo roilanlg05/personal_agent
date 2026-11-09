@@ -253,25 +253,40 @@ final class ScheduleToolsContractTests: XCTestCase {
     func test_cancel_events_toma_una_fecha_suelta_como_el_dia_entero() async throws {
         installMemory()
         StubURLProtocol.routes = ["/v1/schedule/cancel": (200, #"{"cancelled":2}"#)]
-        let result = try json(await CancelEventsTool().run(
-            argsJSON: #"{"from":"2026-11-10","to":"2026-11-10"}"#))
+        let out = await CancelEventsTool().run(argsJSON: #"{"from":"2026-11-10","to":"2026-11-10"}"#)
+        let result = try json(out)
 
         // Antes `to` se quedaba en las 00:00 del día 10: la ventana era vacía y no se
         // cancelaba nada aunque el usuario hubiera pedido cancelar las citas del día.
         XCTAssertEqual(result["to"] as? String, "2026-11-10T23:59",
                        "Una fecha sin hora como fin es el final del día, igual que en query_schedule.")
-        XCTAssertEqual(result["status"] as? String, "cancelled")
+        // `success` Y NO `cancelled`: el estado se renombró para que este éxito REINICIE el
+        // presupuesto de fallos del turno. `Agent.estadosDeExito` se indexa por nombre de
+        // estado, y `cancelled` significa lo CONTRARIO en `run_shortcut` y `send_message` (el
+        // usuario descartó la acción), así que el conjunto no puede aprenderlo. Ver el
+        // comentario en `CancelEventsTool.run`.
+        XCTAssertEqual(result["status"] as? String, "success")
         XCTAssertEqual(result["cancelled_count"] as? Int, 2)
+        XCTAssertTrue(Agent.reiniciaElPresupuesto(resultado: out),
+                      "dos eventos cancelados de verdad borran la cuenta de fallos anteriores: \(out)")
     }
 
     func test_cancel_events_distingue_que_no_habia_nada_que_cancelar() async throws {
         installMemory()
         StubURLProtocol.routes = ["/v1/schedule/cancel": (200, #"{"cancelled":0}"#)]
-        let result = try json(await CancelEventsTool().run(
-            argsJSON: #"{"from":"2026-11-10T00:00","to":"2026-11-10T23:59"}"#))
+        let out = await CancelEventsTool().run(
+            argsJSON: #"{"from":"2026-11-10T00:00","to":"2026-11-10T23:59"}"#)
+        let result = try json(out)
         XCTAssertEqual(result["status"] as? String, "nothing_to_cancel")
-        XCTAssertNotEqual(result["status"] as? String, "cancelled",
+        // LA MITAD QUE HABRÍA QUEDADO VACUA. Decía `!= "cancelled"`, y desde que el éxito de
+        // esta herramienta se llama `success` ninguna rama emite ya `cancelled`: la aserción se
+        // cumpliría sola. Lo que protege es que cancelar cero eventos NO se cuente como haber
+        // cancelado, así que se apunta al estado que hoy significa eso —y al presupuesto, que
+        // es lo que de verdad cambia si alguien se equivoca.
+        XCTAssertNotEqual(result["status"] as? String, "success",
                           "Cancelar cero eventos no es haber cancelado.")
+        XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: out),
+                       "no se canceló nada: no es un acierto que borre fallos. got: \(out)")
     }
 
     func test_cancel_events_no_inventa_el_rango_si_el_fin_precede_al_inicio() async throws {

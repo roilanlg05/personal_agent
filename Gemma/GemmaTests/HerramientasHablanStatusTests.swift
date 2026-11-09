@@ -170,11 +170,15 @@ final class HerramientasHablanStatusTests: XCTestCase {
     /// LAS CINCO FORMAS DE `add_shift`/`drop_shift` TIENEN SU ESTADO, Y UNA SIMULACIÓN NO ES UN
     /// ÉXITO.
     ///
-    /// `AtoZConfig` trae el modo simulado ACTIVADO por omisión, así que `.dryRun` es el camino
-    /// normal de una aceptación de turno: se validó todo y **no se envió nada a Amazon**. Pintar
-    /// eso como «listo» es exactamente la queja del usuario —que el agente le cuente que hizo
-    /// cosas que no hizo— sobre la herramienta que más le importa, la que le coge turnos de
-    /// trabajo. Va con cruz roja y su frase propia.
+    /// El modo simulado es OPT-IN: viene DESACTIVADO por omisión (`AtoZSettings.load` lo lee
+    /// como `?? false`, `SettingsView` lo declara `= false`), así que el camino normal de una
+    /// aceptación de turno es el REAL y la petición sí llega a Amazon. `.dryRun` es el camino
+    /// del usuario que ENCENDIÓ la simulación en Ajustes: se validó todo y **no se envió nada a
+    /// Amazon**. Pintar eso como «listo» es exactamente la queja del usuario —que el agente le
+    /// cuente que hizo cosas que no hizo— sobre la herramienta que más le importa, la que le
+    /// coge turnos de trabajo. Va con cruz roja y su frase propia. La premisa del valor por
+    /// omisión la clava `TresCorreccionesDelStatusTests
+    /// .test_el_modo_simulado_de_a_to_z_viene_desactivado_de_fabrica`.
     func test_los_cinco_resultados_de_a_to_z_declaran_su_estado() throws {
         let turno = "sábado 8 de noviembre de 2026, 09:00–13:00"
         let casos: [(AtoZToolOutput.Outcome, String)] = [

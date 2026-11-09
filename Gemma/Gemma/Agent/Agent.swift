@@ -529,7 +529,61 @@ final class Agent {
     /// `no_content` esta aqui porque su propia definicion lo dice: «la operacion funciono pero
     /// no hay nada que reportar». Un `get` que no encuentra el campo pedido no es una
     /// herramienta que haya que dejar de llamar.
-    nonisolated static let estadosDeExito: Set<String> = ["success", "no_content"]
+    ///
+    /// Y LOS DOS VERBOS DE `create_event`, QUE ES UN DEFECTO ARREGLADO. Declara su exito con
+    /// `created` —o `created_with_warnings` cuando el evento SE CREO pero la comprobacion de
+    /// choques quedo a medias—, y ninguno de los dos estaba aqui: el agente creaba un evento
+    /// CORRECTAMENTE y ese acierto no borraba la cuenta de fallos anteriores, asi que cinco
+    /// fallos repartidos alrededor de aciertos reales mataban el turno con la agenda del usuario
+    /// ya escrita. Es el mismo defecto que el arreglo de la prosa quito por la otra puerta (ver
+    /// `reiniciaElPresupuesto`), entrando por la puerta del verbo.
+    ///
+    /// POR QUE SE AMPLIA EL CONJUNTO Y NO SE RENOMBRAN LOS DOS A `success`, que seria la otra
+    /// forma de arreglarlo. Renombrarlos seria un cambio por otro:
+    ///   - el estado viaja al MODELO por la descripcion de la herramienta, con estas palabras:
+    ///     «Lee 'status': 'created' = creado y comprobado, ya se lo puedes confirmar» y
+    ///     «'created_with_warnings' = creado, pero mira 'warnings' … nunca que no choca con
+    ///     nada». Las dos ramas tienen que seguir distinguiendose, o el modelo pierde justo la
+    ///     pieza que le impide afirmar que no hay choques;
+    ///   - `created` lo emiten otras cinco herramientas del registro (`create_calendar_event`,
+    ///     `create_alarm`, `create_note`, `create_reminder`, `add_task`), y las seis lo usan con
+    ///     el mismo significado: lo que se pidio crear quedo creado. Renombrar solo el de agenda
+    ///     dejaria a `create_event` hablando distinto que sus hermanas; ampliar el conjunto
+    ///     arregla a las seis de una vez;
+    ///   - y esta afirmado literalmente en una decena de pruebas del repositorio
+    ///     (`ScheduleToolsContractTests`, `DateParsingTests`, `PendingDefectsTests`,
+    ///     `HybridReminderTests`, `ToolJSONEscapingTests`, `NotesServiceTests`...).
+    ///
+    /// Y POR QUE `cancelled` NO ESTA AQUI, QUE ES EL HALLAZGO QUE OBLIGO A ARREGLAR
+    /// `cancel_events` POR EL OTRO CAMINO. Este conjunto se indexa por NOMBRE DE ESTADO, no por
+    /// herramienta, y `cancelled` esta sobrecargado con dos significados opuestos:
+    ///   - `cancel_events` y `cancel_alarm`: se cancelo lo que se pidio cancelar — un EXITO;
+    ///   - `run_shortcut` y `send_message` (los dos por `ShortcutRunOutcome.cancelled`): el
+    ///     USUARIO lo descarto y el atajo NO corrio / el mensaje NO se envio — lo contrario de
+    ///     un exito. El repositorio lo tiene escrito en el nombre de sus pruebas:
+    ///     `RunShortcutToolTests.test_run_cancelled_isReportedAsCancelledNotSuccess` y
+    ///     `SendMessageToolTests.test_cancelled_isNotReportedAsSent`.
+    /// Meter `cancelled` aqui haria que un mensaje que el usuario descarto REINICIARA el
+    /// presupuesto de fallos, o sea que un modelo alternando fallo y envio descartado nunca
+    /// agotaria el turno. Asi que `cancel_events` pasa a declarar `success` (ver alli) y este
+    /// conjunto no aprende un nombre ambiguo.
+    ///
+    /// LO QUE SIGUE FUERA, Y POR QUE. `nothing_to_cancel` y `nothing_to_change` significan
+    /// «conteste, y no habia nada que hacer», que es la misma categoria que `not_found`: el
+    /// tercer estado, que ni gasta ni reinicia. Ante la duda el estado se queda fuera, que es la
+    /// direccion segura de este proyecto — igual que en `estadosDeFallo`. El censo completo de
+    /// los estados de exito del registro que siguen fuera de aqui esta en
+    /// `docs/superpowers/notes/2026-11-08-tres-correcciones-del-status.md`: son una treintena, y
+    /// meterlos todos a ciegas es justo lo que esa direccion segura prohibe — `cancelled` es la
+    /// prueba de que un nombre de estado no basta para decidir.
+    ///
+    /// Lo mide `AgentTests.test_un_evento_creado_reinicia_el_presupuesto_como_cualquier_otro
+    /// _exito` en el bucle y `TresCorreccionesDelStatusTests.test_los_exitos_de_create_event_y
+    /// _cancel_events_reinician_el_presupuesto` en las herramientas de verdad.
+    nonisolated static let estadosDeExito: Set<String> = [
+        "success", "no_content",
+        "created", "created_with_warnings",
+    ]
 
     /// Si un resultado de herramienta declara un FALLO, y por tanto gasta una unidad del
     /// presupuesto de fallos consecutivos del turno.

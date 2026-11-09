@@ -26,7 +26,13 @@ enum AtoZSettingsKeys {
     static let enabled = "atoz.enabled"
     /// Bool. Allows `add_shift` to send the AddShift mutation. Must stay false until authorized. Default false.
     static let addShiftAuthorized = "atoz.addShiftAuthorized"
-    /// Bool. When true (default) `add_shift` runs every gate but never sends the mutation.
+    /// Bool. When true, `add_shift` runs every gate but never sends the mutation. Default
+    /// FALSE: the simulated mode is opt-in, so by default the request really does reach Amazon.
+    /// (This line used to say "(default)" next to `true`, which was false in both places that
+    /// set the default — `AtoZSettings.load` reads it as `?? false` and `SettingsView` declares
+    /// it `= false` — and that wrong claim was copied into two code comments justifying the
+    /// `dry_run` row status. Pinned by `TresCorreccionesDelStatusTests
+    /// .test_el_modo_simulado_de_a_to_z_viene_desactivado_de_fabrica`.)
     static let dryRun = "atoz.dryRun"
     /// Bool. Latched to true when Amazon denies/limits access; all requests stop until the user clears it. Default false.
     static let suspended = "atoz.suspended"

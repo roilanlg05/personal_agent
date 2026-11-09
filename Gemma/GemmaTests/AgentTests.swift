@@ -643,6 +643,22 @@ final class AgentTests: XCTestCase {
         }
     }
 
+    /// `create_event` COMO CONTESTA HOY: declara su exito con `created`, que es el verbo que su
+    /// propia descripcion le ensena al modelo a leer («Lee 'status': 'created' = creado y
+    /// comprobado, ya se lo puedes confirmar»). Es la forma REAL de `CreateEventTool` por su
+    /// camino bueno, y el doble que mide que una MUTACION DE AGENDA que salio bien borra la
+    /// cuenta de fallos anteriores.
+    final class FakeCreateEventDelContrato: AgentTool {
+        static let name = "create_event"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        static let resultado = #"{"status":"created","id":"e1","title":"dentista","message":"Agendado: dentista, 10 nov 2099 08:00."}"#
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return Self.resultado
+        }
+    }
+
     /// Herramienta que no pudo, y lo dice con un estado que NO es del contrato del navegador.
     /// Forma real: `CurrentLocationTool` devuelve `status: timeout` cuando el sistema no
     /// entrega una posicion a tiempo.
@@ -862,6 +878,61 @@ final class AgentTests: XCTestCase {
         XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: #"{"status":"error"}"#))
         XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: "\(Agent.duplicadoIgnorado): ya estaba hecho"),
                        "el atajo del propio bucle no es una herramienta contestando")
+    }
+
+    /// UNA MUTACION DE AGENDA QUE SALIO BIEN TAMBIEN REINICIA EL PRESUPUESTO.
+    ///
+    /// EL DEFECTO QUE ARREGLA, MEDIDO EN EL BUCLE. `Agent.estadosDeExito` era
+    /// `["success", "no_content"]`, y `create_event` / `cancel_events` declaraban su exito con
+    /// el verbo que sus descripciones le ensenan al modelo a leer: `created`,
+    /// `created_with_warnings` y `cancelled`. Ninguno estaba en el conjunto, asi que el agente
+    /// creaba un evento CORRECTAMENTE y ese acierto no borraba la cuenta de fallos anteriores:
+    /// esta misma ronda —cuatro fallos, el evento creado, un fallo mas— mataba el turno y el
+    /// `browser_fill` del final no llegaba a correr, con la agenda del usuario ya escrita. Es el
+    /// mismo defecto que `test_el_presupuesto_se_reinicia_con_el_contrato_y_no_con_la_prosa`
+    /// quito por la puerta de la prosa, entrando por la puerta del verbo.
+    ///
+    /// QUE CAMINO LE TOCO A CADA ESTADO, Y POR QUE: el razonamiento entero esta en
+    /// `TresCorreccionesDelStatusTests
+    /// .test_los_exitos_de_create_event_y_cancel_events_reinician_el_presupuesto`. En resumen,
+    /// `created` y `created_with_warnings` ENTRAN en el conjunto —los leen el modelo (por la
+    /// descripcion de seis herramientas) y una decena de pruebas, y las dos ramas tienen que
+    /// seguir distinguiendose—, mientras que `cancelled` NO entra y `cancel_events` pasa a
+    /// declarar `success`: el conjunto se indexa por nombre de estado, y `cancelled` significa
+    /// «el USUARIO lo descarto» en `run_shortcut` y `send_message`.
+    func test_un_evento_creado_reinicia_el_presupuesto_como_cualquier_otro_exito() async throws {
+        let tope = Agent.maxConsecutiveFailures
+        var ronda = pulsaciones(0..<(tope - 1))
+        ronda.append((name: "create_event", args: #"{"title":"dentista","start":"2099-11-10T08:00"}"#))
+        ronda += pulsaciones((tope - 1)..<tope)
+        ronda.append((name: "browser_fill", args: #"{"selector":"@e9","text":"hola"}"#))
+
+        let runtime = ScriptedRuntime([ronda, []])
+        let registro = registroConLaQueFalla()
+        FakeCreateEventDelContrato.calls = 0
+        registro.register(FakeCreateEventDelContrato())
+        let visto = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(FakeCreateEventDelContrato.calls, 1, "el evento se creo de verdad")
+        XCTAssertEqual(FakeBrowserAlwaysFails.calls, tope, "los \(tope) fallos se ejecutaron todos")
+        XCTAssertEqual(FakeBrowserFill.calls, 1,
+                       "la ultima accion del turno tenia que correr: el evento creado reinicio la cuenta")
+        XCTAssertEqual(runtime.prompts.count, 2, "el turno sigue vivo y vuelve al modelo")
+        XCTAssertEqual(visto.fallados, [], "nada de esto revienta el bucle: \(visto.fallados)")
+
+        // Y la funcion pura, por los tres estados de las dos herramientas.
+        XCTAssertTrue(Agent.reiniciaElPresupuesto(resultado: FakeCreateEventDelContrato.resultado),
+                      "got: \(FakeCreateEventDelContrato.resultado)")
+        for estado in ["created", "created_with_warnings", "success"] {
+            XCTAssertTrue(Agent.reiniciaElPresupuesto(resultado: "{\"status\":\"\(estado)\"}"), estado)
+        }
+        // Lo que NO entra: «conteste, y no habia nada que cancelar» no es un acierto...
+        XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: #"{"status":"nothing_to_cancel"}"#),
+                       "no se cancelo nada: no borra fallos")
+        // ...y `cancelled` tampoco, porque en `run_shortcut` y `send_message` significa que el
+        // USUARIO lo descarto. Por eso `cancel_events` declara `success` y no `cancelled`.
+        XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: #"{"status":"cancelled","shortcut":"X"}"#),
+                       "un atajo que el usuario descarto no es un acierto del agente")
     }
 
     /// El mensaje con el que el turno termina: dice la herramienta, las veces y —cuando el

@@ -133,10 +133,15 @@ public struct ToolLogRow: View {
         "name_taken": "ese nombre ya existe",
         "no_phone_number": "no hay número de teléfono",
         "period_in_past": "esa fecha ya pasó",
-        // A to Z. El modo simulado viene ACTIVADO de fábrica (`AtoZConfig`), así que este es el
-        // camino NORMAL de una aceptación de turno: se validó todo y no se envió nada a Amazon.
-        // Ni «listo» —el turno no se cogió— ni «falló» —no se rompió nada—: lo que el usuario
-        // necesita saber es que no pasó de verdad, y que eso lo cambia él en Ajustes.
+        // A to Z. EL MODO SIMULADO ES OPT-IN: viene DESACTIVADO de fábrica —`AtoZSettings.load`
+        // lo lee como `?? false` y `SettingsView` lo declara `= false`—, así que el camino
+        // normal de una aceptación de turno es el REAL y la petición sí llega a Amazon. Este
+        // estado es el camino del usuario que ENCENDIÓ la simulación en Ajustes: se validó
+        // todo y no se envió nada. Ni «listo» —el turno no se cogió— ni «falló» —no se rompió
+        // nada—: cuando la simulación está encendida, el único texto honesto sobre la
+        // herramienta que le coge turnos de trabajo es que no pasó de verdad, y que eso lo
+        // cambia él en Ajustes. La premisa la clava `TresCorreccionesDelStatusTests
+        // .test_el_modo_simulado_de_a_to_z_viene_desactivado_de_fabrica`.
         "dry_run": "no se hizo de verdad: era una prueba",
     ]
 
@@ -172,13 +177,26 @@ public struct ToolLogRow: View {
 
     /// Qué herramientas devuelven un dato. Es el único sitio donde se decide;
     /// las que no aparecen aquí se resumen como `.ok`.
-    private nonisolated enum Kind { case host, lines, valueOrCount, chars, count }
+    ///
+    /// LA REGLA QUE DECIDE QUIÉN ENTRA, porque esta tabla ya costó una rama en este proyecto:
+    /// **ningún texto escrito para el modelo llega a la pantalla del usuario**. Entra el DATO
+    /// que el usuario pidió y sobre cuyo significado no cabe duda (un host, un recuento, una
+    /// hora); no entra el `message`, que está redactado en segunda persona y con instrucciones
+    /// para el modelo.
+    ///
+    /// `get_current_time` → `.localTime`: EL DEFECTO QUE ARREGLA. La herramienta empezó a hablar
+    /// `status` —antes devolvía la fecha a pelo y la fila la pintaba con CRUZ ROJA, porque lo
+    /// que no es un objeto JSON cae en la rama de fallo— pero no tenía entrada aquí, así que
+    /// caía en `case nil`: el usuario preguntaba qué hora es y leía «listo». `local_time` es el
+    /// dato que pidió, formateado por `DateFormatter` con el idioma y el formato del sistema.
+    private nonisolated enum Kind { case host, lines, valueOrCount, chars, count, localTime }
     private nonisolated static let table: [String: Kind] = [
         "browser_open": .host,
         "browser_snapshot": .lines,
         "browser_get": .valueOrCount,
         "read_webpage": .chars,
         "web_search": .count,
+        "get_current_time": .localTime,
     ]
 
     public nonisolated static func summarize(toolName: String, resultJSON: String) -> ToolRowSummary {
@@ -225,6 +243,13 @@ public struct ToolLogRow: View {
         case .count:
             guard let n = obj["count"] as? Int else { return .ok }
             return .count(n, "resultados")
+        case .localTime:
+            // Forma real, CurrentTimeTool.swift: {"status":"success","local_time":"…",
+            // "message":"Ahora son las …"}. Se pinta `local_time` —el dato— y NUNCA el
+            // `message`, que está escrito para el modelo. Sin el dato se cae a «listo», que
+            // dice menos pero no inventa ninguna hora.
+            guard let s = obj["local_time"] as? String, !s.isEmpty else { return .ok }
+            return .value(clip(s))
         case nil:
             // Herramienta sin dato propio: «listo». El `message` NO se enseña: está
             // escrito para el modelo, no para el usuario; quien quiera el detalle

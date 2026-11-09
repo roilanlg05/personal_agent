@@ -575,7 +575,7 @@ struct CancelEventsTool: AgentTool {
     Cancela los eventos del usuario en una ventana de fechas locales en ISO («cancela mis \
     citas de esta semana»). Los eventos se conservan marcados como cancelados, no se \
     borran. Una fecha sin hora como 'to' se toma como el final de ese día, así que \
-    from='2026-11-10' y to='2026-11-10' es el día completo. Lee 'status': 'cancelled' = \
+    from='2026-11-10' y to='2026-11-10' es el día completo. Lee 'status': 'success' = \
     se cancelaron, 'cancelled_count' dice cuántos; 'nothing_to_cancel' = no había ningún \
     evento en esa ventana, así que NO cancelaste nada — dilo tal cual, no digas que \
     cancelaste sus citas; 'missing_fields' = falta el rango; 'invalid_datetime' o \
@@ -600,8 +600,19 @@ struct CancelEventsTool: AgentTool {
             guard let m = await mem() else { return ScheduleToolSupport.memoryUnavailable("cancelar los eventos") }
             do {
                 let n = try await m.cancelEvents(ids: nil, from: f, to: t)
+                // `success` Y NO `cancelled`, Y NO ES COSMETICA. Este exito tiene que REINICIAR
+                // el presupuesto de fallos del turno (`Agent.estadosDeExito`), que se indexa por
+                // nombre de estado. Y `cancelled` esta sobrecargado con el significado OPUESTO
+                // en otras dos herramientas: `run_shortcut` y `send_message` lo emiten —por
+                // `ShortcutRunOutcome.cancelled`— cuando el USUARIO descarto la accion y el
+                // atajo NO corrio o el mensaje NO se envio. Meter `cancelled` en el conjunto de
+                // exitos para arreglar esta herramienta habria hecho que un mensaje descartado
+                // reiniciase el presupuesto, asi que el nombre ambiguo se retira de aqui en vez
+                // de ensenarselo al conjunto. `cancelled_count` sigue diciendo cuantos, que es
+                // el dato; el cero sigue siendo `nothing_to_cancel`, que no es un exito ni un
+                // fallo. La descripcion de arriba ya le ensena al modelo a leer 'success'.
                 return ToolJSONOutput.object([
-                    "status": n > 0 ? "cancelled" : "nothing_to_cancel",
+                    "status": n > 0 ? "success" : "nothing_to_cancel",
                     "cancelled_count": n,
                     "from": ScheduleTime.iso(fromEpoch: f),
                     "to": ScheduleTime.iso(fromEpoch: t),

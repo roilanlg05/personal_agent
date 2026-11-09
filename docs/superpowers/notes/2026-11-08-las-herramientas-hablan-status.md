@@ -149,6 +149,13 @@ literal.
 
 ### `dry_run`, el único estado nuevo
 
+> **ERRATA (corregida en `2026-11-08-tres-correcciones-del-status.md`).** El párrafo siguiente
+> afirma que el modo simulado viene activado de fábrica. **Es falso**: `AtoZSettings.load` lo lee
+> como `?? false` y `SettingsView` lo declara `= false`, así que viene **desactivado** y por
+> omisión los turnos **sí** se envían a Amazon. El estado `dry_run` se queda, pero por la razón
+> correcta: cuando el usuario **enciende** la simulación, el único texto honesto es «no se hizo de
+> verdad». La afirmación falsa se había copiado a tres comentarios de código, ya reescritos.
+
 `AtoZConfig` trae el **modo simulado activado de fábrica**, así que `.dryRun` es el camino NORMAL
 de una aceptación de turno: se valida la confirmación, se pasan todas las puertas de seguridad y
 **no se envía nada a Amazon**. Miré los estados que ya hay antes de añadirlo:

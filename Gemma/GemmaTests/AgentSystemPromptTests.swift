@@ -113,7 +113,7 @@ final class AgentSystemPromptTests: XCTestCase {
         let linea = try XCTUnwrap(Agent.systemPromptText
             .split(separator: "\n", omittingEmptySubsequences: false)
             .first { $0.contains("browser_open(url)") }.map(String.init))
-        let nota = Agent.toolResultNote(toolName: "browser_open", args: "{}", result: "ok")
+        let nota = Agent.toolResultNote(toolName: "browser_open", result: "ok")
 
         for (texto, donde) in [(linea, "prompt"), (nota, "nota")] {
             let t = texto.lowercased()

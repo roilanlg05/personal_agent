@@ -133,7 +133,6 @@ final class AgentTests: XCTestCase {
     /// mataba el turno después del primer `browser_open`.
     func test_browser_tool_note_lets_the_model_keep_driving_the_page() {
         let note = Agent.toolResultNote(toolName: "browser_open",
-                                        args: #"{"url":"https://a.test"}"#,
                                         result: #"{"status":"success","title":"Ejemplo"}"#)
         XCTAssertTrue(note.contains(#"{"status":"success","title":"Ejemplo"}"#), "la nota sigue dando el resultado: \(note)")
         XCTAssertFalse(note.contains("DO NOT call"), "una herramienta de navegador no puede cerrar el turno: \(note)")
@@ -143,7 +142,7 @@ final class AgentTests: XCTestCase {
         XCTAssertTrue(note.contains("NEVER volunteer the current date or time"), "la cláusula ortogonal se queda: \(note)")
 
         for name in Agent.browserToolNames {
-            XCTAssertFalse(Agent.toolResultNote(toolName: name, args: "{}", result: "r").contains("DO NOT call"), name)
+            XCTAssertFalse(Agent.toolResultNote(toolName: name, result: "r").contains("DO NOT call"), name)
         }
         // El conjunto es el INVENTARIO de herramientas de navegador, no un numero: lo que esta
         // prueba necesita es que el bucle de arriba haya recorrido TODAS las que la app
@@ -162,11 +161,14 @@ final class AgentTests: XCTestCase {
     /// la nota es lo que lo obliga a cerrar el turno. El literal va entero a propósito, para
     /// que cualquier cambio en la rama que NO sea de navegador rompa este test.
     func test_non_browser_tool_note_is_byte_for_byte_the_one_that_was_there() {
-        XCTAssertEqual(Agent.toolResultNote(toolName: "web_search", args: #"{"query":"x"}"#, result: "ok"),
-                       #"[You called the tool `web_search` with arguments {"query":"x"}; it returned: ok. Tool execution is complete for this action. Formulate your final response to the user in a natural, friendly sentence explaining this result. DO NOT call `web_search` or any other tool again. NEVER volunteer the current date or time.]"#)
+        XCTAssertEqual(Agent.toolResultNote(toolName: "web_search", result: "ok"),
+                       #"[You called the tool `web_search`; it returned: ok. Tool execution is complete for this action. Formulate your final response to the user in a natural, friendly sentence explaining this result. DO NOT call `web_search` or any other tool again. NEVER volunteer the current date or time.]"#)
+        // Y los ARGUMENTOS no estan en la nota, que es el cambio que esta rama trajo: el JSON
+        // que el modelo acaba de emitir no vuelve a su propio prompt. Ver `toolResultNote`.
+        XCTAssertFalse(Agent.toolResultNote(toolName: "web_search", result: "ok").contains("with arguments"))
         // `read_webpage` es de una sola llamada: le sirve la nota de cierre y queda fuera.
         XCTAssertFalse(Agent.browserToolNames.contains("read_webpage"))
-        XCTAssertTrue(Agent.toolResultNote(toolName: "read_webpage", args: "{}", result: "ok").contains("DO NOT call"))
+        XCTAssertTrue(Agent.toolResultNote(toolName: "read_webpage", result: "ok").contains("DO NOT call"))
     }
 
     /// Un bucle de navegador realista (`open → snapshot → fill → snapshot → click → snapshot
@@ -246,15 +248,25 @@ final class AgentTests: XCTestCase {
     final class ScriptedRuntime: ToolCallingRuntime {
         var rondas: [[(name: String, args: String)]]
         var prompts: [String] = []
+        /// Prosa que el modelo escribe en cada ronda, cuando la prueba quiere medirla. Vacío
+        /// (por omisión) conserva exactamente el comportamiento anterior: una ronda con
+        /// acciones no dice nada y una ronda vacía cierra el turno con «listo».
+        var prosa: [String]
         private var ronda = 0
-        init(_ rondas: [[(name: String, args: String)]]) { self.rondas = rondas }
+        init(_ rondas: [[(name: String, args: String)]], prosa: [String] = []) {
+            self.rondas = rondas
+            self.prosa = prosa
+        }
         func generate(prompt: String, tools: [AgentTool], options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
             prompts.append(prompt)
-            let calls = ronda < rondas.count ? rondas[ronda] : []
+            let indice = ronda
+            let calls = indice < rondas.count ? rondas[indice] : []
+            let texto = indice < prosa.count ? prosa[indice] : (calls.isEmpty ? "listo" : "")
             ronda += 1
             return AsyncThrowingStream { c in
+                if !texto.isEmpty { c.yield(.token(texto)) }
                 for call in calls { c.yield(.toolCallStarted(name: call.name, args: call.args)) }
-                c.yield(.completed(GenerationResult(text: calls.isEmpty ? "listo" : "",
+                c.yield(.completed(GenerationResult(text: texto,
                                                     metrics: .init(tokensGenerated: 0, elapsedSeconds: 0, timeToFirstTokenSeconds: 0, peakResidentMemoryBytes: 0, draftAcceptanceRate: nil))))
                 c.finish()
             }
@@ -437,7 +449,6 @@ final class AgentTests: XCTestCase {
         }
         let segundo = try XCTUnwrap(runtime.prompts.dropFirst().first)
         XCTAssertTrue(segundo.contains(Agent.toolResultNote(toolName: "browser_open",
-                                                            args: #"{"url":"https://a.test/"}"#,
                                                             result: FakeBrowserOpen.resultado)),
                       "la nota de resultado de siempre sigue entera")
     }
@@ -771,8 +782,9 @@ final class AgentTests: XCTestCase {
         let primero = try XCTUnwrap(runtime.prompts.first)
         let segundo = try XCTUnwrap(runtime.prompts.dropFirst().first, "el bucle no volvio a llamar al modelo")
         XCTAssertEqual(segundo, primero + "\n\n" + Agent.toolResultNote(toolName: "web_search",
-                                                                       args: args,
                                                                        result: FakeOkSearch.resultado))
+        // Y los argumentos que el modelo uso no estan en ningun sitio del prompt nuevo.
+        XCTAssertFalse(segundo.contains(args), "la llamada volvio al prompt: \(segundo.suffix(300))")
         XCTAssertEqual(visto.completados, ["listo"])
         XCTAssertEqual(visto.fallados, [])
     }
@@ -924,5 +936,175 @@ final class AgentTests: XCTestCase {
         for estado in Agent.estadosDeExito {
             XCTAssertFalse(esFalloEnLaFila(estado), "reinicia el presupuesto y la fila lo pinta como fallo: \(estado)")
         }
+    }
+
+    // MARK: - El historial del turno es la prosa del modelo, no su JSON
+
+    /// LA PROPIEDAD CENTRAL. El prompt de la ronda N+1 NO lleva el texto literal de la llamada
+    /// que el modelo hizo en la ronda N, y sí lleva su resultado.
+    ///
+    /// Por qué importa, y no es ahorro de tokens: releer sus propias llamadas le enseña a
+    /// repetirlas, y en este proyecto eso no es teoría —el modelo llegó a escribir la sintaxis
+    /// de llamada como texto visible en la respuesta al usuario y arreglarlo costó una rama
+    /// entera (`ToolSyntaxStreamGate`)—. browser-use reconstruye UN solo mensaje por paso y el
+    /// modelo nunca ve su propio JSON anterior.
+    ///
+    /// La ausencia se afirma contra la MISMA constante que conduce al runtime, así que no puede
+    /// verdear por una falta de ortografía; y se afirma junto a lo que SÍ tiene que estar
+    /// (resultado, nombre de la herramienta, prompt del usuario), porque «no contiene X»
+    /// verdearía solo con que la ronda N+1 no se hubiera construido.
+    func test_la_llamada_de_la_ronda_anterior_no_vuelve_al_prompt_y_su_resultado_si() async throws {
+        let args = #"{"url":"https://a.test/","motivo":"zzlitera-de-la-llamadazz"}"#
+        let runtime = ScriptedRuntime([[(name: "browser_open", args: args)], []])
+        let registro = registroDeNavegadorFalso()
+        for try await _ in Agent(runtime: runtime, registry: registro).run(prompt: "abre la página",
+                                                                           options: GenerationOptions()) {}
+
+        XCTAssertEqual(FakeBrowserOpen.calls, 1)
+        XCTAssertEqual(runtime.prompts.count, 2, "la ronda N+1 tiene que haberse construido")
+        let segundo = try XCTUnwrap(runtime.prompts.dropFirst().first)
+        // Lo que NO está: el JSON de la llamada.
+        XCTAssertFalse(segundo.contains(args), "la llamada de la ronda anterior volvió al prompt: \(segundo.suffix(400))")
+        XCTAssertFalse(segundo.contains("zzlitera-de-la-llamadazz"),
+                       "ni un trozo de los argumentos: \(segundo.suffix(400))")
+        // Lo que SÍ está: el resultado entero, el nombre de la herramienta y el prompt del usuario.
+        XCTAssertTrue(segundo.contains(FakeBrowserOpen.resultado), "falta el resultado: \(segundo.suffix(400))")
+        XCTAssertTrue(segundo.contains("browser_open"), "falta el nombre de la herramienta: \(segundo.suffix(400))")
+        XCTAssertTrue(segundo.contains("it returned:"), "falta la nota de resultado: \(segundo.suffix(400))")
+        XCTAssertTrue(segundo.contains("abre la página"), "el prompt del usuario no se toca: \(segundo.prefix(400))")
+    }
+
+    /// EL BORDE que el encargo nombra: si el modelo NARRA en prosa que va a llamar a
+    /// `browser_click @e5`, eso es prosa y se conserva, aunque enseñe lo mismo que el JSON. Lo
+    /// que se quita es la SINTAXIS de la llamada, no lo que el modelo dice: adivinar
+    /// intenciones sería recortarle al modelo su propio razonamiento.
+    ///
+    /// La prueba es afilada a propósito: el `@e5` aparece en las dos cosas, así que lo único
+    /// que distingue «se quitó la sintaxis» de «se quitó el contenido» es que el `@e5` de la
+    /// prosa siga ahí mientras el `{"selector":"@e5"}` no está.
+    func test_la_prosa_del_modelo_viaja_al_prompt_aunque_narre_la_llamada() async throws {
+        let args = #"{"selector":"@e5"}"#
+        let narracion = "Ahora voy a llamar a browser_click @e5 para pulsar el enlace."
+        let runtime = ScriptedRuntime([[(name: "browser_click", args: args)], []], prosa: [narracion, "listo"])
+        let registro = registroDeNavegadorFalso()
+        for try await _ in Agent(runtime: runtime, registry: registro).run(prompt: "pulsa el enlace",
+                                                                           options: GenerationOptions()) {}
+
+        XCTAssertEqual(FakeBrowserClick.calls, 1)
+        let segundo = try XCTUnwrap(runtime.prompts.dropFirst().first, "el bucle no volvió a llamar al modelo")
+        XCTAssertTrue(segundo.contains(narracion), "la prosa del modelo tiene que volver: \(segundo.suffix(500))")
+        XCTAssertFalse(segundo.contains(args), "la sintaxis de la llamada no: \(segundo.suffix(500))")
+        XCTAssertTrue(segundo.contains("@e5"), "y el `@e5` de la prosa sigue ahí, que es la diferencia")
+        XCTAssertTrue(segundo.contains(FakeBrowserClick.resultado), "y el resultado también")
+    }
+
+    /// El recorte, como función pura. Se recortan las rondas MÁS VIEJAS y nunca la más
+    /// reciente, ni aunque sola se pase del tope: una ronda a medias es peor que una ronda de
+    /// más, y partir un resultado por el medio es justo lo que la nota de resultado prohíbe.
+    func test_recortaElHistorial_tira_lo_mas_viejo_y_jamas_lo_mas_reciente() {
+        let diezKB = String(repeating: "a", count: 10_000)
+        let rondas = (1...4).map { Agent.RondaDelTurno(texto: "r\($0) " + diezKB) }
+
+        let sobra = Agent.recortaElHistorial(rondas, maxBytes: 100_000)
+        XCTAssertEqual(sobra.rondas.map(\.texto), rondas.map(\.texto), "si cabe, no se toca nada")
+        XCTAssertNil(sobra.guiaRescatada)
+
+        let recortado = Agent.recortaElHistorial(rondas, maxBytes: 27_000)
+        XCTAssertEqual(recortado.rondas.count, 2, "27 KB dan para dos rondas de 10 KB, no para tres")
+        XCTAssertTrue(recortado.rondas.first?.texto.hasPrefix("r3 ") ?? false, "cae lo más viejo, en orden")
+        XCTAssertTrue(recortado.rondas.last?.texto.hasPrefix("r4 ") ?? false, "la más reciente es la última")
+
+        let unaEnorme = [Agent.RondaDelTurno(texto: String(repeating: "b", count: 60_000))]
+        XCTAssertEqual(Agent.recortaElHistorial(unaEnorme, maxBytes: 27_000).rondas.count, 1,
+                       "la más reciente se conserva aunque sola se pase del tope")
+        XCTAssertEqual(Agent.recortaElHistorial([], maxBytes: 27_000).rondas.count, 0)
+    }
+
+    /// La guía oficial NO es una ronda y el recorte no se la puede comer: si la ronda que la
+    /// trajo se cae por vieja, la guía se rescata y sigue en el prompt, exactamente una vez.
+    func test_el_recorte_rescata_la_guia_de_la_ronda_que_se_cae() throws {
+        let gorda = String(repeating: "a", count: 20_000)
+        let rondas = [Agent.RondaDelTurno(texto: "r1 " + gorda, guia: "LA-GUIA"),
+                      Agent.RondaDelTurno(texto: "r2 " + gorda),
+                      Agent.RondaDelTurno(texto: "r3 " + gorda)]
+        let recortado = Agent.recortaElHistorial(rondas, maxBytes: 27_000)
+        XCTAssertEqual(recortado.rondas.count, 1, "solo cabe la más reciente")
+        XCTAssertEqual(recortado.guiaRescatada, "LA-GUIA", "la guía sobrevive a su ronda")
+
+        let prompt = Agent.promptVivo(base: "BASE", guiaRescatada: recortado.guiaRescatada, rondas: recortado.rondas)
+        XCTAssertTrue(prompt.hasPrefix("BASE"), "el prompt del usuario va primero y nunca se recorta")
+        XCTAssertEqual(prompt.components(separatedBy: "LA-GUIA").count - 1, 1, "una vez, ni dos ni ninguna")
+        // Y mientras su ronda sigue viva, la guía va DETRÁS de la nota que la pagó (es donde
+        // la puso la tarea de la guía, y esta prueba no la mueve).
+        let intacto = Agent.promptVivo(base: "BASE", guiaRescatada: nil, rondas: [rondas[0]])
+        let iNota = try XCTUnwrap(intacto.range(of: "r1 ")?.lowerBound)
+        let iGuia = try XCTUnwrap(intacto.range(of: "LA-GUIA")?.lowerBound)
+        XCTAssertLessThan(iNota, iGuia)
+    }
+
+    /// Snapshot falso que devuelve una página GRANDE —del tamaño que el propio tope de
+    /// `BrowserSnapshotTool` permite— y DISTINTA en cada ronda, para poder decir cuál de las
+    /// rondas sobrevivió al recorte y cuál no.
+    final class FakeBrowserSnapshotGrande: AgentTool {
+        static let name = "browser_snapshot"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        /// Relleno hasta el tope real que la herramienta de verdad aplica a un snapshot.
+        static let relleno = String(repeating: "x", count: BrowserSnapshotTool.snapshotLimit - 100)
+        static func marca(_ n: Int) -> String { "[[ronda-\(n)]]" }
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return #"{"status":"success","url":"https://a.test/","snapshot":"\#(Self.marca(Self.calls)) \#(Self.relleno)"}"#
+        }
+    }
+
+    /// Con muchas rondas el prompt vivo NO crece sin límite: hay un tope en bytes y lo que cae
+    /// es lo más viejo. Es el caso que hoy no acota nada — ocho rondas de navegador con un
+    /// snapshot cada una son ~71 KB de historial, y `maxBrowserIterations` permite diez.
+    ///
+    /// Lo que sobrevive se afirma por los dos lados (la ronda 8 está, la 1 no), y con ello el
+    /// prompt del usuario y la guía, que no son rondas y no se recortan.
+    func test_con_muchas_rondas_el_historial_no_crece_sin_limite() async throws {
+        let rondas = Array(repeating: [(name: "browser_snapshot", args: "{}")], count: 8) + [[]]
+        let runtime = ScriptedRuntime(rondas)
+        let registro = ToolRegistry()
+        FakeBrowserSnapshotGrande.calls = 0
+        registro.register(FakeBrowserSnapshotGrande())
+        for try await _ in Agent(runtime: runtime, registry: registro).run(prompt: "mira la página ocho veces",
+                                                                           options: GenerationOptions()) {}
+
+        XCTAssertEqual(FakeBrowserSnapshotGrande.calls, 8, "las ocho rondas tienen que haber corrido")
+        let ultimo = try XCTUnwrap(runtime.prompts.last)
+        // LA PREMISA: sin tope, ocho rondas de este tamaño se pasan de largo.
+        XCTAssertGreaterThan(8 * BrowserSnapshotTool.snapshotLimit, Agent.maxHistoryBytes)
+        // El tope se respeta: historial acotado + lo que no es historial (base y guía).
+        let techo = Agent.maxHistoryBytes + Agent.browserGuideBlock().utf8.count + 4_000
+        XCTAssertLessThan(ultimo.utf8.count, techo, "el prompt vivo se pasó del tope: \(ultimo.utf8.count) bytes")
+        // Lo más viejo cayó, lo más reciente está, y queda más de una ronda.
+        XCTAssertFalse(ultimo.contains(FakeBrowserSnapshotGrande.marca(1)), "la ronda más vieja tenía que caer")
+        XCTAssertTrue(ultimo.contains(FakeBrowserSnapshotGrande.marca(8)), "la ronda más reciente no se recorta nunca")
+        let vivas = (1...8).filter { ultimo.contains(FakeBrowserSnapshotGrande.marca($0)) }
+        XCTAssertGreaterThanOrEqual(vivas.count, 2, "el recorte no puede dejar solo la última: \(vivas)")
+        XCTAssertEqual(vivas, Array(vivas.sorted()), "y lo que queda es el tramo más reciente, en orden")
+        // Lo que no es historial no se recorta.
+        XCTAssertTrue(ultimo.contains("mira la página ocho veces"), "el prompt del usuario se perdió")
+        XCTAssertEqual(ultimo.components(separatedBy: BrowserCoreSkill.text).count - 1, 1,
+                       "la guía tiene que seguir exactamente una vez")
+    }
+
+    /// El tope no es un número a ojo del todo: sale del tamaño que una ronda de navegador puede
+    /// alcanzar DE VERDAD, que es el tope que la herramienta de snapshot ya aplica.
+    func test_el_tope_del_historial_sale_del_tamano_real_de_una_ronda() {
+        XCTAssertEqual(Agent.maxHistoryBytes, 3 * (BrowserSnapshotTool.snapshotLimit + 1_000))
+        // Tres rondas gordas caben; cuatro no. Es la ventana útil: las `@eN` de un snapshot
+        // anterior a la última navegación ya no valen (es lo que dice el corte de cola).
+        let gorda = BrowserSnapshotTool.snapshotLimit + 900
+        XCTAssertGreaterThanOrEqual(Agent.maxHistoryBytes, 3 * gorda)
+        XCTAssertLessThan(Agent.maxHistoryBytes, 4 * gorda)
+        // Y una ronda FLACA (un clic, un fill) pesa unos cientos de bytes, así que un turno de
+        // conducción que no vuelque páginas enteras no llega a recortar nunca.
+        let flaca = Agent.toolResultNote(toolName: "browser_click",
+                                        result: #"{"status":"success","message":"Clic ejecutado en '@e3'."}"#)
+        XCTAssertGreaterThan(Agent.maxHistoryBytes / flaca.utf8.count, Agent.maxBrowserIterations)
     }
 }

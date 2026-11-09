@@ -539,12 +539,136 @@ final class Agent {
     /// que recortar por la ventana de contexto, se recorta lo que el modelo puede volver a
     /// pedir (un `content` de pagina), nunca el motivo de un fallo.
     /// Lo clava `test_el_error_vuelve_al_modelo_entero_y_sin_recortar`.
-    nonisolated static func toolResultNote(toolName: String, args: String, result: String) -> String {
-        let outcome = "[You called the tool `\(toolName)` with arguments \(args); it returned: \(result)."
+    ///
+    /// LOS ARGUMENTOS DE LA LLAMADA NO ESTAN AQUI, Y ESO ES EL ARREGLO. La nota decia «You
+    /// called the tool `X` with arguments {...}», asi que el JSON que el modelo acababa de
+    /// emitir volvia a su propio prompt en la ronda siguiente, y de ahi a la siguiente, y a la
+    /// siguiente: el prompt vivo es acumulativo. Releer sus propias llamadas le ensena a
+    /// repetirlas, y en este proyecto eso no es una teoria — el modelo llego a escribir la
+    /// sintaxis de llamada como TEXTO VISIBLE en la respuesta al usuario y arreglar ese defecto
+    /// costo una rama entera (ver `ToolSyntaxStreamGate`). browser-use reconstruye un solo
+    /// mensaje por paso y el modelo nunca ve su propio JSON anterior: ve su propia prosa.
+    ///
+    /// Lo que se quita es la SINTAXIS, no la informacion: el nombre de la herramienta se queda
+    /// (sin el, «it returned» no se refiere a nada) y el resultado entero tambien, y nuestros
+    /// resultados ya dicen sobre QUE actuaron — el `url` de un `open`, el «Campo '@e9'
+    /// rellenado.» de un `fill`, el «Clic ejecutado en '@e3'.» de un `click`—. Lo unico que de
+    /// verdad se pierde es el VALOR que el modelo teclo en un campo, y eso lo recupera por dos
+    /// vias mejores: su propia prosa de esa ronda (que ahora viaja, ver `modelProseNote`) y el
+    /// snapshot siguiente, que ensena el campo ya relleno.
+    nonisolated static func toolResultNote(toolName: String, result: String) -> String {
+        let outcome = "[You called the tool `\(toolName)`; it returned: \(result)."
         guard browserToolNames.contains(toolName) else {
             return outcome + " Tool execution is complete for this action. Formulate your final response to the user in a natural, friendly sentence explaining this result. DO NOT call `\(toolName)` or any other tool again. NEVER volunteer the current date or time.]"
         }
         return outcome + " You MAY keep calling browser tools if the user's task is not finished yet: after acting on a page the normal next step is `browser_snapshot`, to see what the action actually did before acting again. \(BrowserRules.closeRule) When the task IS finished, answer the user in a natural, friendly sentence describing what you found or did. NEVER volunteer the current date or time.]"
+    }
+
+    /// Lo que el modelo ESCRIBIO en una ronda, listo para volver al prompt vivo de la
+    /// siguiente, o `nil` si no escribio nada.
+    ///
+    /// QUE CUENTA COMO «LA PROSA DEL MODELO», QUE ES LA DECISION DE ESTA FUNCION. El texto que
+    /// llega aqui es el `text` del `.completed` de la ronda, que para el camino de servidor es
+    /// el texto LIMPIO: `ToolSyntaxStreamGate` ya retuvo lo que parecia un inicio de llamada y
+    /// `GemmaToolCallParser` ya separo las llamadas codificadas como texto. O sea: la frontera
+    /// entre prosa y sintaxis la decide quien ya sabia decidirla, y aqui no se vuelve a adivinar
+    /// nada.
+    ///
+    /// Y NO SE FILTRA POR CONTENIDO, A PROPOSITO. Si el modelo narra «ahora voy a llamar a
+    /// browser_click @e5», eso es prosa y se conserva entera aunque ensene lo mismo que el JSON
+    /// que se quito: es su plan, es lo que le da continuidad entre rondas, y quitarlo seria
+    /// adivinarle la intencion. Lo que se quita es la sintaxis de llamada; lo que el modelo
+    /// DICE no se toca.
+    ///
+    /// El acuse conversacional de la ronda 0 («Dame un momento…») NO pasa por aqui: lo emite el
+    /// bucle directamente al usuario y nunca fue texto del modelo.
+    nonisolated static func modelProseNote(_ prose: String) -> String? {
+        let limpio = prose.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !limpio.isEmpty else { return nil }
+        return "[You then wrote: \(limpio)]"
+    }
+
+    /// Una ronda del historial del turno: lo que el modelo escribio y los resultados de las
+    /// acciones que pidio, en orden.
+    struct RondaDelTurno: Equatable {
+        /// La prosa del modelo y las notas de resultado de esa ronda, ya unidas.
+        var texto: String
+        /// El bloque de la guia oficial, cuando ESTA ronda es la que lo trajo. Se guarda aparte
+        /// del texto por dos razones: va DETRAS de la nota de la herramienta que lo pago (ahi lo
+        /// coloco la tarea de la guia y de ahi no se mueve) y no cuenta contra el tope del
+        /// historial, porque no es historial (ver `maxHistoryBytes`).
+        var guia: String?
+
+        init(texto: String, guia: String? = nil) {
+            self.texto = texto
+            self.guia = guia
+        }
+
+        /// Lo que esta ronda aporta al prompt vivo.
+        var render: String { guia.map { texto + "\n\n" + $0 } ?? texto }
+
+        /// Lo que esta ronda pesa a efectos del tope: solo su texto.
+        var peso: Int { texto.utf8.count }
+    }
+
+    /// Tope en BYTES del historial de rondas de un turno.
+    ///
+    /// DE DONDE SALE EL NUMERO. Lo medido es el tamano de una ronda de navegador, y es grande:
+    /// `BrowserSnapshotTool.snapshotLimit` (y el `contentLimit` de `browser_get`) dejan pasar
+    /// 8.000 caracteres de pagina, y la nota de resultado de una herramienta de navegador anade
+    /// 820 bytes fijos, asi que una ronda que mire la pagina pesa ~8,8 KB. Con
+    /// `maxBrowserIterations` = 10 el historial de un turno de conduccion llegaba a ~88 KB sin
+    /// que nada lo acotara. (Una ronda FLACA —un clic, un fill— pesa ~900 bytes, asi que un
+    /// turno que no vuelque paginas enteras no llega a recortar nunca: el tope solo muerde en
+    /// los turnos que de verdad pesan.)
+    ///
+    /// El 8.000 es medido; el 3 es UNA COTA A OJO, y conviene que se sepa: son las tres paginas
+    /// gordas mas recientes. La eleccion tiene un motivo —las `@eN` de un snapshot anterior a
+    /// la ultima navegacion ya no valen, que es justo lo que dice el corte de cola
+    /// (`cortaLaCola`), asi que el valor de una pagina vieja decae rapido— pero no hay una
+    /// medida detras del 3 en si. Si alguien quiere moverlo, este comentario es el permiso.
+    ///
+    /// NO ES UNA MEDIDA DEL PROMPT, Y NO PRETENDE SERLO: acota el HISTORIAL. El prompt lleva
+    /// ademas la base (recall + lo que pidio el usuario, que no se recorta nunca) y, en los
+    /// turnos de navegador, el bloque de la guia (~18 KB), cuyo encaje en la ventana lo decide
+    /// `browserGuideFits` contra el presupuesto real del runtime. Son dos frenos distintos y
+    /// ninguno habla por el otro.
+    nonisolated static let maxHistoryBytes = 3 * (BrowserSnapshotTool.snapshotLimit + 1_000)
+
+    /// Quita rondas del historial hasta que quepa en `maxBytes`, empezando por LA MAS VIEJA.
+    ///
+    /// La mas reciente no se quita nunca, ni aunque ella sola se pase del tope: el modelo tiene
+    /// que poder leer el resultado de lo que acaba de hacer, y la alternativa (recortar la nota
+    /// por el medio) es la que `toolResultNote` prohibe con nombre y apellidos — cortar un error
+    /// por la mitad pierde justo el trozo que explica que paso.
+    ///
+    /// Si la ronda que se cae era la que traia la guia oficial, la guia se RESCATA y la devuelve
+    /// como `guiaRescatada`: el recorte no se puede comer la guia (la pago otra tarea y su
+    /// encaje se decidio contra la ventana), y media guia seria peor que ninguna. Desde ese
+    /// momento vive como cabecera, delante de las rondas que sobreviven.
+    ///
+    /// Los separadores entre rondas (`\n\n`) no se cuentan: son 2 bytes por ronda y meterlos en
+    /// la cuenta haria el tope mas dificil de leer que de respetar.
+    nonisolated static func recortaElHistorial(_ rondas: [RondaDelTurno], maxBytes: Int)
+        -> (rondas: [RondaDelTurno], guiaRescatada: String?) {
+        var resultado = rondas
+        var guiaRescatada: String?
+        var total = resultado.reduce(0) { $0 + $1.peso }
+        while resultado.count > 1, total > maxBytes {
+            let fuera = resultado.removeFirst()
+            total -= fuera.peso
+            if let guia = fuera.guia { guiaRescatada = guia }
+        }
+        return (resultado, guiaRescatada)
+    }
+
+    /// El prompt vivo de la ronda siguiente: la base, la guia que haya sobrevivido a su ronda,
+    /// y el historial.
+    ///
+    /// La base va primero y no se recorta jamas: es el recall mas lo que pidio el usuario, o sea
+    /// la unica parte del prompt que el turno no puede permitirse perder.
+    nonisolated static func promptVivo(base: String, guiaRescatada: String?, rondas: [RondaDelTurno]) -> String {
+        ([base] + [guiaRescatada].compactMap { $0 } + rondas.map(\.render)).joined(separator: "\n\n")
     }
 
     /// Linea que precede a la guia oficial cuando se inyecta, y que fija quien gana si las
@@ -638,7 +762,19 @@ final class Agent {
 
                 do {
                     var maxIterations = Self.maxIterations
-                    var currentPrompt = recallTail.isEmpty ? prompt : recallTail + "\n\n" + prompt
+                    // LA BASE DEL PROMPT VIVO, Y ES INMUTABLE. El recall mas lo que pidio el
+                    // usuario: la unica parte que el turno no puede perder, asi que vive fuera
+                    // del historial y el recorte no la alcanza.
+                    let basePrompt = recallTail.isEmpty ? prompt : recallTail + "\n\n" + prompt
+                    // EL HISTORIAL DEL TURNO, UNA ENTRADA POR RONDA. Antes esto era una sola
+                    // cadena a la que cada ronda se pegaba con `+=`: sin tope, sin forma y sin
+                    // manera de quitar lo viejo. En rondas se puede acotar y se puede decir que
+                    // cae (lo mas viejo) y que no (lo mas reciente, la base y la guia).
+                    var historial: [Agent.RondaDelTurno] = []
+                    // La guia oficial cuando ha sobrevivido a la ronda que la trajo: a partir de
+                    // ahi es cabecera. Ver `recortaElHistorial`.
+                    var guiaRescatada: String?
+                    var currentPrompt = basePrompt
                     var activeTools = tools
                     var executedMutations: [String: String] = [:]
                     // La ultima URL que un resultado de herramienta DEMOSTRO en este turno. Vive
@@ -709,7 +845,13 @@ final class Agent {
                             continuation.yield(.token(ack))
                         }
 
-                        var resultsNote = currentPrompt
+                        // LA RONDA EMPIEZA POR LA PROSA DEL MODELO, no por su JSON. Ver
+                        // `modelProseNote` para que cuenta como prosa y por que la narracion de
+                        // una llamada tambien lo es.
+                        var ronda = Self.RondaDelTurno(texto: Self.modelProseNote(completed?.text ?? "") ?? "")
+                        func anade(_ nota: String) {
+                            ronda.texto = ronda.texto.isEmpty ? nota : ronda.texto + "\n\n" + nota
+                        }
                         var anyMutationExecuted = false
                         // La accion con la que se agoto el presupuesto, cuando se agoto en esta
                         // ronda: es la que el mensaje al usuario nombra.
@@ -751,16 +893,21 @@ final class Agent {
                                 fallosConsecutivos = 0
                             }
                             continuation.yield(.toolCallFinished(name: tc.name, result: result))
-                            resultsNote += "\n\n" + Self.toolResultNote(toolName: tc.name, args: tc.args, result: result)
+                            anade(Self.toolResultNote(toolName: tc.name, result: result))
                             // La guia oficial del CLI viaja con la nota de la PRIMERA
                             // herramienta de navegador del turno, y solo con esa. Ver
-                            // `browserGuideBlock()` para el porque de esta colocacion.
+                            // `browserGuideBlock()` para el porque de esta colocacion. Lo que se
+                            // mide es el prompt vivo tal como quedaria AHORA, con esta ronda ya
+                            // dentro y sin contar la guia dos veces (`browserGuideFits` la suma
+                            // por su cuenta).
                             if Self.browserToolNames.contains(tc.name), !browserGuideInjected,
                                Self.browserGuideFits(systemPrompt: opts.systemPrompt ?? "",
-                                                     livePrompt: resultsNote,
+                                                     livePrompt: Self.promptVivo(base: basePrompt,
+                                                                                 guiaRescatada: guiaRescatada,
+                                                                                 rondas: historial + [ronda]),
                                                      budgetTokens: self.runtime.contextTokenBudget) {
                                 browserGuideInjected = true
-                                resultsNote += "\n\n" + Self.browserGuideBlock()
+                                ronda.guia = Self.browserGuideBlock()
                             }
                             // PRESUPUESTO AGOTADO: se para aqui mismo y lo que quedaba de la
                             // ronda no se ejecuta. El `.toolCallFinished` de arriba ya salio, asi
@@ -798,13 +945,23 @@ final class Agent {
                                     // pedirlas con la pagina nueva delante. El texto vive en
                                     // `BrowserRules`, que es la unica fuente de nuestras reglas
                                     // del navegador — esta es una de ellas.
-                                    resultsNote += "\n\n" + BrowserRules.queueCutNote(tras: tc.name,
-                                                                                       pendientes: pendientes)
+                                    anade(BrowserRules.queueCutNote(tras: tc.name, pendientes: pendientes))
                                     break
                                 }
                             }
                         }
-                        currentPrompt = resultsNote
+                        // EL HISTORIAL SE CIERRA AQUI, Y SE ACOTA. Lo que cae es lo mas viejo;
+                        // la ronda que acaba de pasar no cae nunca. Ver `maxHistoryBytes` para de
+                        // donde sale el numero y `recortaElHistorial` para el rescate de la guia.
+                        if !ronda.texto.isEmpty || ronda.guia != nil {
+                            let recorte = Self.recortaElHistorial(historial + [ronda],
+                                                                  maxBytes: Self.maxHistoryBytes)
+                            historial = recorte.rondas
+                            if let guia = recorte.guiaRescatada { guiaRescatada = guia }
+                        }
+                        currentPrompt = Self.promptVivo(base: basePrompt,
+                                                        guiaRescatada: guiaRescatada,
+                                                        rondas: historial)
 
                         // SALIDA POR PRESUPUESTO AGOTADO, Y GANA A LA SALIDA POR ITERACIONES.
                         //

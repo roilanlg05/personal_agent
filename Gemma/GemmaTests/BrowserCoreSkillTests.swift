@@ -157,7 +157,7 @@ final class BrowserCoreSkillTests: XCTestCase {
                       "las reglas ya no incluyen el candado de cierre")
         XCTAssertTrue(Agent.systemPromptText.contains(BrowserRules.closeRule),
                       "el prompt del sistema no renderiza el candado desde la constante")
-        XCTAssertTrue(Agent.toolResultNote(toolName: "browser_open", args: "{}", result: "ok")
+        XCTAssertTrue(Agent.toolResultNote(toolName: "browser_open", result: "ok")
                         .contains(BrowserRules.closeRule),
                       "la nota de resultado no renderiza el candado desde la constante")
         XCTAssertTrue(Agent.browserGuideBlock().contains(BrowserRules.closeRule),
@@ -311,7 +311,7 @@ final class BrowserCoreSkillTests: XCTestCase {
         // comparar la cadena byte a byte era una moneda al aire —esta prueba se ponía roja 1 de
         // cada 3 veces—. Hoy el orden es estable (ver `ToolJSONOutputOrderTests`), así que la
         // comparación fuerte es legítima.
-        let notaConSenal = Agent.toolResultNote(toolName: "browser_open", args: "{}", result: "\u{1}R\u{1}")
+        let notaConSenal = Agent.toolResultNote(toolName: "browser_open", result: "\u{1}R\u{1}")
         let finDeLaCabecera = try XCTUnwrap(notaConSenal.range(of: "\u{1}R\u{1}")?.lowerBound)
         let cabeceraDeLaNota = String(notaConSenal[..<finDeLaCabecera])
         XCTAssertTrue(prompt.contains(DobleDeHerramienta.resultado),

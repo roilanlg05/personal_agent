@@ -65,13 +65,91 @@ public struct ToolLogRow: View {
     /// construyen en `AgentBrowserToolOutput.resolve(_:extra:)` con
     /// `status = "refused"`; un `browser_open` rechazado salía con tilde verde.
     /// Medición de referencia: docs/superpowers/notes/2026-11-08-medicion-nitidez-panel.md
-    private nonisolated static let failureStatuses: Set<String> = [
+    /// Interno y no privado a propósito: `AgentTests
+    /// .test_lo_que_gasta_presupuesto_sale_con_cruz_roja_en_el_chat` lo recorre entero para
+    /// clavar la coherencia con `Agent.estadosDeFallo`, y
+    /// `ToolLogRowTests.test_cada_estado_de_fallo_tiene_su_frase_fija_…` exige que ninguno se
+    /// quede sin frase. Un censo que no se puede recorrer desde una prueba se queda a medias.
+    nonisolated static let failureStatuses: Set<String> = [
         "failed", "error", "timeout", "unavailable", "memory_unavailable",
         "permission_denied", "rejected", "not_found", "contact_not_found",
         "place_not_found", "not_in_catalog", "unknown_topic", "unsupported",
         "unsupported_kind", "limit_reached", "missing_fields", "name_taken",
         "no_phone_number", "period_in_past", "refused", "not_available",
     ]
+
+    /// LA FRASE DE LA APP CON LA QUE SE RESUME UN FALLO. Una por estado, fija, en español y
+    /// escrita para el USUARIO.
+    ///
+    /// EL DEFECTO QUE ARREGLA, MEDIDO. La rama de fallo de `summarize` pintaba el `message` de
+    /// la herramienta, y esos textos están redactados para el MODELO: segunda persona y con
+    /// instrucciones. El caso que esta rama introdujo lo deja a la vista: cuando el modelo
+    /// alucina el nombre de una herramienta —el error más común que comete—, el bucle contesta
+    /// con `Agent.resultadoDeHerramientaInexistente`, y sus primeros 120 caracteres son «No
+    /// existe ninguna herramienta llamada 'X'. **No la vuelvas a llamar: usa una de las
+    /// herramientas que tienes disponibles**, o…». O sea una orden dirigida a otro, en la
+    /// pantalla del usuario. Es el mismo defecto que ya costó una rama entera
+    /// (`ToolSyntaxStreamGate`), entrando por otra puerta.
+    ///
+    /// Y NO DEJA AL USUARIO SIN PISTA: la pista es el estado traducido al castellano, y el
+    /// motivo íntegro sigue a un toque de distancia en el detalle de la fila
+    /// (`detail(resultJSON:)`, 4.000 caracteres) y sigue viajando ENTERO al modelo en la nota
+    /// de resultado. No se pierde nada; cambia para quién está escrito lo que se lee de un
+    /// vistazo.
+    ///
+    /// Es el patrón que este fichero ya usa dos veces: `needsYouText` para los estados que
+    /// piden algo, y la rama `case nil` de `summarize` con su «listo».
+    ///
+    /// POR QUÉ `not_available` NO DICE «el navegador no está instalado», que es lo que pedía
+    /// de entrada el arreglo: el estado NO es solo del navegador. `ShortcutRunOutcome
+    /// .notAvailable` lo emite también `run_shortcut`, `play_music` y `send_message` cuando la
+    /// app Atajos no está disponible en el dispositivo, así que nombrar el navegador ahí sería
+    /// mentir en tres herramientas para acertar en nueve. «no está disponible» es cierto en las
+    /// doce.
+    private nonisolated static let frasesDeFallo: [String: String] = [
+        // El contrato de las nueve herramientas del navegador (`AgentBrowserToolOutput`).
+        // `refused` sí es solo del navegador (censado): lo construyen `AgentBrowserToolOutput
+        // .resolve` y el candado de `BrowserCloseTool`.
+        "refused": "el navegador no lo hizo",
+        "not_available": "no está disponible",
+        "error": "falló",
+        // Infraestructura y «no pude» del resto del registro.
+        "failed": "no se pudo hacer",
+        "timeout": "tardó demasiado",
+        "unavailable": "el servicio no respondió",
+        "memory_unavailable": "la memoria no respondió",
+        "permission_denied": "sin permiso",
+        "rejected": "no se aceptó",
+        "not_found": "no se encontró",
+        "contact_not_found": "ese contacto no está",
+        "place_not_found": "ese sitio no está",
+        "not_in_catalog": "no está en el catálogo",
+        "unknown_topic": "ese tema no está",
+        "unsupported": "eso no se puede hacer",
+        "unsupported_kind": "ese tipo no se puede",
+        "limit_reached": "se llegó al límite",
+        "missing_fields": "faltan datos",
+        "name_taken": "ese nombre ya existe",
+        "no_phone_number": "no hay número de teléfono",
+        "period_in_past": "esa fecha ya pasó",
+    ]
+
+    /// La frase de la app para un estado de fallo. Nunca vacía: un estado sin frase propia cae
+    /// en «falló», que dice menos pero no miente, y los `invalid_*` —que son una familia
+    /// abierta, no un censo— llevan la suya.
+    public nonisolated static func fraseDeFallo(status: String) -> String {
+        if let frase = frasesDeFallo[status] { return frase }
+        if status.hasPrefix("invalid_") { return "los datos no valían" }
+        return "falló"
+    }
+
+    /// Lo que la fila dice de un `browser_close` que el candado de la app rechazó.
+    ///
+    /// NO ES UN FALLO Y NO SE PINTA COMO TAL. El candado rechaza todo cierre que el usuario no
+    /// haya pedido en este turno, y eso es la conducta correcta: muchas veces la página abierta
+    /// ES lo que el usuario pidió (ver `BrowserCloseTool`). Una cruz roja ahí le dice que algo
+    /// se rompió cuando lo que pasó es que la app lo protegió.
+    public nonisolated static let cierreRechazadoText = "la página sigue abierta"
 
     /// Cierra la fila de una herramienta: rellena el `toolDetail` de la última
     /// fila abierta con ese nombre. Se busca de atrás hacia delante porque puede
@@ -105,9 +183,19 @@ public struct ToolLogRow: View {
             return .failure(clip(t.isEmpty ? "resultado vacío o ilegible" : t))
         }
         let status = obj["status"] as? String
-        let message = (obj["message"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        // UN CIERRE RECHAZADO POR EL CANDADO NO ES UN FALLO Y VA ANTES QUE LA RAMA DE FALLO.
+        // Ver `cierreRechazadoText`. La excepcion es de un PAR (herramienta, estado): un
+        // `browser_open` rechazado sigue siendo un fallo —el usuario no vio la pagina que
+        // pidio— y un `browser_close` con `error` tambien.
+        if toolName == BrowserCloseTool.name, status == "refused" {
+            return .value(cierreRechazadoText)
+        }
         if let status, failureStatuses.contains(status) || status.hasPrefix("invalid_") {
-            return .failure(clip(message.isEmpty ? status : message))
+            // LA FRASE DE LA APP, NO EL `message` DE LA HERRAMIENTA. Ver `fraseDeFallo(status:)`
+            // para el caso medido: el `message` esta escrito para el MODELO, y lo que llegaba a
+            // la pantalla del usuario eran sus instrucciones en segunda persona. El motivo
+            // entero sigue en el detalle de la fila y sigue viajando entero al modelo.
+            return .failure(fraseDeFallo(status: status))
         }
         if let status, needsYouStatuses.contains(status) { return .needsYou }
         switch table[toolName] {

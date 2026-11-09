@@ -612,16 +612,31 @@ final class AgentTests: XCTestCase {
         }
     }
 
-    /// Herramienta REGISTRADA cuyo resultado no es JSON de ninguna manera. No es un caso de
-    /// laboratorio: `ForgetTool` (`forget`) contesta en prosa de verdad («Forgot 3 item(s)
-    /// matching 'x'.»), y el propio bucle produce otro resultado que tampoco es JSON
-    /// (`DUPLICATE_CALL_IGNORED`). Es lo que hace falta para medir el tercer estado —ni exito
-    /// ni fallo— desde que el resultado de una herramienta inexistente SI habla JSON.
+    /// Herramienta cuyo resultado no es JSON de ninguna manera: PROSA. Es la cadena que
+    /// `ForgetTool` devolvia de verdad antes de que las ocho herramientas que hablaban prosa
+    /// pasaran al contrato `status`; hoy ninguna herramienta REGISTRADA contesta asi, y lo unico
+    /// que sigue llegando al bucle sin ser JSON es el `DUPLICATE_CALL_IGNORED` que escribe el
+    /// propio bucle. Se queda como el doble del tercer estado —ni exito ni fallo— y para medir
+    /// que la prosa ya no reinicia el presupuesto.
     final class FakeIlegible: AgentTool {
         static let name = "forget"
         static let description = "fake"
         nonisolated(unsafe) static var calls = 0
         static let resultado = "Forgot 3 item(s) matching 'x'."
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return Self.resultado
+        }
+    }
+
+    /// `forget` COMO CONTESTA HOY: el contrato `status`. Es la forma real de `ForgetTool` por su
+    /// camino bueno, y es el doble que mide que el caso que obligo al parche del reinicio sigue
+    /// cubierto ahora que el parche se ha quitado.
+    final class FakeForgetDelContrato: AgentTool {
+        static let name = "forget"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        static let resultado = #"{"forgotten_count":3,"message":"Olvidado(s) 3 recuerdo(s).","query":"x","status":"success"}"#
         func run(argsJSON: String) async -> String {
             Self.calls += 1
             return Self.resultado
@@ -658,15 +673,21 @@ final class AgentTests: XCTestCase {
         }
     }
 
-    /// Herramienta cuyo resultado SÍ es un objeto JSON pero sin `status` legible: la forma de
-    /// `ToolJSONOutput.error(_:)`, que es la salida de las guardas de argumentos de media app
-    /// («Se requiere 'name' con el nombre del atajo.»). Es alcanzable de verdad: el modelo
-    /// llamando a una herramienta con los argumentos mal.
+    /// Herramienta cuyo resultado SÍ es un objeto JSON pero sin `status` legible.
+    ///
+    /// SU EJEMPLO CAMBIO, Y EL CAMBIO ES EL ARREGLO. Esto era `ToolJSONOutput.error(_:)`, la
+    /// salida de las guardas de argumentos de medio registro, que emitia `{"error": …}` sin
+    /// `status`: la fila del chat lo resumia como «listo» con su tilde verde sobre un error, y el
+    /// bucle no podia contarlo. Desde que `error(_:)` declara `status: error`, ese caso salio de
+    /// esta categoria y es un fallo contado — lo mide
+    /// `HerramientasHablanStatusTests.test_la_guarda_de_argumentos_declara_error_y_ya_no_sale_en_verde`.
+    /// La categoria sigue existiendo y sigue necesitando su doble: un objeto que llega sin
+    /// `status`, o con uno que no se sabe leer, no reinicia el presupuesto.
     final class FakeObjetoSinEstado: AgentTool {
         static let name = "forget_shortcut"
         static let description = "fake"
         nonisolated(unsafe) static var calls = 0
-        static let resultado = ToolJSONOutput.error("Se requiere 'name' con el nombre del atajo.")
+        static let resultado = #"{"detalle":"un objeto que llego sin `status`"}"#
         func run(argsJSON: String) async -> String {
             Self.calls += 1
             return Self.resultado
@@ -753,25 +774,27 @@ final class AgentTests: XCTestCase {
         }
     }
 
-    /// UN EXITO EN PROSA REINICIA EL PRESUPUESTO; UN OBJETO JSON QUE NO SE SUPO LEER, NO.
+    /// EL PRESUPUESTO SE REINICIA CON EL CONTRATO `status`, Y CON NADA MAS.
     ///
-    /// EL DEFECTO QUE ESTO ARREGLA, Y ES UN TURNO QUE EL USUARIO PIERDE. El tercer estado —«no
-    /// se supo leer»— se aplico a la direccion segura del GASTO (lo ilegible no gasta, bien
-    /// razonado) pero arrastro consigo la direccion insegura del REINICIO: seis herramientas
-    /// registradas contestan en prosa (`forget`, `save_memory`, `reflect` y las tres de A-to-Z,
-    /// dos de ellas MUTACIONES) y su exito no reiniciaba nada. Medido: cinco fallos
-    /// intercalados con cinco `forget` que funcionaron mataban el turno, y la ultima accion no
-    /// llegaba a correr. Con el servicio de memoria del i3 al otro lado de Tailscale el caso es
-    /// cotidiano: cinco `memory_unavailable` repartidos por un turno largo lo mataban aunque
-    /// todo lo demas hubiera funcionado.
+    /// DE DONDE VIENE ESTA PRUEBA. Su version anterior declaraba la propiedad CONTRARIA —«un
+    /// exito en PROSA reinicia el presupuesto»— y era un parche, escrito y declarado como tal.
+    /// El defecto que arreglaba era real: ocho herramientas registradas contestaban en prosa
+    /// (`forget`, `save_memory`, `reflect`, `get_current_time`, `update_event` y las tres de A to
+    /// Z, tres de ellas MUTACIONES) y su exito no reiniciaba nada, asi que cinco fallos
+    /// intercalados con cinco `forget` que funcionaron mataban el turno. Pero el parche se cobro
+    /// un precio, escrito entonces en el codigo: un FALLO en prosa («memory unavailable») tambien
+    /// reiniciaba, y el presupuesto se quedaba sin dientes justo contra el turno que no avanza.
     ///
-    /// LAS DOS MITADES VIVEN EN LA MISMA FUNCION A PROPOSITO. Una implementacion que reiniciara
-    /// con CUALQUIER cosa que no sea un fallo pasaria la primera mitad y moriria en la segunda,
-    /// y una que no reiniciara nunca —la de antes— moriria en la primera. La diferencia entre
-    /// las dos es exactamente la linea que el arreglo traza: una herramienta de fuera del
-    /// contrato contestando en SU prosa reinicia; un objeto JSON cuyo `status` no se entiende
-    /// (la forma de `ToolJSONOutput.error`, una guarda de argumentos) no.
-    func test_un_exito_en_prosa_reinicia_el_presupuesto_y_un_objeto_ilegible_no() async throws {
+    /// LO QUE CAMBIO: las ocho hablan `status`. La prosa dejo de ser la voz de ninguna
+    /// herramienta registrada —censo verificado sobre las ochenta del registro— y el parche se
+    /// ha quitado, asi que esta prueba cambia de propiedad declarada. NO es un arreglo de prueba
+    /// para verdear: es la propiedad nueva, y sus tres mitades la fijan por los dos lados.
+    ///
+    /// LAS TRES MITADES VIVEN EN LA MISMA FUNCION A PROPOSITO. Una implementacion que reiniciara
+    /// con cualquier cosa que no sea un fallo pasaria (a) y moriria en (b) y (c); una que no
+    /// reiniciara nunca moriria en (a); y la de antes —la que aceptaba la prosa— pasaria (a) y
+    /// (b) y moriria en (c), que es exactamente el precio que se ha quitado.
+    func test_el_presupuesto_se_reinicia_con_el_contrato_y_no_con_la_prosa() async throws {
         let tope = Agent.maxConsecutiveFailures
         func rondaCon(_ delMedio: (name: String, args: String)) -> [(name: String, args: String)] {
             var r = pulsaciones(0..<(tope - 1))
@@ -781,23 +804,24 @@ final class AgentTests: XCTestCase {
             return r
         }
 
-        // (a) EL CASO MEDIDO: `forget` contesta en prosa y SI reinicia, asi que nunca hay
-        // `tope` fallos seguidos y la ronda termina entera.
-        let conProsa = ScriptedRuntime([rondaCon((name: "forget", args: "{}")), []])
-        let registroProsa = registroConLaQueFalla()
-        FakeIlegible.calls = 0
-        registroProsa.register(FakeIlegible())
-        let vistoProsa = try await ejecuta(conProsa, registroProsa)
+        // (a) EL CASO QUE OBLIGO AL PARCHE, AHORA CUBIERTO POR LA PUERTA BUENA: `forget` declara
+        // `status: success` y reinicia, asi que nunca hay `tope` fallos seguidos y la ronda
+        // termina entera. Es la forma REAL de `ForgetTool` por su camino bueno.
+        let conContrato = ScriptedRuntime([rondaCon((name: "forget", args: "{}")), []])
+        let registroContrato = registroConLaQueFalla()
+        FakeForgetDelContrato.calls = 0
+        registroContrato.register(FakeForgetDelContrato())
+        let vistoContrato = try await ejecuta(conContrato, registroContrato)
 
-        XCTAssertEqual(FakeIlegible.calls, 1, "el exito en prosa se ejecuto de verdad")
+        XCTAssertEqual(FakeForgetDelContrato.calls, 1, "el exito se ejecuto de verdad")
         XCTAssertEqual(FakeBrowserAlwaysFails.calls, tope, "los \(tope) fallos se ejecutaron todos")
         XCTAssertEqual(FakeBrowserFill.calls, 1,
-                       "la ultima accion del turno tenia que correr: el exito en prosa reinicio la cuenta")
-        XCTAssertEqual(conProsa.prompts.count, 2, "el turno sigue vivo y vuelve al modelo")
-        XCTAssertEqual(vistoProsa.fallados, [], "nada de esto revienta el bucle: \(vistoProsa.fallados)")
+                       "la ultima accion del turno tenia que correr: el exito declarado reinicio la cuenta")
+        XCTAssertEqual(conContrato.prompts.count, 2, "el turno sigue vivo y vuelve al modelo")
+        XCTAssertEqual(vistoContrato.fallados, [], "nada de esto revienta el bucle: \(vistoContrato.fallados)")
 
-        // (b) LA MITAD QUE LA SOSTIENE: un OBJETO JSON sin `status` legible no reinicia, asi que
-        // el presupuesto sigue mordiendo donde tiene que morder.
+        // (b) UN OBJETO JSON SIN `status` LEGIBLE NO REINICIA, asi que el presupuesto sigue
+        // mordiendo donde tiene que morder.
         let conObjeto = ScriptedRuntime([rondaCon((name: "forget_shortcut", args: "{}")), []])
         let registroObjeto = registroConLaQueFalla()
         FakeObjetoSinEstado.calls = 0
@@ -810,10 +834,29 @@ final class AgentTests: XCTestCase {
         XCTAssertEqual(conObjeto.prompts.count, 1, "el presupuesto se agoto: no hay segunda ronda")
         XCTAssertEqual(vistoObjeto.completados.count, 1, "\(vistoObjeto.completados)")
 
-        // (c) Y la funcion pura, que es donde la linea esta escrita.
-        XCTAssertTrue(Agent.reiniciaElPresupuesto(resultado: FakeIlegible.resultado),
-                      "la prosa de una herramienta de fuera del contrato reinicia")
+        // (c) LA PROSA TAMPOCO REINICIA, Y ES EL PRECIO QUE SE HA QUITADO. Antes esta misma
+        // ronda terminaba entera; ahora el presupuesto se agota, porque un resultado que no
+        // sabemos leer no puede hacer de exito.
+        let conProsa = ScriptedRuntime([rondaCon((name: "forget", args: "{}")), []])
+        let registroProsa = registroConLaQueFalla()
+        FakeIlegible.calls = 0
+        registroProsa.register(FakeIlegible())
+        let vistoProsa = try await ejecuta(conProsa, registroProsa)
+
+        XCTAssertEqual(FakeIlegible.calls, 1, "la prosa se ejecuto de verdad")
+        XCTAssertEqual(FakeBrowserFill.calls, 0,
+                       "la prosa ya no hace de exito: el presupuesto se agota")
+        XCTAssertEqual(conProsa.prompts.count, 1, "no hay segunda ronda")
+        XCTAssertEqual(vistoProsa.fallados, [], "y sigue sin reventar el bucle: \(vistoProsa.fallados)")
+
+        // (d) Y la funcion pura, que es donde la linea esta escrita.
+        XCTAssertTrue(Agent.reiniciaElPresupuesto(resultado: FakeForgetDelContrato.resultado),
+                      "un exito declarado reinicia")
         XCTAssertTrue(Agent.reiniciaElPresupuesto(resultado: #"{"status":"success"}"#))
+        XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: FakeIlegible.resultado),
+                       "la prosa ya no reinicia: \(FakeIlegible.resultado)")
+        XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: "memory unavailable"),
+                       "y un FALLO en prosa menos: era el precio del parche")
         XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: FakeObjetoSinEstado.resultado),
                        "un objeto JSON sin `status` legible NO reinicia: \(FakeObjetoSinEstado.resultado)")
         XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: #"{"status":"error"}"#))

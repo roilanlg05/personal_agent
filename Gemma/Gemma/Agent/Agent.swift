@@ -543,14 +543,17 @@ final class Agent {
     /// uno con un `status` que no esta en ninguno de los dos conjuntos, devuelve `false`. Es la
     /// direccion segura de este proyecto aplicada aqui: la accion que este valor desencadena es
     /// MATAR el turno del usuario, asi que un valor que no se supo leer nunca se convierte en
-    /// esa accion. El precio de la eleccion hay que saberlo y esta medido: quedan fuera del
-    /// presupuesto los resultados en prosa de las herramientas que no hablan el contrato de
-    /// `status` (`forget` contesta «Forgot 3 item(s)…») y el `DUPLICATE_CALL_IGNORED` del propio
-    /// bucle, y en el segundo es lo correcto: una mutacion repetida ya se ejecuto con exito.
-    ///   La llamada a una herramienta que NO EXISTE estaba en esa lista y ya no: era la cadena
-    /// `error: no tool named X`, un modelo que insistia en ella no gastaba presupuesto y daba
-    /// vueltas hasta el tope de rondas. Hoy habla JSON — ver
-    /// `resultadoDeHerramientaInexistente(nombre:)`.
+    /// esa accion. El precio de la eleccion hay que saberlo, y lo que queda fuera del presupuesto
+    /// es hoy muy poco: el `DUPLICATE_CALL_IGNORED` del propio bucle —donde es lo correcto: una
+    /// mutacion repetida ya se ejecuto con exito— y cualquier resultado que de verdad no se sepa
+    /// leer.
+    ///   DOS CASOS SALIERON DE ESA LISTA, los dos porque la herramienta aprendio a declarar su
+    /// estado. La llamada a una herramienta que NO EXISTE era la cadena `error: no tool named X`,
+    /// y un modelo que insistia en ella daba vueltas hasta el tope de rondas sin gastar nada; hoy
+    /// habla JSON (`resultadoDeHerramientaInexistente(nombre:)`). Y la PROSA de las ocho
+    /// herramientas que contestaban fuera del contrato (`forget` decia «Forgot 3 item(s)…»,
+    /// `save_memory` «memory unavailable») tampoco queda: las ocho declaran `status`, censo
+    /// verificado sobre las ochenta del registro — ver `HerramientasHablanStatusTests`.
     ///
     /// Y UN FALLO NO ES LO CONTRARIO DE UN EXITO. `esFallo` y `esExito` NO son complementarios,
     /// a proposito: hay un tercer estado —no se pudo leer— que ni gasta presupuesto ni lo
@@ -588,41 +591,41 @@ final class Agent {
     /// POR QUÉ PASABA. `esFallo` tiene tres estados a propósito y la dirección segura se aplicó
     /// bien al lado del GASTO —lo que no se supo leer no gasta—, pero el lado del REINICIO
     /// heredó la misma asimetría sin que nadie la decidiera: un éxito que no habla el contrato
-    /// `status` tampoco reiniciaba. Y hay seis herramientas registradas que contestan en prosa
-    /// y por tanto nunca reiniciaban (censo): `ForgetTool`, `SaveMemoryTool`, `ReflectTool` y
-    /// las tres de A-to-Z (`add_shift`, `drop_shift`, `get_shifts`), dos de ellas MUTACIONES
-    /// —o sea que aceptar un turno de trabajo con éxito contaba como «ni fallo ni éxito»—.
+    /// `status` tampoco reiniciaba. Y había herramientas registradas que contestaban en PROSA y
+    /// por tanto nunca reiniciaban: `forget`, `save_memory`, `reflect`, `get_current_time`,
+    /// `update_event` y las tres de A to Z, tres de ellas MUTACIONES —o sea que aceptar un turno
+    /// de trabajo con éxito contaba como «ni fallo ni éxito»—.
     ///
-    /// LA LÍNEA QUE SE TRAZA, Y ES MECÁNICA, NO UNA CORAZONADA SOBRE EL TEXTO. Reinicia:
-    ///   - un `status` de `estadosDeExito` (el contrato, como antes), y
-    ///   - un resultado que NO ES UN OBJETO JSON, o sea una herramienta de FUERA del contrato
-    ///     contestando en su prosa («Forgot 3 item(s) matching 'x'.»).
-    /// No reinicia:
-    ///   - un fallo declarado (`esFallo`),
-    ///   - un OBJETO JSON cuyo `status` no se supo leer o que no lo trae. Aquí vive
+    /// EL PARCHE QUE ESTO TUVO, Y POR QUÉ YA NO HACE FALTA. El arreglo de entonces fue aceptar
+    /// «no es un objeto JSON» como éxito, con un precio declarado: un FALLO en prosa («memory
+    /// unavailable», que es lo que `forget` contestaba cuando el servicio no estaba) también
+    /// reiniciaba, porque no se podía distinguir de su éxito sin tocar las herramientas. Ya se
+    /// tocaron: **las ocho hablan `status`**, la prosa dejó de ser la voz de ninguna herramienta
+    /// registrada, y el parche se ha quitado. El censo se verificó sobre las ochenta
+    /// herramientas del registro y no quedó ninguna que conteste fuera del contrato; ver
+    /// `HerramientasHablanStatusTests`.
+    ///
+    /// LA LÍNEA QUE SE TRAZA AHORA ES EL CONTRATO Y NADA MÁS. Reinicia un `status` de
+    /// `estadosDeExito`; no reinicia nada más. Con eso vuelven a estar fuera, cada uno por su
+    /// razón:
+    ///   - un fallo declarado (`esFallo`);
+    ///   - un OBJETO JSON cuyo `status` no se supo leer o que no lo trae. Ahí vivía
     ///     `ToolJSONOutput.error(_:)` —`{"error": …}`, la salida de las guardas de argumentos de
-    ///     muchas herramientas—, que es un fallo de verdad y es alcanzable: el modelo llamando a
-    ///     una herramienta con los argumentos mal. Si eso reiniciara, el presupuesto se quedaría
-    ///     sin dientes justo contra el bucle de fallos que no sabemos leer, que es lo que el
-    ///     comentario de `esFallo` avisa de no hacer.
-    ///   - el `DUPLICATE_CALL_IGNORED` del propio bucle, que tampoco es un objeto JSON pero no
-    ///     es una herramienta contestando: es el bucle atajando una repetición del modelo, y
+    ///     medio registro—, que desde este mismo arreglo declara `status: error` y es por tanto
+    ///     un fallo contado. Lo que quede en esta categoría es un resultado que de verdad no
+    ///     sabemos leer, y reiniciar con él dejaría el presupuesto sin dientes justo contra el
+    ///     bucle de fallos ilegibles, que es lo que el comentario de `esFallo` avisa de no hacer;
+    ///   - la PROSA, que ya no es la voz de ninguna herramienta registrada. Lo único que sigue
+    ///     llegando aquí sin ser JSON es el `DUPLICATE_CALL_IGNORED` del propio bucle, que no es
+    ///     una herramienta contestando: es el bucle atajando una repetición del modelo, y
     ///     reiniciar con él dejaría al modelo alternar fallo y repetición para siempre.
     ///
-    /// EL PRECIO, DECLARADO: un FALLO en prosa («memory unavailable», que es lo que `forget`
-    /// contesta cuando el servicio no está) ahora reinicia. No se puede distinguir de su éxito
-    /// sin tocar las seis herramientas, y entre matar turnos buenos y dejar un turno malo en
-    /// manos del tope de rondas, esto último es lo que no le cuesta nada al usuario. El arreglo
-    /// de raíz es que esas seis hablen el contrato `status`, y ya hay precedente en esta misma
-    /// rama (`resultadoDeHerramientaInexistente`).
+    /// LA FUNCIÓN SE QUEDA aunque hoy coincida con `esExito`, y no es ceremonia: es el punto
+    /// donde la decisión está escrita y el único sitio al que mirar el día que vuelva a aparecer
+    /// una herramienta de fuera del contrato. `esFallo` y `esExito` siguen siendo dos funciones
+    /// distintas por el mismo motivo.
     nonisolated static func reiniciaElPresupuesto(resultado: String) -> Bool {
-        if esExito(resultado: resultado) { return true }
-        if esFallo(resultado: resultado) { return false }
-        // Un OBJETO JSON cuyo `status` no se supo leer se queda en el tercer estado: no
-        // reinicia. Solo la prosa de una herramienta de fuera del contrato lo hace.
-        guard (try? JSONSerialization.jsonObject(with: Data(resultado.utf8))) as? [String: Any] == nil
-        else { return false }
-        return !resultado.hasPrefix(duplicadoIgnorado)
+        esExito(resultado: resultado)
     }
 
     /// Cuantas acciones seguidas pueden fallar antes de que el turno pare y se lo diga al

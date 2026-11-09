@@ -76,6 +76,7 @@ public struct ToolLogRow: View {
         "place_not_found", "not_in_catalog", "unknown_topic", "unsupported",
         "unsupported_kind", "limit_reached", "missing_fields", "name_taken",
         "no_phone_number", "period_in_past", "refused", "not_available",
+        "dry_run",
     ]
 
     /// LA FRASE DE LA APP CON LA QUE SE RESUME UN FALLO. Una por estado, fija, en español y
@@ -132,6 +133,11 @@ public struct ToolLogRow: View {
         "name_taken": "ese nombre ya existe",
         "no_phone_number": "no hay número de teléfono",
         "period_in_past": "esa fecha ya pasó",
+        // A to Z. El modo simulado viene ACTIVADO de fábrica (`AtoZConfig`), así que este es el
+        // camino NORMAL de una aceptación de turno: se validó todo y no se envió nada a Amazon.
+        // Ni «listo» —el turno no se cogió— ni «falló» —no se rompió nada—: lo que el usuario
+        // necesita saber es que no pasó de verdad, y que eso lo cambia él en Ajustes.
+        "dry_run": "no se hizo de verdad: era una prueba",
     ]
 
     /// La frase de la app para un estado de fallo. Nunca vacía: un estado sin frase propia cae

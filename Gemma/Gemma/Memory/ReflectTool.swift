@@ -11,6 +11,13 @@ struct ReflectTool: AgentTool {
         if let mem = await MemoryToolbox.shared.memory {
             _ = try? await mem.reflect()
         }
-        return "Reflecting in the background."
+        // `success` sin ramas, y es la verdad entera: lo único que esta herramienta promete es
+        // ENCOLAR la reflexión, y encolarla no puede fallar (el ping al servicio va con `try?` a
+        // propósito, para que el turno no dependa de él). Antes devolvía esta misma frase en
+        // prosa, y la fila del chat la pintaba con cruz roja.
+        return ToolJSONOutput.object([
+            "status": "success",
+            "message": "Reflexión encolada; corre en segundo plano. Acúsalo de pasada y sigue."
+        ])
     }
 }

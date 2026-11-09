@@ -398,9 +398,28 @@ struct CreateEventTool: AgentTool {
 }
 
 /// update_event — edit an existing event in place (time/title/location); never cancel+recreate.
+///
+/// LA QUE SE QUEDÓ FUERA DE SP1. El defecto 6 de la cabecera de este fichero —«Nada de esto
+/// tenía `status`. Devolvían prosa en inglés que el modelo tenía que interpretar»— se arregló en
+/// `check_schedule`, `create_event`, `query_schedule` y `cancel_events`, y esta se quedó
+/// contestando en prosa. Dos consecuencias, las dos en la cara del usuario: la fila del chat
+/// pintaba con CRUZ ROJA un cambio de agenda que había funcionado (lo que no es un objeto JSON
+/// cae en la rama de fallo de `ToolLogRow.summarize`), y el modelo tenía que adivinar en prosa
+/// la diferencia entre «no lo encontré», «hay varios» y «choca con otro» justo en una MUTACIÓN
+/// de la agenda. Los estados son los que ya usan sus cuatro hermanas.
 struct UpdateEventTool: AgentTool {
     static let name = "update_event"
-    static let description = "Edit an EXISTING calendar event in place — change its time, title, or location. Never cancel+recreate to make a change. Identify it by its CURRENT start (the time the user named) plus title when known."
+    static let description = """
+    Edit an EXISTING calendar event in place — change its time, title, or location. Never \
+    cancel+recreate to make a change. Identify it by its CURRENT start (the time the user \
+    named) plus title when known. Read 'status': 'success' = changed, 'event' is how it looks \
+    now; 'not_found' = no event matched, so NOTHING changed; 'ambiguous' = several events match \
+    that time, show 'ambiguous' and ask which one; 'conflict' = NOT changed because the new \
+    time clashes with the events in 'conflicts' — ask whether to reschedule, cancel the other, \
+    or apply anyway with force=true; 'missing_fields' = 'start' is missing; 'invalid_datetime' = \
+    'start' is not a readable local ISO datetime; 'memory_unavailable' or 'failed' = nothing \
+    changed, tell the user the event is as it was.
+    """
     static let parameters: [AgentToolParam] = [
         AgentToolParam(name: "start", type: .string, description: "The event's CURRENT local ISO start (the time the user referred to), e.g. 2099-06-09T15:00.", required: true),
         AgentToolParam(name: "title", type: .string, description: "The event's current title, to disambiguate if several share that time.", required: false),
@@ -413,8 +432,25 @@ struct UpdateEventTool: AgentTool {
     ]
     func run(argsJSON: String) async -> String {
         let o = obj(argsJSON)
-        guard let s = (o["start"] as? String).flatMap(ScheduleTime.epoch) else {
-            return "Which event? Tell me the time of the event you want to change (e.g. 2099-06-09T15:00)."
+        // SE DISTINGUE «NO LO MANDASTE» DE «NO SE ENTIENDE», igual que `ScheduleRange.parse`
+        // hace para sus hermanas. Las dos ramas salían por el mismo texto en prosa, así que el
+        // modelo no podía saber si tenía que PREGUNTARLE la hora al usuario o solo reescribir
+        // en ISO la que ya tenía.
+        let rawStart = ((o["start"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !rawStart.isEmpty else {
+            return ToolJSONOutput.object([
+                "status": "missing_fields",
+                "required": ["start"],
+                "message": "Falta 'start': la hora que el evento tiene AHORA, en ISO local (por ejemplo 2099-06-09T15:00). Pregúntale al usuario de qué evento habla; no lo adivines."
+            ])
+        }
+        guard let s = ScheduleTime.epoch(fromISO: rawStart, endOfDayIfDateOnly: false) else {
+            return ToolJSONOutput.object([
+                "status": "invalid_datetime",
+                "field": "start",
+                "received": rawStart,
+                "message": "No se entiende «\(rawStart)» como fecha y hora. Manda la hora que el evento tiene AHORA en ISO local, por ejemplo 2099-06-09T15:00."
+            ])
         }
         let title = (o["title"] as? String)?.trimmingCharacters(in: .whitespaces)
         let newStart = (o["newStart"] as? String).flatMap(ScheduleTime.epoch)
@@ -425,23 +461,48 @@ struct UpdateEventTool: AgentTool {
         let force = CancelAlarmTool.coerceBool(o["force"]) ?? false
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: title ?? ScheduleTime.human(fromEpoch: s)) }
         let result: String = await {
-            guard let m = await mem() else { return "memory unavailable" }
+            guard let m = await mem() else { return ScheduleToolSupport.memoryUnavailable("cambiar el evento") }
             do {
                 let r = try await m.updateEvent(start: s, title: (title?.isEmpty == false) ? title : nil,
                                                 newStart: newStart, newEnd: newEnd,
                                                 newTitle: (newTitle?.isEmpty == false) ? newTitle : nil,
                                                 location: location, allDay: allDay, force: force)
-                if r.notFound { return "I couldn't find that event — want me to check your schedule?" }
+                if r.notFound {
+                    return ToolJSONOutput.object([
+                        "status": "not_found",
+                        "searched_start": ScheduleTime.iso(fromEpoch: s),
+                        "searched_title": (title?.isEmpty == false) ? title : nil,
+                        "message": "No hay ningún evento ahí, así que NO se cambió nada. Ofrécele mirar su agenda; no le digas que lo moviste."
+                    ])
+                }
                 if !r.ambiguous.isEmpty {
-                    return "I found more than one event around then: " + r.ambiguous.map(eventLine).joined(separator: "; ") + ". Which one?"
+                    return ToolJSONOutput.object([
+                        "status": "ambiguous",
+                        "ambiguous": r.ambiguous.map { ScheduleToolSupport.row($0) },
+                        "message": "Hay \(r.ambiguous.count) eventos a esa hora y NO se cambió ninguno. Enséñaselos al usuario y pregúntale cuál es."
+                    ])
                 }
                 if !r.updated {
-                    return "NOT changed — the new time conflicts with: " + r.conflicts.map(eventLine).joined(separator: "; ")
-                         + ". Ask the user whether to reschedule, cancel the other event, or keep it anyway — if they confirm, call update_event again with force=true."
+                    return ToolJSONOutput.object([
+                        "status": "conflict",
+                        "conflicts": r.conflicts.map { ScheduleToolSupport.row($0) },
+                        "message": "NO se cambió: la hora nueva choca con \(r.conflicts.count) evento(s) que ya existen. Pregúntale al usuario si reprogramar, cancelar el otro, o cambiarlo igual — si lo confirma, vuelve a llamar con force=true."
+                    ])
                 }
-                if let e = r.event { return "Updated: \(eventLine(e))" }
-                return "Updated the event."
-            } catch { return "schedule error: \(error)" }
+                // `success` y no `updated`, a propósito: es el estado que `Agent.estadosDeExito`
+                // reconoce, así que una mutación que salió bien REINICIA el presupuesto de
+                // fallos del turno. Lo que cambió va en `event`, no en el nombre del estado.
+                return ToolJSONOutput.object([
+                    "status": "success",
+                    "event": r.event.map { ScheduleToolSupport.row($0) },
+                    "message": r.event.map { "Cambiado: \(eventLine($0))" } ?? "El evento quedó cambiado."
+                ])
+            } catch {
+                return ToolJSONOutput.object([
+                    "status": "failed",
+                    "message": "No se pudo cambiar el evento: \(error.localizedDescription). Dile al usuario que sigue como estaba."
+                ])
+            }
         }()
         await MainActor.run { ToolActivityRelay.shared.finished(name: Self.name, result: result) }
         return result

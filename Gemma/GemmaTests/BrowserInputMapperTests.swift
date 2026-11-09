@@ -355,25 +355,182 @@ final class BrowserInputMapperTests: XCTestCase {
                        CGPoint(x: 640, y: 360))
     }
 
+    /// LA TOLERANCIA TIENE QUE CABER LOS VIEWPORTS DE TELÉFONO, y por abajo es lo que la clava.
+    ///
+    /// POR QUÉ ESTA PRUEBA EXISTE. La medida de error del guarda de proporción es **asimétrica**:
+    /// la escala del servidor se estima solo con el ancho y el error se compara en píxeles de
+    /// alto, así que si `δw` y `δh` son los redondeos a entero de cada lado, lo que el guarda
+    /// mide es `δh − δw · (alto/ancho)` — el redondeo del ancho entra **multiplicado por la
+    /// proporción del viewport**. Con el viewport apaisado del escritorio eso es benigno; con un
+    /// viewport de teléfono, que es más alto que ancho, un píxel de redondeo del ancho se
+    /// convierte en dos o tres de error medido. Con la constante en 2.0 —el valor con el que este
+    /// fichero nació— los dos viewports de iPhone de abajo **se quedaban mudos con la imagen
+    /// perfecta**: el panel se ve bien, el usuario toca, y no se manda nada ni sale ningún error.
+    /// Uno de los dos se quedaba a **0.01 px** de la línea.
+    ///
+    /// Y EL TELÉFONO NO ES UN CASO HIPOTÉTICO: es el único cliente real que hay. Un `nil` aquí no
+    /// es prudencia, es el mando entero sin funcionar.
+    func test_la_tolerancia_cabe_los_viewports_de_telefono() {
+        // iPhone 414×896 con un fotograma de 280×608: error +2.010.
+        // 280/414 × 896 = 605.990, y el servidor manda 608.
+        let imagenDelTelefono = CGSize(width: 280, height: 608)
+        // El centro de la imagen cae en el centro de la página, exacto: 140 × 414/280 = 207 y
+        // 304 × 896/608 = 448, que es el centro de 414×896.
+        XCTAssertEqual(mapa(140, 304, vista: imagenDelTelefono, imagen: imagenDelTelefono,
+                            cable: .some(Cable(anchoDelViewport: 414, altoDelViewport: 896))),
+                       CGPoint(x: 207, y: 448))
+
+        // iPhone 390×844 con el mismo fotograma: error +2.051, el que se quedaba a 0.01 px.
+        // 280/390 × 844 = 605.949 contra 608. Y 140 × 390/280 = 195, 304 × 844/608 = 422.
+        XCTAssertEqual(mapa(140, 304, vista: imagenDelTelefono, imagen: imagenDelTelefono,
+                            cable: .some(Cable(anchoDelViewport: 390, altoDelViewport: 844))),
+                       CGPoint(x: 195, y: 422))
+    }
+
+    /// Y POR ARRIBA LA CLAVA ESTO, que es el caso que la tolerancia tiene que seguir cazando.
+    ///
+    /// El margen existe para detectar algo. Si la tubería de codificación alinea el ancho a un
+    /// múltiplo de 8 o de 16 —que es lo que hace cualquier codificador de vídeo, y lo que haría
+    /// un cambio de MJPEG a un codec— 1080 no es múltiplo de 16 y se iría a 1088 o a 1072. Eso
+    /// **no es el viewport escalado**: 1088/1280 × 720 = 612 contra los 608 que llegan, cuatro
+    /// píxeles, y 1072 da 603 contra 608, cinco. No se puede mapear, así que el mando se queda
+    /// mudo entero — a propósito, y dicho en el fuente — y el arreglo de ese día no es subir la
+    /// constante, es rediseñar el guarda a tolerancia relativa.
+    ///
+    /// Esta prueba y la de arriba son el par que fija el intervalo de la constante en
+    /// **[2.052, 4.0)**. Sin la de arriba se puede bajar a 2 y dejar mudo al teléfono; sin esta
+    /// se puede subir a 8 y empezar a estirar fotogramas que no son el viewport.
+    func test_la_tolerancia_sigue_cazando_la_alineacion_a_multiplo_de_16() {
+        let vista = CGSize(width: 1080, height: 608)
+        XCTAssertNil(mapa(10, 10, vista: vista, imagen: CGSize(width: 1088, height: 608)))
+        XCTAssertNil(mapa(10, 10, vista: vista, imagen: CGSize(width: 1072, height: 608)))
+    }
+
     // MARK: la ausencia
 
     /// Aquí no se registra nada. El mapa no ve la tecla, pero sí ve **dónde** toca el usuario, y
-    /// un rastro de coordenadas sobre un teclado en pantalla reconstruye una contraseña. Vale la
-    /// misma regla que en `BrowserInputEvents`: este fichero no tiene ningún camino que escriba
-    /// un valor de entrada en ninguna parte.
-    func test_el_mapa_no_registra_nada() throws {
+    /// un rastro de coordenadas sobre un teclado en pantalla reconstruye una contraseña igual de
+    /// bien que el teclado mismo. Vale la misma regla que en `BrowserInputEvents`: este fichero
+    /// no tiene ningún camino que escriba un valor de entrada en ninguna parte.
+    ///
+    /// ESTA PRUEBA ERA UNA LISTA NEGRA Y ERA FALSA SEGURIDAD. Afirmaba que el fuente no contiene
+    /// ninguna de ocho palabras (`PanelLog`, `print(`, `NSLog`, `os_log`, `Logger`, `OSLog`,
+    /// `FileHandle`, `debugPrint`). Eso es el patrón «aserción por palabras clave», que **falla
+    /// con la frase correcta y pasa con la incorrecta**, y un revisor lo midió: con la lista
+    /// negra pasaban VERDES seis fugas reales de las coordenadas —
+    ///
+    ///     UserDefaults.standard.set("\(punto.x),\(punto.y)", forKey: …)   ← PASABA
+    ///     NSUbiquitousKeyValueStore.default.set("\(punto)", forKey: …)    ← PASABA
+    ///     try? "\(punto)".write(to: URL(fileURLWithPath: …), …)           ← PASABA
+    ///     fputs("\(punto.x) \(punto.y)\n", stderr)                        ← PASABA
+    ///     NotificationCenter.default.post(name: …, userInfo: ["p": punto])← PASABA
+    ///     un acumulador `static var rastro: [CGPoint]` con `append(punto)`← PASABA
+    ///
+    /// — y la primera es la que importa, porque `UserDefaults` es la API de persistencia **más
+    /// usada** de `Gemma/Gemma/Harness/` y es donde ya vive el token de conducir: es el sitio más
+    /// probable donde alguien pondría un rastro «solo para depurar», y se queda en el disco del
+    /// teléfono sin cifrar. Peor aún, la mutación que mataba esta prueba (`print(…)`) salía de su
+    /// **propia lista**, así que medía el arnés y no la producción.
+    ///
+    /// SE INVIERTE: LISTA BLANCA. Se afirma qué identificadores PUEDE contener el fichero, no
+    /// cuáles no. Una lista negra solo prueba que no está lo que a alguien se le ocurrió nombrar;
+    /// una lista blanca prueba que no hay NADA más. Cualquier fuga —de las seis de arriba o de
+    /// las que nadie ha imaginado— necesita nombrar algo: un tipo, una función global, una
+    /// propiedad, un `var` donde acumular. Todas esas son identificadores nuevos y todas ponen
+    /// esta prueba roja.
+    ///
+    /// EL PRECIO, dicho por delante y aceptado: el día que esta función gane una API legítima,
+    /// esta prueba se pondrá roja y alguien tendrá que mirar lo que se añadió y meterlo en la
+    /// lista a mano. Eso es **ruido visible en vez de silencio**, y es el intercambio que se
+    /// quiere: el fallo de una lista blanca es molesto y se ve; el de una lista negra es una fuga
+    /// de la posición de cada tecla y no se ve.
+    func test_el_mapa_solo_usa_identificadores_permitidos() throws {
         let fuente = try fuenteDeProduccion()
-        // Guarda de vacuidad: la aserción de abajo es una AUSENCIA y pasaría sola si el fichero
-        // estuviera vacío o la ruta estuviera mal. Primero, que sea el fichero de verdad.
+
+        // Guarda de vacuidad 1: que la ruta apunte al fichero de verdad. Todas las aserciones de
+        // esta prueba son AUSENCIAS y pasarían solas con el fichero vacío o la ruta mal.
         for ancla in ["enum BrowserInputMapper", "func paginaDesde", "DimensionesDelCable"] {
             XCTAssertTrue(fuente.contains(ancla),
                           "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
         }
-        for registro in ["PanelLog", "print(", "NSLog", "os_log", "Logger", "OSLog",
-                         "FileHandle", "debugPrint"] {
-            XCTAssertFalse(fuente.contains(registro),
-                           "el mapa no puede registrar nada: la coordenada delata la tecla (\(registro))")
+
+        let usados = Self.identificadoresDe(fuente: fuente)
+
+        // Guarda de vacuidad 2: que la extracción haya extraído algo, y algo reconocible. Sin
+        // esto, un fallo del troceado (un comentario mal cortado, un cambio de formato) daría un
+        // conjunto vacío, que está contenido en cualquier lista blanca, y la prueba pasaría sin
+        // haber mirado nada. Se exige el identificador de la función y un volumen plausible.
+        XCTAssertTrue(usados.contains("paginaDesde"),
+                      "el troceado de identificadores no funciona: no encuentra ni `paginaDesde`")
+        XCTAssertGreaterThan(usados.count, 40,
+                             "el troceado de identificadores devolvió \(usados.count): no ha leído el fichero")
+
+        let deMas = usados.subtracting(Self.identificadoresPermitidos).sorted()
+        XCTAssertEqual(deMas, [],
+                       """
+                       el mapa usa identificadores que no están en la lista blanca: \(deMas).
+                       Si son legítimos, añádelos a `identificadoresPermitidos` A MANO y mira dos \
+                       veces que ninguno escribe, persiste, notifica ni acumula la coordenada: el \
+                       mapa ve DÓNDE toca el usuario, y eso delata la tecla.
+                       """)
+    }
+
+    /// Los identificadores que el fichero de producción puede contener. Son los que tiene hoy, y
+    /// ni uno más: tipos de `CoreGraphics`/`Foundation` que la función necesita, palabras clave
+    /// de Swift, y los nombres locales de la aritmética. **Ninguno escribe, persiste, notifica ni
+    /// acumula nada**, que es la propiedad que esta lista existe para conservar.
+    private static let identificadoresPermitidos: Set<String> = [
+        // tipos e importaciones
+        "BrowserInputMapper", "CGPoint", "CGSize", "CoreGraphics", "DimensionesDelCable",
+        "Double", "Equatable", "Foundation", "Int",
+        // palabras clave de Swift y miembros del lenguaje
+        "else", "enum", "func", "guard", "import", "init", "let", "nil", "public", "return",
+        "self", "static", "struct",
+        // las tres funciones puras de aritmética que se usan, todas sin efectos
+        "abs", "isFinite", "max", "min", "rounded",
+        // los nombres de la API pública
+        "paginaDesde", "toleranciaDeProporcion", "anchoDelViewport", "altoDelViewport",
+        "punto", "tamañoDeLaVista", "tamañoDeLaImagen", "dimensionesDelCable",
+        // accesos a los dos `CGSize`/`CGPoint` de la entrada
+        "width", "height", "x", "y",
+        // los nombres locales de las tres escalas
+        "cable", "anchoDeLaImagen", "altoDeLaImagen", "anchoDeLaVista", "altoDeLaVista",
+        "escalaDelServidor", "altoQueTocaria", "escalaDeDibujo", "anchoDibujado", "altoDibujado",
+        "margenIzquierdo", "margenSuperior", "xRelativa", "yRelativa",
+        "xDeLaImagen", "yDeLaImagen", "xDelViewport", "yDelViewport",
+    ]
+
+    /// Los identificadores de un fuente Swift, **sin los comentarios**.
+    ///
+    /// Los comentarios se quitan porque son prosa y meterían cientos de palabras en el conjunto,
+    /// que es justo lo que haría inútil la lista blanca. Cortar por `//` hasta el fin de línea es
+    /// seguro en ESTE fichero porque no tiene ni una cadena literal —no hay ningún `//` que
+    /// pueda vivir dentro de un literal— y eso lo comprueba la propia lista blanca: una cadena
+    /// nueva traería identificadores nuevos o rompería el troceado, y el guarda de vacuidad 2 lo
+    /// caza. El troceado reconoce letras Unicode a propósito: los identificadores de este
+    /// proyecto llevan `ñ` (`tamañoDeLaVista`) y partirlos daría trozos que no están en la lista.
+    private static func identificadoresDe(fuente: String) -> Set<String> {
+        let sinComentarios = fuente.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { linea -> String in
+                guard let corte = linea.range(of: "//") else { return String(linea) }
+                return String(linea[linea.startIndex..<corte.lowerBound])
+            }
+            .joined(separator: "\n")
+
+        var encontrados: Set<String> = []
+        var actual = ""
+        for caracter in sinComentarios.unicodeScalars {
+            let esLetra = CharacterSet.letters.contains(caracter)
+            let esDigito = CharacterSet.decimalDigits.contains(caracter)
+            if esLetra || caracter == "_" || (!actual.isEmpty && esDigito) {
+                actual.unicodeScalars.append(caracter)
+            } else {
+                if !actual.isEmpty { encontrados.insert(actual) }
+                actual = ""
+            }
         }
+        if !actual.isEmpty { encontrados.insert(actual) }
+        return encontrados
     }
 }
 

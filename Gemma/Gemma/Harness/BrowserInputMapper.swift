@@ -95,11 +95,43 @@ public enum BrowserInputMapper {
     ///
     /// NO ES COSMÉTICA. 1080/1280 × 720 = 607.5 y el demonio manda 608: medio píxel de
     /// desajuste, medido, porque el tamaño del fotograma es entero. Exigir proporción exacta
-    /// dejaría el panel sin mandar nunca nada — el `nil` inútil, que también es un fallo. Dos
-    /// píxeles cubren ese redondeo y el redondeo a un tamaño par que hacen algunos
-    /// codificadores, y dos píxeles de imagen son ~2.4 píxeles de viewport con los tamaños
-    /// medidos: menos de lo que un dedo distingue. Un recorte de verdad se va por decenas.
-    public static let toleranciaDeProporcion: Double = 2.0
+    /// dejaría el panel sin mandar nunca nada — el `nil` inútil, que también es un fallo, solo
+    /// que silencioso. Un recorte de verdad se va por decenas.
+    ///
+    /// POR QUÉ 3 Y NO 2, QUE ES EL VALOR CON EL QUE ESTO NACIÓ. Porque **la medida de error de
+    /// este guarda es asimétrica** y 2 dejaba mudo al único cliente real que hay, que es el
+    /// teléfono. La escala del servidor se estima **solo con el ancho**, y el error que se
+    /// compara está en píxeles de **alto**; si `δw` y `δh` son los dos redondeos que hace el
+    /// servidor al pasar cada lado a entero, lo que mide el guarda es:
+    ///
+    ///     error = δh − δw · (altoDelViewport / anchoDelViewport)
+    ///
+    /// El redondeo del alto entra tal cual, pero **el del ancho entra multiplicado por la
+    /// proporción del viewport**. Con el viewport apaisado del escritorio (720/1280 = 0.5625)
+    /// eso es benigno. Con un viewport de teléfono, que es más alto que ancho, un solo píxel de
+    /// redondeo del ancho se convierte en dos o tres píxeles de error medido, y el guarda
+    /// rechaza una imagen que es una foto perfectamente correcta del viewport:
+    ///
+    ///     viewport 414×896 (iPhone), imagen 280×608  →  error +2.010  →  con 2.0, MUDO
+    ///     viewport 390×844 (iPhone), imagen 280×608  →  error +2.051  →  con 2.0, MUDO
+    ///     viewport 1280×720 (hoy),   imagen 1080×608 →  error  +0.50  →  pasa con las dos
+    ///
+    /// Diez milésimas de píxel separaban «el usuario teclea su contraseña» de «el panel se ve
+    /// perfecto y el teléfono no manda ni un toque, sin un mensaje de error en ninguna parte».
+    /// Las dos imágenes de teléfono de ahí arriba se desvían un 0.33 % de la proporción: son
+    /// invisibles al ojo y correctas. Con 3 pasan.
+    ///
+    /// Y POR QUÉ NO MÁS DE 3. El margen existe para detectar algo, y hay un caso realista que
+    /// **tiene** que seguir cayendo: si la tubería de codificación alinea el ancho a un múltiplo
+    /// de 8 o de 16 —que es lo que hace cualquier codificador de vídeo—, 1080 se iría a 1088 o a
+    /// 1072 y el error sería de 4 o de 5 píxeles. Eso NO es el viewport escalado y no se puede
+    /// mapear, así que el mando se queda mudo entero, a propósito y documentado. Ese día el
+    /// arreglo no es subir esta constante: es mirar la forma relativa del guarda (comparar las
+    /// dos escalas por eje con tolerancia en tanto por ciento), que es un rediseño y cambia una
+    /// prueba. Las pruebas de este fichero clavan la constante en el intervalo medido
+    /// **[2.052, 4.0)**: por debajo de 2.052 los dos teléfonos se quedan mudos, y a partir de
+    /// 4.0 pasa el caso de alineación a múltiplo de 16.
+    public static let toleranciaDeProporcion: Double = 3.0
 
     /// La coordenada del viewport remoto que corresponde a un punto de la vista, o `nil` si no
     /// se puede saber con certeza.
@@ -121,13 +153,20 @@ public enum BrowserInputMapper {
 
         // ── Escala 1: el viewport. Sin él no hay nada que calcular.
         guard let cable = dimensionesDelCable else { return nil }
-        // ESTE GUARDA NO LO PUEDE MATAR NINGUNA PRUEBA, y está medido: quitarlo deja la suite
-        // entera verde. Lo subsume el guarda de «la imagen no es mayor que el viewport» de más
-        // abajo — con un viewport de 0 o negativo, cualquier imagen de un píxel o más ya es
-        // mayor que él, así que el resultado es `nil` igual. Se queda a propósito: dice el
-        // contrato (`viewport_width >= 1`) donde se lee, y es lo único que seguiría protegiendo
-        // si alguien reordenara los guardas o tocara el de más abajo. La justificación de por
-        // qué sobrevivir es correcto aquí está en el informe de la tarea.
+        // NINGUNA PRUEBA PUEDE MATAR ESTE GUARDA POR SEPARADO, y es demostrable, no una
+        // observación de una corrida concreta: cuando se llega al guarda de «la imagen no es
+        // mayor que el viewport», el guarda del tamaño de la imagen ya garantiza
+        // `anchoDeLaImagen >= 1` y `altoDeLaImagen >= 1`; si cualquiera de los dos lados del
+        // viewport es <= 0, entonces `imagen >= 1 > 0 >= viewport` en ese eje y aquel guarda
+        // devuelve `nil`. Y como el cable es `Int`, no hay valores intermedios entre 0 y 1 por
+        // los que escapar. El resultado observable es el mismo con y sin esta línea.
+        //
+        // SE QUEDA, por dos motivos que no caducan. Dice el contrato (`viewport_width >= 1`)
+        // donde se lee. Y es lo único que seguiría protegiendo si alguien reordenara los guardas
+        // o tocara el de más abajo — y lo que sale de esta función sin los dos no es un cero
+        // inocuo: con `anchoDelViewport = 0`, el recorte final `min(max(x, 0), ancho - 1)`
+        // produce **−1**, una coordenada negativa. Las cifras de las mutaciones están en el
+        // informe de la tarea, que lleva fecha; aquí queda solo el argumento.
         guard cable.anchoDelViewport >= 1, cable.altoDelViewport >= 1 else { return nil }
         let anchoDelViewport = Double(cable.anchoDelViewport)
         let altoDelViewport = Double(cable.altoDelViewport)
@@ -150,8 +189,34 @@ public enum BrowserInputMapper {
         // Y tiene que ser una escala UNIFORME, no un recorte. Por el cable no viaja ningún
         // desplazamiento, así que un recorte no se puede corregir: multiplicar por una
         // proporción lo estiraría y el usuario pulsaría otra cosa, en silencio. Lo único que se
-        // puede hacer es detectarlo y callarse, y la huella que deja un recorte es que la
-        // proporción de la imagen deja de ser la del viewport.
+        // puede hacer es detectarlo y callarse.
+        //
+        // LO QUE ESTE GUARDA DETECTA, Y LO QUE **NO** PUEDE DETECTAR. Esto es media protección y
+        // hay que leerlo entero, porque la versión corta —«la huella que deja un recorte es que
+        // la proporción de la imagen deja de ser la del viewport»— es FALSA para el recorte más
+        // probable, y una promesa falsa en un comentario es peor que ningún comentario: el
+        // siguiente construye encima de ella.
+        //
+        //   SÍ detecta el recorte que CAMBIA la proporción (un recorte no uniforme, o cualquier
+        //   región cuya forma no sea la del viewport). Ése se va por decenas de píxeles de
+        //   error medido y cae.
+        //
+        //   NO detecta el recorte que CONSERVA la proporción, y ése es justamente el que
+        //   produciría la caja de topes de hoy, porque los topes (1080×608) tienen ya la
+        //   proporción del viewport (1.776 contra 1.778). Si el demonio dejara de escalar y
+        //   recortara una región centrada de 1080×608 de un viewport de 1280×720, por el cable
+        //   llegaría EXACTAMENTE lo que llega hoy —cable 1280×720, imagen 1080×608—, el error
+        //   medido sería 0.5 px y este guarda lo dejaría pasar. El punto (0, 0) se mapearía a
+        //   (0, 0) cuando la verdad es (100, 56): cien píxeles de error horizontal, en
+        //   silencio, con todo verde.
+        //
+        // ESE AGUJERO NO SE PUEDE CERRAR DESDE AQUÍ, y no es una excusa: es una consecuencia de
+        // lo que viaja por el cable. Para distinguir un recorte conservador de una escala hace
+        // falta el ORIGEN del fotograma, y el mensaje `frame` no lo trae (la Tarea 2 dejó fuera
+        // `scrollOffsetX`/`scrollOffsetY` a propósito, y no hay ningún campo de origen del
+        // recorte). Cerrarlo exige dos campos nuevos en el cable, o sea tocar el relé, que es
+        // una decisión que no es de esta función. Queda escrito aquí como riesgo conocido: si
+        // algún día alguien hace que el demonio recorte, este mapa NO avisará.
         let escalaDelServidor = anchoDeLaImagen / anchoDelViewport
         let altoQueTocaria = escalaDelServidor * altoDelViewport
         guard abs(altoDeLaImagen - altoQueTocaria) <= toleranciaDeProporcion else { return nil }
@@ -159,14 +224,29 @@ public enum BrowserInputMapper {
         // ── Escala 3: el rectángulo que SwiftUI dibuja de verdad dentro del marco.
         // `.scaledToFit()` = lo más grande que quepa con la proporción intacta, centrado.
         //
-        // ESTE GUARDA Y EL DE LA ESCALA DE DIBUJO SE TAPAN EL UNO AL OTRO, y está medido:
-        // quitar cualquiera de los dos —uno solo— deja la suite entera verde, porque el que
-        // queda atrapa todos los casos del otro (una vista de 0 da escala 0; una no finita da
-        // escala no finita o un margen infinito que saca el punto del rectángulo dibujado).
-        // Quitar los dos sí rompe. Se quedan los dos a propósito: así la seguridad de esta
-        // función no depende de que las comparaciones con `NaN` sean todas falsas, que es
-        // verdad pero es un detalle que nadie recuerda al editar. El argumento completo de por
-        // qué sobrevivir es correcto aquí está en el informe de la tarea.
+        // ESTE GUARDA Y EL DE LA ESCALA DE DIBUJO SE TAPAN CASI DEL TODO EL UNO AL OTRO, y
+        // «casi» es la palabra que importa. Ninguna prueba mata a uno de los dos por separado,
+        // porque el que queda atrapa los casos del otro: una vista de 0 o negativa da una escala
+        // de dibujo no positiva; una vista `NaN` o `+∞` en un solo eje deja pasar la escala
+        // —ojo, `Swift.min(1, NaN)` devuelve **1**, porque está definido como `y < x ? y : x`—
+        // pero entonces el margen de ese eje sale `NaN` o `∞` y el recorte al rectángulo
+        // dibujado rechaza el punto. Quitar los dos a la vez sí rompe, y con la peor salida
+        // posible: vista 0×0 con el punto en el origen da `CGPoint(NaN, NaN)`, que no es `nil`
+        // y que el llamante mandaría como coordenada.
+        //
+        // Y EL DE LA ESCALA DE DIBUJO NO ES EQUIVALENTE, aunque sobreviva. La etiqueta honesta
+        // es «no distinguible por ninguna entrada ALCANZABLE», que es más débil, y la entrada
+        // que lo distingue existe: punto 5e-311, vista 1e-310 × 1e-310, imagen y cable 1e18 ×
+        // 1e18. Ahí `1e-310 / 1e18` **subdesborda a 0** sin que ninguno de los dos operandos sea
+        // cero ni no finito, así que la vista pasa su propio guarda y la escala de dibujo vale 0;
+        // sin esta línea el rectángulo dibujado es 0×0, el punto cae dentro, y sale
+        // `CGPoint(NaN, NaN)`. No es alcanzable —SwiftUI no da vistas subnormales y el cable no
+        // trae viewports de 10^18— pero no es lo mismo que ser equivalente.
+        //
+        // SE QUEDAN LOS DOS, y el subdesbordamiento es la razón de que sea redundancia útil y no
+        // duplicado: cada uno cubre un subdominio que el otro no cubre del todo. Así la
+        // seguridad de esta función no depende de que las comparaciones con `NaN` sean todas
+        // falsas, que es verdad pero es un detalle que nadie recuerda al editar.
         guard tamañoDeLaVista.width.isFinite, tamañoDeLaVista.height.isFinite,
               tamañoDeLaVista.width > 0, tamañoDeLaVista.height > 0 else { return nil }
         let anchoDeLaVista = Double(tamañoDeLaVista.width)

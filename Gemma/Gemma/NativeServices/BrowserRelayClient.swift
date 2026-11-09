@@ -30,7 +30,21 @@ public nonisolated enum QuienConduce: Equatable, Sendable {
 /// Lo que el relé del i3 puede decirle al visor. Siete casos, ninguno con sitio
 /// para parámetros de acciones: ni programando mal se podría transportar un secreto.
 public nonisolated enum BrowserRelayEvent: Equatable, Sendable {
-    case frame(seq: Int, jpeg: Data, capturedAt: Date)
+    /// Un fotograma, con **el tamaño del viewport remoto que lo produjo**.
+    ///
+    /// POR QUÉ EL VIEWPORT VIAJA PEGADO AL FOTOGRAMA Y NO APARTE. Es el único dato que el
+    /// cliente no puede deducir: tiene el tamaño en píxeles del JPEG que decodifica, pero no el
+    /// del espacio en que la página mide sus coordenadas, y sin los dos no se puede mapear un
+    /// toque (`BrowserInputMapper.paginaDesde`). Y tiene que viajar **en el mismo valor** que el
+    /// JPEG que describe: el flujo tiene búfer `.bufferingNewest(64)`, así que un evento
+    /// separado se puede perder solo y dejar unas dimensiones emparejadas con otra imagen — que
+    /// es un toque mal mapeado, o sea un clic en otro botón de la cuenta del usuario.
+    ///
+    /// `nil` es el caso NORMAL, no el raro: el relé manda `viewport_width`/`viewport_height`
+    /// **o ninguno de los dos** (`browser/stream.py:310-313`, y los omite cuando no son enteros
+    /// ≥ 1), y un servidor sin desplegar no los manda en absoluto. `nil` significa «no se puede
+    /// mapear», y el mapa lo convierte en «no mandes nada».
+    case frame(seq: Int, jpeg: Data, capturedAt: Date, viewport: BrowserInputMapper.DimensionesDelCable?)
     case narration(String)
     case host(String)
     case state(live: Bool, collapsed: Bool)
@@ -210,7 +224,24 @@ public actor BrowserRelayClient {
                   // El relé puede pasar base64 envuelto en líneas; sin esto el panel quedaría negro.
                   let jpeg = Data(base64Encoded: b64, options: .ignoreUnknownCharacters),
                   let seconds = (object["captured_at"] as? NSNumber)?.doubleValue else { return nil }
-            return .frame(seq: seq, jpeg: jpeg, capturedAt: Date(timeIntervalSince1970: seconds))
+            // LAS DOS DIMENSIONES, O NINGUNA. Un lado solo no sirve para nada —no se puede
+            // deshacer una escala con media proporción— y aceptarlo sería dejar que un cliente
+            // mapeara con un dato a medias. El relé ya manda las dos o ninguna; aquí no se
+            // confía en eso, porque un cliente que asume el invariante del servidor se rompe el
+            // día que el servidor cambie.
+            //
+            // AQUÍ NO HAY GUARDA DE «ABSURDO» (cero, negativo), Y ES A PROPÓSITO. Ese guarda ya
+            // existe, una sola vez, en `BrowserInputMapper.paginaDesde`, que es quien decide si
+            // se puede mapear. Repetirlo aquí dejaría una condición que ninguna prueba puede
+            // matar por separado, y la duplicada es la que se olvidaría de actualizar.
+            var viewport: BrowserInputMapper.DimensionesDelCable?
+            if let ancho = (object["viewport_width"] as? NSNumber)?.intValue,
+               let alto = (object["viewport_height"] as? NSNumber)?.intValue {
+                viewport = BrowserInputMapper.DimensionesDelCable(anchoDelViewport: ancho,
+                                                                  altoDelViewport: alto)
+            }
+            return .frame(seq: seq, jpeg: jpeg, capturedAt: Date(timeIntervalSince1970: seconds),
+                          viewport: viewport)
         case "narration":
             return (object["text"] as? String).map { .narration($0) }
         case "host":
@@ -442,7 +473,7 @@ public actor BrowserRelayClient {
                     break
                 }
                 guard let texto, var event = Self.decode(texto) else { continue }
-                if case .frame(let seq, _, _) = event {
+                if case .frame(let seq, _, _, _) = event {
                     gotFrame = true
                     // El demonio ignora en silencio lo que no entiende: un acuse que no
                     // llega solo se vería como frames que dejan de llegar. Si el envío

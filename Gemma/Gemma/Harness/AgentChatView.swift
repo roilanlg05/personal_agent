@@ -348,7 +348,11 @@ struct AgentChatView: View {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach($model.agentLog) { $entry in
                         ChatLogRow(entry: $entry,
-                                   panel: entry.panelID.flatMap { model.browserPanels.panels[$0] })
+                                   panel: entry.panelID.flatMap { model.browserPanels.panels[$0] },
+                                   // El volante del panel de ESTA fila. Un panel retirado ya no
+                                   // tiene, así que las filas del historial salen con el botón
+                                   // apagado, que es la verdad: por ese socket ya no sale nada.
+                                   mando: entry.panelID.flatMap { model.browserPanels.mando(de: $0) })
                             .id(entry.id)
                     }
                     Color.clear.frame(height: 75)
@@ -571,6 +575,8 @@ struct ChatLogRow: View {
     @Binding var entry: ChatLogEntry
     /// Estado del panel de navegador de esta fila; `nil` si no es una fila de panel o ya no existe.
     let panel: BrowserPanelState?
+    /// El volante de ese panel; `nil` si ya se retiró o si no hay relé configurado.
+    let mando: MandoDelNavegador?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -590,7 +596,7 @@ struct ChatLogRow: View {
                 ToolLogRow(entry: $entry)
 
             case "browserPanel":
-                if let panel { BrowserPanelView(state: panel) }
+                if let panel { BrowserPanelView(state: panel, mando: mando) }
 
             case "system":
                 HStack {

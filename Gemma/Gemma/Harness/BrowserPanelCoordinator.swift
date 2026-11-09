@@ -13,10 +13,28 @@ import Foundation
 /// el puente real con `BrowserRelayClient` vive fuera de aquí.
 @MainActor
 public final class BrowserPanelCoordinator {
-    public typealias StreamFactory = @MainActor () -> AsyncStream<BrowserRelayEvent>?
+    /// Un visor del relé: el flujo de eventos y **el volante que sale por el mismo socket**.
+    ///
+    /// POR QUÉ VIAJAN JUNTOS. El relé identifica al portador del mando por su socket, así que la
+    /// entrada del usuario tiene que salir por el MISMO socket por el que llegan los fotogramas.
+    /// Antes `makeRelayStream` devolvía solo el flujo y construía el cliente dentro: la única
+    /// referencia viva que quedaba era la de su `onTermination`, de modo que **nadie podía pedir
+    /// el volante**. Emparejarlos aquí es lo que lo arregla, y este coordinador es el único sitio
+    /// que conoce los dos, porque ya empareja panel con flujo.
+    public typealias VisorDelRele = (flujo: AsyncStream<BrowserRelayEvent>, mando: MandoDelNavegador)
+    public typealias StreamFactory = @MainActor () -> VisorDelRele?
 
     /// Todos los paneles, también los congelados: siguen en el historial del chat.
     public private(set) var panels: [String: BrowserPanelState] = [:]
+    /// El volante de cada panel VIVO.
+    ///
+    /// SE SUELTA AL RETIRAR EL PANEL, y eso no es limpieza: es el ciclo de vida del socket. Los
+    /// paneles se quedan en `panels` para siempre (son el historial del chat), así que guardar
+    /// aquí el cliente del relé sin soltarlo mantendría vivo un visor por cada panel que el
+    /// usuario haya visto, y el visor cuesta del orden de 10 Mbit/s contra el servidor casero
+    /// mientras dure. Un panel retirado no puede conducir de todas formas: `freeze()` devuelve el
+    /// volante al agente.
+    private var mandos: [String: MandoDelNavegador] = [:]
     /// El panel del turno en curso; `nil` entre turnos.
     public private(set) var activeID: String?
 
@@ -66,10 +84,11 @@ public final class BrowserPanelCoordinator {
             PanelLog.note("openIfNeeded(\(toolName)): ya hay panel activo \(PanelLog.corto(activeID)), no se abre otro")
             return nil
         }
-        guard let stream = makeStream() else {
+        guard let visor = makeStream() else {
             PanelLog.note("openIfNeeded(\(toolName)): sin flujo (relé no configurado), no hay panel")
             return nil
         }
+        let stream = visor.flujo
         // El panel de este turno hereda lo que se sabía: si había uno vivo, el navegador estaba
         // abierto, y así sigue hasta que un `browser_close` EXITOSO diga lo contrario. Empezar
         // en «cerrado» congelaría la ventana de un video que sigue sonando cuando el primer
@@ -83,6 +102,7 @@ public final class BrowserPanelCoordinator {
         let id = UUID().uuidString
         let state = BrowserPanelState()
         panels[id] = state
+        mandos[id] = visor.mando
         activeID = id
         PanelLog.note("panel \(PanelLog.corto(id)) abierto por \(toolName); navegadorAbierto heredado=\(browserLeftOpen)")
         consumers[id] = Task { @MainActor [weak self, weak state] in
@@ -103,8 +123,19 @@ public final class BrowserPanelCoordinator {
             }
             // El id es único por panel, así que esta entrada es la de esta tarea.
             self?.consumers[id] = nil
+            // El flujo terminó: el cliente se rindió tras sus reintentos o el relé cerró para
+            // siempre. Por ese socket ya no sale ninguna pulsación, así que el volante se suelta
+            // aquí también y no solo en `retire`.
+            self?.mandos[id] = nil
         }
         return id
+    }
+
+    /// El volante del panel `id`, o `nil` si ese panel no existe, ya se retiró, o se abrió sin
+    /// relé configurado. Es lo que la vista usa para pedir el volante y mandar lo que el usuario
+    /// teclea.
+    public func mando(de id: String) -> MandoDelNavegador? {
+        mandos[id]
     }
 
     /// Resultado de una herramienta de navegador: aquí se decide si el navegador quedó abierto.
@@ -196,6 +227,10 @@ public final class BrowserPanelCoordinator {
         panels[id]?.freeze()
         consumers[id]?.cancel()
         consumers[id] = nil
+        // El panel se queda en `panels` (es historial) pero su volante NO: cancelar el consumidor
+        // termina el flujo, y el `onTermination` del flujo cierra el socket. Si el cliente
+        // siguiera referenciado desde aquí, se quedaría vivo uno por panel visto.
+        mandos[id] = nil
     }
 
     private nonisolated static let closeToolName = "browser_close"

@@ -17,7 +17,7 @@ final class AvisoDeLaAppEnElTranscriptoTests: XCTestCase {
 
     private func makeModel() -> (HarnessModel, AsyncStream<BrowserRelayEvent>.Continuation) {
         let (stream, cont) = AsyncStream<BrowserRelayEvent>.makeStream()
-        return (HarnessModel(browserPanels: BrowserPanelCoordinator(stream: { stream })), cont)
+        return (HarnessModel(browserPanels: BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) })), cont)
     }
 
     private func turn(_ events: [AgentEvent]) -> AsyncThrowingStream<AgentEvent, Error> {

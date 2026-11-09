@@ -14,7 +14,7 @@ final class BrowserPanelHarnessWiringTests: XCTestCase {
     private func makeModel(idle: Duration = BrowserPanelCoordinator.defaultLiveIdleLimit)
         -> (HarnessModel, AsyncStream<BrowserRelayEvent>.Continuation) {
         let (stream, cont) = AsyncStream<BrowserRelayEvent>.makeStream()
-        let model = HarnessModel(browserPanels: BrowserPanelCoordinator(stream: { stream }, liveIdleLimit: idle))
+        let model = HarnessModel(browserPanels: BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) }, liveIdleLimit: idle))
         return (model, cont)
     }
 

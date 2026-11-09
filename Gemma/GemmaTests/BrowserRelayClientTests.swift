@@ -26,7 +26,7 @@ final class BrowserRelayClientTests: XCTestCase {
     func test_decodifica_frame_con_el_jpeg_en_bytes() throws {
         let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0])
         let text = #"{"type":"frame","seq":41,"jpeg":"\#(jpeg.base64EncodedString())","captured_at":1793996915.607}"#
-        guard case .frame(let seq, let bytes, let at) = try XCTUnwrap(BrowserRelayClient.decode(text))
+        guard case .frame(let seq, let bytes, let at, _) = try XCTUnwrap(BrowserRelayClient.decode(text))
         else { return XCTFail("esperaba .frame") }
         XCTAssertEqual(seq, 41)
         XCTAssertEqual(bytes, jpeg)
@@ -39,7 +39,7 @@ final class BrowserRelayClientTests: XCTestCase {
         let wrapped = jpeg.base64EncodedString(options: [.lineLength64Characters, .endLineWithLineFeed])
         let escaped = wrapped.replacingOccurrences(of: "\n", with: "\\n")
         let text = #"{"type":"frame","seq":2,"jpeg":"\#(escaped)","captured_at":5}"#
-        guard case .frame(_, let bytes, _) = try XCTUnwrap(BrowserRelayClient.decode(text))
+        guard case .frame(_, let bytes, _, _) = try XCTUnwrap(BrowserRelayClient.decode(text))
         else { return XCTFail("esperaba .frame") }
         XCTAssertEqual(bytes, jpeg)
     }
@@ -68,7 +68,7 @@ final class BrowserRelayClientTests: XCTestCase {
     func test_un_frame_con_campos_de_mas_no_los_transporta() throws {
         let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0])
         let text = #"{"type":"frame","seq":1,"jpeg":"\#(jpeg.base64EncodedString())","captured_at":1,"params":{"value":"SECRETO"}}"#
-        guard case .frame(_, let bytes, _) = try XCTUnwrap(BrowserRelayClient.decode(text))
+        guard case .frame(_, let bytes, _, _) = try XCTUnwrap(BrowserRelayClient.decode(text))
         else { return XCTFail("esperaba .frame") }
         XCTAssertEqual(bytes, jpeg, "el enum no tiene dónde guardar params")
     }

@@ -1,0 +1,738 @@
+import CoreGraphics
+import XCTest
+@testable import Gemma
+
+#if os(macOS)
+
+/// La interfaz del mando compartido: el botón, el rótulo de quién conduce, el toque y el
+/// teclado.
+///
+/// POR QUÉ ESTA PANTALLA EXISTE, PORQUE GOBIERNA CADA ASERCIÓN DE ABAJO. El navegador vive en el
+/// servidor doméstico y el agente tiene prohibido teclear contraseñas, así que hay cosas que no
+/// podrá hacer nunca: entrar en una cuenta. El perfil persistente del navegador del i3 está
+/// desplegado y **vacío**, porque nadie ha podido escribir una contraseña en él. Esto es el
+/// último trozo que falta para que el usuario teclee él. Las dos formas de fallar que estas
+/// pruebas existen para cerrar:
+///
+///   - **Si el gesto manda la coordenada equivocada**, el usuario pulsa otro botón de su propia
+///     cuenta: la página de al otro lado tiene su sesión abierta y nadie aguas abajo valida nada
+///     (el relé reenvía al demonio verbatim y valida solo el `type`).
+///   - **Si el rótulo miente sobre de quién es el turno**, el usuario teclea su contraseña
+///     contra una página que no la recibe: el relé descarta la entrada ajena **en silencio**
+///     (`_reenvia_entrada` compara el portador por su socket), así que no hay ningún aviso.
+///
+/// LA TRAMPA DE ESTE FICHERO, DICHA EN VOZ ALTA. `quienConduce` arranca en `.agente` y
+/// `capturaLosGestos` es `false` por omisión, así que **una prueba que afirme esos dos valores
+/// en reposo pasa con la característica entera borrada**. Por eso la prueba de la captura no
+/// afirma un estado: recorre el **ciclo completo** sobre un `BrowserPanelState` de verdad
+/// (encender → comprobar encendido → perder el volante → comprobar apagado). Lo mismo con el
+/// mapa: una función que devuelve `[]` para todo pasa todas las pruebas de «no manda nada», así
+/// que cada una de ésas tiene al lado su prueba de acierto con las cifras escritas a mano.
+///
+/// DE DÓNDE SALEN LAS CIFRAS. Viewport medido del demonio 1280×720, JPEG que llega 1080×608
+/// (`agent-browser 0.41.2`, medición de la Tarea 2). El tope de caudal del relé es **120
+/// mensajes por ventana de 1 s** por visor, con el acuse exento
+/// (`MAX_ENTRADAS_POR_VENTANA`/`VENTANA_DE_ENTRADA`, `browser/relay.py:469-470`).
+final class BrowserPanelViewTests: XCTestCase {
+
+    // MARK: atajos
+
+    private typealias Cable = BrowserInputMapper.DimensionesDelCable
+    private typealias Entrada = BrowserMandoEntrada
+
+    /// El viewport y el fotograma medidos, y una vista que comparte proporción con la imagen
+    /// (que es lo que pasa de verdad, porque el gesto va enganchado a la `Image` y
+    /// `.scaledToFit()` hace que la vista de la imagen SEA el rectángulo dibujado).
+    private let cableMedido = Cable(anchoDelViewport: 1280, altoDelViewport: 720)
+    private let imagenMedida = CGSize(width: 1080, height: 608)
+
+    // MARK: el botón
+
+    /// El botón ofrece tomar el volante cuando lo tiene el agente, y devolverlo cuando es del
+    /// usuario. **La frase completa, no sus palabras**: una aserción por palabras clave pasa con
+    /// la frase equivocada y falla con la correcta.
+    func test_el_boton_ofrece_tomar_el_volante_y_devolverlo() {
+        XCTAssertEqual(BrowserPanelView.textoDelBoton(quienConduce: .agente), "Tomar el volante")
+        XCTAssertEqual(BrowserPanelView.textoDelBoton(quienConduce: .yo), "Devolverlo")
+    }
+
+    /// Con OTRO VISOR al volante el botón no ofrece tomarlo, y además no actúa.
+    ///
+    /// POR QUÉ, MEDIDO: `Mando.toma` devuelve `False` cuando ya lo tiene otro y el manejador del
+    /// visor **descarta ese booleano** (`relay.py:965`). No hay respuesta de error. Un botón que
+    /// ofreciera «tomar el volante» prometería algo que no va a pasar y el usuario no recibiría
+    /// ninguna explicación.
+    ///
+    /// Se afirma de las dos formas a propósito: el texto distinto solo, y el predicado solo,
+    /// pasarían con un cuerpo degenerado cada uno (una función constante). Y el predicado se
+    /// afirma `true` en los otros dos valores, porque un `elBotonActua` que devolviera `false`
+    /// siempre pasaría la mitad de esta prueba.
+    func test_con_otro_visor_el_boton_no_ofrece_tomarlo_ni_actua() {
+        XCTAssertNotEqual(BrowserPanelView.textoDelBoton(quienConduce: .otroVisor), "Tomar el volante")
+        XCTAssertEqual(BrowserPanelView.textoDelBoton(quienConduce: .otroVisor), "Lo tiene otro visor")
+        XCTAssertFalse(BrowserPanelView.elBotonActua(quienConduce: .otroVisor))
+        XCTAssertTrue(BrowserPanelView.elBotonActua(quienConduce: .agente))
+        XCTAssertTrue(BrowserPanelView.elBotonActua(quienConduce: .yo))
+    }
+
+    /// El rótulo dice de quién es el turno, y los tres casos dicen cosas distintas.
+    ///
+    /// EL TERCERO NO ES COSMÉTICO. Mientras conduce un humano, **el fotograma va solo a su
+    /// socket** (`relay.py:1033`); el estado, el resumen y el `mando` siguen yendo a todos,
+    /// precisamente para que un visor que no conduce lo SEPA. Sin esta frase el usuario ve una
+    /// imagen parada y vuelve al fallo de «la foto congelada sin explicación» que ya se arregló
+    /// una vez.
+    func test_el_rotulo_dice_de_quien_es_el_turno_y_explica_la_imagen_parada() {
+        XCTAssertEqual(BrowserPanelView.rotuloDeQuienConduce(quienConduce: .agente),
+                       "Conduce el agente.")
+        XCTAssertEqual(BrowserPanelView.rotuloDeQuienConduce(quienConduce: .yo),
+                       "Conduces tú: lo que toques y escribas va a la página.")
+        XCTAssertEqual(BrowserPanelView.rotuloDeQuienConduce(quienConduce: .otroVisor),
+                       "Conduce otro visor: la imagen no se actualiza aquí.")
+    }
+
+    // MARK: la captura
+
+    /// `capturaLosGestos` solo está encendida cuando conduce el usuario.
+    ///
+    /// *(Foco de revisión 1.)* El relé descarta la entrada ajena en silencio, así que si la
+    /// interfaz no impide el gesto el usuario toca y no pasa nada **sin que nada se lo diga**.
+    ///
+    /// Esta prueba sola NO basta y no pretende bastar: el `false` de dos de los tres valores es
+    /// el valor por omisión de un `Bool`. Lo que la hace valer es el `true` del medio y, sobre
+    /// todo, el ciclo completo de la prueba siguiente.
+    func test_la_captura_solo_esta_encendida_cuando_conduce_el_usuario() {
+        XCTAssertTrue(BrowserPanelView.capturaLosGestos(quienConduce: .yo))
+        XCTAssertFalse(BrowserPanelView.capturaLosGestos(quienConduce: .agente))
+        XCTAssertFalse(BrowserPanelView.capturaLosGestos(quienConduce: .otroVisor))
+    }
+
+    /// EL CICLO COMPLETO: la captura se enciende con el `mando` del servidor y se apaga **en el
+    /// mismo cambio de estado** en que el volante deja de ser del usuario. Sin esperar un plazo,
+    /// sin esperar a que acabe un gesto, sin `await` de nada.
+    ///
+    /// *(Foco de revisión 2, y es lo que más importa de esta tarea.)* El plazo del mando mide
+    /// **inactividad**, y pensar no es actividad: el volante se le puede caer al usuario
+    /// **mientras teclea su contraseña**. Si la captura siguiera encendida un instante más, ese
+    /// instante se lo lleva el relé a la basura en silencio y el usuario sigue escribiendo.
+    ///
+    /// Se recorren los TRES caminos por los que se pierde: el `mando` del servidor, el corte de
+    /// conexión (el portador del mando es el socket) y el congelado del panel. Y cada uno se
+    /// mide **después** de haber comprobado que estaba encendido, que es lo que esta prueba
+    /// tiene y la anterior no.
+    @MainActor func test_la_captura_se_apaga_en_el_mismo_cambio_de_estado_que_pierde_el_volante() {
+        for perderElVolante in Self.losTresCaminosQuePierdenElVolante {
+            let s = BrowserPanelState()
+            XCTAssertFalse(BrowserPanelView.capturaLosGestos(quienConduce: s.quienConduce),
+                           "antes de que el servidor lo diga, el volante no es del usuario")
+
+            s.apply(.mando(quien: .yo))
+            XCTAssertTrue(BrowserPanelView.capturaLosGestos(quienConduce: s.quienConduce),
+                          "el `mando` del servidor tiene que ENCENDER la captura; sin esto el "
+                          + "resto de la prueba pasaría con la característica borrada")
+
+            perderElVolante.quitar(s)
+            XCTAssertFalse(BrowserPanelView.capturaLosGestos(quienConduce: s.quienConduce),
+                           "la captura sigue encendida tras \(perderElVolante.nombre): el usuario "
+                           + "puede estar a medio teclear una contraseña")
+        }
+    }
+
+    /// Los tres caminos por los que el volante deja de ser del usuario, sin que él haga nada.
+    private struct CaminoQuePierdeElVolante {
+        let nombre: String
+        let quitar: @MainActor (BrowserPanelState) -> Void
+    }
+
+    private static let losTresCaminosQuePierdenElVolante: [CaminoQuePierdeElVolante] = [
+        .init(nombre: "el `mando` del servidor diciendo que conduce el agente",
+              quitar: { $0.apply(.mando(quien: .agente)) }),
+        .init(nombre: "el `mando` del servidor diciendo que conduce otro visor",
+              quitar: { $0.apply(.mando(quien: .otroVisor)) }),
+        .init(nombre: "el corte de la conexión, que se lleva el volante con el socket",
+              quitar: { $0.apply(.closed(reason: "fallo de recepción")) }),
+        .init(nombre: "el congelado del panel al terminar el turno",
+              quitar: { $0.freeze() }),
+    ]
+
+    // MARK: el toque — el acierto, con las cifras a mano
+
+    /// Una pulsación sobre el centro de la imagen manda `mousePressed` y `mouseReleased` en el
+    /// centro de la página, **con las cifras escritas aquí** y no calculadas por la prueba.
+    ///
+    /// La aritmética, a mano: la vista mide lo que la imagen (1080×608), así que la escala de
+    /// dibujo es 1 y no hay bandas; el centro de la vista es (540, 304);
+    /// 540 × 1280/1080 = **640** exacto y 304 × 720/608 = **360** exacto. El centro de la página
+    /// de 1280×720 es (640, 360).
+    func test_una_pulsacion_en_el_centro_manda_el_clic_en_el_centro_de_la_pagina() {
+        let pulsa = Entrada.mensajesDePuntero(fase: .pulsa, punto: CGPoint(x: 540, y: 304),
+                                              ultimaPagina: nil,
+                                              tamañoDeLaVista: imagenMedida,
+                                              tamañoDeLaImagen: imagenMedida,
+                                              dimensionesDelCable: cableMedido)
+        XCTAssertEqual(pulsa.mensajes,
+                       [#"{"button":"left","clickCount":1,"eventType":"mousePressed","type":"input_mouse","x":640,"y":360}"#])
+        XCTAssertEqual(pulsa.pagina, CGPoint(x: 640, y: 360),
+                       "el punto bueno se recuerda: es el que suelta el botón si el dedo sale de la imagen")
+
+        let suelta = Entrada.mensajesDePuntero(fase: .suelta, punto: CGPoint(x: 540, y: 304),
+                                               ultimaPagina: pulsa.pagina,
+                                               tamañoDeLaVista: imagenMedida,
+                                               tamañoDeLaImagen: imagenMedida,
+                                               dimensionesDelCable: cableMedido)
+        XCTAssertEqual(suelta.mensajes,
+                       [#"{"button":"left","clickCount":1,"eventType":"mouseReleased","type":"input_mouse","x":640,"y":360}"#])
+        XCTAssertNil(suelta.pagina, "al soltar no queda gesto en curso, así que no hay punto que recordar")
+    }
+
+    /// La esquina de abajo a la derecha de una página de 1280×720 es **(1279, 719)**, no
+    /// (1280, 720): `viewport_width` es un recuento de columnas, así que x = 1280 cae fuera de
+    /// la página (en la barra de desplazamiento). Es decisión del mapa y se clava desde aquí
+    /// también, porque es la cifra que viaja al demonio.
+    func test_la_esquina_de_la_imagen_es_la_esquina_de_la_pagina_menos_uno() {
+        let r = Entrada.mensajesDePuntero(fase: .pulsa, punto: CGPoint(x: 1080, y: 608),
+                                          ultimaPagina: nil,
+                                          tamañoDeLaVista: imagenMedida,
+                                          tamañoDeLaImagen: imagenMedida,
+                                          dimensionesDelCable: cableMedido)
+        XCTAssertEqual(r.mensajes,
+                       [#"{"button":"left","clickCount":1,"eventType":"mousePressed","type":"input_mouse","x":1279,"y":719}"#])
+    }
+
+    /// Un arrastre manda `mouseMoved`, y con `clickCount` 0: para un movimiento el recuento de
+    /// pulsaciones no significa nada.
+    func test_el_arrastre_manda_el_movimiento_del_raton() {
+        let r = Entrada.mensajesDePuntero(fase: .mueve, punto: CGPoint(x: 540, y: 304),
+                                          ultimaPagina: CGPoint(x: 1, y: 2),
+                                          tamañoDeLaVista: imagenMedida,
+                                          tamañoDeLaImagen: imagenMedida,
+                                          dimensionesDelCable: cableMedido)
+        XCTAssertEqual(r.mensajes,
+                       [#"{"button":"left","clickCount":0,"eventType":"mouseMoved","type":"input_mouse","x":640,"y":360}"#])
+        XCTAssertEqual(r.pagina, CGPoint(x: 640, y: 360))
+    }
+
+    // MARK: el toque — las zonas que no se pueden mapear
+
+    /// Un gesto sobre una zona que `paginaDesde` no sabe mapear **no manda nada**.
+    ///
+    /// Los tres casos realistas, y ninguno es raro: sin dimensiones del cable (un servidor sin
+    /// desplegar, o un fotograma al que el demonio no le dio `metadata`), sobre la banda que
+    /// deja `.scaledToFit()` cuando la vista no comparte proporción con la imagen, y con una
+    /// imagen que no es el viewport escalado (el guarda de proporción del mapa).
+    ///
+    /// `nil` significa **no mandes nada**, nunca `.zero`: (0, 0) es una coordenada buenísima —es
+    /// el logotipo de la página— así que tratar el `nil` como cero convertiría un toque
+    /// imposible de mapear en un clic en la esquina de arriba a la izquierda.
+    func test_un_gesto_sobre_una_zona_que_no_se_puede_mapear_no_manda_nada() {
+        // (a) sin dimensiones del cable.
+        let sinCable = Entrada.mensajesDePuntero(fase: .pulsa, punto: CGPoint(x: 540, y: 304),
+                                                 ultimaPagina: nil,
+                                                 tamañoDeLaVista: imagenMedida,
+                                                 tamañoDeLaImagen: imagenMedida,
+                                                 dimensionesDelCable: nil)
+        XCTAssertEqual(sinCable.mensajes, [], "sin el viewport no se puede situar un toque")
+        XCTAssertNil(sinCable.pagina)
+
+        // (b) sobre la banda: vista 1080×1000 contra imagen 1080×608 → escala de dibujo 1,
+        // 196 px de banda arriba y abajo. El punto y = 10 está en la banda.
+        let enLaBanda = Entrada.mensajesDePuntero(fase: .pulsa, punto: CGPoint(x: 540, y: 10),
+                                                  ultimaPagina: nil,
+                                                  tamañoDeLaVista: CGSize(width: 1080, height: 1000),
+                                                  tamañoDeLaImagen: imagenMedida,
+                                                  dimensionesDelCable: cableMedido)
+        XCTAssertEqual(enLaBanda.mensajes, [], "la banda no es la página")
+
+        // (c) una imagen que no es el viewport escalado (proporción muy distinta): el mapa se
+        // calla porque por el cable no viaja desplazamiento y un recorte no se puede corregir.
+        let recortada = Entrada.mensajesDePuntero(fase: .pulsa, punto: CGPoint(x: 100, y: 100),
+                                                  ultimaPagina: nil,
+                                                  tamañoDeLaVista: CGSize(width: 400, height: 400),
+                                                  tamañoDeLaImagen: CGSize(width: 400, height: 400),
+                                                  dimensionesDelCable: cableMedido)
+        XCTAssertEqual(recortada.mensajes, [], "una imagen cuadrada no es un viewport de 16:9 escalado")
+    }
+
+    /// Si el dedo sale de la imagen antes de levantarse, el botón se suelta **en el último punto
+    /// bueno**.
+    ///
+    /// POR QUÉ NO SE PUEDE «NO MANDAR NADA» AQUÍ, que es lo que haría la regla general: ya se
+    /// mandó un `mousePressed`. Un `mousePressed` sin su `mouseReleased` deja el botón del ratón
+    /// **hundido** en la página remota, y a partir de ahí todo lo que el usuario toque arrastra.
+    /// No mandar el soltar no es la dirección segura: es dejar el navegador roto.
+    func test_el_soltar_fuera_de_la_imagen_se_manda_en_el_ultimo_punto_bueno() {
+        let r = Entrada.mensajesDePuntero(fase: .suelta, punto: CGPoint(x: -500, y: -500),
+                                          ultimaPagina: CGPoint(x: 640, y: 360),
+                                          tamañoDeLaVista: imagenMedida,
+                                          tamañoDeLaImagen: imagenMedida,
+                                          dimensionesDelCable: cableMedido)
+        XCTAssertEqual(r.mensajes,
+                       [#"{"button":"left","clickCount":1,"eventType":"mouseReleased","type":"input_mouse","x":640,"y":360}"#])
+        XCTAssertNil(r.pagina)
+    }
+
+    /// Pero sin NINGÚN punto bueno no se manda nada: no hay ningún `mousePressed` pendiente que
+    /// cerrar, porque el `pulsa` que no se pudo mapear tampoco mandó nada.
+    func test_sin_ningun_punto_bueno_el_soltar_no_manda_nada() {
+        let r = Entrada.mensajesDePuntero(fase: .suelta, punto: CGPoint(x: -500, y: -500),
+                                          ultimaPagina: nil,
+                                          tamañoDeLaVista: imagenMedida,
+                                          tamañoDeLaImagen: imagenMedida,
+                                          dimensionesDelCable: cableMedido)
+        XCTAssertEqual(r.mensajes, [])
+        XCTAssertNil(r.pagina)
+    }
+
+    /// Un movimiento que no se puede mapear no manda nada **y no borra la memoria**: el dedo
+    /// puede volver a entrar en la imagen, y si al salir se olvidara el último punto bueno el
+    /// soltar de después se quedaría sin sitio donde levantar el botón.
+    func test_el_movimiento_fuera_de_la_imagen_no_manda_y_conserva_el_ultimo_punto_bueno() {
+        let r = Entrada.mensajesDePuntero(fase: .mueve, punto: CGPoint(x: -500, y: -500),
+                                          ultimaPagina: CGPoint(x: 640, y: 360),
+                                          tamañoDeLaVista: imagenMedida,
+                                          tamañoDeLaImagen: imagenMedida,
+                                          dimensionesDelCable: cableMedido)
+        XCTAssertEqual(r.mensajes, [])
+        XCTAssertEqual(r.pagina, CGPoint(x: 640, y: 360))
+    }
+
+    // MARK: el muestreo
+
+    /// El muestreo de un gesto continuo: el primer evento pasa siempre, y después uno cada
+    /// `intervaloDeMuestreo`. La frontera se mide exacta.
+    ///
+    /// POR QUÉ HAY QUE MUESTREAR: hay un tope de caudal en el relé y lo que lo pasa **se
+    /// descarta en silencio**, pero el daño de verdad es otro — el acuse del visor es lo que
+    /// mueve el ritmo del demonio, así que una inundación que se coma el presupuesto **congela
+    /// el panel de todos los visores**, no solo del que inunda.
+    func test_el_gesto_continuo_se_muestrea_y_la_frontera_es_exacta() {
+        let t0 = ContinuousClock.Instant.now
+        XCTAssertTrue(Entrada.tocaMuestrear(ultimo: nil, ahora: t0),
+                      "el primer evento del gesto no espera a nadie")
+        XCTAssertFalse(Entrada.tocaMuestrear(ultimo: t0, ahora: t0.advanced(by: Entrada.intervaloDeMuestreo - .milliseconds(1))))
+        XCTAssertTrue(Entrada.tocaMuestrear(ultimo: t0, ahora: t0.advanced(by: Entrada.intervaloDeMuestreo)),
+                      "el instante justo del intervalo ya toca")
+        XCTAssertTrue(Entrada.tocaMuestrear(ultimo: t0, ahora: t0.advanced(by: .seconds(1))))
+    }
+
+    /// Y el número elegido tiene que caber en el presupuesto medido del relé **dejando sitio al
+    /// teclado**, que es la razón entera de que no sea 60.
+    ///
+    /// La cuenta: 120 mensajes por segundo es el tope del visor; un mecanógrafo rápido hace unas
+    /// 10 pulsaciones por segundo y cada una son dos mensajes (`keyDown` + `keyUp`), o sea ~20;
+    /// arrastrar y teclear a la vez es el peor caso humano. Con el arrastre quedándose como
+    /// mucho con la mitad del presupuesto, las dos cosas juntas no lo agotan nunca.
+    func test_el_muestreo_elegido_deja_sitio_al_teclado_en_el_presupuesto_del_rele() {
+        XCTAssertEqual(Entrada.topeDeEntradasPorSegundoDelRele, 120,
+                       "es la constante medida del relé (`MAX_ENTRADAS_POR_VENTANA`); si cambia allí, cambia aquí")
+        XCTAssertLessThanOrEqual(Entrada.muestrasPorSegundo, Entrada.topeDeEntradasPorSegundoDelRele / 2,
+                                 "el arrastre no puede quedarse con más de la mitad del presupuesto del visor")
+        XCTAssertGreaterThan(Entrada.muestrasPorSegundo, 25,
+                             "por debajo del ritmo del stream (25 fps medidos) el arrastre se vería a saltos")
+    }
+
+    // MARK: el teclado
+
+    /// Una tecla nueva manda `keyDown` y `keyUp` con su texto, en ese orden.
+    func test_una_tecla_nueva_manda_keydown_y_keyup_con_su_texto() {
+        XCTAssertEqual(Entrada.mensajesDeTeclado(anterior: "", nuevo: "a"),
+                       [#"{"eventType":"keyDown","key":"a","text":"a","type":"input_keyboard"}"#,
+                        #"{"eventType":"keyUp","key":"a","text":"a","type":"input_keyboard"}"#])
+    }
+
+    /// Borrar manda `Backspace`, una vez por carácter borrado, y sin `text`: la tecla de borrar
+    /// no inserta nada.
+    func test_borrar_manda_backspace_una_vez_por_caracter() {
+        XCTAssertEqual(Entrada.mensajesDeTeclado(anterior: "ab", nuevo: "a"),
+                       [#"{"eventType":"keyDown","key":"Backspace","text":"","type":"input_keyboard"}"#,
+                        #"{"eventType":"keyUp","key":"Backspace","text":"","type":"input_keyboard"}"#])
+        XCTAssertEqual(Entrada.mensajesDeTeclado(anterior: "abc", nuevo: "").count, 6,
+                       "tres caracteres borrados son tres pulsaciones de Backspace")
+    }
+
+    /// Sin cambio no se manda nada. Importa porque `onChange` de SwiftUI se dispara por motivos
+    /// que no son una tecla nueva, y un mensaje por cada evaluación de la vista sería una
+    /// inundación del presupuesto de caudal.
+    func test_sin_cambio_no_se_manda_nada() {
+        XCTAssertEqual(Entrada.mensajesDeTeclado(anterior: "hola", nuevo: "hola"), [])
+        XCTAssertEqual(Entrada.mensajesDeTeclado(anterior: "", nuevo: ""), [])
+    }
+
+    /// Un cambio en medio se manda como lo que es: borrar hasta el prefijo común y escribir el
+    /// resto. Es el caso del autocorrector y del pegado sobre una selección.
+    func test_un_cambio_en_medio_borra_hasta_el_prefijo_comun_y_escribe_el_resto() {
+        // "roi" → "rob": prefijo común "ro", se borra la "i" y se escribe la "b".
+        XCTAssertEqual(Entrada.mensajesDeTeclado(anterior: "roi", nuevo: "rob"),
+                       [#"{"eventType":"keyDown","key":"Backspace","text":"","type":"input_keyboard"}"#,
+                        #"{"eventType":"keyUp","key":"Backspace","text":"","type":"input_keyboard"}"#,
+                        #"{"eventType":"keyDown","key":"b","text":"b","type":"input_keyboard"}"#,
+                        #"{"eventType":"keyUp","key":"b","text":"b","type":"input_keyboard"}"#])
+    }
+
+    /// Un pegado largo se parte en una tecla por carácter, y **cada mensaje cabe en el tope del
+    /// relé**. Lo que lo pasa se descarta en silencio (`relay.py:655`), así que un mensaje
+    /// demasiado grande desaparecería sin error.
+    func test_un_pegado_largo_se_parte_y_cada_mensaje_cabe_en_el_tope() {
+        let largo = String(repeating: "x", count: 500)
+        let mensajes = Entrada.mensajesDeTeclado(anterior: "", nuevo: largo)
+        XCTAssertEqual(mensajes.count, 1000, "dos mensajes por carácter")
+        for m in mensajes {
+            XCTAssertTrue(BrowserInputEvents.cabeEnElTope(m), "un mensaje de tecla nunca puede pasar el tope")
+        }
+    }
+
+    /// El salto de línea se manda como la tecla `Enter`, no como un carácter `\n`: es lo que
+    /// envía un formulario, y es la tecla que el usuario necesita para entrar en su cuenta.
+    func test_el_salto_de_linea_se_manda_como_la_tecla_Enter() {
+        XCTAssertEqual(Entrada.mensajesDeTeclado(anterior: "", nuevo: "\n"),
+                       [#"{"eventType":"keyDown","key":"Enter","text":"\r","type":"input_keyboard"}"#,
+                        #"{"eventType":"keyUp","key":"Enter","text":"\r","type":"input_keyboard"}"#])
+    }
+
+    /// Una letra con tilde o una `ñ` es **una** pulsación, no dos. Se trocea por caracteres de
+    /// Swift (grafemas) y no por escalares Unicode: `"é"` compuesta son dos escalares y un solo
+    /// grafema, y mandarla como dos teclas escribiría basura en la contraseña del usuario.
+    func test_una_letra_con_tilde_es_una_sola_pulsacion() {
+        XCTAssertEqual(Entrada.mensajesDeTeclado(anterior: "", nuevo: "ñ").count, 2)
+        let compuesta = "e\u{0301}"   // "é" como `e` + acento combinante: 2 escalares, 1 grafema
+        XCTAssertEqual(compuesta.unicodeScalars.count, 2, "el literal de la prueba es el compuesto")
+        XCTAssertEqual(Entrada.mensajesDeTeclado(anterior: "", nuevo: compuesta).count, 2,
+                       "un grafema es una tecla; dos escalares no son dos teclas")
+    }
+
+    // MARK: cuando el panel se ve bien y aun así ningún toque se puede mandar
+
+    /// Existe un camino en el que el panel se ve **perfectamente** y ningún toque se manda: sin
+    /// dimensiones del cable, o con una imagen que no es el viewport escalado. Si eso pasa, el
+    /// usuario tiene que poder saberlo — **no se le deja mudo**, porque «toco y no pasa nada» es
+    /// indistinguible de media docena de fallos distintos y lo mandaría a buscar el problema en
+    /// la red cuando está en el cable.
+    ///
+    /// El aviso solo sale cuando el volante es SUYO: decírselo mientras conduce el agente sería
+    /// ruido sobre algo que no puede hacer de todas formas.
+    func test_si_no_se_puede_apuntar_la_vista_lo_dice_y_solo_cuando_el_volante_es_suyo() {
+        XCTAssertTrue(Entrada.sePuedeApuntar(tamañoDeLaVista: imagenMedida,
+                                             tamañoDeLaImagen: imagenMedida,
+                                             dimensionesDelCable: cableMedido),
+                      "con las dimensiones medidas sí se puede apuntar; sin este caso el resto pasaría con `false` constante")
+        XCTAssertFalse(Entrada.sePuedeApuntar(tamañoDeLaVista: imagenMedida,
+                                              tamañoDeLaImagen: imagenMedida,
+                                              dimensionesDelCable: nil))
+
+        XCTAssertEqual(BrowserPanelView.avisoDeApuntado(quienConduce: .yo, sePuedeApuntar: false),
+                       "Tienes el volante y puedes escribir, pero este fotograma no se puede situar: ningún toque se mandará.")
+        XCTAssertNil(BrowserPanelView.avisoDeApuntado(quienConduce: .yo, sePuedeApuntar: true))
+        XCTAssertNil(BrowserPanelView.avisoDeApuntado(quienConduce: .agente, sePuedeApuntar: false))
+        XCTAssertNil(BrowserPanelView.avisoDeApuntado(quienConduce: .otroVisor, sePuedeApuntar: false))
+    }
+
+    // MARK: el viewport, del cable al panel
+
+    /// El fotograma trae el viewport, y **no cruzado**: las dos cifras son distintas a propósito
+    /// en esta prueba, porque con 1280×1280 un intercambio de ancho y alto pasaría inadvertido y
+    /// mapearía todos los toques del usuario a lo largo del eje equivocado.
+    func test_el_fotograma_del_cable_trae_el_viewport_y_no_cruzado() throws {
+        let texto = #"{"type":"frame","seq":1,"jpeg":"","captured_at":1,"viewport_width":1280,"viewport_height":720}"#
+        guard case .frame(_, _, _, let viewport) = try XCTUnwrap(BrowserRelayClient.decode(texto))
+        else { return XCTFail("no decodificó un fotograma") }
+        XCTAssertEqual(viewport?.anchoDelViewport, 1280)
+        XCTAssertEqual(viewport?.altoDelViewport, 720)
+    }
+
+    /// Un fotograma **sin** viewport sigue llegando —el JPEG es lo importante— y las dimensiones
+    /// van **ausentes, no inventadas**. Hoy es el caso normal: un servidor sin desplegar no las
+    /// manda. Y un lado solo tampoco vale: media proporción no deshace ninguna escala.
+    func test_un_fotograma_sin_viewport_o_con_medio_viewport_llega_sin_dimensiones() throws {
+        let casos = [
+            ("sin ninguno", #"{"type":"frame","seq":1,"jpeg":"","captured_at":1}"#),
+            ("solo el ancho", #"{"type":"frame","seq":1,"jpeg":"","captured_at":1,"viewport_width":1280}"#),
+            ("solo el alto", #"{"type":"frame","seq":1,"jpeg":"","captured_at":1,"viewport_height":720}"#),
+            ("no numérico", #"{"type":"frame","seq":1,"jpeg":"","captured_at":1,"viewport_width":"1280","viewport_height":"720"}"#),
+        ]
+        for (nombre, texto) in casos {
+            guard case .frame(let seq, _, _, let viewport) = try XCTUnwrap(BrowserRelayClient.decode(texto))
+            else { return XCTFail("el fotograma tiene que llegar igual (\(nombre))") }
+            XCTAssertEqual(seq, 1, "el fotograma llega entero aunque falten las dimensiones (\(nombre))")
+            XCTAssertNil(viewport, "dimensiones inventadas con \(nombre)")
+        }
+    }
+
+    /// Un viewport absurdo (cero, negativo) **pasa el decodificador** y lo rechaza el mapa. No
+    /// hay un segundo guarda en el decodificador a propósito: sería una condición que ninguna
+    /// prueba podría matar por separado, y la duplicada es la que se olvida de actualizar. Esta
+    /// prueba fija DÓNDE vive el guarda, para que nadie lo añada dos veces.
+    func test_un_viewport_absurdo_lo_rechaza_el_mapa_y_no_el_decodificador() throws {
+        let texto = #"{"type":"frame","seq":1,"jpeg":"","captured_at":1,"viewport_width":0,"viewport_height":0}"#
+        guard case .frame(_, _, _, let viewport) = try XCTUnwrap(BrowserRelayClient.decode(texto))
+        else { return XCTFail("no decodificó un fotograma") }
+        XCTAssertEqual(viewport?.anchoDelViewport, 0, "el decodificador no juzga: transporta")
+        XCTAssertEqual(Entrada.mensajesDePuntero(fase: .pulsa, punto: .zero, ultimaPagina: nil,
+                                                 tamañoDeLaVista: imagenMedida,
+                                                 tamañoDeLaImagen: imagenMedida,
+                                                 dimensionesDelCable: viewport).mensajes, [],
+                       "el mapa es quien tiene que callarse con un viewport absurdo")
+    }
+
+    /// El panel guarda las dimensiones del fotograma y **las suelta con la imagen**.
+    ///
+    /// EL INVARIANTE: si las dimensiones sobrevivieran al fotograma que describen, el toque
+    /// siguiente se mapearía contra el viewport de una imagen que ya no está en pantalla. Se
+    /// recorre el ciclo entero: llegan, están, y se van por los tres caminos.
+    @MainActor func test_el_panel_guarda_el_viewport_del_fotograma_y_lo_suelta_con_la_imagen() {
+        let medido = cableMedido
+        func conFotograma() -> BrowserPanelState {
+            let s = BrowserPanelState()
+            s.apply(.frame(seq: 1, jpeg: Data([0xFF, 0xD8]), capturedAt: .now, viewport: medido))
+            XCTAssertEqual(s.dimensionesDelCable, medido, "el fotograma trae el viewport al panel")
+            return s
+        }
+
+        // (a) un fotograma SIN dimensiones borra las del anterior: dejarlas puestas mapearía el
+        // toque siguiente contra una imagen vieja, en silencio y con el panel pintando bien.
+        let s1 = conFotograma()
+        s1.apply(.frame(seq: 2, jpeg: Data([0xFF, 0xD9]), capturedAt: .now, viewport: nil))
+        XCTAssertNil(s1.dimensionesDelCable)
+
+        // (b) al plegar se suelta el JPEG, así que se sueltan también.
+        let s2 = conFotograma()
+        s2.apply(.state(live: true, collapsed: true))
+        XCTAssertNil(s2.jpeg)
+        XCTAssertNil(s2.dimensionesDelCable)
+
+        // (c) y al congelar.
+        let s3 = conFotograma()
+        s3.freeze()
+        XCTAssertNil(s3.jpeg)
+        XCTAssertNil(s3.dimensionesDelCable)
+    }
+
+    // MARK: el cableado del mando, y el ciclo de vida del socket
+
+    /// El coordinador entrega al panel **el mando de su propio flujo**. Antes de esto nadie
+    /// tenía una referencia viva al cliente del relé: `makeRelayStream` lo construía dentro y la
+    /// única referencia que quedaba era la de su `onTermination`, así que la vista no tenía a
+    /// quién pedirle el volante.
+    @MainActor func test_el_coordinador_entrega_el_mando_del_panel_que_abrio() throws {
+        let mando = MandoDeMentira()
+        let c = BrowserPanelCoordinator(stream: { (AsyncStream { _ in }, mando) })
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        let entregado = try XCTUnwrap(c.mando(de: id))
+        XCTAssertTrue(entregado as AnyObject === mando,
+                      "el panel tiene que recibir el mando de SU flujo, no otro")
+    }
+
+    /// Sin flujo no hay panel, y por tanto no hay mando que entregar. Es el caso del relé sin
+    /// configurar, que es con el que arranca la app.
+    @MainActor func test_sin_flujo_no_hay_panel_ni_mando() {
+        let c = BrowserPanelCoordinator(stream: { nil })
+        XCTAssertNil(c.openIfNeeded(toolName: "browser_open"))
+        XCTAssertNil(c.mando(de: "cualquiera"))
+    }
+
+    /// **EL CICLO DE VIDA DEL SOCKET NO SE ROMPE AL CABLEAR.** Si al guardar el mando en el
+    /// coordinador el cliente del relé dejara de liberarse al retirar el panel, se habría
+    /// cambiado el ciclo de vida del socket — un fallo mayor que el que se arreglaba, porque el
+    /// visor cuesta del orden de 10 Mbit/s contra el servidor casero mientras dure y los paneles
+    /// se quedan en el historial del chat para siempre.
+    ///
+    /// Se mide con una referencia **débil**: el panel sigue en `panels` (es historial), pero su
+    /// mando tiene que haberse soltado. Un panel congelado no puede conducir de todas formas
+    /// (`freeze()` devuelve el volante al agente).
+    @MainActor func test_al_retirar_el_panel_el_mando_se_suelta_de_verdad() {
+        weak var debil: MandoDeMentira?
+        let c = BrowserPanelCoordinator(stream: {
+            let m = MandoDeMentira()
+            debil = m
+            return (AsyncStream { _ in }, m)
+        })
+        let id = c.openIfNeeded(toolName: "browser_open")!
+        XCTAssertNotNil(debil, "el doble existe mientras el panel está vivo")
+        XCTAssertNotNil(c.mando(de: id))
+
+        c.endTurn(survive: false, porque: "la prueba del ciclo de vida")
+        XCTAssertNil(c.mando(de: id), "el panel retirado ya no tiene mando")
+        XCTAssertNotNil(c.panels[id], "el panel sigue en el historial del chat")
+        XCTAssertNil(debil, "el cliente del relé no se liberó: el socket se queda abierto")
+    }
+
+    /// Y `makeRelayStream` devuelve el cliente junto al flujo, que es lo que hace posible lo de
+    /// arriba. Sin URL del navegador no devuelve nada, igual que antes.
+    @MainActor func test_makeRelayStream_devuelve_el_cliente_junto_al_flujo() {
+        let defaults = UserDefaults(suiteName: "mando-subsistema-b-\(UUID().uuidString)")!
+        XCTAssertNil(HarnessModel.makeRelayStream(defaults: defaults), "sin URL no hay visor")
+
+        defaults.set("http://192.0.2.1:8083", forKey: SettingsKeys.browserBaseURL)
+        let par = HarnessModel.makeRelayStream(defaults: defaults)
+        XCTAssertNotNil(par?.mando, "el flujo ya no viaja solo: el mando viene con él")
+        // El flujo NO se consume: abrirlo levantaría el socket contra una dirección de prueba.
+        // Lo que esta prueba mide es la forma de lo que devuelve, no la conexión.
+    }
+
+    // MARK: la tecla y el registro
+
+    /// **NINGUNA RUTA DEL MANDO DE LA VISTA PASA LA TECLA A UN REGISTRO.** Lista **blanca** de
+    /// identificadores, coincidencia exacta.
+    ///
+    /// POR QUÉ BLANCA Y NO NEGRA. Una lista negra solo prueba que no está lo que a uno se le
+    /// ocurrió nombrar, y en este proyecto ya se midió el agujero: `UserDefaults.standard.set`,
+    /// un acumulador `static var` y el `userInfo` de `NotificationCenter` pasaban **verdes** por
+    /// una lista de palabras prohibidas. Lo que viaja por este fichero puede ser la contraseña
+    /// del usuario, y no se registra ni el contenido ni **una línea por pulsación sin
+    /// contenido**: una traza por tecla revela cuántas tiene la contraseña y con qué ritmo se
+    /// escribió, legible por cualquier proceso con permiso en el log unificado de macOS.
+    ///
+    /// EL PRECIO, dicho por delante y aceptado: el día que este fichero gane una API legítima,
+    /// esta prueba se pondrá roja y habrá que mirar lo que se añadió y meterlo en la lista a
+    /// mano. Es ruido visible en vez de silencio.
+    func test_el_mando_de_la_vista_solo_usa_identificadores_permitidos() throws {
+        let fuente = try fuenteDeProduccion("Gemma/Harness/BrowserMando.swift")
+
+        // Guarda de vacuidad 1: que la ruta apunte al fichero de verdad. Todas las aserciones de
+        // esta prueba son AUSENCIAS y pasarían solas con el fichero vacío o la ruta mal.
+        for ancla in ["enum BrowserMandoEntrada", "func mensajesDeTeclado", "protocol MandoDelNavegador"] {
+            XCTAssertTrue(fuente.contains(ancla),
+                          "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
+        }
+
+        let usados = Self.identificadoresDe(fuente: fuente)
+
+        // Guarda de vacuidad 2: que la extracción haya extraído algo, y algo reconocible. Sin
+        // esto, un fallo del troceado daría un conjunto vacío, que está contenido en cualquier
+        // lista blanca, y la prueba pasaría sin haber mirado nada.
+        XCTAssertTrue(usados.contains("mensajesDeTeclado"),
+                      "el troceado de identificadores no funciona: no encuentra ni `mensajesDeTeclado`")
+        XCTAssertGreaterThan(usados.count, 150,
+                             "el troceado de identificadores devolvió \(usados.count): no ha leído el fichero")
+
+        let deMas = usados.subtracting(Self.identificadoresPermitidos).sorted()
+        XCTAssertEqual(deMas, [],
+                       """
+                       el mando de la vista usa identificadores que no están en la lista blanca: \(deMas).
+                       Si son legítimos, añádelos a `identificadoresPermitidos` A MANO y mira dos \
+                       veces que ninguno escribe, persiste, notifica ni acumula la tecla ni la \
+                       coordenada: lo que pasa por aquí puede ser la contraseña del usuario.
+                       """)
+    }
+
+    /// Y la entrada del usuario no se maneja en ningún otro sitio, porque la lista blanca de
+    /// arriba solo vale si el fichero que vigila es **el único** camino. `BrowserPanelView` monta
+    /// el mando y no toca ni una tecla ni un gesto.
+    ///
+    /// EL HUECO QUE ESTO DEJA, DECLARADO: comprueba que las primitivas de entrada que hoy
+    /// existen no están en el panel, no que no pueda aparecer una séptima forma de leer una
+    /// tecla. Lo que lo cierra de verdad es que todo el camino de la entrada viva en un solo
+    /// fichero, y eso es lo que esta prueba sostiene.
+    func test_el_panel_delega_toda_la_entrada_en_el_fichero_vigilado() throws {
+        let panel = try fuenteDeProduccion("Gemma/Harness/BrowserPanelView.swift")
+        for delegacion in ["BrowserMandoGestos", "BrowserMandoBarra"] {
+            XCTAssertTrue(panel.contains(delegacion),
+                          "el panel ya no delega la entrada: falta \(delegacion)")
+        }
+        for primitiva in ["SecureField", "TextField", "DragGesture", "onKeyPress",
+                          "mensajesDeTeclado", "mensajesDePuntero", "manda(entrada:"] {
+            XCTAssertFalse(panel.contains(primitiva),
+                           "`\(primitiva)` ha vuelto a `BrowserPanelView.swift`: la entrada tiene "
+                           + "que vivir entera en el fichero que la lista blanca vigila")
+        }
+    }
+
+    // MARK: lectura del fuente
+
+    private func fuenteDeProduccion(_ ruta: String) throws -> String {
+        let aqui = URL(fileURLWithPath: #filePath)
+        let fichero = aqui.deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent(ruta)
+        return try String(contentsOf: fichero, encoding: .utf8)
+    }
+
+    /// Los identificadores que el fuente del mando puede contener. Son **exactamente** los que
+    /// tiene hoy —la lista se generó del fichero y se revisó entrada por entrada— y ni uno más. **Ninguno escribe, persiste, notifica ni acumula nada**, que es la propiedad que
+    /// esta lista existe para conservar.
+    private static let identificadoresPermitidos: Set<String> = [
+        // tipos, protocolos e importaciones
+        "Array", "Bool", "BrowserInputEvents", "BrowserInputMapper", "BrowserMandoBarra",
+        "BrowserMandoEntrada", "BrowserMandoGestos", "BrowserPanelState", "BrowserPanelView",
+        "BrowserRelayClient", "CGPoint", "CGSize", "Character", "ContinuousClock", "CoreGraphics",
+        "DimensionesDelCable", "Duration", "Fase", "Foundation", "Instant", "Int",
+        "MandoDelNavegador", "Never", "Self", "String", "SwiftUI", "Task", "Void",
+        // palabras clave de Swift y miembros del lenguaje
+        "_", "async", "await", "case", "discardableResult", "else", "enum", "extension", "false",
+        "for", "func", "guard", "if", "import", "in", "let", "nil", "private", "protocol",
+        "public", "return", "some", "static", "struct", "switch", "to", "true", "try", "var",
+        "while",
+        // la API pura del mando y los nombres de sus parámetros
+        "anterior", "dimensionesDelCable", "duration", "entrada", "fase", "intervaloDeMuestreo",
+        "mensajes", "mensajesDePuntero", "mensajesDeTeclado", "milliseconds", "muestrasPorSegundo",
+        "nuevo", "pagina", "punto", "sePuedeApuntar", "tamañoDeLaImagen", "tamañoDeLaVista",
+        "tocaMuestrear", "topeDeEntradasPorSegundoDelRele", "ultimaPagina", "ultimo",
+        "ahora", "mueve", "pulsa", "suelta",
+        // el protocolo del volante
+        "devuelveElMando", "manda", "tomaElMando", "caducidadDeLaPeticion",
+        // el mapa y los codificadores que se llaman, con su vocabulario de protocolo
+        "paginaDesde", "keyboard", "mouse", "tipo", "abajo", "arriba", "boton", "izquierdo",
+        "movido", "pulsaciones", "pulsado", "soltado", "tecla", "texto", "Backspace", "Enter",
+        "r", "n", "x", "y", "width", "height",
+        // los nombres locales del cálculo y las constantes del fichero. Ninguno es un
+        // acumulador: los `let` son constantes y los dos `var` (`comun`, `salida`) son locales
+        // que se devuelven. No hay un solo `static var` en el fichero.
+        "antes", "append", "aviso", "caracter", "centro", "clave", "claveDe", "claveDeBorrar",
+        "claveDeRetorno", "cola", "comun", "count", "despues", "donde", "encola", "isEmpty",
+        "mensaje", "previa", "salida", "saltoDeLinea", "textoDe", "textoDelRetorno", "valor",
+        "vista", "geometria", "now", "size", "value", "sleep",
+        // las dos vistas: estado propio, gestos y presentación. `State`/`FocusState` son estado
+        // en memoria de la vista, que se borra en el mismo cambio que pierde el volante; no
+        // persisten nada. `textContentType` y `autocorrectionDisabled` van en la dirección
+        // contraria a una fuga: impiden que el sistema aprenda o sugiera lo que se teclea.
+        "FocusState", "Sendable", "State", "View", "body", "capturar", "capturaLosGestos",
+        "mando", "quienConduce", "state", "tecleado", "enfocado", "pidiendoDesde",
+        "ultimoMuestreo", "allowsHitTesting", "autocorrectionDisabled", "contentShape",
+        "focused", "gesture", "id", "location", "minimumDistance", "onChange", "onChanged",
+        "onEnded", "task", "textContentType", "DragGesture", "GeometryReader", "Rectangle",
+        "SecureField", "Color", "clear", "none", "of", "text",
+        // presentación pura
+        "Button", "HStack", "Spacer", "State", "Text", "VStack", "alignment", "avisoDeApuntado",
+        "bordered", "buttonStyle", "caption", "caption2", "controlSize", "disabled",
+        "elBotonActua", "font", "foregroundStyle", "frame", "infinity", "leading", "lineLimit",
+        "maxWidth", "orange", "pistaDelCampo", "rotuloDeQuienConduce", "secondary", "small",
+        "spacing", "textoDelBoton", "textoDelBotonPidiendo",
+        // las palabras de la única cadena literal del fichero, la pista del campo de texto
+        // («lo que escribas va a la página»). Son prosa, no identificadores, y entran porque el
+        // troceado no distingue una cadena de un nombre. Son también la razón de que el corte
+        // por `//` siga siendo seguro: ninguna de ellas contiene una barra.
+        "a", "escribas", "la", "lo", "página", "que", "va",
+    ]
+
+    /// Los identificadores de un fuente Swift, **sin los comentarios**.
+    ///
+    /// Los comentarios se quitan porque son prosa y meterían cientos de palabras en el conjunto,
+    /// que es justo lo que haría inútil la lista blanca. Cortar por `//` hasta el fin de línea es
+    /// seguro en este fichero porque ninguna de sus cadenas literales contiene `//`, y si alguna
+    /// llegara a contenerlo el guarda de vacuidad 2 lo caza. El troceado reconoce letras Unicode
+    /// a propósito: los identificadores de este proyecto llevan `ñ` (`tamañoDeLaVista`) y
+    /// partirlos daría trozos que no están en la lista.
+    private static func identificadoresDe(fuente: String) -> Set<String> {
+        let sinComentarios = fuente.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { linea -> String in
+                guard let corte = linea.range(of: "//") else { return String(linea) }
+                return String(linea[linea.startIndex..<corte.lowerBound])
+            }
+            .joined(separator: "\n")
+
+        var encontrados: Set<String> = []
+        var actual = ""
+        for caracter in sinComentarios.unicodeScalars {
+            let esLetra = CharacterSet.letters.contains(caracter)
+            let esDigito = CharacterSet.decimalDigits.contains(caracter)
+            if esLetra || caracter == "_" || (!actual.isEmpty && esDigito) {
+                actual.unicodeScalars.append(caracter)
+            } else {
+                if !actual.isEmpty { encontrados.insert(actual) }
+                actual = ""
+            }
+        }
+        if !actual.isEmpty { encontrados.insert(actual) }
+        return encontrados
+    }
+}
+
+#endif

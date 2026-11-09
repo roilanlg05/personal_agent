@@ -12,22 +12,22 @@ final class BrowserPanelStateTests: XCTestCase {
     @MainActor func test_pagina_quieta_sigue_en_vivo_porque_la_edad_no_decide() {
         let s = BrowserPanelState()
         s.apply(.state(live: true, collapsed: false))
-        s.apply(.frame(seq: 1, jpeg: Data([0xFF, 0xD8, 0xFF]), capturedAt: Date(timeIntervalSinceNow: -30)))
+        s.apply(.frame(seq: 1, jpeg: Data([0xFF, 0xD8, 0xFF]), capturedAt: Date(timeIntervalSinceNow: -30), viewport: nil))
         XCTAssertTrue(s.isLive)
         XCTAssertNotNil(s.lastFrameAt, "la edad se muestra, pero no decide")
     }
 
     @MainActor func test_solo_guarda_el_frame_mas_nuevo() {
         let s = BrowserPanelState()
-        s.apply(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
-        s.apply(.frame(seq: 2, jpeg: Data([0x02]), capturedAt: .now))
+        s.apply(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now, viewport: nil))
+        s.apply(.frame(seq: 2, jpeg: Data([0x02]), capturedAt: .now, viewport: nil))
         XCTAssertEqual(s.jpeg, Data([0x02]), "un frame a la vez: el anterior se suelta")
     }
 
     @MainActor func test_freeze_colapsa_y_suelta_la_imagen() {
         let s = BrowserPanelState()
         s.apply(.state(live: true, collapsed: false))
-        s.apply(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
+        s.apply(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now, viewport: nil))
         s.freeze()
         XCTAssertTrue(s.isCollapsed)
         XCTAssertFalse(s.isLive)
@@ -38,12 +38,12 @@ final class BrowserPanelStateTests: XCTestCase {
     @MainActor func test_closed_apaga_el_en_vivo_pero_no_congela_y_un_state_nuevo_revive() {
         let s = BrowserPanelState()
         s.apply(.state(live: true, collapsed: false))
-        s.apply(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
+        s.apply(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now, viewport: nil))
         s.apply(.closed(reason: "relé cerrado"))
         XCTAssertFalse(s.isLive)
         XCTAssertFalse(s.isCollapsed, "closed no congela")
         XCTAssertNotNil(s.jpeg, "closed no suelta la imagen")
-        s.apply(.frame(seq: 2, jpeg: Data([0x02]), capturedAt: .now))
+        s.apply(.frame(seq: 2, jpeg: Data([0x02]), capturedAt: .now, viewport: nil))
         XCTAssertEqual(s.jpeg, Data([0x02]), "tras reconectar siguen llegando frames")
         s.apply(.state(live: true, collapsed: false))
         XCTAssertTrue(s.isLive, "el panel revive")
@@ -53,7 +53,7 @@ final class BrowserPanelStateTests: XCTestCase {
     @MainActor func test_un_frame_despues_de_congelar_no_repinta() {
         let s = BrowserPanelState()
         s.freeze()
-        s.apply(.frame(seq: 9, jpeg: Data([0x01]), capturedAt: .now))
+        s.apply(.frame(seq: 9, jpeg: Data([0x01]), capturedAt: .now, viewport: nil))
         XCTAssertNil(s.jpeg)
     }
 
@@ -69,11 +69,11 @@ final class BrowserPanelStateTests: XCTestCase {
 
     @MainActor func test_un_state_con_collapsed_suelta_la_imagen() {
         let s = BrowserPanelState()
-        s.apply(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
+        s.apply(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now, viewport: nil))
         s.apply(.state(live: false, collapsed: true))
         XCTAssertTrue(s.isCollapsed)
         XCTAssertNil(s.jpeg)
-        s.apply(.frame(seq: 2, jpeg: Data([0x02]), capturedAt: .now))
+        s.apply(.frame(seq: 2, jpeg: Data([0x02]), capturedAt: .now, viewport: nil))
         XCTAssertNil(s.jpeg, "plegado no pinta")
     }
 
@@ -82,7 +82,7 @@ final class BrowserPanelStateTests: XCTestCase {
         let s = BrowserPanelState()
         s.apply(.state(live: true, collapsed: true))
         s.apply(.state(live: true, collapsed: false))
-        s.apply(.frame(seq: 3, jpeg: Data([0x03]), capturedAt: .now))
+        s.apply(.frame(seq: 3, jpeg: Data([0x03]), capturedAt: .now, viewport: nil))
         XCTAssertFalse(s.isCollapsed)
         XCTAssertEqual(s.jpeg, Data([0x03]))
     }
@@ -165,7 +165,7 @@ final class BrowserPanelStateTests: XCTestCase {
         XCTAssertEqual(s.quienConduce, .agente,
                        "el portador del mando es la CONEXIÓN: el socket que muere se lo lleva")
         s.apply(.state(live: true, collapsed: false))
-        s.apply(.frame(seq: 1, jpeg: Data([0xFF, 0xD8]), capturedAt: Date()))
+        s.apply(.frame(seq: 1, jpeg: Data([0xFF, 0xD8]), capturedAt: Date(), viewport: nil))
         XCTAssertEqual(s.quienConduce, .agente,
                        "la conexión nueva nunca tuvo el volante: hay que volver a pedirlo")
     }
@@ -300,7 +300,7 @@ final class BrowserPanelCuentasTests: XCTestCase {
     func test_el_estado_cuenta_los_fotogramas_descartados_por_plegado() {
         let s = BrowserPanelState()
         s.apply(.state(live: true, collapsed: true))
-        s.apply(.frame(seq: 1, jpeg: Data([0xFF, 0xD8]), capturedAt: Date()))
+        s.apply(.frame(seq: 1, jpeg: Data([0xFF, 0xD8]), capturedAt: Date(), viewport: nil))
         XCTAssertEqual(s.fotogramasRecibidos, 1)
         XCTAssertEqual(s.fotogramasDescartados, 1, "un frame tirado por plegado debe contarse")
         XCTAssertNil(s.jpeg, "plegado no guarda imagen")

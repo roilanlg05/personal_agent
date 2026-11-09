@@ -14,6 +14,18 @@ import Observation
 public final class BrowserPanelState {
     /// Solo el fotograma más nuevo: el anterior se suelta. `nil` tras congelar.
     public private(set) var jpeg: Data?
+    /// El tamaño del viewport remoto que produjo **el fotograma que hay en `jpeg`**, o `nil` si
+    /// no se sabe. Es lo que `BrowserInputMapper` necesita para situar un toque.
+    ///
+    /// VIVE Y MUERE CON LA IMAGEN, y eso es el invariante que importa: si estas dimensiones
+    /// sobrevivieran al fotograma que describen, el toque siguiente se mapearía contra el
+    /// viewport de una imagen que ya no está en pantalla, y ésa es la forma exacta de pulsar
+    /// otra cosa en la cuenta del usuario. Por eso se ponen (incluso a `nil`) en cada fotograma
+    /// y se sueltan en los dos sitios donde se suelta el JPEG: al plegar y al congelar. Un
+    /// `closed` NO las suelta, igual que no suelta la imagen: el panel sigue mostrando el último
+    /// fotograma con su motivo, y el volante ya se ha ido con la conexión unas líneas más abajo,
+    /// así que por ahí no puede salir ningún toque.
+    public private(set) var dimensionesDelCable: BrowserInputMapper.DimensionesDelCable?
     public private(set) var phrase: String = "abriendo el navegador"
     public private(set) var summary: String = ""
     /// Cuándo se capturó el fotograma mostrado. Se enseña, pero no decide `isLive`.
@@ -100,7 +112,7 @@ public final class BrowserPanelState {
             relayCollapsed = collapsed
             // §6.2(g): un panel plegado no deja imagen en reposo. Se cumple soltando el jpeg,
             // no congelando, para que `collapsed: false` pueda revivirlo.
-            if collapsed { jpeg = nil }
+            if collapsed { jpeg = nil; dimensionesDelCable = nil }
         case .closed(let reason):
             // NO es terminal: BrowserRelayClient reconecta tras un cierre y llegan más frames y
             // un `state` nuevo. Solo apagamos el en-vivo.
@@ -121,10 +133,14 @@ public final class BrowserPanelState {
             // petición. Aquí no se interpreta nada, se guarda.
             guard !isFrozen else { return }
             quienConduce = quien
-        case .frame(_, let data, let capturedAt):
+        case .frame(_, let data, let capturedAt, let viewport):
             // Plegado o congelado: un frame tardío reabriría el secreto en reposo.
             guard !isCollapsed else { return }
             jpeg = data
+            // Se asigna SIEMPRE, también cuando viene `nil`. Un fotograma sin dimensiones tiene
+            // que BORRAR las del anterior: dejarlas puestas mapearía el toque siguiente contra
+            // el viewport de una imagen vieja, en silencio y con el panel pintando bien.
+            dimensionesDelCable = viewport
             closedReason = nil
             lastFrameAt = capturedAt
         case .narration(let text):
@@ -141,6 +157,7 @@ public final class BrowserPanelState {
         isFrozen = true
         isLive = false
         jpeg = nil
+        dimensionesDelCable = nil
         // Un panel congelado es historial: su flujo está cortado, así que por ahí ya no sale
         // ninguna pulsación. Decir «conduces tú» en un panel muerto invitaría al usuario a
         // teclear su contraseña en una ventana que no manda nada a ninguna parte.

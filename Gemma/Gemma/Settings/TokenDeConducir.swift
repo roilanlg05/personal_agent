@@ -28,19 +28,17 @@ public protocol AlmacenDeSecretos: Sendable {
 
 /// El llavero del sistema, con la clase de accesibilidad que esta tarea existe para conseguir.
 ///
-/// `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` **y** `kSecAttrSynchronizable: false`, y la
-/// elección es exactamente el defecto que se está arreglando. El plan dice que `UserDefaults` «se
-/// respalda, se sincroniza y se lee sin desbloquear nada»: son tres defectos, no uno.
+/// El plan dice que `UserDefaults` «se respalda, se sincroniza y se lee sin desbloquear nada»: son
+/// **tres** defectos, no uno, y la clase de accesibilidad es lo que los quita. `ThisDeviceOnly`
+/// quita los dos primeros de golpe —un elemento de esa familia **no entra en las copias de
+/// seguridad**, ni en iCloud ni en una copia local cifrada, y **no se restaura en otro
+/// dispositivo**—. Guardarlo con la clase sincronizable arreglaría solo el tercero y el informe
+/// diría «hecho».
 ///
-/// - `ThisDeviceOnly` quita los dos primeros de golpe: un elemento de esa familia **no entra en
-///   las copias de seguridad** (ni en iCloud ni en una copia local cifrada) y **no se restaura en
-///   otro dispositivo**. Guardarlo con la clase sincronizable arreglaría solo el tercero y el
-///   informe diría «hecho».
-/// - `WhenUnlocked` quita el tercero: con el dispositivo bloqueado el elemento no se puede leer.
-/// - `Synchronizable: false` explícito, aunque `ThisDeviceOnly` ya lo implique, porque también
-///   gobierna la BÚSQUEDA: una consulta sin este atributo solo encuentra elementos no
-///   sincronizables, así que dejarlo fuera haría que leer y escribir pudieran hablar de elementos
-///   distintos si alguien cambiara la clase de accesibilidad más adelante.
+/// `Synchronizable: false` va explícito aunque `ThisDeviceOnly` ya lo implique, porque ese atributo
+/// también gobierna la **BÚSQUEDA**: una consulta sin él solo encuentra elementos no
+/// sincronizables, así que dejarlo fuera haría que leer y escribir pudieran hablar de elementos
+/// distintos si alguien cambiara la clase más adelante.
 ///
 /// El servicio es PROPIO, separado del de `KeychainStore`, y eso es deliberado: `KeychainStore`
 /// escribe una copia en claro de todo lo que guarda en `UserDefaults`
@@ -54,6 +52,45 @@ public struct LlaveroDelSistema: AlmacenDeSecretos {
     public init(servicio: String = "lambert-dev-group.Gemma.secretos") {
         self.servicio = servicio
     }
+
+    /// La clase de accesibilidad con la que se escribe, y **no es la que el plan pedía**. El plan
+    /// decidió la familia `WhenUnlockedThisDeviceOnly`; ésta es
+    /// `AfterFirstUnlockThisDeviceOnly`, y el motivo es una medición, no una preferencia.
+    ///
+    /// MEDIDO el 2026-11-09 en este Mac (macOS 27.2, binario de pruebas firmado con el equipo
+    /// `ST54FK4W4X`, entitlement `com.apple.application-identifier` presente), escribiendo un
+    /// elemento y leyendo después su atributo `pdmn` **del elemento guardado**:
+    ///
+    /// | llavero | clase pedida | `SecItemAdd` | clase guardada |
+    /// |---|---|---|---|
+    /// | de ficheros (sin `kSecUseDataProtectionKeychain`) | `WhenUnlockedThisDeviceOnly` | `0` | **`nil`** |
+    /// | de ficheros | `AfterFirstUnlockThisDeviceOnly` | `0` | **`nil`** |
+    /// | con protección de datos | `WhenUnlockedThisDeviceOnly` | **`-25308`** | `nil` |
+    /// | con protección de datos | `AfterFirstUnlockThisDeviceOnly` | `0` | **`cku`** ✅ |
+    /// | con protección de datos | (ninguna → `WhenUnlocked`) | **`-25308`** | `nil` |
+    ///
+    /// Dos cosas salen de ahí, y las dos importan:
+    ///
+    /// 1. En el llavero **de ficheros** la clase se ignora en silencio: `SecItemAdd` dice
+    ///    `errSecSuccess` y el elemento no tiene clase ninguna. O sea que sin
+    ///    `kSecUseDataProtectionKeychain` la elección del plan **no se aplicaba**, el elemento SÍ
+    ///    entraba en las copias de seguridad, y el informe habría dicho «hecho». De ahí la bandera.
+    /// 2. En el llavero con protección de datos, `WhenUnlocked*` falla con `-25308`
+    ///    (`errSecInteractionNotAllowed`): macOS no da esa clase a este proceso. La que funciona y
+    ///    sigue siendo de la familia **sin respaldo y sin sincronización** es
+    ///    `AfterFirstUnlockThisDeviceOnly`.
+    ///
+    /// Lo que se pierde y lo que no, dicho sin adornos: de los tres defectos, el respaldo y la
+    /// sincronización se van **enteros** (es `ThisDeviceOnly`). El tercero —«se lee sin desbloquear
+    /// nada»— se queda a medias: hace falta **un** desbloqueo desde el arranque, no uno en el
+    /// momento de leer. `UserDefaults` no pedía ninguno, así que sigue siendo estrictamente mejor,
+    /// pero no es lo que el plan pedía y por eso está escrito aquí.
+    ///
+    /// Y hay un motivo de función, además del de medición, que apunta al mismo sitio: esta app es
+    /// un asistente que corre mientras el usuario no está delante. Un elemento `WhenUnlocked` se
+    /// volvería ilegible al bloquearse la pantalla y el navegador del i3 dejaría de funcionar a
+    /// mitad de un turno, sin decir por qué.
+    public static let claseDeAccesibilidad = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
 
     /// Los atributos que identifican el elemento. Se usan igual para buscar, borrar y añadir, así
     /// que una consulta nunca puede apuntar a un elemento distinto del que se escribió.
@@ -95,7 +132,7 @@ public struct LlaveroDelSistema: AlmacenDeSecretos {
         SecItemDelete(clave(cuenta) as CFDictionary)
         var nuevo = clave(cuenta)
         nuevo[kSecValueData as String] = Data(valor.utf8)
-        nuevo[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        nuevo[kSecAttrAccessible as String] = Self.claseDeAccesibilidad
         return SecItemAdd(nuevo as CFDictionary, nil) == errSecSuccess
     }
 

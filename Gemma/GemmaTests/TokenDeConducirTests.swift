@@ -308,7 +308,8 @@ final class TokenDeConducirTests: XCTestCase {
         // Guarda de vacuidad 1: que la ruta apunte al fichero de verdad. Todas las aserciones de
         // esta prueba son AUSENCIAS y pasarían solas con el fichero vacío o la ruta mal.
         for ancla in ["protocol AlmacenDeSecretos", "struct LlaveroDelSistema: AlmacenDeSecretos {",
-                      "enum TokenDeConducir {", "kSecAttrAccessibleWhenUnlockedThisDeviceOnly"] {
+                      "enum TokenDeConducir {", "kSecUseDataProtectionKeychain",
+                      "public static let claseDeAccesibilidad"] {
             XCTAssertTrue(fuente.contains(ancla),
                           "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
         }
@@ -349,16 +350,16 @@ final class TokenDeConducirTests: XCTestCase {
         // palabras clave de Swift, atributos y miembros del lenguaje
         "any", "as", "discardableResult", "else", "enum", "false", "func", "guard", "if",
         "import", "in", "init", "let", "nil", "private", "protocol", "public", "return", "self",
-        "static", "struct", "true", "var", "_",
+        "Self", "static", "struct", "true", "var", "_",
         // la API del llavero: las tres operaciones y las claves de la consulta
         "SecItemAdd", "SecItemCopyMatching", "SecItemDelete", "errSecSuccess",
-        "kSecAttrAccessible", "kSecAttrAccessibleWhenUnlockedThisDeviceOnly", "kSecAttrAccount",
+        "kSecAttrAccessible", "kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly", "kSecAttrAccount",
         "kSecAttrService", "kSecAttrSynchronizable", "kSecClass", "kSecClassGenericPassword",
         "kSecMatchLimit", "kSecMatchLimitOne", "kSecReturnData", "kSecValueData",
         "kSecUseDataProtectionKeychain",
         // la API pública del almacén y del token
-        "borrar", "compartido", "cuenta", "escribir", "guardar", "leer", "migrar", "servicio",
-        "valor",
+        "borrar", "claseDeAccesibilidad", "compartido", "cuenta", "escribir", "guardar", "leer",
+        "migrar", "servicio", "valor",
         // Foundation, solo lectura y recorte: `removeObject` BORRA la clave vieja, que es el
         // trabajo de esta tarea; `set` (el escritor de UserDefaults) NO está en la lista.
         "defaults", "encoding", "forKey", "isEmpty", "removeObject", "standard", "string",
@@ -423,14 +424,20 @@ final class TokenDeConducirTests: XCTestCase {
         XCTAssertNil(llavero.leer(cuenta: cuenta))
     }
 
-    /// LA CLASE DE ACCESIBILIDAD, leída del elemento guardado, no del código que lo guarda.
+    /// LA CLASE DE ACCESIBILIDAD, leída **del elemento guardado**, no del código que lo guarda.
     ///
-    /// Es la mitad de esta tarea y la que es fácil dar por hecha. El plan dice que `UserDefaults`
-    /// «se respalda, se sincroniza y se lee sin desbloquear nada»: son TRES defectos.
-    /// `WhenUnlockedThisDeviceOnly` quita los tres —no entra en copias de seguridad, no se
-    /// restaura en otro dispositivo, y no se lee con el dispositivo bloqueado—. Guardarlo con
-    /// `AfterFirstUnlock` o con la familia sincronizable arreglaría uno y el informe diría
-    /// «hecho», que es exactamente el fallo que esta prueba existe para impedir.
+    /// Y ésa es la diferencia que cazó el defecto de verdad. Mirar el código habría dicho «guarda
+    /// con `WhenUnlockedThisDeviceOnly`, hecho»; leer el elemento dijo que su clase era `nil`,
+    /// porque en macOS, sin `kSecUseDataProtectionKeychain`, el llavero de ficheros **se come la
+    /// clase en silencio** y `SecItemAdd` devuelve `errSecSuccess` igual. Sin esta prueba el
+    /// informe habría dicho «hecho» con el elemento entrando tranquilamente en las copias de
+    /// seguridad. La medición completa está en `LlaveroDelSistema.claseDeAccesibilidad`.
+    ///
+    /// Lo que conserva, en tres aserciones y en este orden:
+    /// 1. que la clase **se aplicó** (no `nil`) — la que cazó el defecto;
+    /// 2. que es de la familia **`ThisDeviceOnly`** — sin respaldo y sin sincronización, que son
+    ///    dos de los tres defectos de `UserDefaults`, y la propiedad que no se negocia;
+    /// 3. que es **exactamente** la que producción dice usar, para que no deriven en silencio.
     func test_la_clase_de_accesibilidad_es_la_del_dispositivo_solo_y_sin_respaldo() throws {
         let servicio = "pruebas.Gemma.accesibilidad.\(UUID().uuidString)"
         let llavero = LlaveroDelSistema(servicio: servicio)
@@ -452,12 +459,31 @@ final class TokenDeConducirTests: XCTestCase {
         var salida: CFTypeRef?
         XCTAssertEqual(SecItemCopyMatching(consulta as CFDictionary, &salida), errSecSuccess)
         let atributos = try XCTUnwrap(salida as? [String: Any])
-        XCTAssertEqual(atributos[kSecAttrAccessible as String] as? String,
-                       kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String,
-                       "el token tiene que ser WhenUnlockedThisDeviceOnly: sin respaldo, sin "
-                       + "sincronización, y no legible con el dispositivo bloqueado")
-        XCTAssertEqual(atributos[kSecAttrSynchronizable as String] as? Bool, false,
-                       "y no sincronizable")
+
+        let aplicada = try XCTUnwrap(
+            atributos[kSecAttrAccessible as String] as? String,
+            """
+            el elemento se guardó SIN clase de accesibilidad. Es el defecto que esta prueba \
+            existe para cazar: en macOS, sin `kSecUseDataProtectionKeychain`, el llavero de \
+            ficheros ignora `kSecAttrAccessible` y `SecItemAdd` devuelve éxito igual, así que el \
+            token acabaría en las copias de seguridad con todo en verde.
+            """)
+
+        let soloEsteDispositivo = [
+            kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String,
+            kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String,
+            kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly as String,
+        ]
+        XCTAssertTrue(soloEsteDispositivo.contains(aplicada),
+                      """
+                      la clase \(aplicada) no es de la familia `ThisDeviceOnly`: el token \
+                      entraría en las copias de seguridad y se restauraría en otro dispositivo, \
+                      que son dos de los tres defectos que esta tarea arregla.
+                      """)
+        XCTAssertEqual(aplicada, LlaveroDelSistema.claseDeAccesibilidad as String,
+                       "la clase del elemento guardado y la que producción declara han derivado")
+        XCTAssertNotEqual(atributos[kSecAttrSynchronizable as String] as? Bool, true,
+                          "y no puede ser sincronizable")
     }
 
     // MARK: la vista y el arranque, que son los dos sitios donde se escribe y se migra

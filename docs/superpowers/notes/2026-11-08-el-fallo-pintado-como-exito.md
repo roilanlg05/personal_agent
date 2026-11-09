@@ -307,3 +307,44 @@ ninguna roja del lado viejo y por qué el repaso de vacuidad sale limpio — que
 comprobar, no asumir.
 
 **Sin push.**
+
+---
+
+## Autorización del controlador sobre la preocupación 1 (añadida después del informe)
+
+**`app_unavailable` entra en `Agent.estadosDeFallo`. Autorizado.**
+
+El implementador lo dejó fuera porque ese conjunto **mata turnos** y no estaba en
+su encargo, lo cual fue correcto. La autorización:
+
+Encaja en el criterio que ese conjunto ya lleva escrito —«no pude, y repetirlo no
+lo arregla»— y encaja **exactamente igual que `not_available`, que ya está
+dentro**. Reintentar no instala la aplicación de música. Un turno que insiste
+contra una app que no existe no puede terminar bien, y el presupuesto existe para
+pararlo antes de gastar las cinco rondas.
+
+**Coste si me equivoco**: si algún día `app_unavailable` pasa a significar algo
+transitorio (la app está instalada pero no responde todavía), contarlo como fallo
+pararía un turno que habría funcionado al segundo intento. Se nota como «el agente
+se rinde demasiado pronto con la música» y se quita de una línea.
+
+**No se hace en su propio ciclo de pruebas**: viaja con el siguiente cambio que
+toque `Agent.swift`, y su prueba es la que ya recorre el conjunto desde
+producción. Queda escrito aquí para que no se pierda entre dos tareas, que es
+exactamente cómo `pide_el_agente` y `vencio()` se quedaron sin llamante en el otro
+repositorio.
+
+## Lo que sigue abierto, con su número, para quien venga
+
+- **22 estados de éxito huérfanos** que no reinician el presupuesto (`ok` en 21
+  herramientas, más `empty`, `deleted`, `updated`, `playing`…). **El arreglo no es
+  mecánico**: `estadosDeExito` se indexa por nombre y `cancelled` demostró que un
+  nombre significa cosas opuestas en herramientas distintas. El diseño correcto es
+  decidir por **(herramienta, estado)**, como hace ya `frasesDeEstadoAMedias` de
+  este commit. Hay un candado que fija el conjunto malo conocido, así que un
+  arreglo mecánico se pone rojo.
+- **Diez herramientas esconden su respuesta detrás de «listo»** (la temperatura, la
+  ubicación, la actividad, lo que suena, el título de la nota), más quince cuyo
+  resultado es un recuento y para las que el tipo de fila ya existe (`Kind .count`,
+  hoy solo lo usa `web_search`). `get_current_time` y `get_device_status` ya están
+  arregladas y son el patrón a seguir.

@@ -25,6 +25,14 @@ un cliente.
   solo `input_mouse`, `input_keyboard` e `input_touch`. **`config` no se reenvía
   jamás** — medido: `{"type":"config","maxFps":0}` a mitad de conexión levanta el
   tope de fotogramas y rompe el `pacing=ack`.
+- **Tomar y devolver el mando viajan por el SOCKET del visor, no por HTTP**
+  (`mando_tomar` y `mando_devolver`, que el relé ATIENDE y no reenvía al demonio).
+  Razón: el portador **es un socket**. `Mando.toma(visor, …)` necesita saber quién
+  lo tiene para poder darle los fotogramas solo a él y para devolver el mando
+  cuando se desconecte, y una petición HTTP no trae ningún socket consigo. Por
+  HTTP quedan solo las dos cosas que no necesitan identidad: **leer** el estado
+  (`GET /v1/browser/mando`) y la **señal del agente** (`POST
+  /v1/browser/mando/pedir`).
 - **La entrada del visor no se registra, no se narra con su contenido y no entra en
   el contexto del modelo.** Un `input_keyboard` se narra como «el usuario está
   escribiendo», nunca con la tecla. Mismo patrón que `stream.py` con los `params`.
@@ -284,7 +292,21 @@ git commit -m "feat(mando): clasificar un muro antibot, por titulo cuando se pue
     llegó un `url` nuevo; devuelve `True` si el mando volvió al agente
   - `vencio(self, ahora: float) -> bool` — el plazo del humano se agotó
   - `mensaje_de_estado(self) -> dict` — lo que se publica a los visores
-- Produces: `MANDO_AGENTE = "agente"`, `MANDO_HUMANO = "humano"`.
+- Produces: `MANDO_AGENTE = "agente"`, `MANDO_HUMANO = "humano"`, `MAX_URL = 2048`.
+
+⚠️ **La URL que el `Mando` retiene es lo más peligroso de esta tarea.** La
+revisión de la Tarea 1 lo midió: la URL que sobrevive al `decode` conserva la
+**query string** y el **`userinfo`** (`https://usuario:clave@host/…`), y el
+`Mando` la **retiene** para la salvaguarda de «la misma página no cuenta». Por eso:
+
+1. `al_navegar` **recorta a `MAX_URL = 2048`** antes de guardarla. El módulo acota
+   todo lo demás que entra por el cable (`_MAX_HOST = 255`, `MAX_TITLE = 200`) y
+   un campo sin tope rompe ese patrón; y aquí no es de paso, es retenido.
+2. **`mensaje_de_estado()` no contiene la URL, ni un trozo, ni el host.** Lo que
+   se publica es quién conduce. Quien quiera saber dónde está, ya recibe el
+   mensaje `host` por su cuenta.
+3. **Ninguna excepción ni ningún valor de retorno la reproduce**, igual que en
+   `stream.py`.
 
 **El tiempo entra como parámetro** (`ahora`), nunca se lee del reloj: así el módulo
 sigue siendo puro y el plazo se prueba sin esperar diez minutos.
@@ -366,6 +388,25 @@ def test_el_mensaje_de_estado_dice_quien_conduce_y_nada_del_visor():
     msg = m.mensaje_de_estado()
     assert msg["type"] == "mando" and msg["quien"] == mando.MANDO_HUMANO
     assert repr(v) not in json.dumps(msg)   # el portador no se identifica al cable
+
+def test_el_mensaje_de_estado_NO_lleva_la_url_ni_un_trozo():
+    # La URL retenida conserva query y userinfo (medido en la revisión de la
+    # Tarea 1). El estado va al cable y a tres clientes: no puede arrastrarla.
+    m, v = mando.Mando(), object()
+    m.toma(v, 0.0)
+    m.al_navegar("https://pepe:clave123@secreto.example/x?token=abc", "cloudflare", 1.0)
+    cable = json.dumps(m.mensaje_de_estado())
+    for trozo in ("clave123", "token=abc", "secreto.example", "pepe"):
+        assert trozo not in cable, trozo
+
+def test_una_url_larguisima_se_recorta_antes_de_guardarse():
+    m, v = mando.Mando(), object()
+    m.toma(v, 0.0)
+    larga = "https://x.example/" + "a" * 10_000
+    m.al_navegar(larga, "cloudflare", 1.0)
+    # Observable sin exponer un atributo privado: la misma URL recortada sigue
+    # contando como «la misma página», así que no devuelve el mando.
+    assert m.al_navegar(larga, None, 2.0) is False
 ```
 
 - [ ] **Step 2: Correr y verificar que fallan**
@@ -462,6 +503,13 @@ def test_el_url_del_demonio_llega_al_mando_entero_y_al_visor_solo_el_host():
 
 def test_al_irse_el_portador_el_mando_vuelve_al_agente():   # Review Focus 2
     # visor.desconectar() -> _esperar(lambda: rele.mando.quien_conduce == "agente")
+
+def test_el_visor_toma_y_devuelve_el_mando_por_su_propio_socket():
+    # inyectar_entrada({"type":"mando_tomar"}) -> quien_conduce == "humano"
+    # inyectar_entrada({"type":"mando_devolver"}) -> quien_conduce == "agente"
+
+def test_los_mensajes_del_mando_NO_se_reenvian_al_demonio():
+    # Son del protocolo del panel, no del navegador: assert _env(acuses) == []
 ```
 
 - [ ] **Step 2: Correr y verificar que fallan**
@@ -472,11 +520,15 @@ Expected: FAIL.
 - [ ] **Step 3: Implementar el filtro y el cableado en `relay.py`**
 
 Una función **pura** `mensaje_del_visor(text) -> tuple[str, dict] | None` que
-clasifique en `("ack", …)`, `("input", …)` o `None`, al lado de `_ack_from` y con
-el mismo criterio: **no reproduce nunca el contenido** en un error. El bucle de
-`add_viewer` la usa. El reenvío al demonio solo ocurre si el visor es
-`self.mando.portador`. Actualizar la cabecera del módulo: la frase «no hay control
-remoto» deja de ser verdad y tiene que decir qué la sustituye.
+clasifique en `("ack", …)`, `("input", …)`, `("mando_tomar", {})`,
+`("mando_devolver", {})` o `None`, al lado de `_ack_from` y con el mismo criterio:
+**no reproduce nunca el contenido** en un error. El bucle de `add_viewer` la usa.
+
+Las cuatro clases se tratan distinto: `ack` como hoy; `input` **se reenvía** al
+demonio y solo si el visor es `self.mando.portador`; `mando_tomar` y
+`mando_devolver` **los atiende el relé y NO se reenvían nunca** (son del protocolo
+del panel, no del navegador). Actualizar la cabecera del módulo: la frase «no hay
+control remoto» deja de ser verdad y tiene que decir qué la sustituye.
 
 - [ ] **Step 4: Correr y verificar que pasan**
 
@@ -497,6 +549,10 @@ git commit -m "feat(mando): el rele reenvia la entrada del portador, y solo la e
 **Files:**
 - Modify: `browser/relay.py`
 - Test: `browser/test_app.py`
+
+**Interfaces:**
+- Consumes: de la Tarea 4, `Relay.mando`, `Relay.toma_el_mando(viewer)` y el
+  `_cablear` que ya pasa el relé a `tras`. Esta tarea no crea arnés nuevo.
 
 Hoy `_fan_out` reparte el fotograma a **todos** los visores. Cuando el usuario
 teclee una contraseña durante un paso de mando, lo que la filtra no es el teclado:
@@ -661,9 +717,12 @@ git commit -m "fix(mando): comprobar el Origin del visor y acotar su caudal de e
 - Test: `browser/test_app.py`
 
 **Interfaces:**
-- Produces: `POST /v1/browser/mando/tomar`, `POST /v1/browser/mando/devolver`,
-  `GET /v1/browser/mando` (quién conduce), y `POST /v1/browser/mando/pedir` (lo
-  llama el agente cuando detecta un muro).
+- Consumes: de la Tarea 4, `Relay.mando` y el manejo de `mando_tomar` /
+  `mando_devolver` por el socket del visor. **Tomar y devolver NO son endpoints
+  HTTP** (Global Constraints: el portador es un socket).
+- Produces: `GET /v1/browser/mando` → `{"quien": "agente"|"humano"}`, y
+  `POST /v1/browser/mando/pedir` (la señal del agente cuando detecta un muro; no
+  cambia quién conduce).
 - Produces: `/v1/browser/invoke` rechaza con **409** y un motivo legible mientras
   conduce el humano.
 
@@ -676,49 +735,55 @@ siguiente** a que el mando vuelva, porque los datos están en la página de desp
 Con `client` y `AUTH`, que el fichero ya tiene, y `monkeypatch.setattr(appmod,
 "_relay", …)` para el relé, igual que hace `_max_fps_que_recibe_el_rele`:
 
-```python
-def test_los_endpoints_del_mando_piden_token():
-    for ruta in ("/v1/browser/mando", "/v1/browser/mando/tomar",
-                 "/v1/browser/mando/devolver", "/v1/browser/mando/pedir"):
-        assert client.get(ruta).status_code in (401, 405)
+El estado se fuerza por `monkeypatch` sobre un relé propio, **no tomando el mando
+de verdad**: el `client` del módulo comparte el relé entre pruebas y un mando
+tomado y no devuelto contaminaría a la siguiente.
 
-def test_get_mando_dice_quien_conduce():
+```python
+def _con_mando(monkeypatch, quien):
+    """Un relé falso cuyo mando dice `quien`. Es la unica forma limpia de probar
+    la puerta del invoke: tomar el mando de verdad necesita un socket."""
+    rele = type("ReleFalso", (), {"mando": mando.Mando()})()
+    if quien == "humano":
+        rele.mando.toma(object(), 0.0)
+    monkeypatch.setattr(appmod, "_relay", lambda: rele)
+    return rele
+
+def test_los_endpoints_del_mando_piden_token():
+    assert client.get("/v1/browser/mando").status_code == 401
+    assert client.post("/v1/browser/mando/pedir").status_code == 401
+
+def test_get_mando_dice_quien_conduce(monkeypatch):
+    _con_mando(monkeypatch, "agente")
     r = client.get("/v1/browser/mando", headers=AUTH)
     assert r.status_code == 200 and r.json()["quien"] == "agente"
-
-def test_tomar_y_devolver_el_mando_por_http():
-    assert client.post("/v1/browser/mando/tomar", headers=AUTH).status_code == 200
+    _con_mando(monkeypatch, "humano")
     assert client.get("/v1/browser/mando", headers=AUTH).json()["quien"] == "humano"
-    assert client.post("/v1/browser/mando/devolver", headers=AUTH).status_code == 200
-    assert client.get("/v1/browser/mando", headers=AUTH).json()["quien"] == "agente"
 
-def test_invoke_se_rechaza_con_409_mientras_conduce_el_humano():
-    client.post("/v1/browser/mando/tomar", headers=AUTH)
+def test_invoke_se_rechaza_con_409_mientras_conduce_el_humano(monkeypatch):
+    _con_mando(monkeypatch, "humano")
     r = client.post("/v1/browser/invoke", json={"arguments": ["get", "text", "body"]},
                     headers=AUTH)
     assert r.status_code == 409
-    assert "humano" in r.json()["detail"].lower() or "mando" in r.json()["detail"].lower()
+    assert "mando" in json.dumps(r.json()).lower()
 
-def test_el_motivo_del_409_no_reproduce_nada_de_la_pagina():
-    # Mismo criterio que test_el_motivo_de_un_argumento_rechazado_no_reproduce_su_valor.
+def test_invoke_pasa_cuando_conduce_el_agente(monkeypatch):
+    # El candado al reves: sin el, un 409 permanente pasaria por exito.
 
-def test_el_agente_no_puede_mirar_la_pagina_justo_despues_de_recuperar_el_mando():
-    # Tras devolver: `get text` sigue en 409 durante la gracia; `open` y `close`
-    # pasan, porque son la salida del muro.
+def test_el_motivo_del_409_no_reproduce_nada_de_la_pagina(monkeypatch):
+    # Mismo criterio que test_el_motivo_de_un_argumento_rechazado_no_reproduce_su_valor:
+    # el motivo nombra el estado, nunca la URL ni el contenido.
 
-def test_tomar_el_mando_sin_turno_vivo_funciona():
-    # Es su navegador: puede tomarlo entre turnos, no solo durante uno. Sin panel
-    # vivo, `tomar` devuelve 200 igual.
+def test_el_agente_no_puede_mirar_la_pagina_justo_despues_de_recuperar_el_mando(monkeypatch):
+    # Mando devuelto en t=0 con la gracia sin agotar: `get text` sigue en 409,
+    # y `open` y `close` pasan, porque son la salida del muro.
 
-def test_pedir_el_mando_lo_pide_pero_no_lo_toma():
-    # /pedir es la señal del agente al usuario: NO cambia quien conduce.
-    client.post("/v1/browser/mando/pedir", headers=AUTH)
+def test_pedir_el_mando_lo_pide_pero_no_lo_toma(monkeypatch):
+    # /pedir es la senal del agente al usuario: NO cambia quien conduce.
+    _con_mando(monkeypatch, "agente")
+    assert client.post("/v1/browser/mando/pedir", headers=AUTH).status_code == 200
     assert client.get("/v1/browser/mando", headers=AUTH).json()["quien"] == "agente"
 ```
-
-⚠️ **El `client` del módulo comparte el relé entre pruebas.** Cada prueba que tome
-el mando lo devuelve al final (o usa un relé propio por `monkeypatch`), o
-contaminará a la siguiente.
 
 - [ ] **Step 2: Correr y verificar que fallan**
 

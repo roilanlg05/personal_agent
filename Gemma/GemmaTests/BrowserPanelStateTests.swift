@@ -148,6 +148,56 @@ final class BrowserPanelStateTests: XCTestCase {
         s.apply(.host("example.com"))
         XCTAssertEqual(s.host, "example.com")
     }
+
+    // MARK: quién conduce
+
+    /// EL CICLO COMPLETO, y completo a propósito. Afirmar `.agente` sin haber hecho nada pasaría
+    /// con la característica entera borrada, porque `.agente` es el valor de arranque: la única
+    /// forma de medir la vuelta al agente es llegar primero a `.yo`. Y la reconexión se mide
+    /// hasta el final: tras el corte llegan un `state` y un `frame` de la conexión nueva, y el
+    /// volante tiene que seguir siendo del agente.
+    @MainActor func test_el_volante_vuelve_al_agente_al_cortarse_la_conexion_y_la_reconexion_no_lo_resucita() {
+        let s = BrowserPanelState()
+        XCTAssertEqual(s.quienConduce, .agente, "precondición del arranque, no la aserción de esta prueba")
+        s.apply(.mando(quien: .yo))
+        XCTAssertEqual(s.quienConduce, .yo, "el servidor confirmó que el volante es mío")
+        s.apply(.closed(reason: "fallo de recepción"))
+        XCTAssertEqual(s.quienConduce, .agente,
+                       "el portador del mando es la CONEXIÓN: el socket que muere se lo lleva")
+        s.apply(.state(live: true, collapsed: false))
+        s.apply(.frame(seq: 1, jpeg: Data([0xFF, 0xD8]), capturedAt: Date()))
+        XCTAssertEqual(s.quienConduce, .agente,
+                       "la conexión nueva nunca tuvo el volante: hay que volver a pedirlo")
+    }
+
+    /// `otroVisor` no es `agente`, y la vista se comporta distinto: con el agente al volante
+    /// pedirlo funciona; con otro humano al volante el servidor rechaza la toma en silencio.
+    @MainActor func test_otro_visor_al_volante_no_es_lo_mismo_que_el_agente() {
+        let s = BrowserPanelState()
+        s.apply(.mando(quien: .otroVisor))
+        XCTAssertEqual(s.quienConduce, .otroVisor)
+        s.apply(.mando(quien: .agente))
+        XCTAssertEqual(s.quienConduce, .agente, "y vuelve a estar libre cuando el otro lo devuelve")
+    }
+
+    @MainActor func test_un_panel_congelado_no_le_dice_al_usuario_que_conduce() {
+        let s = BrowserPanelState()
+        s.apply(.mando(quien: .yo))
+        XCTAssertEqual(s.quienConduce, .yo)
+        s.freeze()
+        XCTAssertEqual(s.quienConduce, .agente, "un panel del historial no manda nada a ninguna parte")
+        s.apply(.mando(quien: .yo))
+        XCTAssertEqual(s.quienConduce, .agente, "y ya no se mueve: congelar es irreversible")
+    }
+
+    /// Un `mando` lo manda el i3, así que prueba que el servidor habló y el panel debe aparecer.
+    @MainActor func test_un_mando_cuenta_como_que_el_servidor_hablo() {
+        let s = BrowserPanelState()
+        XCTAssertFalse(s.hasReceivedMessage)
+        s.apply(.mando(quien: .agente))
+        XCTAssertTrue(s.hasReceivedMessage)
+        XCTAssertEqual(s.mensajesRecibidos, 1)
+    }
 }
 
 /// El hueco de la imagen del panel. Ver `BrowserPanelView.textoSinImagen`: antes, sin imagen, la

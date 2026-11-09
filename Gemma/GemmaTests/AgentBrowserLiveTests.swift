@@ -91,7 +91,7 @@ final class AgentBrowserLiveTests: XCTestCase {
         private var sawClose = false
         /// Cronología de todo lo que llegó, para que un fallo diga qué pasó y cuándo.
         private(set) var timeline: [String] = []
-        /// Todo texto que viajó por el cable, de cualquiera de los seis tipos de mensaje, con su tipo.
+        /// Todo texto que viajó por el cable, de los tipos de mensaje que traen texto, con su tipo.
         private(set) var wireTexts: [String] = []
         private(set) var narrations: [String] = []
         private let start = Date()
@@ -111,6 +111,7 @@ final class AgentBrowserLiveTests: XCTestCase {
             case .state(let live, let collapsed): timeline.append("\(t) state(live=\(live),collapsed=\(collapsed))")
             case .summary(let text): timeline.append("\(t) summary(\(text))")
             case .closed(let reason): sawClose = true; timeline.append("\(t) closed(\(reason))")
+            case .mando(let quien): timeline.append("\(t) mando(\(quien))")
             }
         }
         func note(_ text: String) { timeline.append(String(format: "%.1fs ", Date().timeIntervalSince(start)) + "-- " + text) }

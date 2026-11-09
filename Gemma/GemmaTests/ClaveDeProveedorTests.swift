@@ -359,12 +359,22 @@ final class ClaveDeProveedorTests: XCTestCase {
     /// El banner «Falta la API Key» mira el almacén nuevo. Con el almacén sembrado tiene que
     /// decir que no falta, y vacío que sí: si siguiera mirando el llavero viejo, el primer
     /// arranque tras la actualización le pintaría al usuario que le falta la key que sí tiene.
-    func test_el_banner_de_falta_api_key_mira_el_almacen_que_recibe_el_modelo() {
+    ///
+    /// 🔴 SOLO EN macOS, Y MEDIDO: construir un `HarnessModel` en el simulador de iOS **mata el
+    /// host de las pruebas** (medido el 2026-11-09: el PID del host cambia justo en esta prueba y
+    /// se lleva por delante lo que venía detrás). No es de esta tarea —el informe de la Tarea 6 ya
+    /// dejó anotado que en iOS falla la clase `BrowserPanelWiringTests` entera, que es otra de las
+    /// que construye un `HarnessModel`, y que la suite de iOS aborta su host—, pero añadir un
+    /// cuarto sitio que lo construye deja la suite de iOS **peor** que antes, y eso sí sería mío.
+    /// En iOS el proveedor por omisión es `onDevice`, así que el banner no aplica allí de todas
+    /// formas. Queda declarado como hueco, no tapado.
+    func test_el_banner_de_falta_api_key_mira_el_almacen_que_recibe_el_modelo() throws {
+        #if os(macOS)
         let conClave = HarnessModel(almacen: AlmacenEnMemoria())
         let kind = conClave.currentProviderKind
         guard !kind.isLocalMLX, !conClave.chatUsesLocalServer else {
-            // El proveedor de chat guardado es local (en iOS lo es por omisión): el banner no
-            // aplica y la aserción de abajo no mediría nada. Se afirma lo que SÍ es cierto.
+            // El proveedor de chat guardado es local: el banner no aplica y la aserción de abajo
+            // no mediría nada. Se afirma lo que SÍ es cierto.
             XCTAssertFalse(conClave.isMissingApiKey,
                            "con proveedor local no se puede echar en falta una API key")
             return
@@ -372,6 +382,9 @@ final class ClaveDeProveedorTests: XCTestCase {
         XCTAssertTrue(conClave.isMissingApiKey, "almacén vacío ⇒ falta la key")
         let sembrado = HarnessModel(almacen: AlmacenEnMemoria(["apiKey.\(kind.rawValue)": Self.claveDePega]))
         XCTAssertFalse(sembrado.isMissingApiKey, "almacén sembrado ⇒ no falta la key")
+        #else
+        throw XCTSkip("construir un `HarnessModel` mata el host de las pruebas de iOS (hueco H8)")
+        #endif
     }
 
     /// El escritor de Ajustes, el sexto lector (el marcador de posición del campo) y la migración
@@ -677,31 +690,45 @@ final class ClaveDeProveedorTests: XCTestCase {
         XCTAssertNotEqual(atributos[kSecAttrSynchronizable as String] as? Bool, true,
                           "y no puede ser sincronizable")
 
-        // Y el camino VIEJO, en la misma corrida: el elemento del llavero de ficheros no tiene
-        // clase. Es la medición que justifica la migración, y aquí queda fijada, no citada.
+        // Y EL CAMINO VIEJO, EN LA MISMA CORRIDA. Es la medición que justifica la migración, y
+        // aquí queda FIJADA, no citada. Se planta un elemento **exactamente** como lo plantaba
+        // `KeychainStore` —su clase pedida era `AfterFirstUnlock` a secas, sin `ThisDeviceOnly`, y
+        // sin `kSecUseDataProtectionKeychain`— y se lee su `pdmn`.
+        //
+        // Medido el 2026-11-09, y las dos plataformas dan defectos DISTINTOS, los dos malos:
+        //   · macOS: el elemento va al llavero de ficheros, que no tiene clases, `pdmn` = `nil`.
+        //     Ninguna protección, y `SecItemAdd` devolvió éxito igual.
+        //   · iOS: el llavero con protección de datos es el único que hay, así que la clase SÍ se
+        //     aplica… y es `AfterFirstUnlock`, que NO es `ThisDeviceOnly`: la API key de pago
+        //     entra en las copias de seguridad y se restaura en otro aparato.
+        // La aserción es la unión honesta de las dos: el camino viejo **nunca** deja la key con
+        // una clase de la familia `ThisDeviceOnly`. Si algún día lo hiciera, el motivo por el que
+        // esta migración existe habría cambiado y habría que volver a medirlo todo.
         let servicioViejo = "pruebas.Gemma.apiKeysViejas.\(UUID().uuidString)"
         let plantado: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: servicioViejo,
             kSecAttrAccount as String: cuenta,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
             kSecValueData as String: Data("da-igual".utf8),
         ]
         addTeardownBlock { SecItemDelete(plantado as CFDictionary) }
         try XCTSkipUnless(SecItemAdd(plantado as CFDictionary, nil) == errSecSuccess,
                           "el llavero de ficheros rechazó la escritura")
         consulta[kSecAttrService as String] = servicioViejo
-        consulta[kSecUseDataProtectionKeychain as String] = false
+        consulta.removeValue(forKey: kSecUseDataProtectionKeychain as String)
         consulta.removeValue(forKey: kSecAttrSynchronizable as String)
         var salidaVieja: CFTypeRef?
-        XCTAssertEqual(SecItemCopyMatching(consulta as CFDictionary, &salidaVieja), errSecSuccess)
+        XCTAssertEqual(SecItemCopyMatching(consulta as CFDictionary, &salidaVieja), errSecSuccess,
+                       "guarda de vacuidad: el elemento plantado por el camino viejo no se encuentra")
         let atributosViejos = try XCTUnwrap(salidaVieja as? [String: Any])
-        XCTAssertNil(atributosViejos[kSecAttrAccessible as String],
-                     """
-                     el llavero de ficheros SÍ aplicó una clase de accesibilidad. Si eso cambiara, \
-                     el motivo por el que esta migración existe habría cambiado con él y habría \
-                     que volver a medirlo todo.
-                     """)
+        let claseVieja = atributosViejos[kSecAttrAccessible as String] as? String
+        XCTAssertFalse(soloEsteDispositivo.contains(claseVieja ?? ""),
+                       """
+                       el camino VIEJO dejó la API key con la clase \(claseVieja ?? "nil"), que es \
+                       de la familia `ThisDeviceOnly`. Entonces el defecto que esta migración \
+                       arregla ya no existe y hay que volver a medirlo todo.
+                       """)
     }
 
     // MARK: ayudante de fuentes

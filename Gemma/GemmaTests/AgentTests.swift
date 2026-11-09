@@ -150,7 +150,7 @@ final class AgentTests: XCTestCase {
         // novena y se ponia rojo sin decir por que; derivado del registro, una herramienta
         // nueva entra sola en el bucle, y si alguien la registra sin anadirla a
         // `browserToolNames` el fallo nombra cual falta.
-        let registradas = Set(HarnessModel.browserToolRegistry().tools
+        let registradas = Set(HarnessModel.browserToolRegistry(almacen: AlmacenEnMemoria()).tools
             .map { type(of: $0).name }
             .filter { $0.hasPrefix("browser_") })
         XCTAssertEqual(Agent.browserToolNames, registradas)

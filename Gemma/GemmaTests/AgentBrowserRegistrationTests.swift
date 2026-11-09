@@ -29,7 +29,7 @@ final class AgentBrowserRegistrationTests: XCTestCase {
     }
 
     func test_the_browser_tools_are_registered() {
-        let registry = HarnessModel.browserToolRegistry()
+        let registry = HarnessModel.browserToolRegistry(almacen: AlmacenEnMemoria())
         XCTAssertEqual(nombresRegistrados(registry), esperadas)
         // Un `Set` oculta los duplicados: el registro tiene que traer una instancia por nombre.
         XCTAssertEqual(registry.tools.count, esperadas.count)
@@ -43,7 +43,7 @@ final class AgentBrowserRegistrationTests: XCTestCase {
     }
 
     func test_every_browser_tool_has_a_valid_function_spec() {
-        for tool in HarnessModel.browserToolRegistry().tools {
+        for tool in HarnessModel.browserToolRegistry(almacen: AlmacenEnMemoria()).tools {
             let t = type(of: tool)
             XCTAssertFalse(t.name.isEmpty)
             XCTAssertFalse(t.description.isEmpty, "\(t.name) sin descripción")
@@ -54,7 +54,7 @@ final class AgentBrowserRegistrationTests: XCTestCase {
     func test_registering_into_an_existing_registry_adds_the_browser_tools() {
         let registry = ToolRegistry()
         registry.register(WebSearchTool())
-        HarnessModel.registerBrowserTools(into: registry)
+        HarnessModel.registerBrowserTools(into: registry, almacen: AlmacenEnMemoria())
         XCTAssertEqual(nombresRegistrados(registry), esperadas.union(["web_search"]))
         XCTAssertEqual(registry.tools.count, esperadas.count + 1)
         XCTAssertNotNil(registry.tool(named: "web_search"))

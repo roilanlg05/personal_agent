@@ -9,6 +9,13 @@ struct GemmaApp: App {
         WindowGroup {
             HarnessView(model: model)
                 .task {
+                    // El token del navegador conduce un Chrome con la sesión de Google del
+                    // usuario dentro, así que no puede seguir en claro en `UserDefaults`. Esto lo
+                    // mueve al llavero y lo borra del sitio viejo, UNA vez y al arrancar: aquí y
+                    // no en `leer`, porque leer no debe escribir, y no solo en Ajustes, porque un
+                    // usuario que no vuelva a abrirlos se quedaría el fichero en claro para
+                    // siempre. Es idempotente: a la segunda no hay nada que mover.
+                    TokenDeConducir.migrar()
                     // Siembra los atajos que Gemma ya conoce. En iOS no hay forma de
                     // enumerarlos, así que sin esto el modelo tendría que adivinar
                     // nombres. Se aplica una sola vez y respeta las correcciones del

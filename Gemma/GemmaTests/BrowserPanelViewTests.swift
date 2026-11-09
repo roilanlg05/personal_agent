@@ -780,10 +780,10 @@ final class BrowserPanelViewTests: XCTestCase {
     /// `test_al_retirar_el_panel_el_mando_se_suelta_de_verdad`, que sí son mediciones.)
     @MainActor func test_makeRelayStream_solo_devuelve_visor_con_la_url_configurada() {
         let defaults = UserDefaults(suiteName: "mando-subsistema-b-\(UUID().uuidString)")!
-        XCTAssertNil(HarnessModel.makeRelayStream(defaults: defaults), "sin URL no hay visor")
+        XCTAssertNil(HarnessModel.makeRelayStream(defaults: defaults, almacen: AlmacenEnMemoria()), "sin URL no hay visor")
 
         defaults.set("http://192.0.2.1:8083", forKey: SettingsKeys.browserBaseURL)
-        XCTAssertNotNil(HarnessModel.makeRelayStream(defaults: defaults), "con URL válida sí hay visor")
+        XCTAssertNotNil(HarnessModel.makeRelayStream(defaults: defaults, almacen: AlmacenEnMemoria()), "con URL válida sí hay visor")
         // El flujo NO se consume: abrirlo levantaría el socket contra una dirección de prueba.
     }
 

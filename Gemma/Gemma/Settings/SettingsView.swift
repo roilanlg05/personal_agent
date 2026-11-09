@@ -84,7 +84,12 @@ struct SettingsView: View {
     @AppStorage("memoryBaseURL") private var memoryBaseURL: String = "http://localhost:8081"
     @AppStorage("memoryBearerToken") private var memoryBearerToken: String = "replace-me-with-a-long-random-string"
     @AppStorage(SettingsKeys.browserBaseURL) private var browserBaseURL: String = ""
-    @AppStorage(SettingsKeys.browserBearerToken) private var browserBearerToken: String = ""
+    /// NO es `@AppStorage`, y ésa es la Tarea 6. Este token conduce un Chrome con la sesión de
+    /// Google del usuario dentro, así que vive en el llavero (`TokenDeConducir`) y no en
+    /// `UserDefaults`. El campo de abajo ya se pintaba como secreto; antes de esto el almacén
+    /// mentía. Se carga al aparecer (lo que además dispara la migración del sitio viejo) y se
+    /// guarda en cada cambio.
+    @State private var browserBearerToken: String = ""
     @AppStorage("voiceBaseURL") private var voiceBaseURL: String = ""
     #if os(iOS)
     @AppStorage(SettingsKeys.chatProvider) private var chatProvider = "onDevice"
@@ -188,6 +193,15 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
                 #endif
             }
+            // El token de conducir se lee del llavero al abrir Ajustes, NO de `UserDefaults`.
+            // Esta primera lectura es además la que dispara la migración: un usuario que ya tenía
+            // el token escrito en claro lo ve seguir en el campo, y el sitio viejo queda vacío.
+            .onAppear {
+                TokenDeConducir.migrar()
+                browserBearerToken = TokenDeConducir.leer()
+            }
+            .onChange(of: browserBearerToken) { _, nuevo in TokenDeConducir.guardar(nuevo) }
+
             Section("Voice Service") {
                 SettingsCredentialField(titulo: "Voice base URL (opcional)",
                                         esSecreto: false, texto: $voiceBaseURL)

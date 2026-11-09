@@ -481,14 +481,25 @@ public final class HarnessModel {
     /// de la clausura de `onTermination`, así que nadie podía pedir el volante. El cliente sigue
     /// soltándose exactamente igual en `onTermination`: lo que cambia es que ahora alguien más
     /// —el coordinador, y por él el panel— lo tiene mientras el panel vive.
-    static func makeRelayStream(defaults: UserDefaults = .standard) -> BrowserPanelCoordinator.VisorDelRele? {
+    ///
+    /// `abreElSocket` se reenvía tal cual a `BrowserRelayClient`, que ya tenía ese costurón: con
+    /// `nil` (producción) abre el socket de verdad. Pasarlo por aquí es lo que hace OBSERVABLE
+    /// que el token con el que se firma el handshake sea el del llavero y no el que quedara en
+    /// claro en `UserDefaults`; sin él esa propiedad solo se podría leer, no medir.
+    static func makeRelayStream(defaults: UserDefaults = .standard,
+                                almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido,
+                                abreElSocket: (@Sendable (URL, String) -> SocketDelVisor)? = nil)
+        -> BrowserPanelCoordinator.VisorDelRele? {
         let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
               url.host != nil else { return nil }
-        let token = (defaults.string(forKey: SettingsKeys.browserBearerToken) ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let client = BrowserRelayClient(baseURL: url, bearerToken: token)
+        // Del LLAVERO, no de `UserDefaults`: este token conduce el Chrome del i3, y lo que vive
+        // en `UserDefaults` se respalda, se sincroniza y se lee sin desbloquear nada. La
+        // migración del sitio viejo NO se hace aquí (ver `TokenDeConducir.leer`): leer no escribe.
+        let token = TokenDeConducir.leer(almacen: almacen)
+        let client = BrowserRelayClient(baseURL: url, bearerToken: token,
+                                        abreElSocket: abreElSocket)
         let (stream, continuation) = AsyncStream<BrowserRelayEvent>.makeStream(bufferingPolicy: .bufferingNewest(64))
         let forwarder = Task {
             for await event in await client.events() {
@@ -513,8 +524,13 @@ public final class HarnessModel {
     /// `userAskedToClose` viaja hasta `BrowserCloseTool`: es el único camino por el que el
     /// navegador se puede cerrar. Por defecto `false`, así que un registro que no diga nada
     /// (las pruebas, `browserToolRegistry()`) no puede cerrar nada.
-    static func registerBrowserTools(into registry: ToolRegistry, userAskedToClose: Bool = false) {
-        let service = AgentBrowserService(invoker: browserInvoker())
+    ///
+    /// `almacen` existe para que una PRUEBA no tenga que leer el token real del usuario del
+    /// llavero: este método es la única ruta hasta `browserInvoker`, y cinco pruebas lo alcanzan
+    /// por `browserToolRegistry()`.
+    static func registerBrowserTools(into registry: ToolRegistry, userAskedToClose: Bool = false,
+                                     almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido) {
+        let service = AgentBrowserService(invoker: browserInvoker(almacen: almacen))
         registry.register(ReadWebpageTool(service: service))
         registry.register(BrowserOpenTool(service: service))
         registry.register(BrowserSnapshotTool(service: service))
@@ -529,7 +545,9 @@ public final class HarnessModel {
     /// Con `browserBaseURL` configurada el navegador es el del i3 (HTTP); sin ella, en macOS el
     /// `agent-browser` local de siempre y en iOS ninguno (hay que configurarla en Ajustes). Se lee en cada registro, así que Ajustes surte efecto en el turno siguiente.
     static func browserInvoker(defaults: UserDefaults = .standard,
-                               session: URLSession = .shared) -> any AgentBrowserInvoking {
+                               session: URLSession = .shared,
+                               almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido)
+        -> any AgentBrowserInvoking {
         let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         // Solo el campo VACÍO es "sin i3" (comportamiento de siempre). Una URL escrita pero
@@ -549,15 +567,18 @@ public final class HarnessModel {
         // Token vacío con URL válida: se usa el HTTP igualmente. El servicio responderá 401 y
         // el invocador lo traduce a "el i3 rechazó el token", que es accionable; desviar al
         // navegador local sería peor (ver arriba).
-        let token = (defaults.string(forKey: SettingsKeys.browserBearerToken) ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Del LLAVERO, no de `UserDefaults` (ver `TokenDeConducir`). Es el SEGUNDO de los dos
+        // lectores del token, y no hay un tercero: medido con un grep de la clave sobre todo el
+        // árbol de la app, los únicos sitios que la nombran son `TokenDeConducir` y sus pruebas.
+        let token = TokenDeConducir.leer(almacen: almacen)
         return HTTPAgentBrowserInvoker(baseURL: url, bearerToken: token, session: session)
     }
 
     /// Registro con solo las herramientas de navegador, para poder probarlas sin arrancar un turno.
-    static func browserToolRegistry() -> ToolRegistry {
+    static func browserToolRegistry(almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido)
+        -> ToolRegistry {
         let registry = ToolRegistry()
-        registerBrowserTools(into: registry)
+        registerBrowserTools(into: registry, almacen: almacen)
         return registry
     }
 

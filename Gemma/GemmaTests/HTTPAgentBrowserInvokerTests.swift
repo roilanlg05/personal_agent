@@ -96,8 +96,12 @@ final class HTTPAgentBrowserInvokerTests: XCTestCase {
         }
         let cfg = URLSessionConfiguration.ephemeral
         cfg.protocolClasses = [VoiceClientTests.StubProtocol.self]
-        let d = defaults(url: "http://100.1.2.3:8083", token: "  t0k3n\n")
-        let invoker = HarnessModel.browserInvoker(defaults: d, session: URLSession(configuration: cfg))
+        // El token ya no vive en `UserDefaults` (Tarea 6): se siembra en el almacén, que es de
+        // donde lo lee el invocador. Sigue sin recortar, que es lo que esta prueba mide.
+        let d = defaults(url: "http://100.1.2.3:8083")
+        let invoker = HarnessModel.browserInvoker(
+            defaults: d, session: URLSession(configuration: cfg),
+            almacen: AlmacenEnMemoria([TokenDeConducir.cuenta: "  t0k3n\n"]))
         _ = await invoker.invoke(arguments: ["stream", "status"], timeout: 10)
         XCTAssertEqual(capture.lastRequest?.value(forHTTPHeaderField: "Authorization"), "Bearer t0k3n")
     }
@@ -180,36 +184,36 @@ final class HTTPAgentBrowserInvokerTests: XCTestCase {
     }
 
     func test_sin_url_configurada_se_usa_el_proceso_local() {
-        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: nil)) is ProcessAgentBrowserInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: nil), almacen: AlmacenEnMemoria()) is ProcessAgentBrowserInvoker)
     }
 
     func test_url_vacia_o_en_blanco_se_usa_el_proceso_local() {
-        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: "")) is ProcessAgentBrowserInvoker)
-        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: "  \n")) is ProcessAgentBrowserInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: ""), almacen: AlmacenEnMemoria()) is ProcessAgentBrowserInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: "  \n"), almacen: AlmacenEnMemoria()) is ProcessAgentBrowserInvoker)
     }
 
     func test_url_valida_con_token_usa_el_invocador_http() {
         let d = defaults(url: "http://100.1.2.3:8083", token: "t")
-        XCTAssertTrue(HarnessModel.browserInvoker(defaults: d) is HTTPAgentBrowserInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: d, almacen: AlmacenEnMemoria()) is HTTPAgentBrowserInvoker)
     }
 
     /// Decisión deliberada: URL válida y token vacío sigue siendo el i3 (dará 401 con motivo
     /// accionable), nunca el navegador local a escondidas.
     func test_url_valida_con_token_vacio_sigue_siendo_el_i3() {
-        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: "http://100.1.2.3:8083")) is HTTPAgentBrowserInvoker)
-        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: "http://100.1.2.3:8083", token: "")) is HTTPAgentBrowserInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: "http://100.1.2.3:8083"), almacen: AlmacenEnMemoria()) is HTTPAgentBrowserInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: defaults(url: "http://100.1.2.3:8083", token: ""), almacen: AlmacenEnMemoria()) is HTTPAgentBrowserInvoker)
     }
 
     func test_url_no_vacia_pero_invalida_no_cae_al_proceso_local() {
         for bad in ["no es una url", "100.1.2.3:8083", "ftp://x.test", "http://"] {
-            let invoker = HarnessModel.browserInvoker(defaults: defaults(url: bad, token: "t"))
+            let invoker = HarnessModel.browserInvoker(defaults: defaults(url: bad, token: "t"), almacen: AlmacenEnMemoria())
             XCTAssertFalse(invoker is ProcessAgentBrowserInvoker, "'\(bad)' no debe desviar al navegador local")
             XCTAssertTrue(invoker is InvalidBrowserURLInvoker, "'\(bad)'")
         }
     }
 
     func test_url_invalida_hace_que_la_herramienta_falle_con_motivo_nombrando_la_url_sin_usar_el_local() async throws {
-        let invoker = HarnessModel.browserInvoker(defaults: defaults(url: "no es una url"))
+        let invoker = HarnessModel.browserInvoker(defaults: defaults(url: "no es una url"), almacen: AlmacenEnMemoria())
         let out = await BrowserPressTool(service: AgentBrowserService(invoker: invoker, sessionName: "gemma"))
             .run(argsJSON: #"{"key":"Enter"}"#)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(out.utf8)) as? [String: Any], "got: \(out)")

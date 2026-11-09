@@ -45,14 +45,14 @@ final class BrowserCrossPlatformTests: XCTestCase {
         let vacios = UserDefaults(suiteName: "test.panel.vacio")!
         vacios.removePersistentDomain(forName: "test.panel.vacio")
         defer { vacios.removePersistentDomain(forName: "test.panel.vacio") }
-        XCTAssertNil(HarnessModel.makeRelayStream(defaults: vacios))
+        XCTAssertNil(HarnessModel.makeRelayStream(defaults: vacios, almacen: AlmacenEnMemoria()))
 
         let puestos = UserDefaults(suiteName: "test.panel.puesto")!
         puestos.removePersistentDomain(forName: "test.panel.puesto")
         defer { puestos.removePersistentDomain(forName: "test.panel.puesto") }
         puestos.set("http://127.0.0.1:1", forKey: SettingsKeys.browserBaseURL)
         puestos.set("t", forKey: SettingsKeys.browserBearerToken)
-        XCTAssertNotNil(HarnessModel.makeRelayStream(defaults: puestos),
+        XCTAssertNotNil(HarnessModel.makeRelayStream(defaults: puestos, almacen: AlmacenEnMemoria()),
                         "con URL válida tiene que haber flujo en CUALQUIER plataforma")
     }
 
@@ -62,7 +62,7 @@ final class BrowserCrossPlatformTests: XCTestCase {
         d.removePersistentDomain(forName: "test.invoker")
         defer { d.removePersistentDomain(forName: "test.invoker") }
         d.set("http://100.64.0.1:8083", forKey: SettingsKeys.browserBaseURL)
-        XCTAssertTrue(HarnessModel.browserInvoker(defaults: d) is HTTPAgentBrowserInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: d, almacen: AlmacenEnMemoria()) is HTTPAgentBrowserInvoker)
     }
 
     /// Una URL escrita pero inválida sigue sin caer al navegador local, en las dos plataformas.
@@ -71,7 +71,7 @@ final class BrowserCrossPlatformTests: XCTestCase {
         d.removePersistentDomain(forName: "test.invoker.invalida")
         defer { d.removePersistentDomain(forName: "test.invoker.invalida") }
         d.set("no es una url", forKey: SettingsKeys.browserBaseURL)
-        XCTAssertTrue(HarnessModel.browserInvoker(defaults: d) is InvalidBrowserURLInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: d, almacen: AlmacenEnMemoria()) is InvalidBrowserURLInvoker)
     }
 
     /// El texto de una URL inválida lo lee también el usuario del iPhone: no puede mandarle a
@@ -101,7 +101,7 @@ final class BrowserCrossPlatformTests: XCTestCase {
     /// siguiente herramienta y entonces esta prueba se pone roja diciendo «9 != 10», que no
     /// nombra nada.
     func test_las_herramientas_de_navegador_se_registran_en_cualquier_plataforma() {
-        XCTAssertEqual(HarnessModel.browserToolRegistry().tools.count,
+        XCTAssertEqual(HarnessModel.browserToolRegistry(almacen: AlmacenEnMemoria()).tools.count,
                        Agent.browserToolNames.count + 1)
     }
 
@@ -111,7 +111,7 @@ final class BrowserCrossPlatformTests: XCTestCase {
         let d = UserDefaults(suiteName: "test.invoker.vacio")!
         d.removePersistentDomain(forName: "test.invoker.vacio")
         defer { d.removePersistentDomain(forName: "test.invoker.vacio") }
-        XCTAssertTrue(HarnessModel.browserInvoker(defaults: d) is UnconfiguredBrowserInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: d, almacen: AlmacenEnMemoria()) is UnconfiguredBrowserInvoker)
     }
     #else
     /// En macOS el campo vacío sigue siendo el navegador local de siempre.
@@ -119,7 +119,7 @@ final class BrowserCrossPlatformTests: XCTestCase {
         let d = UserDefaults(suiteName: "test.invoker.vacio")!
         d.removePersistentDomain(forName: "test.invoker.vacio")
         defer { d.removePersistentDomain(forName: "test.invoker.vacio") }
-        XCTAssertTrue(HarnessModel.browserInvoker(defaults: d) is ProcessAgentBrowserInvoker)
+        XCTAssertTrue(HarnessModel.browserInvoker(defaults: d, almacen: AlmacenEnMemoria()) is ProcessAgentBrowserInvoker)
     }
     #endif
 }

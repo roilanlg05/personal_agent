@@ -642,6 +642,37 @@ final class AgentTests: XCTestCase {
         }
     }
 
+    /// `browser_close` con el candado de la app echado. Es la forma REAL del resultado
+    /// (`BrowserCloseTool`, rama `guard userAskedToClose`): `status: refused` y un `message`
+    /// largo redactado para el modelo.
+    final class FakeBrowserCloseRefused: AgentTool {
+        static let name = "browser_close"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        static let motivo = "No se ha cerrado el navegador y la página sigue abierta, porque el "
+            + "mensaje del usuario en este turno no pedía cerrarla. NO vuelvas a intentarlo."
+        static var resultado: String { "{\"status\":\"refused\",\"message\":\"\(motivo)\"}" }
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return Self.resultado
+        }
+    }
+
+    /// Herramienta cuyo resultado SÍ es un objeto JSON pero sin `status` legible: la forma de
+    /// `ToolJSONOutput.error(_:)`, que es la salida de las guardas de argumentos de media app
+    /// («Se requiere 'name' con el nombre del atajo.»). Es alcanzable de verdad: el modelo
+    /// llamando a una herramienta con los argumentos mal.
+    final class FakeObjetoSinEstado: AgentTool {
+        static let name = "forget_shortcut"
+        static let description = "fake"
+        nonisolated(unsafe) static var calls = 0
+        static let resultado = ToolJSONOutput.error("Se requiere 'name' con el nombre del atajo.")
+        func run(argsJSON: String) async -> String {
+            Self.calls += 1
+            return Self.resultado
+        }
+    }
+
     private func registroConLaQueFalla() -> ToolRegistry {
         FakeBrowserAlwaysFails.calls = 0
         let r = registroDeNavegadorFalso()
@@ -722,26 +753,72 @@ final class AgentTests: XCTestCase {
         }
     }
 
-    /// Lo anterior por la via larga, que es donde se puede medir que no REINICIA: cuatro
-    /// fallos, un resultado que no es JSON —`forget` contesta en prosa— y un quinto fallo. Si
-    /// lo ilegible contara como exito, el presupuesto no se agotaria y la ronda terminaria
-    /// entera.
-    func test_un_resultado_ilegible_no_reinicia_el_presupuesto_ni_revienta_el_bucle() async throws {
+    /// UN EXITO EN PROSA REINICIA EL PRESUPUESTO; UN OBJETO JSON QUE NO SE SUPO LEER, NO.
+    ///
+    /// EL DEFECTO QUE ESTO ARREGLA, Y ES UN TURNO QUE EL USUARIO PIERDE. El tercer estado —«no
+    /// se supo leer»— se aplico a la direccion segura del GASTO (lo ilegible no gasta, bien
+    /// razonado) pero arrastro consigo la direccion insegura del REINICIO: seis herramientas
+    /// registradas contestan en prosa (`forget`, `save_memory`, `reflect` y las tres de A-to-Z,
+    /// dos de ellas MUTACIONES) y su exito no reiniciaba nada. Medido: cinco fallos
+    /// intercalados con cinco `forget` que funcionaron mataban el turno, y la ultima accion no
+    /// llegaba a correr. Con el servicio de memoria del i3 al otro lado de Tailscale el caso es
+    /// cotidiano: cinco `memory_unavailable` repartidos por un turno largo lo mataban aunque
+    /// todo lo demas hubiera funcionado.
+    ///
+    /// LAS DOS MITADES VIVEN EN LA MISMA FUNCION A PROPOSITO. Una implementacion que reiniciara
+    /// con CUALQUIER cosa que no sea un fallo pasaria la primera mitad y moriria en la segunda,
+    /// y una que no reiniciara nunca —la de antes— moriria en la primera. La diferencia entre
+    /// las dos es exactamente la linea que el arreglo traza: una herramienta de fuera del
+    /// contrato contestando en SU prosa reinicia; un objeto JSON cuyo `status` no se entiende
+    /// (la forma de `ToolJSONOutput.error`, una guarda de argumentos) no.
+    func test_un_exito_en_prosa_reinicia_el_presupuesto_y_un_objeto_ilegible_no() async throws {
         let tope = Agent.maxConsecutiveFailures
-        var ronda = pulsaciones(0..<(tope - 1))
-        ronda.append((name: "forget", args: "{}"))
-        ronda += pulsaciones((tope - 1)..<tope)
-        let runtime = ScriptedRuntime([ronda, []])
-        let registro = registroConLaQueFalla()
-        FakeIlegible.calls = 0
-        registro.register(FakeIlegible())
-        let visto = try await ejecuta(runtime, registro)
+        func rondaCon(_ delMedio: (name: String, args: String)) -> [(name: String, args: String)] {
+            var r = pulsaciones(0..<(tope - 1))
+            r.append(delMedio)
+            r += pulsaciones((tope - 1)..<tope)
+            r.append((name: "browser_fill", args: #"{"selector":"@e9","text":"hola"}"#))
+            return r
+        }
 
-        XCTAssertEqual(FakeIlegible.calls, 1, "el resultado ilegible se ejecuto de verdad")
+        // (a) EL CASO MEDIDO: `forget` contesta en prosa y SI reinicia, asi que nunca hay
+        // `tope` fallos seguidos y la ronda termina entera.
+        let conProsa = ScriptedRuntime([rondaCon((name: "forget", args: "{}")), []])
+        let registroProsa = registroConLaQueFalla()
+        FakeIlegible.calls = 0
+        registroProsa.register(FakeIlegible())
+        let vistoProsa = try await ejecuta(conProsa, registroProsa)
+
+        XCTAssertEqual(FakeIlegible.calls, 1, "el exito en prosa se ejecuto de verdad")
+        XCTAssertEqual(FakeBrowserAlwaysFails.calls, tope, "los \(tope) fallos se ejecutaron todos")
+        XCTAssertEqual(FakeBrowserFill.calls, 1,
+                       "la ultima accion del turno tenia que correr: el exito en prosa reinicio la cuenta")
+        XCTAssertEqual(conProsa.prompts.count, 2, "el turno sigue vivo y vuelve al modelo")
+        XCTAssertEqual(vistoProsa.fallados, [], "nada de esto revienta el bucle: \(vistoProsa.fallados)")
+
+        // (b) LA MITAD QUE LA SOSTIENE: un OBJETO JSON sin `status` legible no reinicia, asi que
+        // el presupuesto sigue mordiendo donde tiene que morder.
+        let conObjeto = ScriptedRuntime([rondaCon((name: "forget_shortcut", args: "{}")), []])
+        let registroObjeto = registroConLaQueFalla()
+        FakeObjetoSinEstado.calls = 0
+        registroObjeto.register(FakeObjetoSinEstado())
+        let vistoObjeto = try await ejecuta(conObjeto, registroObjeto)
+
+        XCTAssertEqual(FakeObjetoSinEstado.calls, 1, "el objeto ilegible se ejecuto de verdad")
         XCTAssertEqual(FakeBrowserAlwaysFails.calls, tope, "los \(tope) fallos siguen siendo seguidos")
-        XCTAssertEqual(runtime.prompts.count, 1, "el presupuesto se agoto: no hay segunda ronda")
-        XCTAssertEqual(visto.fallados, [], "un resultado ilegible no revienta el bucle: \(visto.fallados)")
-        XCTAssertEqual(visto.completados.count, 1, "\(visto.completados)")
+        XCTAssertEqual(FakeBrowserFill.calls, 0, "el presupuesto se agoto antes de la ultima accion")
+        XCTAssertEqual(conObjeto.prompts.count, 1, "el presupuesto se agoto: no hay segunda ronda")
+        XCTAssertEqual(vistoObjeto.completados.count, 1, "\(vistoObjeto.completados)")
+
+        // (c) Y la funcion pura, que es donde la linea esta escrita.
+        XCTAssertTrue(Agent.reiniciaElPresupuesto(resultado: FakeIlegible.resultado),
+                      "la prosa de una herramienta de fuera del contrato reinicia")
+        XCTAssertTrue(Agent.reiniciaElPresupuesto(resultado: #"{"status":"success"}"#))
+        XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: FakeObjetoSinEstado.resultado),
+                       "un objeto JSON sin `status` legible NO reinicia: \(FakeObjetoSinEstado.resultado)")
+        XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: #"{"status":"error"}"#))
+        XCTAssertFalse(Agent.reiniciaElPresupuesto(resultado: "\(Agent.duplicadoIgnorado): ya estaba hecho"),
+                       "el atajo del propio bucle no es una herramienta contestando")
     }
 
     /// El mensaje con el que el turno termina: dice la herramienta, las veces y —cuando el
@@ -760,6 +837,53 @@ final class AgentTests: XCTestCase {
         XCTAssertTrue(sinMotivo.contains("browser_click"), sinMotivo)
         XCTAssertFalse(sinMotivo.contains("devolvió"), "sin motivo legible no se inventa uno: \(sinMotivo)")
         XCTAssertNotEqual(conMotivo, sinMotivo)
+    }
+
+    /// EL MENSAJE NO LE CUELGA LOS CINCO FALLOS A UNA SOLA HERRAMIENTA.
+    ///
+    /// EL CASO MEDIDO, Y ES UNA MENTIRA COMPROBABLE. Con tres fallos de `read_webpage` y dos de
+    /// `browser_press`, el mensaje decia «He llamado a `read_webpage` 5 veces seguidas y las 5
+    /// han fallado». El contador es global al turno y se cuenta POR ACCION —que es la mitad
+    /// buena del diseno, asi queda acotado el peor caso—, pero la frase lo presentaba como si
+    /// fuera por herramienta. El usuario puede abrir las filas del chat y contar tres llamadas a
+    /// `read_webpage`: lo que aprende es que su asistente se inventa cifras, y eso gasta la
+    /// credibilidad de todos los demas textos de la app.
+    func test_el_mensaje_de_presupuesto_no_le_cuelga_los_cinco_fallos_a_una_sola_herramienta() async throws {
+        // read, press, read, press, read: cinco fallos, TRES de `read_webpage` y DOS de
+        // `browser_press`. El quinto es un `read_webpage`, asi que es el que el mensaje nombra.
+        let ronda: [(name: String, args: String)] = [
+            (name: "read_webpage", args: #"{"n":1}"#),
+            (name: "browser_press", args: #"{"key":"Enter","n":1}"#),
+            (name: "read_webpage", args: #"{"n":2}"#),
+            (name: "browser_press", args: #"{"key":"Enter","n":2}"#),
+            (name: "read_webpage", args: #"{"n":3}"#),
+            (name: "browser_fill", args: #"{"selector":"@e9","text":"hola"}"#),
+        ]
+        let runtime = ScriptedRuntime([ronda])
+        let registro = registroConLaQueFalla()
+        FakeFailingRead.calls = 0
+        registro.register(FakeFailingRead())
+        let visto = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(FakeFailingRead.calls, 3, "`read_webpage` se llamo TRES veces, no cinco")
+        XCTAssertEqual(FakeBrowserAlwaysFails.calls, 2, "`browser_press` fallo las otras dos")
+        XCTAssertEqual(FakeBrowserFill.calls, 0, "el presupuesto se agoto antes de la ultima accion")
+        let mensaje = try XCTUnwrap(visto.completados.first, "el turno no entrego mensaje")
+
+        // Lo que SI dice: cuantas acciones, cual fue la ultima y que devolvio.
+        XCTAssertTrue(mensaje.contains("\(Agent.maxConsecutiveFailures) acciones"),
+                      "la cuenta es de ACCIONES, que es lo que el bucle cuenta: \(mensaje)")
+        XCTAssertTrue(mensaje.contains("`read_webpage`"),
+                      "nombra la ultima, que es la que acabo de fallar: \(mensaje)")
+        XCTAssertTrue(mensaje.contains("la pagina no respondio"),
+                      "y lo que devolvio, que es el motivo: \(mensaje)")
+        // Y LA AFIRMACION FALSA QUE SE MIDIO, QUE YA NO PUEDE HACER.
+        XCTAssertFalse(mensaje.contains("llamado a `read_webpage`"),
+                       "no se le cuelgan a una herramienta llamadas que no hizo: \(mensaje)")
+        XCTAssertFalse(mensaje.contains("`read_webpage` \(Agent.maxConsecutiveFailures) veces"),
+                       "ni la cuenta pegada a su nombre: \(mensaje)")
+        XCTAssertFalse(mensaje.contains("browser_press"),
+                       "tampoco se culpa a la otra, que fallo dos veces: \(mensaje)")
     }
 
     /// El error vuelve al modelo ENTERO. browser-use lo recorta a los primeros 100 caracteres
@@ -964,8 +1088,8 @@ final class AgentTests: XCTestCase {
     /// pintaba con tilde verde seria inexplicable para quien lo esta mirando, y al reves, un
     /// estado que reinicia el presupuesto no puede salir con cruz roja.
     func test_lo_que_gasta_presupuesto_sale_con_cruz_roja_en_el_chat() {
-        func esFalloEnLaFila(_ estado: String) -> Bool {
-            if case .failure = ToolLogRow.summarize(toolName: "browser_click",
+        func esFalloEnLaFila(_ estado: String, herramienta: String = "browser_click") -> Bool {
+            if case .failure = ToolLogRow.summarize(toolName: herramienta,
                                                     resultJSON: "{\"status\":\"\(estado)\"}") { return true }
             return false
         }
@@ -975,6 +1099,17 @@ final class AgentTests: XCTestCase {
         for estado in Agent.estadosDeExito {
             XCTAssertFalse(esFalloEnLaFila(estado), "reinicia el presupuesto y la fila lo pinta como fallo: \(estado)")
         }
+        // LA UNICA EXCEPCION DEL INVARIANTE, DECLARADA AQUI PARA QUE NO MIENTA. Un
+        // `browser_close` con `refused` sigue gastando presupuesto —el bucle no mira el nombre
+        // de la herramienta, y no deberia— pero NO sale con cruz roja, porque para el usuario no
+        // es un fallo: es el candado de la app protegiendole la pagina. El coste de la excepcion
+        // tambien conviene que este escrito: un modelo que insistiera en cerrar gastaria el
+        // presupuesto del turno sin que la fila lo pintase como fallo. No se ha observado (el
+        // candado le dice «NO vuelvas a intentarlo» en el `message`) y queda anotado.
+        XCTAssertTrue(Agent.esFallo(resultado: #"{"status":"refused"}"#),
+                      "la premisa de la excepcion: `refused` gasta presupuesto")
+        XCTAssertFalse(esFalloEnLaFila("refused", herramienta: "browser_close"),
+                       "un cierre rechazado por el candado no se pinta como fallo")
     }
 
     // MARK: - El historial del turno es la prosa del modelo, no su JSON
@@ -1073,12 +1208,27 @@ final class AgentTests: XCTestCase {
         let prompt = Agent.promptVivo(base: "BASE", guiaRescatada: recortado.guiaRescatada, rondas: recortado.rondas)
         XCTAssertTrue(prompt.hasPrefix("BASE"), "el prompt del usuario va primero y nunca se recorta")
         XCTAssertEqual(prompt.components(separatedBy: "LA-GUIA").count - 1, 1, "una vez, ni dos ni ninguna")
-        // Y mientras su ronda sigue viva, la guía va DETRÁS de la nota que la pagó (es donde
-        // la puso la tarea de la guía, y esta prueba no la mueve).
+        // Y RESCATADA VIVE COMO CABECERA, delante de las rondas que sobreviven. No es
+        // cosmética: con la guía detrás, lo ÚLTIMO que el modelo leería en todas las rondas
+        // siguientes serían los 14 KB del manual del CLI —que acaban en «Never echo or paste
+        // secrets»— en vez del resultado de lo que acaba de hacer. La propiedad estaba escrita
+        // en `recortaElHistorial` («desde ese momento vive como cabecera») y no la guardaba
+        // nadie: una mutación que pusiera la guía rescatada detrás de las rondas sobrevivía a
+        // la suite entera.
+        let iGuiaRescatada = try XCTUnwrap(prompt.range(of: "LA-GUIA")?.lowerBound)
+        let iRondaViva = try XCTUnwrap(prompt.range(of: "r3 ")?.lowerBound)
+        XCTAssertLessThan(iGuiaRescatada, iRondaViva,
+                          "la guía rescatada es cabecera: va delante de las rondas que sobreviven")
+
+        // Y DENTRO DE SU RONDA, LA GUÍA VA DELANTE DEL TEXTO. Lo último que el modelo lee tiene
+        // que ser la nota de resultado de la herramienta que acaba de ejecutar —que es lo que
+        // `toolResultNote` documenta de sí misma, «gana sobre cualquier instrucción del prompt
+        // del sistema»— y no el manual del CLI, que es la pieza que menos conoce este proyecto.
         let intacto = Agent.promptVivo(base: "BASE", guiaRescatada: nil, rondas: [rondas[0]])
         let iNota = try XCTUnwrap(intacto.range(of: "r1 ")?.lowerBound)
         let iGuia = try XCTUnwrap(intacto.range(of: "LA-GUIA")?.lowerBound)
-        XCTAssertLessThan(iNota, iGuia)
+        XCTAssertLessThan(iGuia, iNota,
+                          "la guía va DELANTE del texto de su ronda, para que la nota quede última")
     }
 
     /// Snapshot falso que devuelve una página GRANDE —del tamaño que el propio tope de
@@ -1339,6 +1489,120 @@ final class AgentTests: XCTestCase {
         XCTAssertNotNil(Agent.lineaDeEstadoDelNavegador(herramienta: "browser_click",
                                                         resultado: #"{"status":"error"}"#),
                         "un fallo tiene que producir linea")
+    }
+
+    /// UN CIERRE RECHAZADO POR EL CANDADO NO ENSUCIA UN TURNO QUE SALIO BIEN.
+    ///
+    /// EL CASO MEDIDO, Y ES EL TURNO DE NAVEGADOR MAS COMUN. El usuario pide un video, el turno
+    /// lo pone, el modelo llama a `browser_close` —porque la guia oficial del CLI que esta misma
+    /// rama le inyecta dice «Run `agent-browser close` when you're done»—, el candado de la app
+    /// lo RECHAZA (conducta correcta), y la app le pegaba a la respuesta un «la ultima accion
+    /// sobre la pagina, `browser_close`, devolvio `refused` y no se llego a hacer … no te fies
+    /// de esa parte». Todo habia salido bien y la app le decia al usuario que desconfiara.
+    ///
+    /// LAS TRES MITADES COMPARTEN MUTACION, Y POR ESO NINGUNA ES VACUA. Vaciar
+    /// `browserToolNamesThatDoNotTouchThePage` resucita el defecto y mata (a) y (c); meter en el
+    /// conjunto a todas las herramientas del navegador mata (b). Una implementacion que no
+    /// pusiera NUNCA la linea no verdearia esto: (b) la exige entera.
+    func test_un_close_rechazado_no_ensucia_el_turno_y_no_tapa_un_fallo_de_verdad() async throws {
+        // (a) `open` con exito y `close` rechazado: la respuesta del modelo sale limpia.
+        let runtime = ScriptedRuntime([
+            [(name: "browser_open", args: #"{"url":"https://a.test/"}"#)],
+            [(name: "browser_close", args: "{}")],
+            []
+        ], prosa: ["", "", "Listo: te he puesto el video y lo tienes en pantalla."])
+        let registro = registroDeNavegadorFalso()
+        FakeBrowserCloseRefused.calls = 0
+        registro.register(FakeBrowserCloseRefused())
+        let visto = try await ejecuta(runtime, registro)
+
+        XCTAssertEqual(FakeBrowserCloseRefused.calls, 1, "el cierre se llamo y el candado lo rechazo")
+        XCTAssertTrue(Agent.esFallo(resultado: FakeBrowserCloseRefused.resultado),
+                      "la premisa: `refused` SI es un fallo a ojos del presupuesto, y aun asi la "
+                      + "linea no se escribe. Sin esto la prueba verdearia por el motivo equivocado")
+        XCTAssertEqual(visto.completados, ["Listo: te he puesto el video y lo tienes en pantalla."],
+                       "un cierre rechazado no es una accion sobre la pagina: \(visto.completados)")
+
+        // (b) LA MITAD QUE LA SOSTIENE: una accion que SI actua sobre la pagina y falla si
+        // produce la linea, en el mismo bucle y con el mismo cableado.
+        let runtimeFallo = ScriptedRuntime([[(name: "browser_press", args: #"{"key":"Enter"}"#)], []],
+                                           prosa: ["", "Ya te lo he puesto."])
+        let vistoFallo = try await ejecuta(runtimeFallo, registroConLaQueFalla())
+        let linea = try XCTUnwrap(
+            Agent.lineaDeEstadoDelNavegador(herramienta: "browser_press",
+                                            resultado: FakeBrowserAlwaysFails.resultado))
+        XCTAssertEqual(vistoFallo.completados, ["Ya te lo he puesto.\n\n" + linea],
+                       "un fallo SOBRE la pagina sigue llegando al usuario: \(vistoFallo.completados)")
+
+        // (c) Y UN CIERRE RECHAZADO NO TAPA EL FALLO ANTERIOR. Es la razon por la que la
+        // exclusion vive al APUNTAR la accion y no al redactar la linea: si viviera dentro de
+        // `lineaDeEstadoDelNavegador`, el `close` habria sobrescrito la ultima accion del turno
+        // y este aviso —que es cierto— se habria perdido.
+        let runtimeMixto = ScriptedRuntime([
+            [(name: "browser_press", args: #"{"key":"Enter"}"#)],
+            [(name: "browser_close", args: "{}")],
+            []
+        ], prosa: ["", "", "Hecho."])
+        let registroMixto = registroConLaQueFalla()
+        FakeBrowserCloseRefused.calls = 0
+        registroMixto.register(FakeBrowserCloseRefused())
+        let vistoMixto = try await ejecuta(runtimeMixto, registroMixto)
+
+        XCTAssertEqual(FakeBrowserCloseRefused.calls, 1)
+        XCTAssertEqual(vistoMixto.completados, ["Hecho.\n\n" + linea],
+                       "el cierre no puede tapar el `press` que de verdad fallo: \(vistoMixto.completados)")
+
+        // (d) La funcion pura, que es donde la decision esta escrita.
+        XCTAssertFalse(Agent.actuaSobreLaPagina("browser_close"), "cerrar no es actuar sobre la pagina")
+        XCTAssertTrue(Agent.actuaSobreLaPagina("browser_press"))
+        XCTAssertTrue(Agent.actuaSobreLaPagina("browser_click"))
+        XCTAssertFalse(Agent.actuaSobreLaPagina("web_search"), "ni siquiera es del navegador")
+    }
+
+    /// LA LINEA VIAJA DECLARADA COMO AVISO DE LA APP, NO COMO VOZ DEL ASISTENTE.
+    ///
+    /// EL DEFECTO QUE CIERRA, Y NADIE LO HABIA DECLARADO. El `text` del `.completed` es
+    /// exactamente lo que el arnes persiste en el servicio de memoria como «lo que dijo el
+    /// asistente» (`HarnessModel` → `appendTranscript`), asi que la linea de la app —«la ultima
+    /// accion sobre la pagina devolvio `refused`»— acababa guardada como una frase del
+    /// asistente, pasaba por los resumenes, por la consolidacion y por `reflect`, y podia
+    /// terminar convertida en un «insight» sobre el usuario.
+    ///
+    /// LAS DOS MITADES, EN LA MISMA FUNCION: un turno con un fallo DECLARA el aviso y un turno
+    /// en exito NO declara ninguno. Y la ultima afirmacion ata las dos piezas de produccion —la
+    /// declaracion del bucle y el filtro del arnes— sobre el mismo dato, que es lo que impide
+    /// que esto verdee con un `appNotice` que nadie usa.
+    func test_la_linea_de_estado_viaja_declarada_como_aviso_de_la_app() async throws {
+        func resultadoDelTurno(_ runtime: ScriptedRuntime,
+                               _ registro: ToolRegistry) async throws -> GenerationResult {
+            var completados: [GenerationResult] = []
+            for try await e in Agent(runtime: runtime, registry: registro).run(prompt: "x",
+                                                                              options: GenerationOptions()) {
+                if case .completed(let r) = e { completados.append(r) }
+            }
+            return try XCTUnwrap(completados.first, "el turno no entrego respuesta")
+        }
+
+        let conFallo = try await resultadoDelTurno(
+            ScriptedRuntime([[(name: "browser_press", args: #"{"key":"Enter"}"#)], []],
+                            prosa: ["", "Ya te lo he puesto."]),
+            registroConLaQueFalla())
+        let linea = try XCTUnwrap(
+            Agent.lineaDeEstadoDelNavegador(herramienta: "browser_press",
+                                            resultado: FakeBrowserAlwaysFails.resultado))
+        XCTAssertEqual(conFallo.appNotice, linea, "la app declara cual es SU sufijo")
+        XCTAssertTrue(conFallo.text.hasSuffix(linea),
+                      "y esta de verdad al final del texto, que es lo que el arnes comprueba")
+        XCTAssertEqual(HarnessModel.sinElAvisoDeLaApp(conFallo.text, aviso: conFallo.appNotice),
+                       "Ya te lo he puesto.",
+                       "lo que se archiva es la respuesta del modelo, sin el aviso de la app")
+
+        let enExito = try await resultadoDelTurno(
+            ScriptedRuntime([[(name: "browser_click", args: #"{"selector":"@e3"}"#)], []],
+                            prosa: ["", "Listo."]),
+            registroDeNavegadorFalso())
+        XCTAssertNil(enExito.appNotice, "un turno que salio bien no declara ningun aviso")
+        XCTAssertEqual(enExito.text, "Listo.")
     }
 
     /// EL CORAZON: la linea NUNCA imprime el `message` de la herramienta.

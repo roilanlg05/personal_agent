@@ -191,6 +191,41 @@ final class Agent {
         "browser_open", "browser_close"
     ]
 
+    /// Las herramientas de navegador que NO actúan sobre el CONTENIDO de la página, y que por
+    /// eso NUNCA pueden producir la línea de estado del turno
+    /// (`lineaDeEstadoDelNavegador`).
+    ///
+    /// EL CASO MEDIDO, Y ES EL TURNO DE NAVEGADOR MÁS COMÚN. El usuario pide un vídeo; el turno
+    /// hace `browser_open` → `browser_snapshot` → el modelo llama a `browser_close` porque la
+    /// guía oficial del CLI —que esta misma rama le inyecta— le dice «Run `agent-browser close`
+    /// when you're done»; el candado de la app lo RECHAZA con `refused`, que es la conducta
+    /// correcta y deliberada (`BrowserCloseTool`: muchas veces la página abierta ES lo que el
+    /// usuario pidió). Con el cierre contando como «última acción sobre la página», la app le
+    /// pegaba a una respuesta perfectamente buena un «la última acción sobre la página,
+    /// `browser_close`, devolvió `refused` y no se llegó a hacer … no te fíes de esa parte», con
+    /// su cruz roja. Todo había salido bien y la app le decía al usuario que desconfiara de su
+    /// asistente: el gasto de credibilidad exacto que esta línea existe para evitar.
+    ///
+    /// POR QUÉ ES LO CORRECTO Y NO UN PARCHE. La línea afirma un hecho estrecho y concreto: «la
+    /// última acción SOBRE LA PÁGINA declaró que no la hizo». Cerrar no es una acción sobre el
+    /// contenido de la página, y un cierre rechazado deja la página EXACTAMENTE como el modelo
+    /// la acaba de describir, así que no hay nada que desmentir. Un rechazo del candado tampoco
+    /// es un fallo: es la app haciendo su trabajo.
+    ///
+    /// Y LA EXCLUSIÓN VIVE AL APUNTAR LA ACCIÓN, NO AL REDACTAR LA LÍNEA. Si viviera dentro de
+    /// `lineaDeEstadoDelNavegador`, un `close` posterior seguiría TAPANDO el fallo de verdad que
+    /// hubo antes —un `browser_press` que falló y después un cierre rechazado— y el usuario
+    /// perdería un aviso cierto. Al no apuntarse, la última acción sobre la página sigue siendo
+    /// el `press`, y lo que el usuario lee es verdad.
+    nonisolated static let browserToolNamesThatDoNotTouchThePage: Set<String> = ["browser_close"]
+
+    /// Si `herramienta` es una acción de navegador SOBRE LA PÁGINA: las únicas que pueden
+    /// producir la línea de estado del turno. Ver `browserToolNamesThatDoNotTouchThePage`.
+    nonisolated static func actuaSobreLaPagina(_ herramienta: String) -> Bool {
+        browserToolNames.contains(herramienta)
+            && !browserToolNamesThatDoNotTouchThePage.contains(herramienta)
+    }
+
     /// El resultado con el que el bucle contesta a una herramienta que NO esta en el registro.
     ///
     /// HABLA EL CONTRATO JSON, Y ESO ES EL ARREGLO. Antes era la cadena `error: no tool named X`,
@@ -535,6 +570,61 @@ final class Agent {
         return estadosDeExito.contains(estado)
     }
 
+    /// Cabecera del resultado con el que el bucle contesta a una mutación que ya se ejecutó en
+    /// este mismo turno. No es un resultado de herramienta: lo escribe el bucle.
+    nonisolated static let duplicadoIgnorado = "DUPLICATE_CALL_IGNORED"
+
+    /// Si un resultado REINICIA el presupuesto de fallos consecutivos.
+    ///
+    /// EL DEFECTO QUE ARREGLA, MEDIDO. El presupuesto mataba turnos en los que había habido
+    /// éxitos de verdad. Una ronda con cinco `read_webpage` fallidos INTERCALADOS con cinco
+    /// `forget` que funcionaron agotaba el presupuesto y mataba el turno: `forget` se había
+    /// ejecutado cuatro veces con éxito real y el `browser_fill` del final no llegaba a correr.
+    /// El caso realista con el servicio de memoria del i3 al otro lado de Tailscale es peor:
+    /// cinco `memory_unavailable` repartidos por un turno largo lo matan aunque todo lo demás
+    /// funcionara, y el usuario recibe «he fallado cinco veces» sobre un turno en el que el
+    /// agente SÍ hizo cosas.
+    ///
+    /// POR QUÉ PASABA. `esFallo` tiene tres estados a propósito y la dirección segura se aplicó
+    /// bien al lado del GASTO —lo que no se supo leer no gasta—, pero el lado del REINICIO
+    /// heredó la misma asimetría sin que nadie la decidiera: un éxito que no habla el contrato
+    /// `status` tampoco reiniciaba. Y hay seis herramientas registradas que contestan en prosa
+    /// y por tanto nunca reiniciaban (censo): `ForgetTool`, `SaveMemoryTool`, `ReflectTool` y
+    /// las tres de A-to-Z (`add_shift`, `drop_shift`, `get_shifts`), dos de ellas MUTACIONES
+    /// —o sea que aceptar un turno de trabajo con éxito contaba como «ni fallo ni éxito»—.
+    ///
+    /// LA LÍNEA QUE SE TRAZA, Y ES MECÁNICA, NO UNA CORAZONADA SOBRE EL TEXTO. Reinicia:
+    ///   - un `status` de `estadosDeExito` (el contrato, como antes), y
+    ///   - un resultado que NO ES UN OBJETO JSON, o sea una herramienta de FUERA del contrato
+    ///     contestando en su prosa («Forgot 3 item(s) matching 'x'.»).
+    /// No reinicia:
+    ///   - un fallo declarado (`esFallo`),
+    ///   - un OBJETO JSON cuyo `status` no se supo leer o que no lo trae. Aquí vive
+    ///     `ToolJSONOutput.error(_:)` —`{"error": …}`, la salida de las guardas de argumentos de
+    ///     muchas herramientas—, que es un fallo de verdad y es alcanzable: el modelo llamando a
+    ///     una herramienta con los argumentos mal. Si eso reiniciara, el presupuesto se quedaría
+    ///     sin dientes justo contra el bucle de fallos que no sabemos leer, que es lo que el
+    ///     comentario de `esFallo` avisa de no hacer.
+    ///   - el `DUPLICATE_CALL_IGNORED` del propio bucle, que tampoco es un objeto JSON pero no
+    ///     es una herramienta contestando: es el bucle atajando una repetición del modelo, y
+    ///     reiniciar con él dejaría al modelo alternar fallo y repetición para siempre.
+    ///
+    /// EL PRECIO, DECLARADO: un FALLO en prosa («memory unavailable», que es lo que `forget`
+    /// contesta cuando el servicio no está) ahora reinicia. No se puede distinguir de su éxito
+    /// sin tocar las seis herramientas, y entre matar turnos buenos y dejar un turno malo en
+    /// manos del tope de rondas, esto último es lo que no le cuesta nada al usuario. El arreglo
+    /// de raíz es que esas seis hablen el contrato `status`, y ya hay precedente en esta misma
+    /// rama (`resultadoDeHerramientaInexistente`).
+    nonisolated static func reiniciaElPresupuesto(resultado: String) -> Bool {
+        if esExito(resultado: resultado) { return true }
+        if esFallo(resultado: resultado) { return false }
+        // Un OBJETO JSON cuyo `status` no se supo leer se queda en el tercer estado: no
+        // reinicia. Solo la prosa de una herramienta de fuera del contrato lo hace.
+        guard (try? JSONSerialization.jsonObject(with: Data(resultado.utf8))) as? [String: Any] == nil
+        else { return false }
+        return !resultado.hasPrefix(duplicadoIgnorado)
+    }
+
     /// Cuantas acciones seguidas pueden fallar antes de que el turno pare y se lo diga al
     /// usuario.
     ///
@@ -594,17 +684,34 @@ final class Agent {
     /// excepcion, porque el usuario tiene derecho a que se le diga que se ha parado y por que,
     /// no a una fila roja con el nombre de un tipo de Swift.
     ///
-    /// Dice QUE paso —la herramienta y las veces— y, cuando el resultado lo declara, POR QUE.
-    /// Si el resultado no trae un motivo legible no se inventa ninguno: la frase se queda en el
-    /// hecho, que es la regla de honestidad del proyecto («never dress a failure as a refusal:
-    /// say which step failed and why, in those words»).
+    /// Dice CUANTAS acciones fallaron, CUAL fue la ultima y —cuando el resultado lo declara—
+    /// QUE devolvio. Si el resultado no trae un motivo legible no se inventa ninguno: la frase
+    /// se queda en el hecho, que es la regla de honestidad del proyecto («never dress a failure
+    /// as a refusal: say which step failed and why, in those words»).
+    ///
+    /// LA CUENTA ES DE ACCIONES, NO DE LLAMADAS A ESA HERRAMIENTA, Y LA FRASE ANTERIOR MENTIA.
+    /// El contador es global al turno y sube por ACCION EJECUTADA —que es la mitad buena del
+    /// diseno, porque asi el peor caso queda acotado (ver `maxConsecutiveFailures`)—, pero la
+    /// frase lo presentaba como si fuera por herramienta: «He llamado a `read_webpage` 5 veces
+    /// seguidas y las 5 han fallado». Medido con tres fallos de `read_webpage` y dos de
+    /// `browser_press`: `read_webpage` se habia llamado TRES veces. Es una afirmacion
+    /// verificable y falsa —el usuario puede abrir las filas del chat y contarlas— escrita por
+    /// la app en el canal que existe precisamente para que pueda creer algo sin mirar, y una
+    /// cifra inventada ahi gasta la credibilidad de todos los demas textos de la app.
+    ///
+    /// Va al USUARIO y no al modelo, asi que va en espanol y sin JSON: es lo que se queda en el
+    /// chat. Y viaja como respuesta (`.token` + `.completed`), no como `.failed` ni como
+    /// excepcion, porque el usuario tiene derecho a que se le diga que se ha parado y por que,
+    /// no a una fila roja con el nombre de un tipo de Swift.
     nonisolated static func mensajeDePresupuestoAgotado(herramienta: String,
                                                         fallos: Int,
                                                         resultado: String) -> String {
-        var frase = "He llamado a `\(herramienta)` \(fallos) veces seguidas y las \(fallos) han fallado, "
-            + "así que me paro aquí en lugar de seguir intentando lo mismo."
+        var frase = "Me paro aquí: \(fallos) acciones seguidas han fallado, así que no sigo "
+            + "intentándolo. La última fue `\(herramienta)`"
         if let motivo = motivoDelResultado(resultado) {
-            frase += " Lo último que devolvió fue: \(motivo)"
+            frase += " y devolvió: \(motivo)"
+        } else {
+            frase += "."
         }
         return frase
     }
@@ -759,9 +866,9 @@ final class Agent {
         /// La prosa del modelo y las notas de resultado de esa ronda, ya unidas.
         var texto: String
         /// El bloque de la guia oficial, cuando ESTA ronda es la que lo trajo. Se guarda aparte
-        /// del texto por dos razones: va DETRAS de la nota de la herramienta que lo pago (ahi lo
-        /// coloco la tarea de la guia y de ahi no se mueve) y no cuenta contra el tope del
-        /// historial, porque no es historial (ver `maxHistoryBytes`).
+        /// del texto por dos razones: va DELANTE de la nota de la herramienta que lo pago (ver
+        /// `render`) y no cuenta contra el tope del historial, porque no es historial (ver
+        /// `maxHistoryBytes`).
         var guia: String?
 
         init(texto: String, guia: String? = nil) {
@@ -769,8 +876,29 @@ final class Agent {
             self.guia = guia
         }
 
-        /// Lo que esta ronda aporta al prompt vivo.
-        var render: String { guia.map { texto + "\n\n" + $0 } ?? texto }
+        /// Lo que esta ronda aporta al prompt vivo: la guia PRIMERO, si esta ronda la trajo, y
+        /// luego su texto (la prosa del modelo y las notas de resultado).
+        ///
+        /// POR QUE LA GUIA VA DELANTE, Y ANTES IBA DETRAS. Dos comentarios de este fichero
+        /// afirman que la nota de resultado es lo ULTIMO que el modelo lee —`toolResultNote`,
+        /// «asi que gana sobre cualquier instruccion del prompt del sistema», y
+        /// `browserGuideBlock()`, «llega en el momento en que sirve: la nota de resultado es lo
+        /// ULTIMO que el modelo lee»— y con la guia detras las dos eran falsas. Medido en la
+        /// ronda que inyecta: la nota quedaba a 22 KB del final y la cola del prompt era la
+        /// seccion «Working safely» del manual del CLI, que termina en «Never echo or paste
+        /// secrets». O sea que la pieza con mas recencia —la que el modelo lee justo antes de
+        /// decidir— era la que menos conoce este proyecto, y las DOS lecturas que
+        /// `browserGuidePreamble` existe para desactivar quedaban por delante en orden de
+        /// lectura: cerrar el navegador al acabar (el defecto medido del cierre; ver
+        /// `browserToolNamesThatDoNotTouchThePage`) y tratar como secreto la direccion de correo
+        /// del usuario, que es una queja literal suya («se negó aunque sólo le pedí el correo no
+        /// la contraseña»).
+        ///
+        /// La guia sigue llegando en la ronda que la paga y pegada a ella, que es donde sirve;
+        /// lo unico que cambia es que la nota de resultado vuelve a ser lo ultimo. La prueba que
+        /// lo gobierna afirma el orden FUERTE —la guia acaba antes de que la nota empiece— en
+        /// `BrowserCoreSkillTests.test_el_primer_browser_del_turno_lleva_la_guia_exactamente_una_vez`.
+        var render: String { guia.map { $0 + "\n\n" + texto } ?? texto }
 
         /// Lo que esta ronda pesa a efectos del tope: solo su texto.
         var peso: Int { texto.utf8.count }
@@ -856,14 +984,16 @@ final class Agent {
     /// La guia oficial, con su linea de precedencia delante, lista para pegarse al prompt vivo.
     ///
     /// Se inyecta UNA VEZ POR TURNO, en la RONDA en la que el turno toca el navegador por
-    /// primera vez, y se renderiza DETRAS de las notas de resultado de esa ronda (ver el bucle
+    /// primera vez, y se renderiza DELANTE de las notas de resultado de esa ronda (ver el bucle
     /// de `run` y `RondaDelTurno.render`). Esa colocacion es deliberada y conviene no moverla:
     ///   - Un turno que nunca toca el navegador no paga nada: la inmensa mayoria de los
     ///     turnos son preguntas que se contestan de memoria, y meter la guia en el prompt
     ///     del sistema les cobraria ~14 KB a todos. El usuario tiene aparcada precisamente
     ///     una tarea de recortar el prompt para mejorar el TTFT en caliente.
-    ///   - Llega en el momento en que sirve: la nota de resultado es lo ULTIMO que el modelo
-    ///     lee antes de decidir el paso siguiente sobre una pagina ya abierta.
+    ///   - Llega en el momento en que sirve: la ronda en la que el modelo acaba de tocar una
+    ///     pagina. Y PEGADA POR DELANTE de la nota de resultado, no detras, para que lo ultimo
+    ///     que lea antes de decidir el paso siguiente siga siendo lo que la pagina contesto
+    ///     (ver `RondaDelTurno.render`).
     ///   - Una sola vez: el prompt vivo es acumulativo (cada ronda anade su nota al anterior),
     ///     asi que inyectarla en cada llamada de navegador la repetiria hasta diez veces en un
     ///     unico turno de conduccion.
@@ -1026,9 +1156,15 @@ final class Agent {
                             return
                         }
                         continuation.yield(.token("\n\n" + linea))
+                        // `appNotice` DECLARA que ese sufijo es de la APP y no del modelo, para
+                        // que lo que se MUESTRA y lo que se ARCHIVA puedan diferir: el aviso
+                        // tiene que llegar a los ojos del usuario y NO al transcripto, porque el
+                        // transcripto va a la consolidacion de memoria y a `reflect`. Ver
+                        // `GenerationResult.appNotice` y `HarnessModel.sinElAvisoDeLaApp`.
                         continuation.yield(.completed(GenerationResult(
                             text: res.text.isEmpty ? res.text : res.text + "\n\n" + linea,
-                            metrics: res.metrics)))
+                            metrics: res.metrics,
+                            appNotice: linea)))
                     }
 
                     var iteration = 0
@@ -1056,7 +1192,14 @@ final class Agent {
                                 // por su cuenta; el otro es el bucle de acciones, que las
                                 // ejecuta el. Son dos caminos de verdad, no una duplicacion por
                                 // descuido: un turno del primero nunca pasa por el segundo.
-                                if Self.browserToolNames.contains(n) { ultimaDelNavegador = (n, r) }
+                                //   HONESTIDAD SOBRE ESTA RAMA: hoy ningun runtime de
+                                // PRODUCCION emite `.toolCallFinished` (censado: solo lo hace
+                                // el doble de las pruebas), asi que este camino no se recorre
+                                // en la app. Se mantiene coherente con el otro a proposito —la
+                                // misma exclusion de `browser_close`— para que el dia que un
+                                // runtime ejecute sus propias herramientas no reaparezca por
+                                // aqui el defecto que el otro sitio acaba de arreglar.
+                                if Self.actuaSobreLaPagina(n) { ultimaDelNavegador = (n, r) }
                                 continuation.yield(.toolCallFinished(name: n, result: r))
                             case .completed(let res):
                                 completed = res
@@ -1107,7 +1250,7 @@ final class Agent {
                             let key = tc.name + "\u{001F}" + tc.args
                             let result: String
                             if mutationToolNames.contains(tc.name), let previous = executedMutations[key] {
-                                result = "DUPLICATE_CALL_IGNORED: Esta acción ya fue completada exitosamente en este turno. Resultado previo: \(previous). No llames a esta herramienta otra vez; responde directamente al usuario."
+                                result = "\(Self.duplicadoIgnorado): Esta acción ya fue completada exitosamente en este turno. Resultado previo: \(previous). No llames a esta herramienta otra vez; responde directamente al usuario."
                             } else if let tool = registry.tool(named: tc.name) {
                                 result = await tool.run(argsJSON: tc.args)
                                 if mutationToolNames.contains(tc.name) {
@@ -1144,7 +1287,7 @@ final class Agent {
                                 if fallosConsecutivos >= Self.maxConsecutiveFailures {
                                     presupuestoAgotado = (tc.name, result)
                                 }
-                            } else if Self.esExito(resultado: result) {
+                            } else if Self.reiniciaElPresupuesto(resultado: result) {
                                 fallosConsecutivos = 0
                             }
                             // EL SEGUNDO SITIO DONDE SE APUNTA LA ULTIMA ACCION DE NAVEGADOR
@@ -1152,9 +1295,17 @@ final class Agent {
                             // resultado TAL CUAL, sin leerlo: quien decide si hay algo que
                             // decirle al usuario es `lineaDeEstadoDelNavegador`, al final del
                             // turno, porque solo entonces se sabe cual fue la ULTIMA.
+                            //
+                            // Y SOLO LAS QUE ACTUAN SOBRE LA PAGINA: `browser_close` toca el
+                            // navegador —luego cuenta para la guia y para el presupuesto de
+                            // rondas— pero no es una accion sobre el contenido de la pagina, asi
+                            // que no puede producir la linea ni TAPAR la de la accion anterior.
+                            // Ver `browserToolNamesThatDoNotTouchThePage` para el caso medido.
                             if Self.browserToolNames.contains(tc.name) {
-                                ultimaDelNavegador = (tc.name, result)
                                 laRondaTocoElNavegador = true
+                                if Self.actuaSobreLaPagina(tc.name) {
+                                    ultimaDelNavegador = (tc.name, result)
+                                }
                             }
                             continuation.yield(.toolCallFinished(name: tc.name, result: result))
                             anade(Self.toolResultNote(toolName: tc.name, result: result))
@@ -1224,9 +1375,10 @@ final class Agent {
                         // LA GUIA OFICIAL DEL CLI VIAJA CON LA RONDA EN LA QUE EL TURNO TOCA EL
                         // NAVEGADOR POR PRIMERA VEZ, y con ninguna otra. Ver `browserGuideBlock()`
                         // para por que no vive en el prompt del sistema. Su posicion en el prompt
-                        // no la decide esto: `RondaDelTurno.render` la pone siempre DETRAS del
-                        // texto de la ronda, o sea detras de la nota de la herramienta que la
-                        // pago, y de ahi no se mueve.
+                        // no la decide esto: `RondaDelTurno.render` la pone DELANTE del texto de
+                        // la ronda —o sea delante de la nota de la herramienta que la pago— para
+                        // que lo ultimo que el modelo lea sea el resultado de lo que acaba de
+                        // hacer y no el manual del CLI. Ver alli el porque.
                         //
                         // SE DECIDE UNA VEZ, AL CERRAR LA RONDA, Y ESO ES UN ARREGLO. La decision
                         // vivia DENTRO del bucle de acciones, contra una ronda a medio construir:

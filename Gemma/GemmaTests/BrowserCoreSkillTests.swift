@@ -295,8 +295,23 @@ final class BrowserCoreSkillTests: XCTestCase {
                        "la guía tiene que llegar exactamente una vez")
         XCTAssertEqual(veces(BrowserRules.text, en: prompt), 1,
                        "nuestras reglas la acompañan exactamente una vez")
-        // Y llega pegada a la nota de ESA herramienta, que es el sitio donde sirve: lo último
-        // que el modelo lee antes de decidir el paso siguiente sobre la página.
+        // Y llega pegada a la nota de ESA herramienta, que es el sitio donde sirve — DELANTE de
+        // ella, para que lo ÚLTIMO que el modelo lea sea el resultado de lo que acaba de hacer.
+        //
+        // ESTA ES LA MITAD QUE ESTABA MAL Y QUE SEGUÍA EN VERDE. La prueba afirmaba
+        // `indiceNota < indiceGuia` y era literalmente cierto, pero ya no significaba lo que se
+        // escribió para significar: medido en la ronda que inyecta, la nota quedaba con 22 KB de
+        // guía DETRÁS, y la cola del prompt era la sección «Working safely» del manual del CLI,
+        // que termina en «Never echo or paste secrets» — exactamente la lectura a secas que
+        // `BrowserRules` dedica un párrafo a desactivar (una dirección de correo no es un
+        // secreto; el usuario se quejó de que el agente se negara a escribirle su propio
+        // correo) y que la frase de precedencia desactiva 14,5 KB antes. Dos comentarios de
+        // producción afirmaban que la nota era lo último (`toolResultNote`, «gana sobre
+        // cualquier instrucción del prompt del sistema», y `browserGuideBlock`), y no lo era.
+        // La pieza con más recencia era la que menos conoce este proyecto.
+        //
+        // Se afirma el orden FUERTE —la guía termina antes de que la nota empiece—, no solo que
+        // empiece antes: así una guía que envolviera la nota no pasaría.
         //
         // La nota se localiza por su CABECERA, derivada de producción en vez de escrita a mano,
         // y el resultado se comprueba ENTERO.
@@ -318,8 +333,14 @@ final class BrowserCoreSkillTests: XCTestCase {
                       "el resultado de la herramienta tiene que viajar ENTERO en la nota: \(prompt.suffix(300))")
         let indiceNota = try XCTUnwrap(prompt.range(of: cabeceraDeLaNota)?.lowerBound,
                                        "la cabecera de la nota no esta en el prompt vivo: \(cabeceraDeLaNota)")
-        let indiceGuia = try XCTUnwrap(prompt.range(of: BrowserCoreSkill.text)?.lowerBound)
-        XCTAssertLessThan(indiceNota, indiceGuia, "la guía va DETRÁS de la nota de la herramienta que la trae")
+        let rangoGuia = try XCTUnwrap(prompt.range(of: BrowserCoreSkill.text))
+        XCTAssertLessThan(rangoGuia.upperBound, indiceNota,
+                          "la guía va DELANTE de la nota de la herramienta que la trae, y acaba "
+                          + "antes de que la nota empiece: la nota es lo último que el modelo lee")
+        // Y la frase de precedencia sigue pegada por delante de la guía: la guía nunca entra
+        // sin ella.
+        let indicePrecedencia = try XCTUnwrap(prompt.range(of: Agent.browserGuidePreamble)?.lowerBound)
+        XCTAssertLessThan(indicePrecedencia, rangoGuia.lowerBound)
     }
 
     /// (iii) Tres llamadas de navegador en la MISMA ronda: una sola guía.

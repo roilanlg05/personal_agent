@@ -121,10 +121,29 @@ public struct GenerationOptions: Sendable {
 public struct GenerationResult: Sendable {
     public let text: String
     public let metrics: RuntimeMetrics
+    /// El aviso que escribió la APP —no el modelo— y que viaja pegado al final de `text`.
+    /// `nil` cuando el turno no lleva ninguno, que es el caso de la inmensa mayoría.
+    ///
+    /// EXISTE PARA SEPARAR LO QUE SE MUESTRA DE LO QUE SE ARCHIVA, y el defecto que cierra es
+    /// de los que no se ven hasta semanas después. La línea de estado del navegador
+    /// (`Agent.lineaDeEstadoDelNavegador`) se concatena a `text` para que la interfaz la pinte,
+    /// y `text` es exactamente lo que el arnés persiste en el servicio de memoria como «lo que
+    /// dijo el asistente» (`HarnessModel.consumeAgentEvents` → `appendTranscript`). O sea que
+    /// un aviso de la app —«la última acción sobre la página devolvió `refused`»— acababa
+    /// guardado como una frase del asistente, pasaba por los resúmenes, por la consolidación y
+    /// por `reflect`, y podía terminar convertido en un «insight» sobre el usuario. Es
+    /// contaminación de la memoria a largo plazo con diagnóstico de la app.
+    ///
+    /// NO ES UN SEGUNDO CANAL DE TEXTO: es una DECLARACIÓN sobre el que ya hay. Dice «este
+    /// sufijo exacto de `text` lo escribí yo, la app», y quien archiva lo quita
+    /// (`HarnessModel.sinElAvisoDeLaApp`) mientras quien muestra lo deja. Si el sufijo no está,
+    /// no se quita nada: el valor es una pista, no una orden de recortar.
+    public let appNotice: String?
 
-    public init(text: String, metrics: RuntimeMetrics) {
+    public init(text: String, metrics: RuntimeMetrics, appNotice: String? = nil) {
         self.text = text
         self.metrics = metrics
+        self.appNotice = appNotice
     }
 }
 

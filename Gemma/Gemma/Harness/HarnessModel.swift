@@ -555,6 +555,26 @@ public final class HarnessModel {
         return registry
     }
 
+    /// Quita del texto del asistente el aviso que escribió la APP, si lo lleva pegado al final.
+    ///
+    /// LO QUE SE MUESTRA Y LO QUE SE ARCHIVA NO SON LA MISMA COSA, Y ESTO ES LO QUE LOS SEPARA.
+    /// La línea de estado del navegador (`Agent.lineaDeEstadoDelNavegador`) viaja concatenada al
+    /// `text` del `.completed` porque la interfaz tiene que pintarla; pero ese mismo texto es el
+    /// que `runAgentTurn` persiste en el servicio de memoria como «lo que dijo el asistente», y
+    /// de ahí pasa a los resúmenes, a la consolidación y a `reflect`. Sin esto, un aviso de la
+    /// app —«la última acción sobre la página devolvió `refused`»— acaba guardado como una frase
+    /// del asistente y puede terminar convertido en un «insight» sobre el usuario: memoria a
+    /// largo plazo contaminada con diagnóstico de la app.
+    ///
+    /// Es un SUFIJO DECLARADO, no una búsqueda: el aviso llega aparte en
+    /// `GenerationResult.appNotice` y aquí solo se comprueba que de verdad esté al final. Si no
+    /// está, no se quita nada — el texto del modelo no se toca nunca por si acaso.
+    nonisolated static func sinElAvisoDeLaApp(_ texto: String, aviso: String?) -> String {
+        guard let aviso, !aviso.isEmpty, texto.hasSuffix(aviso) else { return texto }
+        return String(texto.dropLast(aviso.count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Consume los eventos de un turno: pinta el registro del chat y gobierna el panel del
     /// navegador. Separado de `runAgentTurn` para poder probar el cableado sin modelo ni red.
     /// Devuelve el texto final del asistente, para la transcripción.
@@ -616,7 +636,11 @@ public final class HarnessModel {
                 case .completed(let res):
                     let chosen = !res.text.isEmpty ? res.text : answer
                     let stripped = GemmaToolCallParser.strip(chosen)
-                    finalAssistantText = stripped
+                    // LO QUE SE MUESTRA LLEVA EL AVISO DE LA APP; LO QUE SE ARCHIVA, NO. Ver
+                    // `sinElAvisoDeLaApp`: el valor que devuelve este bucle es lo que se
+                    // persiste en el servicio de memoria como texto del asistente, y de ahi
+                    // pasa a la consolidacion y a `reflect`.
+                    finalAssistantText = Self.sinElAvisoDeLaApp(stripped, aviso: res.appNotice)
                     if let idx = activeGemmaIdx {
                         agentLog[idx].text = stripped
                     } else if !stripped.isEmpty {

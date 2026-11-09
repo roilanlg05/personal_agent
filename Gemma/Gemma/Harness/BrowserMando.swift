@@ -65,16 +65,31 @@ public enum BrowserMandoEntrada {
     /// POR QUÉ 30, Y NO 60 NI 120. Tres cotas, y el número cae entre ellas:
     ///
     ///   1. **Por arriba, el presupuesto del relé, dejando sitio al teclado.** El tope es 120
-    ///      mensajes por segundo por visor y lo que lo pasa se descarta **en silencio**. Pero el
-    ///      daño de verdad no es perder un movimiento: **el acuse del visor es lo que mueve el
-    ///      ritmo del demonio** (el relé acusa al demonio cuando le acusa un visor), así que una
-    ///      inundación que agote el presupuesto deja el fotograma en vuelo sin acusar y
-    ///      **congela el panel de TODOS los visores**, no solo del que inunda. Un mecanógrafo
-    ///      rápido hace ~10 pulsaciones/s y cada una son dos mensajes (`keyDown` + `keyUp`), o
-    ///      sea ~20; arrastrar y teclear a la vez es el peor caso humano. Con el arrastre
-    ///      quedándose como mucho con **la mitad** del presupuesto, las dos cosas juntas no lo
-    ///      agotan nunca. (El propio relé derivó su 120 suponiendo un arrastre de 60/s; 30 deja
-    ///      el doble de margen que lo que él supuso.)
+    ///      mensajes por ventana de 1 s por visor y lo que lo pasa se descarta **en silencio**.
+    ///      Un arrastre muestreado a este ritmo cabe en **31 mensajes** en cualquier ventana de
+    ///      un segundo (una muestra cada ≥33 ms), y un mecanógrafo rápido añade ~20 (10
+    ///      pulsaciones/s × `keyDown` + `keyUp`). Las dos cosas **a la vez**, que es el peor caso
+    ///      humano: **51 de 120, cero descartes, 57 % del presupuesto libre.**
+    ///
+    ///      ⚠️ **AQUÍ HABÍA UN MOTIVO FALSO, Y SE CORRIGE CON LA CITA.** Lo que esta cota decía
+    ///      antes —y lo decía el encargo de la tarea— era que «una inundación hambrea los acuses
+    ///      de los fotogramas y congela el panel de todos los visores». **Es imposible por
+    ///      construcción:** el relé **exime el acuse del tope de caudal**
+    ///      (`browser/relay.py:959`, `if clase != "ack" and not viewer.caudal.admite(...)`) y su
+    ///      propio comentario dice que la exención está ahí por esa razón exacta. El dato
+    ///      correcto ya estaba escrito en el fichero de al lado, de la tarea anterior
+    ///      (`BrowserRelayClient.swift`, `caducidadDeLaPeticion`: «`relay.py:959` aplica el
+    ///      caudal a todo lo que no es `ack`»). Dos ficheros del mismo subsistema se
+    ///      contradecían; el otro tenía razón.
+    ///
+    ///      **El mecanismo que SÍ existe** es otro y es peor de localizar: el acuse sale por **el
+    ///      mismo WebSocket** que la entrada, y los mensajes de un WebSocket van ordenados. Una
+    ///      ráfaga se le pone **delante**: 400 mensajes son ~34 kB, que por datos móviles malos
+    ///      —el enlace que `caducidadDeLaPeticion` dice explícitamente que hay que aguantar— son
+    ///      del orden de **2,7 s de demonio parado para todos los visores**. Es **bloqueo de
+    ///      cabeza de línea**, no agotamiento de presupuesto. Y el camino por el que de verdad
+    ///      se alcanza no es el arrastre, que ya está muestreado: es el **teclado**, que manda
+    ///      dos mensajes por tecla. Lo cierra `intervaloEntreTeclas`, aquí abajo.
     ///   2. **Por abajo, el ritmo del stream.** El panel recibe 25 fotogramas por segundo
     ///      (medido), así que por encima de 25 muestras el usuario **no puede ver** la
     ///      diferencia: la respuesta visual al arrastre la da el fotograma siguiente, no la
@@ -94,6 +109,37 @@ public enum BrowserMandoEntrada {
     /// segundo: se redondea a milisegundos enteros porque el reloj del muestreo es un instante
     /// monótono y la precisión de más no compra nada.
     public static let intervaloDeMuestreo: Duration = .milliseconds(33)
+
+    /// El intervalo mínimo entre dos mensajes de teclado.
+    ///
+    /// POR QUÉ EXISTE, CON EL UMBRAL MEDIDO. `mensajesDeTeclado` produce **dos mensajes por
+    /// grafema** (`keyDown` + `keyUp`), y cuatro cuando hay que borrar lo que había. Sin reparto,
+    /// los 2N mensajes de un pegado caen en la misma ventana de un segundo y **el relé descarta
+    /// el resto en silencio** (`CaudalDeEntrada`, cola deslizante de 120 en 1 s). Los umbrales se
+    /// midieron reimplementando el algoritmo exacto del relé:
+    ///
+    ///     pegado solo ....................................... 60 caracteres (61 → llegan 60)
+    ///     pegado con un arrastre en el mismo segundo ........ 45
+    ///     AutoFill SOBRE UN CAMPO YA ESCRITO ................ 30   ← el caso real
+    ///
+    /// El tercero es el que importa: una contraseña se pega desde un gestor, y si el campo ya
+    /// tenía algo, borrarlo cuesta 4 mensajes por carácter (2 de `Backspace` + 2 del nuevo). El
+    /// usuario pega su contraseña, llegan 30 caracteres, y el acceso falla **sin un solo error**;
+    /// la página le contesta «contraseña incorrecta» y no hay forma de que lo deduzca.
+    ///
+    /// POR QUÉ 17 ms, Y NO 8 NI 50. El reparto le da al teclado **la mitad** del presupuesto del
+    /// relé, que es la misma regla que gobierna `muestrasPorSegundo`: 120/2 = 60 mensajes/s, o
+    /// sea 1000/60 = 16,67 ms, redondeado **hacia arriba** a 17 ms (58,8 mensajes/s) porque la
+    /// ventana del relé es deslizante y redondear hacia abajo dejaría el ritmo justo en el filo.
+    /// Con esto no hay umbral: un pegado de 200 caracteres llega **entero**.
+    ///
+    /// Lo que cuesta, dicho con el número: una contraseña de 20 caracteres son 40 mensajes, 39
+    /// esperas, **0,66 s** en lugar de ~4 ms. El usuario la ve entrar por el propio stream. Al
+    /// lado de fallar el acceso sin explicación, es un cambio que gana.
+    ///
+    /// Y la otra mitad de lo que arregla: el bloqueo de cabeza de línea del acuse (ver la cota 1
+    /// de `muestrasPorSegundo`). Repartido, la ráfaga ya no se le pone delante.
+    public static let intervaloEntreTeclas: Duration = .milliseconds(17)
 
     /// Si toca mandar la muestra siguiente de un gesto continuo.
     ///
@@ -256,6 +302,96 @@ public enum BrowserMandoEntrada {
     private static func textoDe(_ caracter: Character) -> String {
         caracter == saltoDeLinea ? textoDelRetorno : String(caracter)
     }
+
+    // MARK: el botón
+
+    /// Lo que un toque del botón del volante tiene que hacer, o `nil` si no hay nada que hacer.
+    ///
+    /// `nil` con otro visor al volante **no es pereza**: `Mando.toma` devuelve `False` cuando ya
+    /// lo tiene otro y el manejador del visor descarta ese booleano (`relay.py:965`), así que
+    /// pedirlo no produce ni concesión ni error. Y devuelve `False` **también si el que pide ya
+    /// lo tiene**, por lo que un segundo toque nunca re-confirma nada.
+    public enum AccionDelBoton: Equatable { case toma, devuelve }
+
+    /// Qué hace el botón para cada valor de `quienConduce`. Pura, para que el cableado del
+    /// cuerpo de la vista no sea el único sitio donde esta decisión se toma.
+    public static func accionDelBoton(quienConduce: QuienConduce) -> AccionDelBoton? {
+        switch quienConduce {
+        case .agente: return .toma
+        case .yo: return .devuelve
+        case .otroVisor: return nil
+        }
+    }
+}
+
+/// El camino de salida de la entrada del usuario: la cola de envíos, repartida en el tiempo y
+/// cancelable.
+///
+/// POR QUÉ ESTÁ FUERA DEL CUERPO DE LA VISTA, y es la razón de que exista este tipo. El cuerpo de
+/// un `View` no es observable desde XCTest, así que mientras el bucle de envío vivía dentro de
+/// `BrowserMandoBarra` **nada medía el camino que lleva la contraseña**: ni que pulsar el botón
+/// pidiera el volante, ni que teclear llegara al socket, ni que el reparto en el tiempo
+/// existiera, ni que la cola se cancelara. Un revisor lo midió: los tres contadores del doble de
+/// pruebas no los leía **nadie**. Sacado aquí, con el reloj inyectable, las cuatro cosas se miden
+/// con un doble y sin abrir un socket; lo que queda en el cuerpo de la vista es la llamada.
+@MainActor
+public enum BrowserMandoEnvio {
+
+    /// Cómo se espera entre dos mensajes. Inyectable por la misma razón que el reloj de
+    /// `BrowserRelayClient`: para que la prueba del reparto no tarde lo que tarda el reparto, y
+    /// —más importante— para que pueda **observar** cuánto se esperó, que es la propiedad que se
+    /// quiere medir y no un efecto colateral del tiempo real.
+    public typealias Espera = @Sendable (Duration) async -> Void
+
+    public static let esperaReal: Espera = { try? await Task.sleep(for: $0) }
+
+    /// Encadena el envío de `mensajes` detrás de `previa` y devuelve la cola nueva.
+    ///
+    /// **EL ORDEN ES OBLIGATORIO, NO UNA CORTESÍA.** Un `mouseReleased` que adelantara a su
+    /// `mousePressed` dejaría el botón del ratón **hundido** en la página remota, y a partir de
+    /// ahí todo lo que el usuario tocara arrastraría. Por eso cada envío espera a `previa`.
+    ///
+    /// **EL REPARTO EN EL TIEMPO** es lo que impide que un pegado se coma su propia cola: ver
+    /// `BrowserMandoEntrada.intervaloEntreTeclas`, con los tres umbrales medidos. No se espera
+    /// antes del primer mensaje: un clic no se retrasa.
+    ///
+    /// **LA CANCELACIÓN** se comprueba después de cada espera, no solo al entrar, y es lo que
+    /// hace que la contraseña en vuelo no siga saliendo cuando el volante ya no es del usuario.
+    /// Sin reparto la ventana era de milisegundos; con reparto es de segundos, así que sin este
+    /// guarda el arreglo de arriba habría abierto un agujero nuevo.
+    ///
+    /// Con `mando` a `nil` o sin mensajes **no se crea cola nueva**: se devuelve la que había,
+    /// para no romper la cadena de orden de lo que ya estuviera en vuelo.
+    public static func encola(_ mensajes: [String],
+                              por mando: MandoDelNavegador?,
+                              tras previa: Task<Void, Never>?,
+                              espera: @escaping Espera = esperaReal) -> Task<Void, Never>? {
+        guard let mando, !mensajes.isEmpty else { return previa }
+        return Task {
+            await previa?.value
+            for (indice, mensaje) in mensajes.enumerated() {
+                if indice > 0 { await espera(BrowserMandoEntrada.intervaloEntreTeclas) }
+                guard !Task.isCancelled else { return }
+                await mando.manda(entrada: mensaje)
+            }
+        }
+    }
+
+    /// Ejecuta la acción del botón. Devuelve si el mensaje **salió del aparato**, que es lo único
+    /// que el cliente puede saber: el servidor no contesta a una toma, ni para bien ni para mal.
+    ///
+    /// Un `false` es información que el aparato **ya tiene en la mano** —no hay conexión, o el
+    /// mensaje pasa del tope del relé— y por eso el llamante la usa para bajar el «pidiendo…» en
+    /// el momento, en vez de dejar al usuario mirando un botón inerte los seis segundos enteros
+    /// de `caducidadDeLaPeticion`.
+    @discardableResult
+    public static func ejecuta(_ accion: BrowserMandoEntrada.AccionDelBoton,
+                               por mando: MandoDelNavegador) async -> Bool {
+        switch accion {
+        case .toma: return await mando.tomaElMando()
+        case .devuelve: return await mando.devuelveElMando()
+        }
+    }
 }
 
 // MARK: - las dos vistas del mando
@@ -337,18 +473,7 @@ struct BrowserMandoGestos: View {
             return
         }
         ultimoMuestreo = ahora
-        encola(salida.mensajes)
-    }
-
-    private func encola(_ mensajes: [String]) {
-        guard let mando, !mensajes.isEmpty else { return }
-        let previa = cola
-        cola = Task {
-            await previa?.value
-            for mensaje in mensajes {
-                await mando.manda(entrada: mensaje)
-            }
-        }
+        cola = BrowserMandoEnvio.encola(salida.mensajes, por: mando, tras: cola)
     }
 }
 
@@ -419,6 +544,13 @@ struct BrowserMandoBarra: View {
         // vista, y no tras un plazo ni al acabar un gesto.
         .onChange(of: state.quienConduce) { _, _ in
             pidiendoDesde = nil
+            // LA CONTRASEÑA EN VUELO SE CORTA AQUÍ. La cola captura las pulsaciones **ya
+            // codificadas**, y con el reparto en el tiempo de `intervaloEntreTeclas` la ventana
+            // en que siguen saliendo pasa de milisegundos a segundos. Hoy el relé las tiraría
+            // por portador, pero hay un camino estrecho en el que el volante vuelve a ser suyo
+            // antes de que la cola acabe y la cola vieja escribe en la página con un retraso que
+            // nadie espera.
+            cola?.cancel()
             // Se borra lo escrito y se suelta el foco. El borrado NO manda `Backspace` a la
             // página: el guarda de abajo mira quién conduce, y aquí ya no es el usuario. Si los
             // mandara, el número de pulsaciones delataría la longitud de la contraseña.
@@ -427,7 +559,8 @@ struct BrowserMandoBarra: View {
         }
         .onChange(of: tecleado) { anterior, nuevo in
             guard BrowserPanelView.capturaLosGestos(quienConduce: state.quienConduce) else { return }
-            encola(BrowserMandoEntrada.mensajesDeTeclado(anterior: anterior, nuevo: nuevo))
+            cola = BrowserMandoEnvio.encola(BrowserMandoEntrada.mensajesDeTeclado(anterior: anterior, nuevo: nuevo),
+                                            por: mando, tras: cola)
         }
         // LA PETICIÓN SE CAE SOLA. Una toma rechazada no produce **ningún** mensaje (`Mando.toma`
         // devuelve `False` y el relé descarta ese booleano), y el tope de caudal del relé se
@@ -446,24 +579,19 @@ struct BrowserMandoBarra: View {
     private static let pistaDelCampo = "lo que escribas va a la página"
 
     private func pulsa() {
-        guard let mando else { return }
-        if BrowserPanelView.capturaLosGestos(quienConduce: state.quienConduce) {
-            // Devolverlo no se queda en «pidiendo»: el servidor publica el `mando` con
-            // `"agente"` y ése es el que mueve el rótulo.
-            Task { await mando.devuelveElMando() }
-        } else {
-            pidiendoDesde = ContinuousClock.Instant.now
-            Task { await mando.tomaElMando() }
-        }
-    }
-
-    private func encola(_ mensajes: [String]) {
-        guard let mando, !mensajes.isEmpty else { return }
-        let previa = cola
-        cola = Task {
-            await previa?.value
-            for mensaje in mensajes {
-                await mando.manda(entrada: mensaje)
+        guard let mando, let accion = BrowserMandoEntrada.accionDelBoton(quienConduce: state.quienConduce)
+        else { return }
+        // Solo la toma se queda «pidiendo». Devolverlo no: el servidor publica el `mando` con
+        // `"agente"` y ése es el que mueve el rótulo.
+        if accion == .toma { pidiendoDesde = ContinuousClock.Instant.now }
+        Task {
+            // EL BOOLEANO NO SE TIRA, y es información gratis. Significa «el mensaje salió del
+            // aparato»; un `false` es que no hay conexión o que el mensaje pasa del tope del
+            // relé, o sea algo que el aparato YA SABE. Tirarlo dejaba el botón en «pidiendo…» y
+            // deshabilitado los seis segundos enteros de `caducidadDeLaPeticion`, informando de
+            // una petición que el propio cliente sabía que no había ocurrido.
+            if await BrowserMandoEnvio.ejecuta(accion, por: mando) == false {
+                pidiendoDesde = nil
             }
         }
     }

@@ -2,7 +2,16 @@ import CoreGraphics
 import XCTest
 @testable import Gemma
 
-#if os(macOS)
+// SIN `#if os(macOS)`: estas pruebas corren en macOS **y en iOS**, y el motivo es el que
+// `BrowserCrossPlatformTests` escribe en su cabecera — **el cliente real del usuario es su
+// iPhone**. La producción de todo el stack del mando no tiene una sola puerta de plataforma
+// (`BrowserMando.swift`, `BrowserPanelView.swift`, `BrowserPanelState.swift` y
+// `BrowserPanelCoordinator.swift` no contienen ningún `#if`, y `AgentChatView` monta el panel
+// sin condición), así que el `SecureField`, el `DragGesture` y el mapa del toque **sí existen en
+// el teléfono**; lo que no existía allí eran sus pruebas. Medido antes de quitar la puerta: iOS
+// ejecutaba **0** casos de este fichero. Nada de lo que mide depende de la plataforma —es
+// aritmética pura, cadenas y lectura del fuente— así que la puerta no tenía ningún motivo
+// escrito y era una costumbre heredada, no una decisión.
 
 /// El mapa de un toque en la pantalla del usuario a una coordenada del viewport remoto.
 ///
@@ -533,5 +542,3 @@ final class BrowserInputMapperTests: XCTestCase {
         return encontrados
     }
 }
-
-#endif

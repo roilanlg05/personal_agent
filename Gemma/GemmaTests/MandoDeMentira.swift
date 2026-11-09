@@ -22,6 +22,11 @@ final class MandoDeMentira: MandoDelNavegador, @unchecked Sendable {
     private var _tomas = 0
     private var _devoluciones = 0
     private var _entradas: [String] = []
+    /// Lo que devuelven los tres métodos: «el mensaje SALIÓ del aparato». `false` es el socket
+    /// caído, que es el caso en que el botón no debe quedarse en «pidiendo…».
+    private let salida: Bool
+
+    init(salida: Bool = true) { self.salida = salida }
 
     var tomas: Int { candado.withLock { _tomas } }
     var devoluciones: Int { candado.withLock { _devoluciones } }
@@ -29,16 +34,16 @@ final class MandoDeMentira: MandoDelNavegador, @unchecked Sendable {
 
     func tomaElMando() async -> Bool {
         candado.withLock { _tomas += 1 }
-        return true
+        return salida
     }
 
     func devuelveElMando() async -> Bool {
         candado.withLock { _devoluciones += 1 }
-        return true
+        return salida
     }
 
     func manda(entrada: String) async -> Bool {
         candado.withLock { _entradas.append(entrada) }
-        return true
+        return salida
     }
 }

@@ -2,7 +2,16 @@ import CoreGraphics
 import XCTest
 @testable import Gemma
 
-#if os(macOS)
+// SIN `#if os(macOS)`: estas pruebas corren en macOS **y en iOS**, y el motivo es el que
+// `BrowserCrossPlatformTests` escribe en su cabecera — **el cliente real del usuario es su
+// iPhone**. La producción de todo el stack del mando no tiene una sola puerta de plataforma
+// (`BrowserMando.swift`, `BrowserPanelView.swift`, `BrowserPanelState.swift` y
+// `BrowserPanelCoordinator.swift` no contienen ningún `#if`, y `AgentChatView` monta el panel
+// sin condición), así que el `SecureField`, el `DragGesture` y el mapa del toque **sí existen en
+// el teléfono**; lo que no existía allí eran sus pruebas. Medido antes de quitar la puerta: iOS
+// ejecutaba **0** casos de este fichero. Nada de lo que mide depende de la plataforma —es
+// aritmética pura, cadenas y lectura del fuente— así que la puerta no tenía ningún motivo
+// escrito y era una costumbre heredada, no una decisión.
 
 /// La interfaz del mando compartido: el botón, el rótulo de quién conduce, el toque y el
 /// teclado.
@@ -120,8 +129,36 @@ final class BrowserPanelViewTests: XCTestCase {
     /// conexión (el portador del mando es el socket) y el congelado del panel. Y cada uno se
     /// mide **después** de haber comprobado que estaba encendido, que es lo que esta prueba
     /// tiene y la anterior no.
+    // 🔴 LAS CINCO PRUEBAS DE ABAJO LLEVAN PUERTA DE PLATAFORMA, Y ÉSTE ES EL MOTIVO MEDIDO,
+    // que es lo que las tres puertas de fichero de este subsistema NO tenían escrito.
+    //
+    // **El test host de iOS no puede instanciar `BrowserPanelState` ni `BrowserPanelCoordinator`:
+    // el proceso aborta.** No es una aserción que falle —no hay una sola línea `XCTAssert…failed`
+    // en el log de iOS— es `Test crashed with signal abrt`, y XCTest reinicia el host y marca
+    // como fallida la prueba que tenía en vuelo.
+    //
+    // ES PREEXISTENTE Y NO ES DE ESTA TAREA, y se midió aislándolo: `BrowserPanelStateTests`
+    // —fichero de la Tarea 4, **sin ninguna puerta de plataforma**, que esta tarea no creó—
+    // corrido SOLO en iOS 26.2 (iPhone 17, `-parallel-testing-enabled NO`) da
+    // «Executed 0 tests» y, al mismo tiempo, **las 21 pruebas que lista salen fallidas**, con
+    // 21 «Restarting after unexpected exit»: el host de pruebas muere antes de correr ninguna.
+    // La señal que lo delata es la que NO está —**cero** líneas `XCTAssert…failed` en todo el
+    // log— y por eso no es un rojo de aserciones. Lo mismo le pasa a
+    // `BrowserPanelCoordinatorTests` y a `BrowserCrossPlatformTests`. En macOS esa misma clase
+    // da **20 de 20 verdes**. Diagnosticar ese aborto es un sub-proyecto propio (es un
+    // `@Observable @MainActor` en el host de pruebas de iOS) y no cabe en una ronda de arreglos
+    // de la interfaz.
+    //
+    // POR QUÉ LA PUERTA VA POR PRUEBA Y NO POR FICHERO: así **33 de las 38** pruebas del mando
+    // sí corren en el aparato del usuario —que es su iPhone— en vez de ninguna. Las cinco de
+    // aquí son exactamente las que instancian uno de los dos tipos que abortan; todo lo demás
+    // (la aritmética del puntero y del teclado, el reparto, la cola, el botón, el rótulo, la
+    // lista blanca y las dos aserciones estructurales) es puro y corre en las dos plataformas.
+    // Cuando el aborto se arregle, estas cinco puertas se quitan y la medición de arriba es la
+    // que dice si ya se puede.
+    #if os(macOS)
     @MainActor func test_la_captura_se_apaga_en_el_mismo_cambio_de_estado_que_pierde_el_volante() {
-        for perderElVolante in Self.losTresCaminosQuePierdenElVolante {
+        for perderElVolante in Self.losCuatroCaminosQuePierdenElVolante {
             let s = BrowserPanelState()
             XCTAssertFalse(BrowserPanelView.capturaLosGestos(quienConduce: s.quienConduce),
                            "antes de que el servidor lo diga, el volante no es del usuario")
@@ -137,14 +174,15 @@ final class BrowserPanelViewTests: XCTestCase {
                            + "puede estar a medio teclear una contraseña")
         }
     }
+    #endif
 
-    /// Los tres caminos por los que el volante deja de ser del usuario, sin que él haga nada.
+    /// Los cuatro caminos por los que el volante deja de ser del usuario, sin que él haga nada.
     private struct CaminoQuePierdeElVolante {
         let nombre: String
         let quitar: @MainActor (BrowserPanelState) -> Void
     }
 
-    private static let losTresCaminosQuePierdenElVolante: [CaminoQuePierdeElVolante] = [
+    private static let losCuatroCaminosQuePierdenElVolante: [CaminoQuePierdeElVolante] = [
         .init(nombre: "el `mando` del servidor diciendo que conduce el agente",
               quitar: { $0.apply(.mando(quien: .agente)) }),
         .init(nombre: "el `mando` del servidor diciendo que conduce otro visor",
@@ -369,15 +407,170 @@ final class BrowserPanelViewTests: XCTestCase {
                         #"{"eventType":"keyUp","key":"b","text":"b","type":"input_keyboard"}"#])
     }
 
-    /// Un pegado largo se parte en una tecla por carácter, y **cada mensaje cabe en el tope del
-    /// relé**. Lo que lo pasa se descarta en silencio (`relay.py:655`), así que un mensaje
-    /// demasiado grande desaparecería sin error.
-    func test_un_pegado_largo_se_parte_y_cada_mensaje_cabe_en_el_tope() {
+    /// Un pegado largo se trocea en **una tecla por carácter**.
+    ///
+    /// ANTES ESTA PRUEBA AFIRMABA ADEMÁS QUE «cada mensaje cabe en el tope», Y ESA MITAD ERA
+    /// VACUA: un mensaje de tecla mide ~84 bytes y el tope de tamaño del relé es 4096
+    /// (`MAX_MENSAJE_VISOR`, `relay.py:641`), así que la aserción preguntaba si 84 cabe en 4096.
+    /// Peor: **se cumplía con la característica borrada** — si `mensajesDeTeclado` dejara de
+    /// trocear y mandara el pegado entero en un solo mensaje, ése mediría ~580 bytes y pasaría el
+    /// bucle igual. Haría falta un pegado de más de 4000 caracteres para que llegara a ligar.
+    ///
+    /// Y el nombre prometía de más: **el tope que de verdad se come la contraseña no es el de
+    /// tamaño, es el de CAUDAL**, y de ése se encarga
+    /// `test_el_pegado_se_reparte_en_el_tiempo_para_que_no_se_coma_su_propia_cola`.
+    func test_un_pegado_largo_se_trocea_en_una_tecla_por_caracter() {
         let largo = String(repeating: "x", count: 500)
         let mensajes = Entrada.mensajesDeTeclado(anterior: "", nuevo: largo)
         XCTAssertEqual(mensajes.count, 1000, "dos mensajes por carácter")
-        for m in mensajes {
-            XCTAssertTrue(BrowserInputEvents.cabeEnElTope(m), "un mensaje de tecla nunca puede pasar el tope")
+        // El tope de TAMAÑO se sigue afirmando, pero sobre el caso que de verdad liga: un
+        // carácter cuyo JSON es grande. Un emoji compuesto con escape `\u` en el JSON es lo más
+        // caro que una sola tecla puede producir, y aun así tiene que caber.
+        let caro = Entrada.mensajesDeTeclado(anterior: "", nuevo: "👨‍👩‍👧‍👦")
+        XCTAssertFalse(caro.isEmpty)
+        for m in caro {
+            XCTAssertTrue(BrowserInputEvents.cabeEnElTope(m),
+                          "ni la tecla más cara puede pasar el tope de tamaño: \(m.utf8.count) bytes")
+        }
+    }
+
+    /// **EL PEGADO SE REPARTE EN EL TIEMPO PARA QUE NO SE COMA SU PROPIA COLA.**
+    ///
+    /// Es el arreglo del hallazgo que más le costaba al usuario. Sin reparto, los 2N mensajes de
+    /// un pegado caen en la misma ventana de un segundo y el relé descarta el resto **en
+    /// silencio**. Umbrales medidos reimplementando el algoritmo del relé: 60 caracteres un
+    /// pegado solo, **45** con un arrastre en el mismo segundo, y **30** cuando AutoFill
+    /// sustituye lo que ya había (4 mensajes por carácter). El usuario pega su contraseña, llegan
+    /// 30 caracteres, y el acceso falla sin un solo error.
+    ///
+    /// Se mide la propiedad, no el reloj: la espera es inyectable y la prueba **apunta cuánto se
+    /// esperó**. Tres mensajes ⇒ dos esperas, porque antes del primero no se espera (un clic no
+    /// se retrasa).
+    @MainActor func test_el_pegado_se_reparte_en_el_tiempo_para_que_no_se_coma_su_propia_cola() async {
+        let mando = MandoDeMentira()
+        let esperas = Esperas()
+        let cola = BrowserMandoEnvio.encola(["a", "b", "c"], por: mando, tras: nil,
+                                            espera: { d in esperas.anota(d) })
+        await cola?.value
+
+        XCTAssertEqual(mando.entradas, ["a", "b", "c"], "los tres mensajes salen, y en orden")
+        XCTAssertEqual(esperas.anotadas, [Entrada.intervaloEntreTeclas, Entrada.intervaloEntreTeclas],
+                       "una espera entre mensajes consecutivos, y ninguna antes del primero")
+    }
+
+    /// Y el intervalo elegido tiene que caber en el presupuesto del relé **por los dos lados**.
+    ///
+    /// Por arriba: la mitad del tope (60 mensajes/s) es la misma regla que gobierna
+    /// `muestrasPorSegundo`, así que el intervalo no puede ser más corto que 1 s / 60.
+    /// Por abajo: una contraseña de 20 caracteres (40 mensajes, 39 esperas) tiene que entrar en
+    /// **menos de un segundo**, o el reparto deja de ser imperceptible y se convierte en otro
+    /// problema.
+    func test_el_reparto_del_teclado_cabe_en_el_presupuesto_y_sigue_siendo_imperceptible() {
+        let mitadDelPresupuesto = Entrada.topeDeEntradasPorSegundoDelRele / 2
+        XCTAssertGreaterThanOrEqual(Entrada.intervaloEntreTeclas * mitadDelPresupuesto, .seconds(1),
+                                    "el teclado se pasaría de su mitad del presupuesto del relé")
+        XCTAssertLessThanOrEqual(Entrada.intervaloEntreTeclas * 39, .seconds(1),
+                                 "una contraseña de 20 caracteres tardaría más de un segundo en entrar")
+    }
+
+    /// **LA CONTRASEÑA EN VUELO SE CORTA AL PERDER EL VOLANTE.**
+    ///
+    /// La cola captura las pulsaciones **ya codificadas**, y con el reparto en el tiempo la
+    /// ventana en que siguen saliendo pasa de milisegundos a segundos. Hoy el relé las tiraría
+    /// por portador, pero hay un camino estrecho en el que el volante vuelve a ser suyo antes de
+    /// que la cola acabe y la cola vieja escribe en la página con un retraso que nadie espera.
+    ///
+    /// Se mide el ciclo entero: sale el primero, se cancela, **no sale el resto**. Afirmar solo
+    /// que no salen pasaría con una cola que no manda nada.
+    @MainActor func test_cancelar_la_cola_corta_la_contrasena_en_vuelo() async {
+        let mando = MandoDeMentira()
+        let puerta = Puerta()
+        let cola = BrowserMandoEnvio.encola(["1", "2", "3", "4"], por: mando, tras: nil,
+                                            espera: { _ in await puerta.espera() })
+        // El primero sale sin esperar: eso es lo que prueba que la cola de verdad manda.
+        let alguienLlegoALaPuerta = await puerta.esperaQueAlguienEntre()
+        XCTAssertTrue(alguienLlegoALaPuerta,
+                      "nadie esperó entre dos mensajes: la cola no reparte en el tiempo")
+        XCTAssertEqual(mando.entradas, ["1"], "el primer mensaje tiene que haber salido ya")
+
+        cola?.cancel()
+        puerta.abre()
+        await cola?.value
+        XCTAssertEqual(mando.entradas, ["1"], "la cola cancelada siguió mandando la contraseña")
+    }
+
+    /// El botón pide el volante y lo devuelve **de verdad**, por el camino que usa la vista.
+    ///
+    /// Antes nada leía los contadores del doble: `grep` de `.tomas`/`.devoluciones`/`.entradas` en
+    /// todo el target daba **cero**, así que cablear el botón al revés —devolver cuando hay que
+    /// tomar— habría dejado la suite verde. El comentario del protocolo decía que el camino de la
+    /// contraseña «se puede medir entero sin red»; se podía, y no se medía.
+    @MainActor func test_el_boton_pide_el_volante_y_lo_devuelve_de_verdad() async {
+        XCTAssertEqual(Entrada.accionDelBoton(quienConduce: .agente), .toma)
+        XCTAssertEqual(Entrada.accionDelBoton(quienConduce: .yo), .devuelve)
+        XCTAssertNil(Entrada.accionDelBoton(quienConduce: .otroVisor),
+                     "con otro visor al volante no hay nada que pulsar: el servidor lo rechaza en silencio")
+
+        let mando = MandoDeMentira()
+        await BrowserMandoEnvio.ejecuta(.toma, por: mando)
+        XCTAssertEqual(mando.tomas, 1)
+        XCTAssertEqual(mando.devoluciones, 0, "tomar no devuelve")
+        await BrowserMandoEnvio.ejecuta(.devuelve, por: mando)
+        XCTAssertEqual(mando.devoluciones, 1)
+        XCTAssertEqual(mando.tomas, 1, "devolver no vuelve a tomar")
+    }
+
+    /// Y el booleano que devuelve **no se tira**: es lo que baja el «pidiendo…» en el momento en
+    /// vez de dejar al usuario mirando un botón inerte los seis segundos de la caducidad.
+    @MainActor func test_el_envio_dice_si_el_mensaje_salio_del_aparato() async {
+        let conSocketCaido = await BrowserMandoEnvio.ejecuta(.toma, por: MandoDeMentira(salida: false))
+        XCTAssertFalse(conSocketCaido, "con el socket caído el cliente YA SABE que no salió")
+        let conSocketSano = await BrowserMandoEnvio.ejecuta(.toma, por: MandoDeMentira())
+        XCTAssertTrue(conSocketSano)
+    }
+
+    /// Una espera observable: apunta las duraciones que le piden, en vez de dormirlas.
+    private final class Esperas: @unchecked Sendable {
+        private let candado = NSLock()
+        private var _anotadas: [Duration] = []
+        var anotadas: [Duration] { candado.withLock { _anotadas } }
+        func anota(_ d: Duration) { candado.withLock { _anotadas.append(d) } }
+    }
+
+    /// Una espera que no vuelve hasta que la prueba la abre, para poder cancelar la cola **a
+    /// mitad** de un envío y no antes de empezarlo.
+    private final class Puerta: @unchecked Sendable {
+        private let candado = NSLock()
+        private var abierta = false
+        private var entraron = 0
+
+        func abre() { candado.withLock { abierta = true } }
+
+        func espera() async {
+            candado.withLock { entraron += 1 }
+            while !candado.withLock({ abierta }) {
+                await Task.yield()
+            }
+        }
+
+        /// Vuelve cuando alguien ha llegado a la puerta, o sea cuando el mensaje anterior ya
+        /// salió. Sin esto la prueba cancelaría antes de que la cola hubiera mandado nada y el
+        /// «no salió el resto» pasaría por el motivo equivocado.
+        ///
+        /// **LA ESPERA ESTÁ ACOTADA A PROPÓSITO, Y SE MIDIÓ POR QUÉ.** Una espera sin tope
+        /// cuelga la suite entera cuando `encola` deja de esperar entre mensajes: nadie llega
+        /// nunca a la puerta y este bucle gira para siempre. Pasó de verdad —la mutación que
+        /// quita el reparto en el tiempo dejó un `xcodebuild` 23 minutos sin escribir una línea,
+        /// y un cuelgue **no es un rojo**: en integración continua se lee como un trabajo
+        /// atascado, no como una prueba que falla—. Con el tope, el mismo caso da un fallo con
+        /// su frase. El devuelto se afirma en la prueba; no se ignora.
+        @discardableResult
+        func esperaQueAlguienEntre(vueltas: Int = 100_000) async -> Bool {
+            for _ in 0..<vueltas {
+                if candado.withLock({ entraron }) > 0 { return true }
+                await Task.yield()
+            }
+            return false
         }
     }
 
@@ -478,6 +671,9 @@ final class BrowserPanelViewTests: XCTestCase {
     /// EL INVARIANTE: si las dimensiones sobrevivieran al fotograma que describen, el toque
     /// siguiente se mapearía contra el viewport de una imagen que ya no está en pantalla. Se
     /// recorre el ciclo entero: llegan, están, y se van por los tres caminos.
+    // Puerta de plataforma con el motivo medido arriba: el test host de iOS aborta al instanciar
+    // `BrowserPanelState`/`BrowserPanelCoordinator` (preexistente, ver el bloque largo).
+    #if os(macOS)
     @MainActor func test_el_panel_guarda_el_viewport_del_fotograma_y_lo_suelta_con_la_imagen() {
         let medido = cableMedido
         func conFotograma() -> BrowserPanelState {
@@ -505,6 +701,7 @@ final class BrowserPanelViewTests: XCTestCase {
         XCTAssertNil(s3.jpeg)
         XCTAssertNil(s3.dimensionesDelCable)
     }
+    #endif
 
     // MARK: el cableado del mando, y el ciclo de vida del socket
 
@@ -512,6 +709,9 @@ final class BrowserPanelViewTests: XCTestCase {
     /// tenía una referencia viva al cliente del relé: `makeRelayStream` lo construía dentro y la
     /// única referencia que quedaba era la de su `onTermination`, así que la vista no tenía a
     /// quién pedirle el volante.
+    // Puerta de plataforma con el motivo medido arriba: el test host de iOS aborta al instanciar
+    // `BrowserPanelState`/`BrowserPanelCoordinator` (preexistente, ver el bloque largo).
+    #if os(macOS)
     @MainActor func test_el_coordinador_entrega_el_mando_del_panel_que_abrio() throws {
         let mando = MandoDeMentira()
         let c = BrowserPanelCoordinator(stream: { (AsyncStream { _ in }, mando) })
@@ -520,14 +720,19 @@ final class BrowserPanelViewTests: XCTestCase {
         XCTAssertTrue(entregado as AnyObject === mando,
                       "el panel tiene que recibir el mando de SU flujo, no otro")
     }
+    #endif
 
     /// Sin flujo no hay panel, y por tanto no hay mando que entregar. Es el caso del relé sin
     /// configurar, que es con el que arranca la app.
+    // Puerta de plataforma con el motivo medido arriba: el test host de iOS aborta al instanciar
+    // `BrowserPanelState`/`BrowserPanelCoordinator` (preexistente, ver el bloque largo).
+    #if os(macOS)
     @MainActor func test_sin_flujo_no_hay_panel_ni_mando() {
         let c = BrowserPanelCoordinator(stream: { nil })
         XCTAssertNil(c.openIfNeeded(toolName: "browser_open"))
         XCTAssertNil(c.mando(de: "cualquiera"))
     }
+    #endif
 
     /// **EL CICLO DE VIDA DEL SOCKET NO SE ROMPE AL CABLEAR.** Si al guardar el mando en el
     /// coordinador el cliente del relé dejara de liberarse al retirar el panel, se habría
@@ -538,6 +743,9 @@ final class BrowserPanelViewTests: XCTestCase {
     /// Se mide con una referencia **débil**: el panel sigue en `panels` (es historial), pero su
     /// mando tiene que haberse soltado. Un panel congelado no puede conducir de todas formas
     /// (`freeze()` devuelve el volante al agente).
+    // Puerta de plataforma con el motivo medido arriba: el test host de iOS aborta al instanciar
+    // `BrowserPanelState`/`BrowserPanelCoordinator` (preexistente, ver el bloque largo).
+    #if os(macOS)
     @MainActor func test_al_retirar_el_panel_el_mando_se_suelta_de_verdad() {
         weak var debil: MandoDeMentira?
         let c = BrowserPanelCoordinator(stream: {
@@ -554,18 +762,29 @@ final class BrowserPanelViewTests: XCTestCase {
         XCTAssertNotNil(c.panels[id], "el panel sigue en el historial del chat")
         XCTAssertNil(debil, "el cliente del relé no se liberó: el socket se queda abierto")
     }
+    #endif
 
-    /// Y `makeRelayStream` devuelve el cliente junto al flujo, que es lo que hace posible lo de
-    /// arriba. Sin URL del navegador no devuelve nada, igual que antes.
-    @MainActor func test_makeRelayStream_devuelve_el_cliente_junto_al_flujo() {
+    /// `makeRelayStream` devuelve algo **solo** con una URL de navegador configurada.
+    ///
+    /// LO QUE ESTA PRUEBA MIDE Y LO QUE NO, DICHO POR DELANTE. La presencia del mando en el par
+    /// **la impone el sistema de tipos**, no esta prueba: `VisorDelRele` es
+    /// `(flujo:, mando: MandoDelNavegador)` con el mando **no opcional**, así que `par?.mando` es
+    /// `nil` si y solo si `par` es `nil`, y no existe mutación que quite el mando dejando el
+    /// flujo — el fichero no compilaría. Antes esta prueba afirmaba `XCTAssertNotNil(par?.mando)`
+    /// con el mensaje «el mando viene con él», que se leía como una medición y era una
+    /// tautología; por eso M30 la mataba por el motivo equivocado.
+    ///
+    /// Lo que sí mide, y es lo único que hay que medir aquí, es la **puerta de la configuración**:
+    /// sin URL no hay visor, con URL sí. (Que el par llegue al panel lo miden
+    /// `test_el_coordinador_entrega_el_mando_del_panel_que_abrio` y
+    /// `test_al_retirar_el_panel_el_mando_se_suelta_de_verdad`, que sí son mediciones.)
+    @MainActor func test_makeRelayStream_solo_devuelve_visor_con_la_url_configurada() {
         let defaults = UserDefaults(suiteName: "mando-subsistema-b-\(UUID().uuidString)")!
         XCTAssertNil(HarnessModel.makeRelayStream(defaults: defaults), "sin URL no hay visor")
 
         defaults.set("http://192.0.2.1:8083", forKey: SettingsKeys.browserBaseURL)
-        let par = HarnessModel.makeRelayStream(defaults: defaults)
-        XCTAssertNotNil(par?.mando, "el flujo ya no viaja solo: el mando viene con él")
+        XCTAssertNotNil(HarnessModel.makeRelayStream(defaults: defaults), "con URL válida sí hay visor")
         // El flujo NO se consume: abrirlo levantaría el socket contra una dirección de prueba.
-        // Lo que esta prueba mide es la forma de lo que devuelve, no la conexión.
     }
 
     // MARK: la tecla y el registro
@@ -636,6 +855,94 @@ final class BrowserPanelViewTests: XCTestCase {
         }
     }
 
+    /// **EL CABLEADO DEL CUERPO DE LAS DOS VISTAS DEL MANDO.**
+    ///
+    /// POR QUÉ ESTA PRUEBA EXISTE, Y NO ES UN PARCHE. El informe de esta tarea declaró el cuerpo
+    /// de un `View` como hueco irreductible (H1) y le puso como red
+    /// `test_el_panel_delega_toda_la_entrada_en_el_fichero_vigilado`. Un revisor fresco midió que
+    /// **esa red no atrapaba nada**, con cuatro mutaciones y cuatro supervivientes, y tenía
+    /// razón por dos motivos: esa prueba lee `BrowserPanelView.swift` y las cuatro propiedades
+    /// viven en `BrowserMando.swift`; y la lista blanca, que sí lee este fichero, no se entera
+    /// porque `"true"` y `"capturar"` **ya están** en ella —así que `allowsHitTesting(true)` no
+    /// añade ni un identificador— y porque una lista blanca jamás puede detectar texto que se
+    /// **quita**.
+    ///
+    /// Había forma de medirlo con la técnica que este mismo fichero ya usa dos veces: afirmar la
+    /// **forma del fuente**. No es una prueba falsa —no monta lo que afirma— y cada aserción de
+    /// aquí tiene detrás una mutación que sin ella sobrevive, medida, no supuesta:
+    ///
+    ///     MA  allowsHitTesting(capturar || !capturar)      → antes VERDE
+    ///     MB  quitar `tecleado = ""` del onChange          → antes VERDE
+    ///     MC  el SecureField fuera del `if` de la captura  → antes VERDE
+    ///     MD  quitar el guarda del Backspace               → antes VERDE
+    ///
+    /// EL PRECIO, dicho por delante: el día que estas dos vistas se reescriban, esta prueba se
+    /// pondrá roja y habrá que mirar lo que cambió. Es ruido visible en vez de silencio, el mismo
+    /// intercambio que la lista blanca.
+    func test_el_cuerpo_del_mando_cablea_las_puertas_que_la_suite_no_puede_ejecutar() throws {
+        let f = try fuenteDeProduccion("Gemma/Harness/BrowserMando.swift")
+
+        // Guarda de vacuidad: que la ruta apunte al fichero de verdad. Todas las aserciones de
+        // abajo son presencias de texto y pasarían con la ruta mal si el fichero no existiera…
+        // pero `fuenteDeProduccion` lanzaría; lo que esto caza es un fichero que existe y ya no
+        // es el que se cree.
+        for ancla in ["struct BrowserMandoGestos", "struct BrowserMandoBarra"] {
+            XCTAssertTrue(f.contains(ancla), "la ruta ya no apunta al fichero del mando: falta \(ancla)")
+        }
+
+        // MA — la puerta de los gestos es `capturar`, no una constante. Si se queda abierta, el
+        // usuario toca la página mientras conduce el agente (el relé lo descarta en silencio) y
+        // además pierde lo que pidió textualmente: desplazar el chat con el panel a la vista.
+        XCTAssertTrue(f.contains(".allowsHitTesting(capturar)"),
+                      "la puerta del hit-testing ya no depende de quién conduce")
+
+        // MC — el campo de texto solo existe cuando el volante es suyo. Fuera del `if`, el
+        // teclado del teléfono se traga las teclas mientras el panel exista.
+        XCTAssertTrue(f.contains("""
+                    if BrowserPanelView.capturaLosGestos(quienConduce: state.quienConduce) {
+                        SecureField
+        """.trimmingCharacters(in: .newlines)),
+                      "el SecureField ya no está dentro del `if` de la captura")
+
+        // MB — perder el volante borra lo escrito y suelta el foco, en el MISMO cambio de estado.
+        // Es el Foco de revisión 2: puede estar a medio teclear una contraseña.
+        XCTAssertTrue(f.contains(".onChange(of: state.quienConduce) { _, _ in"),
+                      "ya no hay nada enganchado al cambio de quién conduce")
+        XCTAssertTrue(f.contains("            tecleado = \"\"\n            enfocado = false"),
+                      "perder el volante ya no borra lo tecleado ni suelta el foco")
+
+        // Y la cola en vuelo se corta en ese mismo cambio.
+        XCTAssertTrue(f.contains("            cola?.cancel()"),
+                      "la contraseña en vuelo ya no se corta al perder el volante")
+
+        // MD — el borrado del campo NO manda `Backspace` a la página: el número de pulsaciones
+        // delataría la longitud de la contraseña.
+        XCTAssertTrue(f.contains(
+            "guard BrowserPanelView.capturaLosGestos(quienConduce: state.quienConduce) else { return }"),
+                      "el guarda que evita mandar Backspace tras perder el volante ha desaparecido")
+
+        // H2 — el gesto se mide dentro de un `GeometryReader` sobre la imagen, no sobre el marco.
+        XCTAssertTrue(f.contains("GeometryReader { geometria in"),
+                      "el gesto ya no mide la vista donde se dibuja la imagen")
+
+        // El reparto en el tiempo y la cadena de orden se usan desde las dos vistas.
+        XCTAssertEqual(f.components(separatedBy: "BrowserMandoEnvio.encola(").count - 1, 2,
+                       "las dos vistas tienen que mandar por la cola repartida, no por su propio bucle")
+
+        // El booleano de «el mensaje salió» NO se tira: baja el «pidiendo…» en el momento en vez
+        // de dejar al usuario mirando un botón inerte los seis segundos de la caducidad. La
+        // llave de cierre va en el ancla a propósito: sin ella, una mutación que añadiera una
+        // condición detrás (`== false, false {`) seguiría conteniendo el ancla como PREFIJO y
+        // esta aserción pasaría con el código ya roto.
+        XCTAssertTrue(f.contains("if await BrowserMandoEnvio.ejecuta(accion, por: mando) == false {"),
+                      "el booleano de la toma se vuelve a tirar: el botón miente seis segundos")
+
+        // Y solo la TOMA se queda «pidiendo»: devolver el volante no espera a nada, porque el
+        // servidor publica el `mando` con `"agente"` y ése es el que mueve el rótulo.
+        XCTAssertTrue(f.contains("if accion == .toma { pidiendoDesde = ContinuousClock.Instant.now }"),
+                      "devolver el volante dejaría el botón en «pidiendo…»")
+    }
+
     // MARK: lectura del fuente
 
     private func fuenteDeProduccion(_ ruta: String) throws -> String {
@@ -695,6 +1002,14 @@ final class BrowserPanelViewTests: XCTestCase {
         "elBotonActua", "font", "foregroundStyle", "frame", "infinity", "leading", "lineLimit",
         "maxWidth", "orange", "pistaDelCampo", "rotuloDeQuienConduce", "secondary", "small",
         "spacing", "textoDelBoton", "textoDelBotonPidiendo",
+        // la ronda de arreglos: la acción del botón y la cola de envíos repartida. Ninguno
+        // escribe, persiste, notifica ni acumula: `cancel`/`isCancelled` son la cancelación de
+        // la cola, `enumerated`/`indice` el índice del reparto, y `espera`/`esperaReal`/`Espera`
+        // el reloj inyectable que la prueba observa en vez de dormirlo.
+        "AccionDelBoton", "BrowserMandoEnvio", "Equatable", "Espera", "MainActor",
+        "QuienConduce", "accion", "accionDelBoton", "agente", "cancel", "devuelve", "ejecuta",
+        "enumerated", "escaping", "espera", "esperaReal", "indice", "intervaloEntreTeclas",
+        "isCancelled", "otroVisor", "por", "toma", "tras", "typealias", "yo",
         // las palabras de la única cadena literal del fichero, la pista del campo de texto
         // («lo que escribas va a la página»). Son prosa, no identificadores, y entran porque el
         // troceado no distingue una cadena de un nombre. Son también la razón de que el corte
@@ -734,5 +1049,3 @@ final class BrowserPanelViewTests: XCTestCase {
         return encontrados
     }
 }
-
-#endif

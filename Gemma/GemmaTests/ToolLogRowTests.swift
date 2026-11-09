@@ -95,6 +95,13 @@ final class ToolLogRowTests: XCTestCase {
                       "y un cierre que falló de verdad sigue siendo un fallo")
     }
 
+    /// LO QUE NO ES JSON SIGUE SIENDO UN FALLO, Y AHORA ESO YA NO ATROPELLA A NADIE. Esta
+    /// decisión se tomó cuando «ilegible» quería decir «basura», pero durante un tiempo quiso
+    /// decir también «la prosa de ocho herramientas que funcionan»: `forget` contestaba «Forgot
+    /// 3 item(s) matching 'x'.» —tres recuerdos olvidados de verdad— y esta rama lo pintaba en
+    /// rojo. Las ocho hablan ya el contrato `status` (censo verificado sobre las ochenta del
+    /// registro, ver `HerramientasHablanStatusTests`), así que lo único que llega aquí es lo que
+    /// el nombre dice: un resultado vacío, un volcado de un proceso que murió, JSON a medias.
     func test_lo_que_no_es_json_no_rompe_la_fila_ni_la_deja_en_blanco() {
         for basura in ["", "Fatal error: índice fuera de rango", "{roto"] {
             let r = ToolLogRow.summarize(toolName: "browser_get", resultJSON: basura)
@@ -135,8 +142,22 @@ final class ToolLogRowTests: XCTestCase {
         }
     }
 
-    func test_sin_estado_no_es_un_fallo() {
+    /// Un objeto sin `status` no es un fallo: la polaridad de la fila enumera el FALLO y no el
+    /// éxito, porque las herramientas devuelven ~70 estados y la mayoría de los correctos no son
+    /// «success».
+    ///
+    /// Y LA MITAD NUEVA, QUE ES LA QUE IMPORTA: la salida de una guarda de argumentos YA NO
+    /// ENTRA en esta categoría. `ToolJSONOutput.error(_:)` emitía `{"error": …}` sin `status`,
+    /// así que caía aquí y se resumía «listo» con tilde verde sobre un error — el camino de más
+    /// de cincuenta sitios de llamada del registro, y la peor de las dos mentiras de esta fila,
+    /// porque hacía creer al usuario que algo había pasado. Hoy declara `status: error`. Esta
+    /// mitad está aquí para que la amnistía de «sin estado» no vuelva a cubrirlo.
+    func test_sin_estado_no_es_un_fallo_pero_una_guarda_de_argumentos_si() {
         XCTAssertFalse(isFailure(ToolLogRow.summarize(toolName: "x", resultJSON: #"{"count":3}"#)))
+        XCTAssertTrue(isFailure(ToolLogRow.summarize(
+            toolName: "forget_shortcut",
+            resultJSON: ToolJSONOutput.error("Se requiere 'name' con el nombre del atajo."))),
+            "un error de argumentos no puede salir con tilde verde")
     }
 
     func test_los_estados_de_fallo_son_fallo() {

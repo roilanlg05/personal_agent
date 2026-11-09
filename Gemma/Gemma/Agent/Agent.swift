@@ -327,6 +327,114 @@ final class Agent {
         return urlNueva != urlConocida
     }
 
+    /// Una accion que el turno ya pidio, tal como el bucle la proceso: el nombre de la
+    /// herramienta y su JSON de argumentos, sin tocar.
+    ///
+    /// LOS ARGUMENTOS SIGUEN AQUI AUNQUE YA NO VIAJEN AL PROMPT, y conviene no confundir los
+    /// dos historiales. El que el MODELO lee dejo de llevar el JSON de sus propias llamadas:
+    /// ve su prosa y los resultados (ver `modelProseNote`). Este es el del BUCLE, y los
+    /// argumentos son justo lo que le hace falta: sin ellos no se puede distinguir tres
+    /// lecturas de la MISMA cosa —que no avanzan— de tres lecturas de cosas distintas, que si.
+    ///
+    /// Existe como tipo y no como tupla para que la deteccion se pueda probar sin bucle, sin
+    /// red y sin modelo: una prueba construye la secuencia a mano y pregunta.
+    struct AccionEjecutada: Equatable {
+        let nombre: String
+        let argumentos: String
+
+        init(nombre: String, argumentos: String) {
+            self.nombre = nombre
+            self.argumentos = argumentos
+        }
+
+        /// La identidad de la llamada a efectos de «es la misma otra vez».
+        ///
+        /// Normaliza SOLO el espacio en blanco de los bordes, y de menos a proposito, porque
+        /// los dos errores no cuestan lo mismo: normalizar de menos pierde una deteccion y el
+        /// turno sigue exactamente como seguia antes de que esto existiera, mientras que
+        /// normalizar de mas declara iguales dos llamadas distintas y le dice al modelo que se
+        /// esta repitiendo cuando no se repetia. Un salto de linea de sobra nunca es una
+        /// diferencia semantica en un JSON de argumentos; cualquier cosa mas lista que eso si
+        /// podria serlo.
+        var huella: String {
+            nombre + "\u{001F}" + argumentos.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+    }
+
+    /// Cuantas veces seguidas hay que pedir LA MISMA lectura de la pagina para que el bucle se
+    /// lo diga al modelo.
+    ///
+    /// POR QUE TRES Y NO DOS. Dos lecturas identicas seguidas son comportamiento normal y
+    /// tienen una explicacion inocente de sobra: la pagina todavia estaba pintando y el modelo
+    /// vuelve a mirar. Avisar ahi seria regañarle por tener paciencia. A la tercera ya no queda
+    /// explicacion: entre medias no se ejecuto nada, luego la pagina no se ha movido, luego la
+    /// tercera lectura devolvio lo mismo que la primera y la cuarta devolvera lo mismo otra vez.
+    ///
+    /// NO ES UN TOPE. No corta el turno, no retira herramientas y no consume presupuesto de
+    /// fallos: lo unico que decide es cuando el bucle le cuenta al modelo lo que lleva
+    /// repitiendo. Los topes de este bucle son otros tres y estan en otro sitio
+    /// (`maxConsecutiveFailures`, `maxIterations`, `maxBrowserIterations`).
+    nonisolated static let vueltasEnVacioParaAvisar = 3
+
+    /// Si el turno lleva dando vueltas en vacio: la MISMA lectura de la pagina repetida
+    /// `vueltasEnVacioParaAvisar` veces seguidas, sin nada en medio.
+    ///
+    /// DE DONDE SALE. Los dos agentes teniamos media solucion. `executedMutations` se NIEGA a
+    /// repetir una llamada identica —duro, pero estrecho: cubre siete nombres, los que cambian
+    /// el mundo—. El detector de bucles de browser-use cubre cualquier accion pero solo
+    /// SUGIERE. Esto es la mitad que nos faltaba: la deteccion, para las acciones que no
+    /// cambian nada. La negativa se queda para lo que cambia el mundo y la deteccion para lo
+    /// que gira en vacio, y no se solapan.
+    ///
+    /// SOLO MIRA LAS LECTURAS, Y ESA ES LA LINEA, no una timidez. Una lectura repetida no puede
+    /// ser otra cosa que una vuelta en vacio: `browser_snapshot` con los mismos argumentos
+    /// sobre una pagina que nadie ha tocado devuelve lo mismo, por definicion de leer. Una
+    /// ACCION repetida si puede ser la tarea —«dale tres veces al +», «pulsa "ver mas" hasta
+    /// que salgan todos»—, asi que tres clics identicos no demuestran nada y acusar ahi seria
+    /// acusar en falso. Las que cambian el mundo tienen ya su freno y son suyas: dos frenos
+    /// sobre el mismo caso se estorban, porque el modelo recibiria dos mensajes distintos sobre
+    /// el mismo hecho y ninguno de los dos seria claro.
+    ///   El conjunto que se mira es `browserReadOnlyToolNames`, que esta escrito EN POSITIVO:
+    /// una herramienta nueva que nadie añada ahi se trata como si actuara, luego no se la
+    /// acusa. Es el lado barato del error aqui igual que alli.
+    ///
+    /// COMO NO SE MARCA EL CICLO CORRECTO, que es lo que de verdad habia que clavar. El prompt
+    /// del sistema le ENSEÑA al modelo `snapshot` → actuar → `snapshot`, porque las `@eN`
+    /// caducan con cada accion (`BrowserRules.text`, y `cortaLaCola` lo hace cumplir). Ese
+    /// ciclo tiene SIEMPRE una accion entre dos miradas, asi que la racha de lecturas
+    /// identicas se rompe en cada vuelta y no llega nunca a tres: marcarlo seria decirle que se
+    /// equivoca justo cuando hace lo correcto, o sea peor que no mirar nada.
+    ///
+    /// Y SE MIDE EN LA COLA del historial, no en cualquier parte de el. Un turno que se atasco
+    /// al principio y salio solo no tiene por que oir hablar de ello; y un turno que acaba de
+    /// ACTUAR no esta mirando en vacio, por muchas lecturas que llevara detras. El aviso tiene
+    /// que describir el presente o no sirve.
+    ///
+    /// LA MISMA llamada es el mismo nombre Y los mismos argumentos. Tres `browser_get` de tres
+    /// selectores distintos son tres preguntas distintas y avanzan; tres del mismo selector son
+    /// la misma pregunta tres veces.
+    nonisolated static func pareceAtascado(historial: [AccionEjecutada]) -> Bool {
+        repeticionesDeLecturaAlFinal(historial) >= vueltasEnVacioParaAvisar
+    }
+
+    /// Cuantas veces seguidas se repite, al FINAL del historial, la misma lectura de la pagina;
+    /// cero si la ultima accion del turno no fue una lectura.
+    ///
+    /// Es la cuenta que el aviso le da al modelo, asi que dice la verdad tambien cuando son mas
+    /// de tres: un modelo que pidio cinco lecturas identicas en una sola ronda tiene que leer
+    /// «cinco», no «tres».
+    nonisolated static func repeticionesDeLecturaAlFinal(_ historial: [AccionEjecutada]) -> Int {
+        guard let ultima = historial.last,
+              browserReadOnlyToolNames.contains(ultima.nombre) else { return 0 }
+        let huella = ultima.huella
+        var cuenta = 0
+        for accion in historial.reversed() {
+            guard accion.huella == huella else { break }
+            cuenta += 1
+        }
+        return cuenta
+    }
+
     /// Los `status` con los que una herramienta declara que NO hizo lo que se le pidio.
     ///
     /// No es una lista imaginada: es el contrato de estados que comparten las herramientas
@@ -777,6 +885,12 @@ final class Agent {
                     var currentPrompt = basePrompt
                     var activeTools = tools
                     var executedMutations: [String: String] = [:]
+                    // LAS ACCIONES DEL TURNO, EN ORDEN Y CON SUS ARGUMENTOS. No es el historial
+                    // que el modelo lee —ese dejo de llevar el JSON de las llamadas, ver
+                    // `modelProseNote`—: es el del BUCLE, y existe para una sola pregunta, la
+                    // de `pareceAtascado(historial:)`: ¿lleva el turno pidiendo lo mismo sin
+                    // que nada cambie?
+                    var accionesDelTurno: [Agent.AccionEjecutada] = []
                     // La ultima URL que un resultado de herramienta DEMOSTRO en este turno. Vive
                     // fuera de la ronda a proposito: el `browser_open` de una ronda es lo que le
                     // da a la siguiente con que comparar.
@@ -873,6 +987,14 @@ final class Agent {
                                 // `resultadoDeHerramientaInexistente(nombre:)`.
                                 result = Self.resultadoDeHerramientaInexistente(nombre: tc.name)
                             }
+                            // SE APUNTA TODA LLAMADA QUE LA RONDA PROCESA, incluida la que no
+                            // se llego a ejecutar: una mutacion repetida que el bucle atajo, o
+                            // una herramienta que no existe. Lo que la deteccion necesita saber
+                            // es si entre dos lecturas paso algo, y una llamada atajada tambien
+                            // paso — meterla solo si se ejecuto haria que dos lecturas con un
+                            // `DUPLICATE_CALL_IGNORED` en medio pareciesen seguidas.
+                            accionesDelTurno.append(Agent.AccionEjecutada(nombre: tc.name,
+                                                                          argumentos: tc.args))
                             // Conducir una página son varias rondas: el turno se gana el
                             // presupuesto mayor en cuanto toca el navegador, y la retirada de
                             // herramientas y la no convergencia se miden contra él.
@@ -949,6 +1071,28 @@ final class Agent {
                                     break
                                 }
                             }
+                        }
+                        // VUELTAS EN VACIO: lo que el modelo repite sin cambiar nada no se le
+                        // niega —se le DICE—, y se le dice una sola vez y AL FINAL de la ronda.
+                        // Al final porque la ronda es lo ultimo que lee antes de decidir el paso
+                        // siguiente; una sola vez porque dentro del bucle de acciones se
+                        // repetiria tantas veces como lecturas trajera la ronda, y tres copias
+                        // del mismo aviso son ruido. Ver `pareceAtascado(historial:)` para el
+                        // criterio y `BrowserRules.spinningWheelsNote` para por que el aviso no
+                        // retira ninguna herramienta.
+                        //
+                        // NO SE EMITE SI EL PRESUPUESTO DE FALLOS SE AGOTO en esta ronda: ese
+                        // camino cierra el turno con su propio mensaje al usuario, asi que el
+                        // aviso no lo leeria nadie. Y no se estorba con el corte de cola: el
+                        // corte solo ocurre detras de una accion con exito que movio la pagina,
+                        // y entonces la ultima accion del turno no es una lectura, luego no hay
+                        // racha que contar. Son disjuntos por construccion.
+                        if presupuestoAgotado == nil,
+                           Self.pareceAtascado(historial: accionesDelTurno),
+                           let ultima = accionesDelTurno.last {
+                            anade(BrowserRules.spinningWheelsNote(
+                                herramienta: ultima.nombre,
+                                veces: Self.repeticionesDeLecturaAlFinal(accionesDelTurno)))
                         }
                         // EL HISTORIAL SE CIERRA AQUI, Y SE ACOTA. Lo que cae es lo mas viejo;
                         // la ronda que acaba de pasar no cae nunca. Ver `maxHistoryBytes` para de

@@ -85,6 +85,37 @@ enum BrowserRules {
     And never dress a failure as a refusal: if a tool failed or a page would not load, say which step failed and why, in those words.
     """
 
+    /// El aviso de que el turno lleva dando vueltas en vacio: la misma lectura de la pagina,
+    /// repetida y sin nada en medio. Quien lo decide es `Agent.pareceAtascado(historial:)`, y
+    /// ahi esta escrito por que una lectura repetida cuenta y una accion repetida no.
+    ///
+    /// SUGIERE, NO DESARMA, y eso es una decision y no un olvido. Al detectarlo NO se le
+    /// retiran las herramientas: la retirada ya existe por mutacion ejecutada y por cercania al
+    /// tope de rondas, y adelantarla aqui le quitaria el navegador a mitad de una tarea
+    /// legitima pero LENTA — y lenta es lo normal en un navegador remoto sobre una conexion
+    /// domestica. Por eso el texto termina diciendole que no le han quitado nada: un aviso que
+    /// suena a castigo hace que el modelo se disculpe y se pare, que es justo lo contrario de
+    /// lo que se le esta pidiendo.
+    ///
+    /// DICE QUE LLEVA REPITIENDO Y OFRECE LAS DOS SALIDAS DE VERDAD: actuar sobre una `@eN` que
+    /// ya tiene en el snapshot anterior, o contestarle al usuario con lo que ya sabe si lo que
+    /// buscaba no esta en esta pagina. No le ofrece una tercera que no existe.
+    ///
+    /// La lista de herramientas con las que actuar se DERIVA de los conjuntos de `Agent`, no se
+    /// escribe a mano: es el mismo motivo que en `toolInventoryNote` —una lista a mano se queda
+    /// vieja y acaba prometiendole al modelo lo que no hay—. Hoy sale `browser_click`,
+    /// `browser_fill`, `browser_press`: las de navegador que no leen la pagina y no recargan el
+    /// documento.
+    static func spinningWheelsNote(herramienta: String, veces: Int) -> String {
+        let actuar = Agent.browserToolNames
+            .subtracting(Agent.browserReadOnlyToolNames)
+            .subtracting(Agent.browserToolNamesThatResetThePage)
+            .sorted()
+            .map { "`\($0)`" }
+            .joined(separator: ", ")
+        return "[You have now called `\(herramienta)` \(veces) times in a row with the same arguments, and nothing else ran in between. Reading a page that nobody has touched returns the same thing every time, so a \(veces + 1)th call would tell you exactly what the first one already told you. Reading is not progress. What moves this page is acting on one of the `@eN` references from the snapshot you already have, with \(actuar). So either act on one of those references now, or — if what the user asked for is not on this page — say that plainly and answer them with what you already know. Nothing has failed here and nothing has been taken away from you: every tool you had is still there.]"
+    }
+
     static func queueCutNote(tras herramienta: String, pendientes: [String]) -> String {
         let nombres = pendientes.map { "`\($0)`" }.joined(separator: ", ")
         let cuenta = pendientes.count

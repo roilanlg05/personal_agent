@@ -248,6 +248,9 @@ final class AgentTests: XCTestCase {
     final class ScriptedRuntime: ToolCallingRuntime {
         var rondas: [[(name: String, args: String)]]
         var prompts: [String] = []
+        /// Los nombres de las herramientas que el bucle le ofreció en cada ronda. Es la única
+        /// manera de comprobar desde fuera que una ronda NO perdió el navegador.
+        var herramientasPorRonda: [[String]] = []
         /// Prosa que el modelo escribe en cada ronda, cuando la prueba quiere medirla. Vacío
         /// (por omisión) conserva exactamente el comportamiento anterior: una ronda con
         /// acciones no dice nada y una ronda vacía cierra el turno con «listo».
@@ -259,6 +262,7 @@ final class AgentTests: XCTestCase {
         }
         func generate(prompt: String, tools: [AgentTool], options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
             prompts.append(prompt)
+            herramientasPorRonda.append(tools.map { type(of: $0).name })
             let indice = ronda
             let calls = indice < rondas.count ? rondas[indice] : []
             let texto = indice < prosa.count ? prosa[indice] : (calls.isEmpty ? "listo" : "")
@@ -1106,5 +1110,143 @@ final class AgentTests: XCTestCase {
         let flaca = Agent.toolResultNote(toolName: "browser_click",
                                         result: #"{"status":"success","message":"Clic ejecutado en '@e3'."}"#)
         XCTAssertGreaterThan(Agent.maxHistoryBytes / flaca.utf8.count, Agent.maxBrowserIterations)
+    }
+
+    // MARK: - Vueltas en vacío: la misma lectura de la página una y otra vez
+
+    /// Marca estable del aviso de vueltas en vacío, DERIVADA del propio aviso: así la prueba no
+    /// vuelve a escribir a mano un texto que ya vive en `BrowserRules` (su única fuente).
+    private var marcaDeLaVueltaEnVacio: String {
+        String(BrowserRules.spinningWheelsNote(herramienta: "browser_snapshot",
+                                               veces: Agent.vueltasEnVacioParaAvisar).prefix(40))
+    }
+
+    /// Una lectura de la página, que es lo único que la detección mira.
+    private func accionDeLectura(_ nombre: String = "browser_snapshot",
+                                 _ args: String = "{}") -> Agent.AccionEjecutada {
+        Agent.AccionEjecutada(nombre: nombre, argumentos: args)
+    }
+
+    /// Una acción sobre la página: lo que rompe la racha de lecturas.
+    private func accionSobreLaPagina() -> Agent.AccionEjecutada {
+        Agent.AccionEjecutada(nombre: "browser_click", argumentos: #"{"ref":"@e3"}"#)
+    }
+
+    /// TRES lecturas idénticas seguidas son una vuelta en vacío; DOS no.
+    ///
+    /// Las dos mitades viven en la MISMA prueba a propósito: el umbral es parte de lo que se
+    /// afirma, así que una función que devolviera `true` para todo moriría en la segunda
+    /// aserción y una que devolviera `false` para todo moriría en la primera. Por separado cada
+    /// mitad se cumpliría con la característica borrada.
+    func test_tres_lecturas_identicas_seguidas_giran_en_vacio_y_dos_no() {
+        let tres = Array(repeating: accionDeLectura(), count: 3)
+        XCTAssertTrue(Agent.pareceAtascado(historial: tres),
+                      "tres lecturas idénticas de una página que nadie tocó no avanzan nada")
+        XCTAssertFalse(Agent.pareceAtascado(historial: Array(tres.prefix(2))),
+                       "dos lecturas seguidas son normales: la página podía estar todavía pintando")
+        XCTAssertFalse(Agent.pareceAtascado(historial: Array(tres.prefix(1))))
+        XCTAssertFalse(Agent.pareceAtascado(historial: []), "un turno sin acciones no está atascado")
+    }
+
+    /// EL CICLO QUE EL PROMPT ENSEÑA NO ES UNA VUELTA EN VACÍO, y esto es el corazón de la
+    /// detección.
+    ///
+    /// `BrowserRules.text` le enseña al modelo `snapshot` → actuar → `snapshot` porque las
+    /// `@eN` caducan con cada acción. Marcar ese ciclo como bucle sería decirle que se equivoca
+    /// justo cuando hace lo correcto, o sea peor que no mirar nada.
+    func test_el_ciclo_que_el_prompt_ensena_no_gira_en_vacio() {
+        XCTAssertFalse(Agent.pareceAtascado(historial: [accionDeLectura(),
+                                                        accionSobreLaPagina(),
+                                                        accionDeLectura()]),
+                       "`snapshot → click → snapshot` es exactamente el ciclo que el prompt enseña")
+        // La acción rompe la racha aunque haya lecturas de sobra alrededor.
+        XCTAssertFalse(Agent.pareceAtascado(historial: [accionDeLectura(), accionDeLectura(),
+                                                        accionSobreLaPagina(), accionDeLectura()]),
+                       "la racha se cuenta desde la cola: entre medias pasó algo")
+        // Y un turno que acaba de ACTUAR no está mirando en vacío, por muchas lecturas que
+        // llevara detrás.
+        XCTAssertFalse(Agent.pareceAtascado(historial: [accionDeLectura(), accionDeLectura(),
+                                                        accionDeLectura(), accionSobreLaPagina()]),
+                       "la última acción no es una lectura")
+        // LA MITAD QUE EXIGE EL `true`, y comparte mutación con las tres de arriba: sin ella una
+        // función que devolviera `false` para todo pasaría esta prueba entera sin detectar nada.
+        XCTAssertTrue(Agent.pareceAtascado(historial: [accionDeLectura(), accionDeLectura(),
+                                                       accionDeLectura()]),
+                      "quitar la acción de en medio sí deja tres lecturas idénticas seguidas")
+    }
+
+    /// Una acción que CAMBIA algo, repetida, no entra por aquí.
+    ///
+    /// Las siete herramientas de mutación tienen ya su propia negativa (`executedMutations`), y
+    /// dos frenos sobre el mismo caso se estorban: el modelo recibiría dos mensajes distintos
+    /// sobre el mismo hecho. Y un clic idéntico repetido no es una prueba de nada —puede ser la
+    /// tarea: «dale tres veces al +», «pulsa "ver más" hasta que salgan todos»—, así que acusar
+    /// ahí sería acusar en falso.
+    func test_lo_que_cambia_algo_no_entra_por_la_deteccion_de_vueltas_en_vacio() {
+        let evento = Agent.AccionEjecutada(nombre: "create_event", argumentos: #"{"title":"cita"}"#)
+        XCTAssertFalse(Agent.pareceAtascado(historial: Array(repeating: evento, count: 5)),
+                       "una mutación repetida la para `executedMutations`, no esto")
+        XCTAssertFalse(Agent.pareceAtascado(historial: Array(repeating: accionSobreLaPagina(), count: 5)),
+                       "cinco clics idénticos pueden ser la tarea, no un bucle")
+        // La mitad que exige el `true`: lo mismo cinco veces, pero LEYENDO, sí lo es.
+        XCTAssertTrue(Agent.pareceAtascado(historial: Array(repeating: accionDeLectura(), count: 5)),
+                      "cinco lecturas idénticas no pueden ser otra cosa que una vuelta en vacío")
+        // Y las tres lecturas del contrato son las tres, no solo el snapshot.
+        for nombre in Agent.browserReadOnlyToolNames {
+            XCTAssertTrue(Agent.pareceAtascado(
+                historial: Array(repeating: accionDeLectura(nombre), count: 3)),
+                          "`\(nombre)` lee la página: repetirla tres veces es girar en vacío")
+        }
+    }
+
+    /// LA MISMA llamada quiere decir el mismo nombre Y los mismos argumentos: tres lecturas de
+    /// tres cosas distintas son tres preguntas distintas y avanzan.
+    func test_argumentos_distintos_son_lecturas_distintas() {
+        let h1 = accionDeLectura("browser_get", #"{"selector":"h1"}"#)
+        let h2 = accionDeLectura("browser_get", #"{"selector":"h2"}"#)
+        let h3 = accionDeLectura("browser_get", #"{"selector":"h3"}"#)
+        XCTAssertFalse(Agent.pareceAtascado(historial: [h1, h2, h3]),
+                       "tres selectores distintos son tres preguntas distintas")
+        XCTAssertTrue(Agent.pareceAtascado(historial: [h1, h1, h1]),
+                      "el mismo selector tres veces es la misma pregunta tres veces")
+        // El espacio en blanco de los bordes no hace una llamada distinta. Se normaliza eso y
+        // nada más: normalizar de menos pierde una detección (no pasa nada), normalizar de más
+        // declara iguales dos llamadas que no lo eran y acusa en falso.
+        XCTAssertTrue(Agent.pareceAtascado(historial: [accionDeLectura("browser_snapshot", "{}"),
+                                                       accionDeLectura("browser_snapshot", "{} "),
+                                                       accionDeLectura("browser_snapshot", "\n{}")]),
+                      "un salto de línea de sobra no es una llamada distinta")
+    }
+
+    /// Y por el BUCLE: la tercera lectura idéntica trae el aviso al prompt vivo, y el aviso
+    /// SUGIERE — no le retira las herramientas.
+    ///
+    /// La retirada ya existe por mutación y por cercanía al tope de rondas; adelantarla aquí le
+    /// quitaría el navegador a mitad de una tarea legítima pero lenta, y lenta es lo normal en
+    /// un navegador remoto sobre una conexión doméstica.
+    func test_la_tercera_lectura_identica_trae_el_aviso_y_no_retira_las_herramientas() async throws {
+        let guion: [[(name: String, args: String)]] = [
+            [("browser_snapshot", "{}")],
+            [("browser_snapshot", "{}")],
+            [("browser_snapshot", "{}")],
+            []
+        ]
+        let runtime = ScriptedRuntime(guion)
+        for try await _ in Agent(runtime: runtime, registry: registroDeNavegadorFalsoConSnapshot())
+            .run(prompt: "mira la página", options: GenerationOptions()) {}
+        XCTAssertEqual(FakeBrowserSnapshot.calls, 3, "las tres lecturas tenían que ejecutarse")
+        XCTAssertEqual(runtime.prompts.count, 4, "el turno tenía que llegar a la cuarta ronda")
+        XCTAssertFalse(runtime.prompts[2].contains(marcaDeLaVueltaEnVacio),
+                       "dos lecturas todavía no son un aviso: \(runtime.prompts[2].suffix(300))")
+        XCTAssertTrue(runtime.prompts[3].contains(marcaDeLaVueltaEnVacio),
+                      "la tercera lectura idéntica tenía que traer el aviso: \(runtime.prompts[3].suffix(400))")
+        // El aviso dice QUÉ lleva repitiendo y CUÁNTAS veces.
+        XCTAssertTrue(runtime.prompts[3].contains("`browser_snapshot` 3 times in a row"),
+                      "el aviso tiene que nombrar la herramienta y las veces: \(runtime.prompts[3].suffix(400))")
+        // Y NO se le retiran las herramientas: en la ronda siguiente al aviso siguen todas.
+        let deLaRondaDelAviso = try XCTUnwrap(runtime.herramientasPorRonda.dropFirst(3).first)
+        XCTAssertTrue(deLaRondaDelAviso.contains("browser_snapshot"),
+                      "el aviso no puede quitarle el navegador a mitad de tarea: \(deLaRondaDelAviso)")
+        XCTAssertTrue(deLaRondaDelAviso.contains("browser_click"))
     }
 }

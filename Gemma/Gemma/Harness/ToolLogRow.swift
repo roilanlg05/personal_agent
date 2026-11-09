@@ -77,6 +77,16 @@ public struct ToolLogRow: View {
         "unsupported_kind", "limit_reached", "missing_fields", "name_taken",
         "no_phone_number", "period_in_past", "refused", "not_available",
         "dry_run",
+        // `play_music`, Y ES UN FALLO QUE SALÍA CON TILDE VERDE. Este conjunto tenía
+        // `not_available` —el de `ShortcutRunOutcome`— y NO `app_unavailable`, que es otro
+        // estado, de otra familia y de otra herramienta: lo construye
+        // `MusicPlaybackOutcome.appUnavailable` desde su `rawValue`, así que NINGÚN censo de
+        // literales lo ve (ni el grep de arriba ni el recorrido por el cuerpo de `run`; hay que
+        // leer el enum a mano). «La app de música no está instalada» se resumía «listo»: nada
+        // sonó y el usuario leía que sí, que es la peor de las dos direcciones en las que esta
+        // fila puede mentir. Lo mide `ElFalloPintadoComoExitoTests
+        // .test_la_app_de_musica_que_no_esta_sale_con_cruz_roja_y_no_con_un_listo`.
+        "app_unavailable",
     ]
 
     /// LA FRASE DE LA APP CON LA QUE SE RESUME UN FALLO. Una por estado, fija, en español y
@@ -133,6 +143,13 @@ public struct ToolLogRow: View {
         "name_taken": "ese nombre ya existe",
         "no_phone_number": "no hay número de teléfono",
         "period_in_past": "esa fecha ya pasó",
+        // `play_music`. Aquí SÍ se puede nombrar la app de música, al contrario que en
+        // `not_available`: ese estado lo emiten doce herramientas y nombrar una sería mentir en
+        // tres para acertar en nueve, mientras que `app_unavailable` es exclusivo de
+        // `MusicPlaybackOutcome` —censado con un grep sobre todo el árbol— y por tanto solo de
+        // `play_music`. Decirle «no está disponible» sobre la música sería cierto pero inútil:
+        // lo que tiene que saber es que le falta la app, porque eso es lo que puede arreglar.
+        "app_unavailable": "la app de música no está instalada",
         // A to Z. EL MODO SIMULADO ES OPT-IN: viene DESACTIVADO de fábrica —`AtoZSettings.load`
         // lo lee como `?? false` y `SettingsView` lo declara `= false`—, así que el camino
         // normal de una aceptación de turno es el REAL y la petición sí llega a Amazon. Este
@@ -152,6 +169,52 @@ public struct ToolLogRow: View {
         if let frase = frasesDeFallo[status] { return frase }
         if status.hasPrefix("invalid_") { return "los datos no valían" }
         return "falló"
+    }
+
+    /// EL TERCER TEXTO DE LA FILA: «se hizo algo, pero NO lo que el usuario pidió».
+    ///
+    /// No es un fallo —no se rompió nada y pintarlo en rojo diría que sí— y no es «listo»
+    /// —«listo» afirma que la cosa ocurrió, y no ocurrió—. Es el hueco entre los dos, y la fila
+    /// ya lo tenía abierto para un caso (`cierreRechazadoText`, el candado de `browser_close`);
+    /// esto lo convierte en una tabla.
+    ///
+    /// EL DEFECTO QUE ARREGLA, MEDIDO. `play_music` devuelve `search_opened` cuando solo
+    /// consiguió abrir el BUSCADOR de la app (el usuario tiene que elegir un resultado y nada
+    /// suena) y `launching` cuando la app aceptó el enlace profundo pero NO se pudo comprobar
+    /// que la reproducción arrancara. La descripción de la propia herramienta se lo dice al
+    /// modelo con estas palabras —«Informa al usuario exactamente lo que dice 'status': no
+    /// afirmes que la música suena si es 'search_opened'»— y la fila del usuario decía
+    /// **«listo»** en los dos casos. O sea que el modelo estaba advertido y el usuario no.
+    ///
+    /// SE INDEXA POR EL PAR (HERRAMIENTA, ESTADO), Y ESO ES LA LECCIÓN DE `cancelled`. El
+    /// repositorio ya tiene medido que el NOMBRE de un estado no basta para decidir qué
+    /// significa: `cancelled` es un éxito en `cancel_events` y `cancel_alarm` y significa «el
+    /// usuario lo descartó y NO se ejecutó» en `run_shortcut` y `send_message`. Los tres estados
+    /// de `MusicPlaybackOutcome` son hoy exclusivos de `play_music` (grep sobre todo el árbol),
+    /// así que una tabla por nombre funcionaría hoy; se escribe por par para que no sea una
+    /// trampa el día en que otra herramienta estrene un `launching` que signifique otra cosa.
+    /// Lo clava `ElFalloPintadoComoExitoTests
+    /// .test_la_frase_es_del_par_y_no_del_nombre_del_estado_suelto`.
+    ///
+    /// Y LAS FRASES SON DE LA APP, no el `message` de la herramienta: ese texto está redactado
+    /// para el MODELO y ningún texto escrito para el modelo llega a la pantalla del usuario, que
+    /// es la regla que este fichero existe para sostener.
+    private nonisolated static let frasesDeEstadoAMedias: [String: [String: String]] = [
+        PlayMusicTool.name: [
+            // Se abrió el buscador de la app con el término dentro: el usuario tiene que elegir.
+            "search_opened": "se abrió el buscador: no está sonando",
+            // La app aceptó el enlace, pero sin controlador de la app no hay forma de verificar
+            // la reproducción (en macOS la hay por Apple Events y entonces el estado es
+            // `playing`; en iOS no existe equivalente). Afirmar que suena sería inventarlo.
+            "launching": "se abrió en la app: no está sonando aún",
+        ],
+    ]
+
+    /// La frase de la app para un par (herramienta, estado) que quedó a medias, o `nil` si ese
+    /// par no es uno de ellos. Interna y no privada a propósito: la prueba la recorre desde
+    /// producción para que la fila y la tabla no puedan decir cosas distintas.
+    public nonisolated static func fraseDeEstadoAMedias(toolName: String, status: String) -> String? {
+        frasesDeEstadoAMedias[toolName]?[status]
     }
 
     /// Lo que la fila dice de un `browser_close` que el candado de la app rechazó.
@@ -189,7 +252,13 @@ public struct ToolLogRow: View {
     /// que no es un objeto JSON cae en la rama de fallo— pero no tenía entrada aquí, así que
     /// caía en `case nil`: el usuario preguntaba qué hora es y leía «listo». `local_time` es el
     /// dato que pidió, formateado por `DateFormatter` con el idioma y el formato del sistema.
-    private nonisolated enum Kind { case host, lines, valueOrCount, chars, count, localTime }
+    /// `get_device_status` → `.battery`: EL SEGUNDO CASO DEL MISMO DEFECTO QUE `get_current_time`.
+    /// El usuario pregunta cuánta batería le queda y la fila le contesta «listo». Un porcentaje
+    /// de batería cumple los dos lados de la regla de arriba: es el dato que pidió, y sobre su
+    /// significado no cabe ninguna duda. Lo que NO entra es el `summary` («Tu iPhone tiene 73%
+    /// de batería (sin cargar). Carga baja, te recomiendo conectar tu iPhone pronto.»), que está
+    /// redactado para el modelo.
+    private nonisolated enum Kind { case host, lines, valueOrCount, chars, count, localTime, battery }
     private nonisolated static let table: [String: Kind] = [
         "browser_open": .host,
         "browser_snapshot": .lines,
@@ -197,6 +266,7 @@ public struct ToolLogRow: View {
         "read_webpage": .chars,
         "web_search": .count,
         "get_current_time": .localTime,
+        "get_device_status": .battery,
     ]
 
     public nonisolated static func summarize(toolName: String, resultJSON: String) -> ToolRowSummary {
@@ -222,6 +292,13 @@ public struct ToolLogRow: View {
             return .failure(fraseDeFallo(status: status))
         }
         if let status, needsYouStatuses.contains(status) { return .needsYou }
+        // «SE ABRIÓ, PERO NO ES LO QUE PEDISTE»: ni fallo ni «listo». Ver
+        // `frasesDeEstadoAMedias`. Va DESPUÉS de los dos censos globales, que siguen teniendo
+        // prioridad: un par que alguien metiera aquí y que además fuera un fallo censado se
+        // seguiría pintando en rojo, que es la dirección segura.
+        if let status, let frase = fraseDeEstadoAMedias(toolName: toolName, status: status) {
+            return .value(frase)
+        }
         switch table[toolName] {
         case .host:
             if let s = obj["url"] as? String, let host = URL(string: s)?.host { return .value(host) }
@@ -250,6 +327,16 @@ public struct ToolLogRow: View {
             // dice menos pero no inventa ninguna hora.
             guard let s = obj["local_time"] as? String, !s.isEmpty else { return .ok }
             return .value(clip(s))
+        case .battery:
+            // Forma real, GetDeviceStatusTool.swift: {"status":"success","battery_percent":73,
+            // "battery_level_known":true,…,"summary":"Tu iPhone tiene 73% de batería (…)"}. Se
+            // pinta `battery_percent` —el dato— y NUNCA el `summary`, que está escrito para el
+            // modelo. Cuando el sistema no ha reportado el nivel la clave NO viene (el propio
+            // `run` la omite a propósito: ver `DeviceStatusHonestyTests`, defecto 9, «la batería
+            // desconocida no se convierte en 100%»), y entonces la fila cae a «listo», que dice
+            // menos pero no inventa ningún porcentaje.
+            guard let n = obj["battery_percent"] as? Int else { return .ok }
+            return .value("\(n)%")
         case nil:
             // Herramienta sin dato propio: «listo». El `message` NO se enseña: está
             // escrito para el modelo, no para el usuario; quien quiera el detalle

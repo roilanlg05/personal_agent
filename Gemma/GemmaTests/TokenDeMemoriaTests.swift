@@ -279,12 +279,14 @@ final class TokenDeMemoriaTests: XCTestCase {
         let almacenDeAntes = gestor.almacenDeSecretos
         let redDeAntes = gestor.red
         let ajustesDeAntes = gestor.ajustes
-        addTeardownBlock {
-            Task { @MainActor in
-                gestor.almacenDeSecretos = almacenDeAntes
-                gestor.red = redDeAntes
-                gestor.ajustes = ajustesDeAntes
-            }
+        // `defer`, no `addTeardownBlock`: el gestor es un SINGLETON, así que dejarlo apuntando a
+        // una sesión efímera de esta prueba rompería a quien lo use después. Un `addTeardownBlock`
+        // que salte a `@MainActor` dentro de un `Task` se ejecuta cuando le toca, que puede ser ya
+        // empezada la prueba siguiente; `defer` corre al salir de ESTA función, también si lanza.
+        defer {
+            gestor.almacenDeSecretos = almacenDeAntes
+            gestor.red = redDeAntes
+            gestor.ajustes = ajustesDeAntes
         }
         gestor.almacenDeSecretos = almacen
         gestor.red = URLSession(configuration: cfg)
@@ -318,12 +320,14 @@ final class TokenDeMemoriaTests: XCTestCase {
         let almacenDeAntes = gestor.almacenDeSecretos
         let redDeAntes = gestor.red
         let ajustesDeAntes = gestor.ajustes
-        addTeardownBlock {
-            Task { @MainActor in
-                gestor.almacenDeSecretos = almacenDeAntes
-                gestor.red = redDeAntes
-                gestor.ajustes = ajustesDeAntes
-            }
+        // `defer`, no `addTeardownBlock`: el gestor es un SINGLETON, así que dejarlo apuntando a
+        // una sesión efímera de esta prueba rompería a quien lo use después. Un `addTeardownBlock`
+        // que salte a `@MainActor` dentro de un `Task` se ejecuta cuando le toca, que puede ser ya
+        // empezada la prueba siguiente; `defer` corre al salir de ESTA función, también si lanza.
+        defer {
+            gestor.almacenDeSecretos = almacenDeAntes
+            gestor.red = redDeAntes
+            gestor.ajustes = ajustesDeAntes
         }
         gestor.almacenDeSecretos = AlmacenEnMemoria()
         gestor.red = URLSession(configuration: cfg)

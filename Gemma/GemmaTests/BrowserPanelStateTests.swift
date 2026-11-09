@@ -216,6 +216,29 @@ final class BrowserPanelCuentasTests: XCTestCase {
                         .contains("descartados 2"))
     }
 
+    /// LA CUENTA ES DIAGNÓSTICO, Y SOLO SE PINTA CUANDO INFORMA.
+    ///
+    /// Los contadores los puso un commit `diag(...)` para entender «el panel se muere»; el
+    /// usuario los leyó en su teléfono y los reportó. No se borran —el misterio que
+    /// diagnostican, «mensajes 6 · fotogramas 0», sigue sin explicación— pero un panel que
+    /// pintó cuarenta fotogramas y luego soltó la imagen al cerrarse deja un hueco NORMAL, y
+    /// ahí dos números monoespaciados no diagnostican nada: son ruido de desarrollador sobre un
+    /// panel que funcionó.
+    ///
+    /// Las dos mitades están en la misma función: devolver siempre `true` (lo de antes) mata la
+    /// segunda, y devolver siempre `false` (borrar la línea, que es lo que NO se quería) mata
+    /// la primera.
+    func test_la_cuenta_solo_se_pinta_cuando_el_panel_no_consiguio_pintar() {
+        XCTAssertTrue(BrowserPanelView.muestraLaCuenta(fotogramas: 0, descartados: 0, hayJpeg: false),
+                      "ni un fotograma: es el misterio, y es lo que el usuario reportó")
+        XCTAssertTrue(BrowserPanelView.muestraLaCuenta(fotogramas: 40, descartados: 3, hayJpeg: false),
+                      "llegaron y se tiraron: eso hay que poder verlo")
+        XCTAssertTrue(BrowserPanelView.muestraLaCuenta(fotogramas: 1, descartados: 0, hayJpeg: true),
+                      "hay bytes guardados y aun así no hay imagen: no decodificó")
+        XCTAssertFalse(BrowserPanelView.muestraLaCuenta(fotogramas: 40, descartados: 0, hayJpeg: false),
+                       "un panel que pintó cuarenta fotogramas y soltó la imagen no necesita contadores")
+    }
+
     /// Los descartes solo aparecen cuando los hay: una línea con «descartados 0» en cada panel
     /// sano es ruido que acaba ignorándose, y entonces no se ve el día que importa.
     func test_los_descartes_solo_se_nombran_cuando_existen() {

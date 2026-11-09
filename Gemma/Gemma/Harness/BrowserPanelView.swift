@@ -83,11 +83,18 @@ struct BrowserPanelView: View {
                                 .padding(.horizontal, 12)
                             // La cuenta, en pequeño: es la que distingue «no llega nada» de
                             // «llegan fotogramas y no se pintan», que se ven igual desde fuera.
-                            Text(Self.cuenta(mensajes: state.mensajesRecibidos,
-                                             fotogramas: state.fotogramasRecibidos,
-                                             descartados: state.fotogramasDescartados))
-                                .font(.caption2.monospaced())
-                                .foregroundStyle(.tertiary)
+                            // Solo cuando informa — ver `muestraLaCuenta`: es diagnóstico en la
+                            // pantalla del usuario, y sobre un panel que pintó cuarenta
+                            // fotogramas y soltó la imagen al cerrarse no diagnostica nada.
+                            if Self.muestraLaCuenta(fotogramas: state.fotogramasRecibidos,
+                                                    descartados: state.fotogramasDescartados,
+                                                    hayJpeg: state.jpeg != nil) {
+                                Text(Self.cuenta(mensajes: state.mensajesRecibidos,
+                                                 fotogramas: state.fotogramasRecibidos,
+                                                 descartados: state.fotogramasDescartados))
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
                 }
@@ -136,6 +143,28 @@ struct BrowserPanelView: View {
 
     /// La línea de cuentas del hueco. Siempre dice algo: un hueco sin cuentas no distingue
     /// «el socket no habló» de «habló y no mandó fotogramas».
+    /// Si la línea de cuentas se pinta.
+    ///
+    /// ES UNA LÍNEA DE DIAGNÓSTICO EN LA PANTALLA DEL USUARIO, y eso hay que ganárselo. Los
+    /// contadores los puso un commit `diag(...)` para entender «el panel se muere», el usuario
+    /// los leyó en su teléfono y los reportó. No se borran —el misterio que diagnostican,
+    /// «mensajes 6 · fotogramas 0»: el socket habla y no llega ni un fotograma, sigue sin
+    /// explicación— pero solo se muestran cuando de verdad informan.
+    ///
+    /// Esta función se llama ya dentro del hueco SIN IMAGEN, así que un panel que está pintando
+    /// no las ve nunca. Lo que decide aquí es el otro caso: un hueco NORMAL, de los que el
+    /// panel tiene a diario —el que queda cuando el panel suelta la imagen al cerrarse, después
+    /// de haber pintado cuarenta fotogramas sin un solo problema—. Ahí los números no
+    /// diagnostican nada: son ruido de desarrollador sobre un panel que funcionó.
+    ///
+    /// Se muestran, entonces, solo cuando el panel NO ha conseguido pintar:
+    ///   - `fotogramas == 0`: no llegó ni uno. Es el misterio, y es lo que el usuario reportó.
+    ///   - `descartados > 0`: llegaron y se tiraron.
+    ///   - `hayJpeg`: llegó uno, está guardado, y aun así no hay imagen (no decodificó).
+    static func muestraLaCuenta(fotogramas: Int, descartados: Int, hayJpeg: Bool) -> Bool {
+        hayJpeg || descartados > 0 || fotogramas == 0
+    }
+
     static func cuenta(mensajes: Int, fotogramas: Int, descartados: Int) -> String {
         var t = "mensajes \(mensajes) · fotogramas \(fotogramas)"
         if descartados > 0 { t += " · descartados \(descartados)" }

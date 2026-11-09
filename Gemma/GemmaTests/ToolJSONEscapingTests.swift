@@ -120,20 +120,51 @@ final class ToolJSONEscapingTests: XCTestCase {
         ])
         let out = await SearchContactsTool(manager: manager).run(argsJSON: try args(["query": nasty]))
         let json = try parse(out)
-        XCTAssertEqual(json["status"] as? String, "ok")
+        // `found`, no `ok`: lo que la herramienta documenta en su propia descripción al
+        // modelo ("Lee 'status': 'found' = hay resultados en 'contacts'"). El test pedía
+        // `ok`, que nunca emitió ningún camino de este tool.
+        XCTAssertEqual(json["status"] as? String, "found", "got: \(out)")
         XCTAssertEqual(json["searched_query"] as? String, nasty)
+        XCTAssertEqual(json["count"] as? Int, 1, "got: \(out)")
         let contacts = try XCTUnwrap(json["contacts"] as? [[String: Any]])
+        // El caso difícil de esta clase: el nombre lleva comilla doble, barra invertida,
+        // salto de línea y tabulador, y tiene que volver IDÉNTICO del viaje por el JSON.
         XCTAssertEqual(contacts.first?["given_name"] as? String ?? contacts.first?["givenName"] as? String, nasty)
+        // Y el apodo, que lleva sus propias comillas, también.
+        XCTAssertEqual(contacts.first?["nickname"] as? String, "la \"jefa\"", "got: \(out)")
     }
 
+    /// Los DOS caminos de error del tool, porque emiten claves distintas a propósito:
+    /// con 403 "no pude mirar la libreta" (`permission_required`, sin `error`: el texto del
+    /// sistema no aporta nada y el mensaje dice qué hacer) y con cualquier otro fallo
+    /// `failed` + `error` con la descripción entera. El test antiguo pedía la clave `error`
+    /// sobre el camino de 403, que dejó de emitirla cuando los dos estados se separaron.
     func test_search_contacts_error_output_is_valid_json() async throws {
-        let manager = StubContactsManager(errorToThrow: NSError(
+        let motivo = "Permiso \"denegado\"\npara contactos\tya"
+
+        let sinPermiso = StubContactsManager(errorToThrow: NSError(
             domain: "Contacts", code: 403,
-            userInfo: [NSLocalizedDescriptionKey: "Permiso \"denegado\"\npara contactos"]
+            userInfo: [NSLocalizedDescriptionKey: motivo]
         ))
-        let out = await SearchContactsTool(manager: manager).run(argsJSON: #"{"query": "mamá"}"#)
-        let json = try parse(out)
-        XCTAssertEqual(json["error"] as? String, "Permiso \"denegado\"\npara contactos")
+        // La consulta lleva el texto difícil para que el escapado se ejercite también aquí.
+        let outPermiso = await SearchContactsTool(manager: sinPermiso).run(argsJSON: try args(["query": nasty]))
+        let jsonPermiso = try parse(outPermiso)
+        XCTAssertEqual(jsonPermiso["status"] as? String, "permission_required", "got: \(outPermiso)")
+        XCTAssertEqual(jsonPermiso["searched_query"] as? String, nasty)
+        XCTAssertNil(jsonPermiso["error"], "el camino de permiso no emite `error`: \(outPermiso)")
+
+        let falla = StubContactsManager(errorToThrow: NSError(
+            domain: "Contacts", code: 1,
+            userInfo: [NSLocalizedDescriptionKey: motivo]
+        ))
+        let outFallo = await SearchContactsTool(manager: falla).run(argsJSON: #"{"query": "mamá"}"#)
+        let jsonFallo = try parse(outFallo)
+        XCTAssertEqual(jsonFallo["status"] as? String, "failed", "got: \(outFallo)")
+        // EL CASO DIFÍCIL, que es por lo que esta clase se llama «escaping»: un motivo con
+        // comillas, salto de línea y tabulador sobrevive entero el viaje por el JSON.
+        XCTAssertEqual(jsonFallo["error"] as? String, motivo, "got: \(outFallo)")
+        XCTAssertTrue((jsonFallo["message"] as? String)?.contains(motivo) ?? false,
+                      "el mensaje al modelo también lleva el motivo entero: \(outFallo)")
     }
 
     // MARK: - create_alarm

@@ -145,7 +145,7 @@ final class BrowserPanelViewTests: XCTestCase {
     // La señal que lo delata es la que NO está —**cero** líneas `XCTAssert…failed` en todo el
     // log— y por eso no es un rojo de aserciones. Lo mismo le pasa a
     // `BrowserPanelCoordinatorTests` y a `BrowserCrossPlatformTests`. En macOS esa misma clase
-    // da **20 de 20 verdes**. Diagnosticar ese aborto es un sub-proyecto propio (es un
+    // da **21 de 21 verdes**. Diagnosticar ese aborto es un sub-proyecto propio (es un
     // `@Observable @MainActor` en el host de pruebas de iOS) y no cabe en una ronda de arreglos
     // de la interfaz.
     //

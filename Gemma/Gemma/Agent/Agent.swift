@@ -618,6 +618,63 @@ final class Agent {
         return mensaje
     }
 
+    /// LA LINEA DE ESTADO REAL: lo que la ULTIMA accion de navegador del turno hizo de verdad,
+    /// escrita por la APP y pegada a la respuesta del turno. `nil` cuando no hay nada que decir.
+    ///
+    /// EL HUECO QUE CIERRA. Nadie comprobaba que lo que el agente CUENTA haya pasado. El caso
+    /// real es el usuario leyendo «te he puesto el video» cuando la pulsacion habia fallado: el
+    /// fallo viajo al modelo —la nota de resultado se lo dijo entero—, el modelo lo ignoro, y lo
+    /// que llego a la pantalla fue su narracion. browser-use tiene el mismo hueco y lo intento
+    /// tapar con un juez LLM, que no sirve: corre DESPUES, no sobrescribe el resultado y solo
+    /// escribe un aviso en un registro que nadie lee.
+    ///
+    /// NUESTRA VENTAJA ES QUE HAY UN HUMANO MIRANDO, asi que no hace falta un juez: hace falta
+    /// que lo observable llegue a sus ojos sin pasar por la narracion del modelo. Esta linea es
+    /// ese canal, y lo es porque el modelo NO puede redactarla: la escribe el bucle a partir del
+    /// `status` que la herramienta devolvio. Si el modelo pudiera redactarla no habria arreglado
+    /// nada, porque el defecto es justo que su narracion no coincide con los hechos.
+    ///
+    /// Y HONESTIDAD SOBRE EL ALCANCE: ESTO NO ES VERIFICACION. Es que el dato no se pierda. La
+    /// verificacion de verdad —comparar la INTENCION del usuario con el estado final de la
+    /// pagina— no esta aqui y no esta en browser-use: sigue siendo un problema sin resolver en
+    /// los dos proyectos. Haria falta saber que significa «pon el video» como estado de una
+    /// pagina, y eso no sale de ningun `status`: un `press` con `success` sobre el boton
+    /// equivocado es un exito a ojos de esta funcion y un fracaso a ojos del usuario, y este
+    /// canal no lo distingue. Lo UNICO que esta linea afirma es un hecho que ya teniamos medido
+    /// y estabamos tirando: la ultima accion sobre la pagina declaro que no la hizo.
+    ///
+    /// EL `message` DE LA HERRAMIENTA NO SE IMPRIME, Y ESA REGLA NO SE NEGOCIA. Esos textos
+    /// estan redactados para el MODELO —segunda persona, con instrucciones— y llevar sus
+    /// instrucciones a la pantalla del usuario costo una rama entera (ver
+    /// `ToolSyntaxStreamGate`, y la nota de `toolResultNote` sobre por que los argumentos de la
+    /// llamada ya no viajan). Es la misma regla que cumple el resumen de la fila de herramienta:
+    /// un estado que pide algo al usuario se resume con una frase FIJA de la app
+    /// (`ToolLogRow.needsYouText`) y una herramienta sin dato propio se resume con «listo», no
+    /// con su `message`. El motivo no se pierde para quien lo quiera: viaja entero al modelo en
+    /// la nota de resultado y vive en el detalle de la fila de la herramienta, que el usuario
+    /// abre si quiere leerlo. Lo que esta linea pone delante de sus ojos es solo el hecho, y por
+    /// eso nombra la fila: es donde esta el detalle.
+    ///
+    /// SOLO CON UN FALLO DECLARADO, no con «no fue un exito». `esFallo` y `esExito` no son
+    /// complementarios a proposito, y el tercer estado —un resultado que no se supo leer— cae
+    /// del lado que NO actua, que es la direccion segura de este proyecto. Aqui la accion que el
+    /// valor desencadena es anadirle una advertencia a una respuesta que puede estar
+    /// perfectamente bien, y una advertencia falsa gasta la credibilidad de todas las demas: la
+    /// unica razon por la que esta linea sirve es que el usuario pueda creerla sin mirar.
+    ///
+    /// EN ESPANOL Y SIN JSON, como `mensajeDePresupuestoAgotado` y al contrario que las notas
+    /// del prompt vivo: esto se queda en el chat. Y NO vive en `BrowserRules` aunque hable del
+    /// navegador: ahi viven las INSTRUCCIONES AL MODELO, con una sola fuente para que las dos
+    /// renderizaciones no divergan, y un texto que lee una persona no es una de ellas.
+    nonisolated static func lineaDeEstadoDelNavegador(herramienta: String, resultado: String) -> String? {
+        guard esFallo(resultado: resultado),
+              let estado = estadoDelResultado(resultado) else { return nil }
+        return "Aviso de la app, no del modelo: la última acción sobre la página, "
+            + "`\(herramienta)`, devolvió `\(estado)` y no se llegó a hacer. Si la respuesta de "
+            + "arriba la da por hecha, no te fíes de esa parte; abre la fila de `\(herramienta)` "
+            + "en este turno para ver qué contestó el navegador."
+    }
+
     /// Rondas de herramientas que se le permiten a un turno normal.
     nonisolated static let maxIterations = 5
 
@@ -798,9 +855,9 @@ final class Agent {
 
     /// La guia oficial, con su linea de precedencia delante, lista para pegarse al prompt vivo.
     ///
-    /// Se inyecta UNA VEZ POR TURNO, enganchada a la nota de resultado de la PRIMERA
-    /// herramienta de navegador del turno (ver el bucle de `run`). Esa colocacion es
-    /// deliberada y conviene no moverla:
+    /// Se inyecta UNA VEZ POR TURNO, en la RONDA en la que el turno toca el navegador por
+    /// primera vez, y se renderiza DETRAS de las notas de resultado de esa ronda (ver el bucle
+    /// de `run` y `RondaDelTurno.render`). Esa colocacion es deliberada y conviene no moverla:
     ///   - Un turno que nunca toca el navegador no paga nada: la inmensa mayoria de los
     ///     turnos son preguntas que se contestan de memoria, y meter la guia en el prompt
     ///     del sistema les cobraria ~14 KB a todos. El usuario tiene aparcada precisamente
@@ -847,6 +904,10 @@ final class Agent {
     ///
     /// `budgetTokens` a `nil` = el runtime no declara ventana (los de servidor, donde la fija
     /// el modelo remoto y es holgada): cabe.
+    ///
+    /// SE LLAMA UNA SOLA VEZ Y AL CERRAR LA RONDA, no dentro del bucle de acciones: lo que se le
+    /// pasa como `livePrompt` tiene que ser el prompt que de verdad se va a enviar, con todas
+    /// las notas de la ronda ya puestas. El porque esta en su sitio de llamada, en `run`.
     nonisolated static func browserGuideFits(systemPrompt: String, livePrompt: String, budgetTokens: Int?) -> Bool {
         guard let budgetTokens else { return true }
         let promptBudget = max(512, budgetTokens - generationHeadroomTokens)
@@ -895,6 +956,14 @@ final class Agent {
                     // fuera de la ronda a proposito: el `browser_open` de una ronda es lo que le
                     // da a la siguiente con que comparar.
                     var urlConocidaDelNavegador: String?
+                    // LA ULTIMA ACCION DE NAVEGADOR DEL TURNO Y SU RESULTADO, para que el
+                    // usuario pueda leer lo que la pagina dice y no solo lo que el modelo
+                    // cuenta. Ver `lineaDeEstadoDelNavegador`.
+                    //
+                    // Vive fuera de la ronda porque la respuesta se redacta al FINAL del turno:
+                    // la accion con la que hay que contrastarla es la ultima que toco la pagina,
+                    // sea de la ronda que sea, y no la ultima de la ronda que cierra.
+                    var ultimaDelNavegador: (herramienta: String, resultado: String)?
                     // Una vez por turno: se pone a true con la primera herramienta de
                     // navegador y ya no vuelve a false hasta el turno siguiente.
                     var browserGuideInjected = false
@@ -904,9 +973,63 @@ final class Agent {
                     // de una accion. Ver `maxConsecutiveFailures` para por que la version de
                     // browser-use, que cuenta por ronda, no acota el peor caso.
                     var fallosConsecutivos = 0
+                    // LAS SIETE HERRAMIENTAS QUE CAMBIAN EL MUNDO, Y A LAS QUE `executedMutations`
+                    // LE NIEGA LA REPETICION DENTRO DE UN TURNO.
+                    //
+                    // POR QUE ESTE CONJUNTO NO SE PUEDE EXTENDER AL NAVEGADOR, antes de que a
+                    // alguien le parezca la mejora obvia: porque dos llamadas de navegador
+                    // IDENTICAS no son la misma operacion dos veces. La clave de
+                    // `executedMutations` es `nombre + argumentos`, y lo que hace fiable ese
+                    // freno en `create_event` es que los mismos argumentos describen el mismo
+                    // evento siempre. En el navegador no: las referencias `@eN` CADUCAN con cada
+                    // accion —lo dice `BrowserRules.text` y lo hace cumplir `cortaLaCola`—, asi
+                    // que `browser_click @e5` en dos rondas apunta POR DISENO a elementos
+                    // distintos. Negar la segunda seria negarle al modelo el paso siguiente de
+                    // la tarea por una igualdad de bytes que aqui no significa nada; y al
+                    // contrario, dos clics sobre el MISMO elemento con dos `@eN` distintas
+                    // pasarian el freno sin que lo notara.
+                    //   Un freno de repeticion para el navegador tendria que ser por igualdad de
+                    // ELEMENTO, no de bytes, y el bucle hoy no la conoce: lo unico que recibe de
+                    // vuelta es el `status`, el `message` y a veces la `url`, nunca una identidad
+                    // estable del elemento sobre el que actuo. Mientras eso no exista, lo que
+                    // cubre al navegador es la deteccion de vueltas en vacio
+                    // (`pareceAtascado`), que no niega nada y solo mira las LECTURAS, donde la
+                    // igualdad de argumentos si es concluyente.
                     let mutationToolNames: Set<String> = [
                         "add_shift", "drop_shift", "create_event", "cancel_event", "update_event", "create_task", "complete_task"
                     ]
+
+                    // LA RESPUESTA DEL TURNO SALE POR AQUI, Y AQUI SE LE PEGA EL ESTADO REAL.
+                    //
+                    // Hay DOS sitios en los que el bucle entrega la respuesta del modelo —el
+                    // turno que termina solo y el que se queda sin rondas— y los dos tienen que
+                    // llevar la linea: si solo la llevara uno, el defecto volveria por el otro
+                    // justo en los turnos largos, que son los de navegador. El tercero (el
+                    // presupuesto de fallos agotado) NO pasa por aqui a proposito: ese camino ya
+                    // cierra el turno con una linea de la app que nombra la herramienta y las
+                    // veces que fallo (`mensajeDePresupuestoAgotado`), asi que el hecho ya esta
+                    // delante del usuario y repetirlo seria ruido.
+                    //
+                    // VIAJA POR LOS DOS CANALES, y no es un cinturon y tirantes. La interfaz se
+                    // queda con el `text` del `.completed` cuando no esta vacio y con los tokens
+                    // acumulados cuando si lo esta (ver `HarnessModel.consumeAgentEvents`), asi
+                    // que la linea tiene que estar en los dos o se cae por el hueco. Cuando el
+                    // `text` viene vacio NO se rellena con la linea sola: eso convertiria un
+                    // `text` vacio en uno con contenido y la interfaz dejaria de mirar los
+                    // tokens, o sea que la respuesta visible del modelo se perderia y solo
+                    // quedaria el aviso.
+                    func entregaLaRespuesta(_ res: GenerationResult) {
+                        guard let ultima = ultimaDelNavegador,
+                              let linea = Self.lineaDeEstadoDelNavegador(herramienta: ultima.herramienta,
+                                                                         resultado: ultima.resultado) else {
+                            continuation.yield(.completed(res))
+                            return
+                        }
+                        continuation.yield(.token("\n\n" + linea))
+                        continuation.yield(.completed(GenerationResult(
+                            text: res.text.isEmpty ? res.text : res.text + "\n\n" + linea,
+                            metrics: res.metrics)))
+                    }
 
                     var iteration = 0
                     loop: while iteration < maxIterations {
@@ -928,6 +1051,12 @@ final class Agent {
                                 continuation.yield(.toolCallStarted(name: n, args: a))
                             case .toolCallFinished(let n, let r):
                                 runtimeFinishedAnyTool = true
+                                // EL PRIMERO DE LOS DOS SITIOS DONDE SE APUNTA LA ULTIMA ACCION
+                                // DE NAVEGADOR. Este es el runtime que ejecuta las herramientas
+                                // por su cuenta; el otro es el bucle de acciones, que las
+                                // ejecuta el. Son dos caminos de verdad, no una duplicacion por
+                                // descuido: un turno del primero nunca pasa por el segundo.
+                                if Self.browserToolNames.contains(n) { ultimaDelNavegador = (n, r) }
                                 continuation.yield(.toolCallFinished(name: n, result: r))
                             case .completed(let res):
                                 completed = res
@@ -936,7 +1065,7 @@ final class Agent {
 
                         let isFinal = pendingToolCalls.isEmpty || runtimeFinishedAnyTool
                         if isFinal {
-                            if let completed { continuation.yield(.completed(completed)) }
+                            if let completed { entregaLaRespuesta(completed) }
                             break loop
                         }
 
@@ -967,6 +1096,10 @@ final class Agent {
                             ronda.texto = ronda.texto.isEmpty ? nota : ronda.texto + "\n\n" + nota
                         }
                         var anyMutationExecuted = false
+                        // Si ESTA ronda llego a tocar el navegador. Es lo que la decision de
+                        // inyectar la guia oficial necesita saber al cerrar la ronda, cuando el
+                        // nombre de la herramienta que la disparo ya no esta a mano.
+                        var laRondaTocoElNavegador = false
                         // La accion con la que se agoto el presupuesto, cuando se agoto en esta
                         // ronda: es la que el mensaje al usuario nombra.
                         var presupuestoAgotado: (herramienta: String, resultado: String)?
@@ -1014,23 +1147,17 @@ final class Agent {
                             } else if Self.esExito(resultado: result) {
                                 fallosConsecutivos = 0
                             }
+                            // EL SEGUNDO SITIO DONDE SE APUNTA LA ULTIMA ACCION DE NAVEGADOR
+                            // (ver el otro en el `.toolCallFinished` de arriba). Se apunta el
+                            // resultado TAL CUAL, sin leerlo: quien decide si hay algo que
+                            // decirle al usuario es `lineaDeEstadoDelNavegador`, al final del
+                            // turno, porque solo entonces se sabe cual fue la ULTIMA.
+                            if Self.browserToolNames.contains(tc.name) {
+                                ultimaDelNavegador = (tc.name, result)
+                                laRondaTocoElNavegador = true
+                            }
                             continuation.yield(.toolCallFinished(name: tc.name, result: result))
                             anade(Self.toolResultNote(toolName: tc.name, result: result))
-                            // La guia oficial del CLI viaja con la nota de la PRIMERA
-                            // herramienta de navegador del turno, y solo con esa. Ver
-                            // `browserGuideBlock()` para el porque de esta colocacion. Lo que se
-                            // mide es el prompt vivo tal como quedaria AHORA, con esta ronda ya
-                            // dentro y sin contar la guia dos veces (`browserGuideFits` la suma
-                            // por su cuenta).
-                            if Self.browserToolNames.contains(tc.name), !browserGuideInjected,
-                               Self.browserGuideFits(systemPrompt: opts.systemPrompt ?? "",
-                                                     livePrompt: Self.promptVivo(base: basePrompt,
-                                                                                 guiaRescatada: guiaRescatada,
-                                                                                 rondas: historial + [ronda]),
-                                                     budgetTokens: self.runtime.contextTokenBudget) {
-                                browserGuideInjected = true
-                                ronda.guia = Self.browserGuideBlock()
-                            }
                             // PRESUPUESTO AGOTADO: se para aqui mismo y lo que quedaba de la
                             // ronda no se ejecuta. El `.toolCallFinished` de arriba ya salio, asi
                             // que la fila de la herramienta se cierra en el registro del chat; lo
@@ -1094,6 +1221,38 @@ final class Agent {
                                 herramienta: ultima.nombre,
                                 veces: Self.repeticionesDeLecturaAlFinal(accionesDelTurno)))
                         }
+                        // LA GUIA OFICIAL DEL CLI VIAJA CON LA RONDA EN LA QUE EL TURNO TOCA EL
+                        // NAVEGADOR POR PRIMERA VEZ, y con ninguna otra. Ver `browserGuideBlock()`
+                        // para por que no vive en el prompt del sistema. Su posicion en el prompt
+                        // no la decide esto: `RondaDelTurno.render` la pone siempre DETRAS del
+                        // texto de la ronda, o sea detras de la nota de la herramienta que la
+                        // pago, y de ahi no se mueve.
+                        //
+                        // SE DECIDE UNA VEZ, AL CERRAR LA RONDA, Y ESO ES UN ARREGLO. La decision
+                        // vivia DENTRO del bucle de acciones, contra una ronda a medio construir:
+                        // no llevaba las notas de cierre (ni el aviso de corte de cola ni el de
+                        // vueltas en vacio, ~900 B) ni —mucho peor— las notas de las acciones que
+                        // venian DETRAS de la primera de navegador, que en una ronda con dos
+                        // snapshots son ~18 KB. O sea que medía un prompt mas pequeno que el que
+                        // de verdad se envia, y la guarda existe precisamente para que el prompt
+                        // no desborde la ventana (`browserGuideFits` explica que se cae por ese
+                        // agujero: el prompt del sistema, donde viven las reglas de seguridad).
+                        // Aqui la ronda ya esta cerrada, asi que lo que se mide es lo que se
+                        // manda. No hay fuga medida en el camino que corre hoy —los runtimes de
+                        // servidor no declaran ventana y la estimacion sobreestima los tokens a
+                        // proposito—, pero una medida que se sabe falsa no se deja escrita.
+                        //
+                        // La guia NO se suma al `livePrompt`: `browserGuideFits` la cuenta por su
+                        // cuenta, y sumarla aqui la contaria dos veces.
+                        if laRondaTocoElNavegador, !browserGuideInjected,
+                           Self.browserGuideFits(systemPrompt: opts.systemPrompt ?? "",
+                                                 livePrompt: Self.promptVivo(base: basePrompt,
+                                                                             guiaRescatada: guiaRescatada,
+                                                                             rondas: historial + [ronda]),
+                                                 budgetTokens: self.runtime.contextTokenBudget) {
+                            browserGuideInjected = true
+                            ronda.guia = Self.browserGuideBlock()
+                        }
                         // EL HISTORIAL SE CIERRA AQUI, Y SE ACOTA. Lo que cae es lo mas viejo;
                         // la ronda que acaba de pasar no cae nunca. Ver `maxHistoryBytes` para de
                         // donde sale el numero y `recortaElHistorial` para el rescate de la guia.
@@ -1143,7 +1302,7 @@ final class Agent {
                         }
 
                         if iteration == maxIterations - 1 {
-                            if let completed { continuation.yield(.completed(completed)) }
+                            if let completed { entregaLaRespuesta(completed) }
                             else { continuation.yield(.failed("tool loop did not converge")) }
                             break loop
                         }

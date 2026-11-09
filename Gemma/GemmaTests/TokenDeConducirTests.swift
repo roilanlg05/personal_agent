@@ -365,7 +365,8 @@ final class TokenDeConducirTests: XCTestCase {
     /// Los identificadores que el fichero del almacén puede contener, y ni uno más.
     private static let identificadoresPermitidos: Set<String> = [
         // los tipos y las importaciones
-        "AlmacenDeSecretos", "Any", "Bool", "CFDictionary", "CFTypeRef", "Data", "Foundation",
+        "AlmacenDeSecretos", "AlmacenSoloDeLectura", "Any", "Bool", "CFDictionary", "CFTypeRef",
+        "Data", "Foundation",
         "LlaveroDelSistema", "Security", "SecretoDelDispositivo", "Sendable", "SettingsKeys",
         "String", "TokenDeConducir", "TokenDeMemoria", "UserDefaults",
         // palabras clave de Swift, atributos y miembros del lenguaje
@@ -396,7 +397,10 @@ final class TokenDeConducirTests: XCTestCase {
     /// Los identificadores de un fuente Swift, **sin los comentarios** (son prosa y meterían
     /// cientos de palabras, que es lo que haría inútil la lista blanca). El troceado reconoce
     /// letras Unicode a propósito: los identificadores de este proyecto llevan `ñ`.
-    private static func identificadoresDe(fuente: String) -> Set<String> {
+    /// No es privado: `ClaveDeProveedorTests` lo reusa. Dos tokenizadores serían dos sitios
+    /// donde el troceado puede divergir, y un troceado roto devuelve el conjunto vacío, que cabe
+    /// en cualquier lista blanca.
+    static func identificadoresDe(fuente: String) -> Set<String> {
         let sinComentarios = fuente.split(separator: "\n", omittingEmptySubsequences: false)
             .map { linea -> String in
                 guard let corte = linea.range(of: "//") else { return String(linea) }

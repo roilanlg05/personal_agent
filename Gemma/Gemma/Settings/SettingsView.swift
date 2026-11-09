@@ -383,14 +383,15 @@ private struct ProviderPicker: View {
     @FocusState private var keyFocused: Bool
 
     private var kind: ModelProvider.Kind { ModelProvider.Kind(rawValue: providerRaw) ?? .defaultKind }
-    private var keyAccount: String { "apiKey.\(kind.rawValue)" }
-
     /// Persist the typed key (whitespace/newline-trimmed) to the Keychain and rebuild. Called on
     /// Enter AND on focus-loss, so the user doesn't have to remember to press Return — relying on
     /// `.onSubmit` alone silently dropped pasted keys (sent no auth → provider 403).
     private func commitKey() {
         let k = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !k.isEmpty { KeychainStore.shared.set(k, account: keyAccount); apiKey = "" }
+        // Al llavero del dispositivo, y NUNCA a `UserDefaults`: el almacén viejo escribía además
+        // una copia en claro (`keychain_fallback.<cuenta>`) de la que la lectura tiraba, así que
+        // el llavero era decorativo. Ver `ClaveDeProveedor`.
+        if !k.isEmpty { ClaveDeProveedor.guardar(k, proveedor: kind.rawValue); apiKey = "" }
         onChange()
     }
 
@@ -448,7 +449,8 @@ private struct ProviderPicker: View {
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(onChange)
                 if !kind.isLocalMLX {
-                    SecureField(KeychainStore.shared.get(account: keyAccount) == nil ? "API key" : "•••• guardada",
+                    SecureField(ClaveDeProveedor.leer(proveedor: kind.rawValue) == nil
+                                    ? "API key" : "•••• guardada",
                                 text: $apiKey)
                         .textFieldStyle(.roundedBorder)
                         .focused($keyFocused)

@@ -21,8 +21,17 @@ struct GemmaApp: App {
     /// escritura; las pruebas no la hacen.
     ///
     /// Es idempotente: a la segunda no hay nada que mover.
+    ///
+    /// LAS API KEYS DE PAGO MIGRAN EN EL MISMO SITIO Y POR EL MISMO MOTIVO (Tarea 6c). El `init`
+    /// del `HarnessModel` construye el runtime de chat, que **ya lee la key del proveedor**
+    /// (`clavesDelAlmacen`), así que si la migración fuera después, el primer arranque tras la
+    /// actualización arrancaría sin key: el banner «Falta la API Key» sobre la key que el usuario
+    /// sí tiene. `migrarTodas` es idempotente y corre en cada arranque, lo que además da el
+    /// reintento: si un arranque no pudo escribir en el llavero, no borró nada del camino viejo y
+    /// el siguiente lo vuelve a intentar.
     @State private var model: HarnessModel = {
         TokenDeMemoria.migrar()
+        ClaveDeProveedor.migrarTodas()
         return HarnessModel()
     }()
     @Environment(\.scenePhase) private var scenePhase

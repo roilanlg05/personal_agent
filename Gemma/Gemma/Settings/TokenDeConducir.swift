@@ -20,10 +20,21 @@ import Security
 /// `escribir` devuelve si el almacén aceptó el secreto. No es cosmético: un llavero que rechaza la
 /// escritura por firma se traga el token en silencio, el usuario lo vuelve a escribir y tampoco se
 /// queda, y nadie se enteraría nunca. Quien llame puede decidir qué hacer con el `false`.
-public protocol AlmacenDeSecretos: Sendable {
+/// Lo que un almacén de secretos sabe hacer **sin poder escribir**: leer y borrar.
+///
+/// POR QUÉ ESTÁ PARTIDO EN DOS. No es taxonomía: es que la Tarea 6c necesita un almacén que
+/// producción **no pueda** usar para guardar. La migración de las API keys tiene que leer del
+/// llavero viejo de `KeychainStore` y vaciarlo, y nada más; si ese tipo supiera escribir, un
+/// camino futuro podría volver a guardar un secreto allí —sin clase de accesibilidad y con la
+/// copia en claro al lado— y compilaría igual. Con la capacidad fuera del tipo, ese error no
+/// existe. Ver `LlaveroViejoDeApiKeys`.
+public protocol AlmacenSoloDeLectura: Sendable {
     func leer(cuenta: String) -> String?
-    @discardableResult func escribir(_ valor: String, cuenta: String) -> Bool
     func borrar(cuenta: String)
+}
+
+public protocol AlmacenDeSecretos: AlmacenSoloDeLectura {
+    @discardableResult func escribir(_ valor: String, cuenta: String) -> Bool
 }
 
 /// El llavero del sistema, con la clase de accesibilidad que esta tarea existe para conseguir.

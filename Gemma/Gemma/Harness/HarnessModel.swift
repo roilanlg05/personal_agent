@@ -110,8 +110,21 @@ public final class HarnessModel {
         keepResident ? residentWiredLimitBytes : 0
     }
 
+    /// La búsqueda de API keys que usa producción: el almacén nuevo (`LlaveroDelSistema` vía
+    /// `ClaveDeProveedor`), **nunca** `UserDefaults`.
+    ///
+    /// Está aquí, en un solo sitio, porque los lectores de la key son **cinco** en este fichero
+    /// (`isMissingApiKey`, `rebuildRuntime`, `init`, `pushConsolidationConfig`, `runAgentTurn`) y
+    /// uno de ellos corre en cada arranque. Con la expresión repetida cinco veces, el que se
+    /// quedara sin cambiar dejaría la key vieja viva en el llavero de ficheros y el arreglo a
+    /// medias, con todo verde.
+    nonisolated static func clavesDelAlmacen(_ almacen: any AlmacenDeSecretos)
+    -> (ModelProvider.Kind) -> String? {
+        { kind in ClaveDeProveedor.leer(proveedor: kind.rawValue, almacen: almacen) }
+    }
+
     /// Build the chat provider from settings. `keyLookup` returns the stored API key for a kind
-    /// (injected for tests; production passes KeychainStore.shared.get).
+    /// (injected for tests; production passes `Self.clavesDelAlmacen(almacenDeSecretos)`).
     static func chatProvider(keyLookup: (ModelProvider.Kind) -> String?) -> ModelProvider {
         #if os(iOS)
         let defaultKind = ModelProvider.Kind.onDevice
@@ -139,13 +152,13 @@ public final class HarnessModel {
         guard !chatUsesLocalServer else { return false }
         let kind = currentProviderKind
         guard !kind.isLocalMLX else { return false }
-        let key = KeychainStore.shared.get(account: "apiKey.\(kind.rawValue)")
+        let key = ClaveDeProveedor.leer(proveedor: kind.rawValue, almacen: almacenDeSecretos)
         return key == nil || key?.isEmpty == true
     }
 
     /// Rebuild the chat runtime from current settings (called when chat settings change).
     func rebuildRuntime() {
-        let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
+        let provider = Self.chatProvider(keyLookup: Self.clavesDelAlmacen(almacenDeSecretos))
         self.runtime = RuntimeFactory.make(provider)
         self.isPreheated = false
         preheatRuntime()
@@ -161,7 +174,7 @@ public final class HarnessModel {
         self.serverManager = ServerManager(config: cfg)
         self.settings = settingsStore.load()
         Self.migrateMemoryBaseURLIfNeeded()
-        self.runtime = RuntimeFactory.make(Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") }))
+        self.runtime = RuntimeFactory.make(Self.chatProvider(keyLookup: Self.clavesDelAlmacen(almacen)))
         #if os(macOS)
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { [weak self] _ in
@@ -442,7 +455,9 @@ public final class HarnessModel {
         let kind = ModelProvider.Kind(rawValue: kindRaw) ?? .defaultKind
         let model = UserDefaults.standard.string(forKey: SettingsKeys.consolidationModel)
         let provider = ModelProvider(kind: kind, model: model,
-                                     apiKey: kind.isLocalMLX ? nil : KeychainStore.shared.get(account: "apiKey.\(kind.rawValue)"))
+                                     apiKey: kind.isLocalMLX ? nil
+                                        : ClaveDeProveedor.leer(proveedor: kind.rawValue,
+                                                                almacen: almacenDeSecretos))
         Task {
             try? await client.setModelConfig(provider: kind.rawValue,
                                               baseURL: provider.baseURL.absoluteString,
@@ -736,7 +751,7 @@ public final class HarnessModel {
     }
 
     public func runAgentTurn(_ prompt: String) async {
-        let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
+        let provider = Self.chatProvider(keyLookup: Self.clavesDelAlmacen(almacenDeSecretos))
         if !(self.runtime is LlamaCppRuntime && provider.kind == .onDevice) {
             self.runtime = RuntimeFactory.make(provider)
         }

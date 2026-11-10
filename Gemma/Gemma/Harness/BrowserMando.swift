@@ -180,6 +180,43 @@ public enum BrowserMandoEntrada {
                                               dimensionesDelCable: dimensionesDelCable) != nil
     }
 
+    /// Dónde dibujar el anillo del puntero **del usuario**, en coordenadas de la vista. `nil`
+    /// significa «no dibujes nada».
+    ///
+    /// POR QUÉ ESTA SEÑAL EXISTE Y NO ES UN ADORNO. La página remota **no dibuja cursor** y por
+    /// el cable no viaja ninguno: lo único que llega es el JPEG del stream. Sin el anillo, un
+    /// toque que cayó dos píxeles al lado del campo de la contraseña es indistinguible de un
+    /// toque que no se mandó, y el usuario no tiene forma de saber cuál de los dos pasó. El
+    /// anillo es, literalmente, la única realimentación de dónde cayó su dedo.
+    ///
+    /// LO QUE EL ANILLO DICE, Y LO QUE NO. Dice «de este punto salió un mensaje de entrada».
+    /// **No** dice «la página lo recibió», y no se puede decir: `BrowserMandoEnvio.encola`
+    /// descarta el booleano del envío, y ese booleano significa «el mensaje salió del aparato»,
+    /// no «la página lo aplicó». Un acuse de recepción por punto sería un dato nuevo en el
+    /// cable.
+    ///
+    /// LAS DOS PUERTAS SON `&&`, Y LAS DOS SON OBLIGATORIAS:
+    ///
+    ///   - **`capturar`**: con el volante del agente no se dibuja nada, ni siquiera el anillo
+    ///     que el usuario dejó en su turno anterior. El agente **no pulsa por coordenada**
+    ///     (`BrowserClickTool` corre `["click", selector]` con una referencia `@eN` o un
+    ///     selector CSS) y la narración que llega por el relé es `case narration(String)` y nada
+    ///     más, así que no hay ningún punto del agente que dibujar. Dejar el del usuario puesto
+    ///     sería un cursor que nadie mueve y que él leería como la posición del agente: un
+    ///     puntero inventado miente más que la ausencia de puntero.
+    ///   - **`sePuedeApuntar`**: el fotograma siguiente puede llegar sin `metadata` y entonces no
+    ///     se puede mandar nada a ninguna parte. Dejar el anillo puesto pondría una marca justo
+    ///     al lado del aviso que dice que este fotograma no se puede situar.
+    ///
+    /// Pura, sin efectos y **sin registro**, como todo este fichero: la coordenada del usuario es
+    /// su contraseña cuando el teclado es el de la pantalla.
+    public static func puntero(ultimoPunto: CGPoint?,
+                               capturar: Bool,
+                               sePuedeApuntar: Bool) -> CGPoint? {
+        guard capturar, sePuedeApuntar else { return nil }
+        return ultimoPunto
+    }
+
     /// Los mensajes que le toca mandar a un momento de un gesto, y el punto de la página que hay
     /// que recordar para el momento siguiente.
     ///
@@ -434,6 +471,15 @@ struct BrowserMandoGestos: View {
     /// anterior, así que el orden de los mensajes es el orden de los gestos.
     @State private var cola: Task<Void, Never>?
 
+    /// El último punto **de la vista** del que salió un mensaje de entrada, que es lo que el
+    /// anillo marca.
+    ///
+    /// **NO SE LIMPIA EN `.onEnded`, Y ESO ES EL PUNTO.** Ahí está su único valor: la página
+    /// remota no dibuja cursor, así que tras levantar el dedo el anillo es la única señal de
+    /// dónde cayó el toque. Se borra en las dos transiciones que lo vuelven mentira —perder el
+    /// volante y cambiar el tamaño de la vista— y en ningún otro sitio.
+    @State private var ultimoPunteroDeLaVista: CGPoint?
+
     var body: some View {
         GeometryReader { geometria in
             Color.clear
@@ -452,6 +498,32 @@ struct BrowserMandoGestos: View {
                             ultimaPagina = nil
                         }
                 )
+                // EL ANILLO VA DENTRO DE ESTE `GeometryReader`, no fuera: el punto está guardado
+                // en el espacio local del `DragGesture` (que es `.local` por omisión) y es el
+                // mismo que el del `overlay` sobre este `Color.clear`. Fuera serían coordenadas
+                // de otro espacio y el anillo caería desplazado. `.position(_:)` coloca el
+                // CENTRO en el punto, así que no hay radio que restar.
+                .overlay {
+                    if let donde = BrowserMandoEntrada.puntero(
+                            ultimoPunto: ultimoPunteroDeLaVista,
+                            capturar: capturar,
+                            sePuedeApuntar: BrowserMandoEntrada.sePuedeApuntar(
+                                tamañoDeLaVista: geometria.size,
+                                tamañoDeLaImagen: tamañoDeLaImagen,
+                                dimensionesDelCable: dimensionesDelCable)) {
+                        Circle()
+                            .strokeBorder(Color.orange, lineWidth: 2)
+                            .frame(width: 24, height: 24)
+                            .position(donde)
+                            .allowsHitTesting(false)
+                    }
+                }
+                // Se pierde el volante, se va el anillo: ver `BrowserMandoEntrada.puntero`.
+                .onChange(of: capturar) { ultimoPunteroDeLaVista = nil }
+                // El punto está en coordenadas de la vista y sin su tamaño de referencia, así que
+                // al redimensionar ya no señala el mismo sitio de la imagen. Borrarlo es la salida
+                // honesta; remapearlo exigiría un mapa inverso, que no existe hoy.
+                .onChange(of: geometria.size) { ultimoPunteroDeLaVista = nil }
         }
         .allowsHitTesting(capturar)
     }
@@ -473,6 +545,17 @@ struct BrowserMandoGestos: View {
             return
         }
         ultimoMuestreo = ahora
+        // EL ANILLO SE MUEVE AQUÍ Y NO ANTES, y mira `mensajes`, NO `pagina`. `pagina` no
+        // significa «se mandó» en ninguno de los dos sentidos: un `.mueve` cuyo punto no se
+        // puede mapear devuelve la página VIEJA con CERO mensajes (conserva la memoria a
+        // propósito, para que el soltar tenga dónde levantar el botón), así que con `pagina` un
+        // dedo que sale de la imagen arrastrando movería el anillo a un punto del que no salió
+        // nada; y el `.suelta` devuelve `pagina: nil` SIEMPRE, también cuando sí manda el
+        // `mouseReleased`. El `.suelta` además no mueve el anillo porque puede mandar cayendo al
+        // punto VIEJO, así que su `punto` no es necesariamente lo que viajó. Y va después de la
+        // puerta de arriba porque una muestra que el muestreo descarta no se manda: marcarla
+        // sería la misma mentira.
+        if fase != .suelta, !salida.mensajes.isEmpty { ultimoPunteroDeLaVista = punto }
         cola = BrowserMandoEnvio.encola(salida.mensajes, por: mando, tras: cola)
     }
 }

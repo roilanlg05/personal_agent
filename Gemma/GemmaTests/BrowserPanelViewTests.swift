@@ -369,6 +369,79 @@ final class BrowserPanelViewTests: XCTestCase {
                              "por debajo del ritmo del stream (25 fps medidos) el arrastre se vería a saltos")
     }
 
+    // MARK: el anillo del puntero del usuario
+
+    /// **EL ANILLO MARCA ÚNICAMENTE EL ÚLTIMO PUNTO QUE PRODUJO UN MENSAJE DE ENTRADA, Y SOLO
+    /// MIENTRAS ESE PUNTO SIGA SIENDO MANDABLE.**
+    ///
+    /// POR QUÉ ESTA SEÑAL EXISTE. La página remota **no dibuja cursor** y por el cable no viaja
+    /// ninguno: lo único que el usuario ve es el JPEG del stream. Sin el anillo, un toque que
+    /// cayó dos píxeles al lado del campo de la contraseña es indistinguible de un toque que no
+    /// se mandó, y el usuario no tiene forma de saber cuál de los dos pasó.
+    ///
+    /// LO QUE EL ANILLO NO DICE, DICHO POR DELANTE: no dice «la página lo recibió». No se puede
+    /// decir — `BrowserMandoEnvio.encola` descarta el booleano del envío, y ese booleano
+    /// significa «el mensaje salió del aparato», no «la página lo aplicó». Un acuse por punto
+    /// sería un dato nuevo en el cable. El anillo dice exactamente «de aquí salió entrada», que
+    /// es lo máximo que este lado sabe.
+    ///
+    /// Y EL PUNTERO DEL AGENTE NO SE DIBUJA, que es la otra mitad de esta propiedad: el agente
+    /// no pulsa por coordenada (`BrowserClickTool` corre `["click", selector]` con una
+    /// referencia `@eN` o un selector CSS) y la narración que llega por el relé es
+    /// `case narration(String)` y nada más, así que **no hay ningún punto que dibujar**.
+    /// Inventarlo sería pintar un cursor que no corresponde a nada, que es peor que no pintar.
+    func test_el_puntero_es_nil_antes_del_primer_toque() {
+        XCTAssertNil(Entrada.puntero(ultimoPunto: nil, capturar: true, sePuedeApuntar: true),
+                     "sin ningún toque todavía no hay nada que marcar")
+    }
+
+    /// El caso de acierto, con las cifras a mano: sin él, una función que devolviera `nil` para
+    /// todo pasaría las cuatro pruebas de «no se dibuja» de abajo.
+    func test_el_puntero_sale_del_ultimo_punto_tocado() {
+        XCTAssertEqual(Entrada.puntero(ultimoPunto: CGPoint(x: 37, y: 91),
+                                       capturar: true,
+                                       sePuedeApuntar: true),
+                       CGPoint(x: 37, y: 91),
+                       "el anillo va donde cayó el dedo, en coordenadas de la vista")
+    }
+
+    /// Con el volante del agente **no se dibuja nada**, ni siquiera el anillo que el usuario
+    /// dejó en su turno anterior.
+    ///
+    /// Es la prueba que cierra el caso que esta tarea **no** puede hacer: un anillo visible
+    /// mientras conduce el agente sería un cursor que nadie mueve —el usuario lo leería como la
+    /// posición del agente— y la posición del agente no viaja por el cable. Un puntero
+    /// inventado miente más que la ausencia de puntero.
+    func test_con_el_volante_del_agente_no_se_dibuja_nada() {
+        XCTAssertNil(Entrada.puntero(ultimoPunto: CGPoint(x: 37, y: 91),
+                                     capturar: false,
+                                     sePuedeApuntar: true),
+                     "con el volante del agente el anillo del turno anterior no se queda puesto")
+        XCTAssertNil(Entrada.puntero(ultimoPunto: nil, capturar: false, sePuedeApuntar: true))
+    }
+
+    /// Si las dimensiones del cable desaparecen **después** del toque, el anillo viejo se va.
+    ///
+    /// Es una transición de verdad, no un caso de borde: el fotograma siguiente puede llegar sin
+    /// `metadata`. Dejar el anillo puesto señalaría un sitio al que ya no se puede mandar nada,
+    /// y el usuario vería el aviso de «este fotograma no se puede situar» junto a una marca que
+    /// dice lo contrario.
+    func test_sin_poder_apuntar_el_anillo_viejo_desaparece() {
+        XCTAssertNil(Entrada.puntero(ultimoPunto: CGPoint(x: 37, y: 91),
+                                     capturar: true,
+                                     sePuedeApuntar: false),
+                     "sin poder situar el fotograma el anillo señalaría un sitio al que no se manda nada")
+    }
+
+    /// Las dos puertas cerradas a la vez. Entre esta prueba y las tres de arriba quedan fijadas
+    /// las **cuatro** combinaciones, que es lo que distingue un `&&` de un `||`: con `||` este
+    /// caso seguiría dando `nil` pero los dos de arriba devolverían el punto.
+    func test_el_puntero_no_se_dibuja_con_las_dos_puertas_cerradas() {
+        XCTAssertNil(Entrada.puntero(ultimoPunto: CGPoint(x: 37, y: 91),
+                                     capturar: false,
+                                     sePuedeApuntar: false))
+    }
+
     // MARK: el teclado
 
     /// Una tecla nueva manda `keyDown` y `keyUp` con su texto, en ese orden.
@@ -943,6 +1016,135 @@ final class BrowserPanelViewTests: XCTestCase {
                       "devolver el volante dejaría el botón en «pidiendo…»")
     }
 
+    /// **EL ANILLO DEL PUNTERO, CABLEADO DE VERDAD.** La misma técnica de la prueba de arriba y
+    /// por el mismo motivo (hueco H1: el cuerpo de un `View` no se puede ejecutar en esta
+    /// suite), aplicada a la única señal visual que le dice al usuario dónde cayó su último
+    /// toque.
+    ///
+    /// LA PROPIEDAD, ENTERA: *el anillo marca únicamente el último punto que produjo un mensaje
+    /// de entrada encolado, y solo mientras ese punto siga siendo mandable.* Las cinco pruebas
+    /// de `BrowserMandoEntrada.puntero` de más arriba cubren las dos puertas; lo que **solo** se
+    /// puede ver leyendo el fuente es de dónde sale el punto que se le pasa, y ahí está el
+    /// defecto que esta prueba existe para impedir:
+    ///
+    ///     M4  `!salida.mensajes.isEmpty` → `salida.pagina != nil`
+    ///
+    /// `pagina` NO significa «se mandó». Un `.mueve` cuyo punto no se puede mapear devuelve
+    /// `([], ultimaPagina)` —página **no-nil** y **cero** mensajes— a propósito, para que el
+    /// `.suelta` tenga dónde levantar el botón. Con `pagina` como prueba, un dedo que sale de la
+    /// imagen arrastrando movería el anillo a un punto del que **no salió nada**: exactamente la
+    /// mentira que esta señal existe para no contar. Y en el otro sentido, `.suelta` devuelve
+    /// `pagina: nil` **siempre**, incluso cuando sí manda el `mouseReleased`.
+    ///
+    /// Las otras cuatro mutaciones que sin esta prueba sobreviven, medidas:
+    ///
+    ///     M5  la asignación sube ANTES de la puerta del muestreo (marcaría muestras tiradas)
+    ///     M6  quitar `fase != .suelta` (el soltar puede mandar en el punto VIEJO)
+    ///     M7  quitar `.allowsHitTesting(false)` (el anillo se tragaría los toques)
+    ///     M8/M9  quitar el borrado al perder el volante o al cambiar el tamaño de la vista
+    ///
+    /// EL PRECIO, dicho por delante y el mismo que el de la lista blanca: el día que esta vista
+    /// se reescriba, esta prueba se pondrá roja y habrá que mirar lo que cambió.
+    func test_el_anillo_solo_marca_el_ultimo_punto_que_produjo_un_mensaje() throws {
+        let crudo = try fuenteDeProduccion("Gemma/Harness/BrowserMando.swift")
+
+        // Guarda de vacuidad: toda aserción de texto pasa sola si la ruta no apunta al fichero
+        // que uno se cree.
+        XCTAssertTrue(crudo.contains("struct BrowserMandoGestos"),
+                      "la ruta ya no apunta al fichero del mando: falta `struct BrowserMandoGestos`")
+
+        // **LOS COMENTARIOS SE QUITAN ANTES DE MEDIR NADA.** Una sonda de esta misma rama dio
+        // verde con la asignación del anillo escrita SOLO en un comentario, que es lo mismo que
+        // no estar escrita. El troceador es el de la lista blanca, reusado.
+        let f = Self.fuenteSinComentarios(crudo)
+        XCTAssertFalse(f.contains("POR QUÉ UN PROTOCOLO Y NO EL ACTOR"),
+                       "el troceador de comentarios no ha quitado los comentarios: todo lo de abajo "
+                       + "se podría cumplir con prosa en vez de con código")
+
+        // --- el cuerpo de `manda(fase:punto:vista:)`, acotado ---
+        // Las aserciones de ORDEN van dentro de este trozo y no sobre el fichero entero: un
+        // índice calculado sobre todo el fuente no dice nada del orden dentro de la función.
+        let abre = try XCTUnwrap(f.range(of: "private func manda(fase:"),
+                                 "`manda(fase:punto:vista:)` ya no existe con ese nombre")
+        let cierra = try XCTUnwrap(f.range(of: "\n    }\n", range: abre.upperBound..<f.endIndex),
+                                   "no se encuentra el cierre de `manda(fase:punto:vista:)`")
+        let cuerpo = String(f[abre.lowerBound..<cierra.upperBound])
+        XCTAssertTrue(cuerpo.contains("BrowserMandoEntrada.mensajesDePuntero(fase: fase,"),
+                      "el trozo acotado no es el cuerpo de `manda`: no llama al mapa del puntero")
+        XCTAssertLessThan(cuerpo.count, f.count / 2,
+                          "el recorte no ha recortado: las aserciones de orden medirían el fichero entero")
+
+        // La prueba de que esta muestra produjo entrada es `salida.mensajes`, NO `salida.pagina`
+        // (M4), y el `.suelta` no mueve el anillo porque puede mandar en el punto viejo (M6).
+        XCTAssertTrue(cuerpo.contains(
+            "if fase != .suelta, !salida.mensajes.isEmpty { ultimoPunteroDeLaVista = punto }"),
+                      "el anillo ya no se mueve solo cuando la muestra produjo un mensaje: con "
+                      + "`pagina` en vez de `mensajes` marcaría un punto del que no salió nada")
+        XCTAssertFalse(cuerpo.contains("salida.pagina != nil"),
+                       "`pagina != nil` no es prueba de que se mandara: `.mueve` sin mapa conserva "
+                       + "la página con cero mensajes y `.suelta` manda devolviendo página `nil`")
+
+        // Una sola asignación (con dos, una podría estar antes de la puerta) y DESPUÉS de la
+        // puerta del muestreo (M5): una muestra que el muestreo tira no se manda, así que no
+        // puede mover el anillo. Al contrario que `ultimaPagina`, que va antes a propósito.
+        XCTAssertEqual(cuerpo.components(separatedBy: "ultimoPunteroDeLaVista = punto").count - 1, 1,
+                       "el anillo se asigna más de una vez en `manda`: una de ellas puede estar "
+                       + "del lado equivocado de la puerta del muestreo")
+        let asignacion = try XCTUnwrap(cuerpo.range(of: "ultimoPunteroDeLaVista = punto"))
+        let puerta = try XCTUnwrap(cuerpo.range(of: "ultimoMuestreo = ahora"),
+                                   "ya no hay puerta de muestreo que respetar")
+        XCTAssertGreaterThan(asignacion.lowerBound, puerta.lowerBound,
+                             "la asignación del anillo ha subido por delante de la puerta del "
+                             + "muestreo: marcaría muestras que el muestreo descarta")
+
+        // --- el anillo del cuerpo, atado al valor que lo coloca ---
+        // Bloques CONTIGUOS, no presencias sueltas: ya se midió que `.allowsHitTesting(false)` y
+        // `BrowserMandoEntrada.puntero(` por separado no vinculan nada al `Circle`.
+        XCTAssertTrue(f.contains("""
+                            if let donde = BrowserMandoEntrada.puntero(
+                                    ultimoPunto: ultimoPunteroDeLaVista,
+                                    capturar: capturar,
+                                    sePuedeApuntar: BrowserMandoEntrada.sePuedeApuntar(
+        """.trimmingCharacters(in: .newlines)),
+                      "el anillo ya no pregunta por las dos puertas de verdad (`capturar` y el "
+                      + "apuntado del fotograma de AHORA): con una constante en su sitio, las "
+                      + "cinco pruebas de `puntero` quedan inertes")
+
+        // Que el `Circle` es el del `if let` lo garantiza el compilador: `donde` solo existe
+        // dentro de ese alcance. Lo que el compilador NO garantiza es que no se trague los
+        // toques (M7), que es lo que ata este bloque.
+        XCTAssertTrue(f.contains("""
+                                Circle()
+                                    .strokeBorder(Color.orange, lineWidth: 2)
+                                    .frame(width: 24, height: 24)
+                                    .position(donde)
+                                    .allowsHitTesting(false)
+        """.trimmingCharacters(in: .newlines)),
+                      "el anillo ya no se dibuja en `donde` sin tragarse los toques: sin "
+                      + "`allowsHitTesting(false)` sus 24 puntos se comen el gesto del usuario")
+
+        // Y que vive dentro del MISMO `GeometryReader` que el gesto también lo garantiza el
+        // compilador: `geometria.size` no existe fuera de ese alcance. Fuera, el punto guardado
+        // sería de otro espacio de coordenadas.
+        XCTAssertTrue(f.contains("GeometryReader { geometria in"),
+                      "el anillo y el gesto tienen que medir el mismo espacio de coordenadas")
+
+        // --- las dos transiciones que lo borran (M8, M9) ---
+        XCTAssertTrue(f.contains(".onChange(of: capturar) { ultimoPunteroDeLaVista = nil }"),
+                      "perder el volante ya no borra el anillo: quedaría un cursor que nadie mueve")
+        XCTAssertTrue(f.contains(".onChange(of: geometria.size) { ultimoPunteroDeLaVista = nil }"),
+                      "redimensionar la vista ya no borra el anillo: el punto está guardado en "
+                      + "coordenadas de la vista y sin su tamaño de referencia ya no señala el "
+                      + "mismo sitio de la imagen")
+
+        // Exactamente esos dos borrados y ni uno más. En particular, NO se borra en `.onEnded`:
+        // ahí está el único valor del anillo, porque la página remota no dibuja cursor y tras
+        // levantar el dedo es la única señal de dónde cayó el toque.
+        XCTAssertEqual(f.components(separatedBy: "ultimoPunteroDeLaVista = nil").count - 1, 2,
+                       "hay un borrado del anillo de más: si está en `.onEnded`, el anillo "
+                       + "desaparece al levantar el dedo y no señala nada")
+    }
+
     // MARK: lectura del fuente
 
     private func fuenteDeProduccion(_ ruta: String) throws -> String {
@@ -1010,6 +1212,14 @@ final class BrowserPanelViewTests: XCTestCase {
         "QuienConduce", "accion", "accionDelBoton", "agente", "cancel", "devuelve", "ejecuta",
         "enumerated", "escaping", "espera", "esperaReal", "indice", "intervaloEntreTeclas",
         "isCancelled", "otroVisor", "por", "toma", "tras", "typealias", "yo",
+        // el anillo del puntero del usuario. Los ocho son **dibujo puro**: ninguno escribe,
+        // persiste, notifica ni acumula. `Circle`/`strokeBorder`/`lineWidth`/`position`/`overlay`
+        // son la forma y su sitio; `puntero`/`ultimoPunto` son la función pura y el nombre de su
+        // parámetro; y `ultimoPunteroDeLaVista` es `@State` en memoria de la vista que se borra
+        // al perder el volante —la misma justificación ya aceptada para `tecleado`—, con la
+        // diferencia de que ésta guarda UN punto, no una secuencia: no acumula el trazo.
+        "Circle", "lineWidth", "overlay", "position", "puntero", "strokeBorder",
+        "ultimoPunteroDeLaVista", "ultimoPunto",
         // las palabras de la única cadena literal del fichero, la pista del campo de texto
         // («lo que escribas va a la página»). Son prosa, no identificadores, y entran porque el
         // troceado no distingue una cadena de un nombre. Son también la razón de que el corte
@@ -1025,13 +1235,20 @@ final class BrowserPanelViewTests: XCTestCase {
     /// llegara a contenerlo el guarda de vacuidad 2 lo caza. El troceado reconoce letras Unicode
     /// a propósito: los identificadores de este proyecto llevan `ñ` (`tamañoDeLaVista`) y
     /// partirlos daría trozos que no están en la lista.
-    private static func identificadoresDe(fuente: String) -> Set<String> {
-        let sinComentarios = fuente.split(separator: "\n", omittingEmptySubsequences: false)
+    /// El fuente sin sus comentarios de línea, que es el paso previo de **toda** medición
+    /// sobre el fuente de este proyecto: una aserción contra el fuente crudo se cumple con la
+    /// característica escrita en un comentario, y eso ya se midió en esta rama.
+    private static func fuenteSinComentarios(_ fuente: String) -> String {
+        fuente.split(separator: "\n", omittingEmptySubsequences: false)
             .map { linea -> String in
                 guard let corte = linea.range(of: "//") else { return String(linea) }
                 return String(linea[linea.startIndex..<corte.lowerBound])
             }
             .joined(separator: "\n")
+    }
+
+    private static func identificadoresDe(fuente: String) -> Set<String> {
+        let sinComentarios = fuenteSinComentarios(fuente)
 
         var encontrados: Set<String> = []
         var actual = ""

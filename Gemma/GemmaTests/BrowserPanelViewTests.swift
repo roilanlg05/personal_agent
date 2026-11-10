@@ -1097,31 +1097,44 @@ final class BrowserPanelViewTests: XCTestCase {
                              "la asignación del anillo ha subido por delante de la puerta del "
                              + "muestreo: marcaría muestras que el muestreo descarta")
 
-        // --- el anillo del cuerpo, atado al valor que lo coloca ---
-        // Bloques CONTIGUOS, no presencias sueltas: ya se midió que `.allowsHitTesting(false)` y
-        // `BrowserMandoEntrada.puntero(` por separado no vinculan nada al `Circle`.
+        // --- el anillo del cuerpo: UN bloque contiguo, del `if let` al último modificador ---
+        //
+        // **POR QUÉ UNO Y NO DOS, MEDIDO.** La primera versión de esta prueba partió el literal
+        // en dos justo antes de los argumentos de `sePuedeApuntar`, razonando que lo que el
+        // bloque único añade —que el `Circle` está dentro del `if let`— ya lo garantiza el
+        // compilador, porque `donde` no existe fuera de ese alcance. Eso es cierto y es
+        // **incompleto**: el bloque único también ata los TRES ARGUMENTOS de la llamada, y ésos
+        // no los ata nadie, porque las sustituciones tipan. Un revisor fresco midió dos
+        // mutaciones **verdes** por ese hueco:
+        //
+        //     MX1  `dimensionesDelCable: nil`          → `sePuedeApuntar` siempre `false`
+        //                                                → EL ANILLO NO SE DIBUJA NUNCA, y las
+        //                                                  cinco pruebas puras quedan inertes
+        //     MX5  `tamañoDeLaVista: tamañoDeLaImagen`  → la segunda puerta se evalúa contra el
+        //                                                  tamaño equivocado
+        //
+        // Así que el bloque vuelve a ser uno, entero, como el encargo pedía. El precio es el
+        // mismo de siempre: si esta vista se reformatea, esta prueba se pone roja. Es ruido
+        // visible en vez de silencio.
         XCTAssertTrue(f.contains("""
                             if let donde = BrowserMandoEntrada.puntero(
                                     ultimoPunto: ultimoPunteroDeLaVista,
                                     capturar: capturar,
                                     sePuedeApuntar: BrowserMandoEntrada.sePuedeApuntar(
-        """.trimmingCharacters(in: .newlines)),
-                      "el anillo ya no pregunta por las dos puertas de verdad (`capturar` y el "
-                      + "apuntado del fotograma de AHORA): con una constante en su sitio, las "
-                      + "cinco pruebas de `puntero` quedan inertes")
-
-        // Que el `Circle` es el del `if let` lo garantiza el compilador: `donde` solo existe
-        // dentro de ese alcance. Lo que el compilador NO garantiza es que no se trague los
-        // toques (M7), que es lo que ata este bloque.
-        XCTAssertTrue(f.contains("""
+                                        tamañoDeLaVista: geometria.size,
+                                        tamañoDeLaImagen: tamañoDeLaImagen,
+                                        dimensionesDelCable: dimensionesDelCable)) {
                                 Circle()
                                     .strokeBorder(Color.orange, lineWidth: 2)
                                     .frame(width: 24, height: 24)
                                     .position(donde)
                                     .allowsHitTesting(false)
         """.trimmingCharacters(in: .newlines)),
-                      "el anillo ya no se dibuja en `donde` sin tragarse los toques: sin "
-                      + "`allowsHitTesting(false)` sus 24 puntos se comen el gesto del usuario")
+                      "el anillo del cuerpo ya no es el que esta prueba fija. Las cuatro cosas "
+                      + "que este bloque ata: que el punto sale de `BrowserMandoEntrada.puntero(`, "
+                      + "que sus dos puertas son `capturar` y el apuntado del fotograma de AHORA "
+                      + "—con el tamaño de LA VISTA y las dimensiones DEL CABLE, no con otra cosa—, "
+                      + "que el `Circle` se coloca en ese `donde`, y que no se traga los toques")
 
         // Y que vive dentro del MISMO `GeometryReader` que el gesto también lo garantiza el
         // compilador: `geometria.size` no existe fuera de ese alcance. Fuera, el punto guardado
@@ -1143,6 +1156,37 @@ final class BrowserPanelViewTests: XCTestCase {
         XCTAssertEqual(f.components(separatedBy: "ultimoPunteroDeLaVista = nil").count - 1, 2,
                        "hay un borrado del anillo de más: si está en `.onEnded`, el anillo "
                        + "desaparece al levantar el dedo y no señala nada")
+
+        // --- y el guardián de esquema CERRADO, que es lo que de verdad cierra la condición 4 ---
+        //
+        // **POR QUÉ LOS DOS RECUENTOS DE ARRIBA NO BASTAN, MEDIDO.** Los dos miran **formas
+        // previstas**: uno cuenta `= punto` y solo **dentro** del trozo de `manda`; el otro
+        // cuenta `= nil` en todo el fichero. Entre los dos quedaba un carril libre —una tercera
+        // asignación, con **otro lado derecho** y **fuera** de `manda`— y un revisor fresco lo
+        // midió: `ultimoPunteroDeLaVista = valor.location` dentro del `.onEnded` dejaba la suite
+        // **entera verde**. Y es la mentira exacta de la condición 4: el `.suelta` puede mandar
+        // el `mouseReleased` cayendo al último punto BUENO cuando el actual no se puede mapear,
+        // así que un dedo que sale de la imagen y se levanta fuera dibujaría el anillo **donde
+        // se levantó**, que no es donde se mandó nada.
+        //
+        // La respuesta no es una tercera lista de formas conocidas, que tendría el mismo
+        // agujero una capa más allá: es **acotar el total**. El `@State` aparece en el fichero
+        // exactamente **cinco** veces —su declaración, el argumento del `overlay`, la asignación
+        // de `manda` y los dos borrados— y se le asigna exactamente **tres**. El recuento del
+        // identificador a secas es el que cierra de verdad, porque no se puede esquivar
+        // escribiendo `ultimoPunteroDeLaVista=punto` sin el espacio.
+        XCTAssertEqual(f.components(separatedBy: "ultimoPunteroDeLaVista").count - 1, 5,
+                       """
+                       el anillo se usa en un sitio nuevo del fichero. Los cinco sitios \
+                       legítimos son: la declaración del `@State`, el argumento del `overlay`, \
+                       la asignación de dentro de `manda` y los dos borrados. Un sexto uso tiene \
+                       que justificarse aquí: el anillo solo puede marcar el punto que produjo \
+                       un mensaje, así que asignarlo en cualquier otro sitio —en el `.onEnded`, \
+                       por ejemplo— lo pone donde puede no haberse mandado nada
+                       """)
+        XCTAssertEqual(f.components(separatedBy: "ultimoPunteroDeLaVista =").count - 1, 3,
+                       "las asignaciones al anillo ya no son las tres que tienen que ser (una en "
+                       + "`manda`, tras la puerta del muestreo, y los dos borrados)")
     }
 
     // MARK: lectura del fuente
@@ -1227,17 +1271,13 @@ final class BrowserPanelViewTests: XCTestCase {
         "a", "escribas", "la", "lo", "página", "que", "va",
     ]
 
-    /// Los identificadores de un fuente Swift, **sin los comentarios**.
-    ///
-    /// Los comentarios se quitan porque son prosa y meterían cientos de palabras en el conjunto,
-    /// que es justo lo que haría inútil la lista blanca. Cortar por `//` hasta el fin de línea es
-    /// seguro en este fichero porque ninguna de sus cadenas literales contiene `//`, y si alguna
-    /// llegara a contenerlo el guarda de vacuidad 2 lo caza. El troceado reconoce letras Unicode
-    /// a propósito: los identificadores de este proyecto llevan `ñ` (`tamañoDeLaVista`) y
-    /// partirlos daría trozos que no están en la lista.
-    /// El fuente sin sus comentarios de línea, que es el paso previo de **toda** medición
-    /// sobre el fuente de este proyecto: una aserción contra el fuente crudo se cumple con la
+    /// El fuente sin sus comentarios de línea, que es el paso previo de **toda** medición sobre
+    /// el fuente de este proyecto: una aserción contra el fuente crudo se cumple con la
     /// característica escrita en un comentario, y eso ya se midió en esta rama.
+    ///
+    /// Cortar por `//` hasta el fin de línea es seguro en los ficheros que esta pantalla mide
+    /// porque ninguna de sus cadenas literales contiene `//`, y si alguna llegara a contenerlo
+    /// el guarda de vacuidad 2 de la lista blanca lo caza.
     private static func fuenteSinComentarios(_ fuente: String) -> String {
         fuente.split(separator: "\n", omittingEmptySubsequences: false)
             .map { linea -> String in
@@ -1247,6 +1287,12 @@ final class BrowserPanelViewTests: XCTestCase {
             .joined(separator: "\n")
     }
 
+    /// Los identificadores de un fuente Swift, **sin los comentarios**.
+    ///
+    /// Los comentarios se quitan porque son prosa y meterían cientos de palabras en el conjunto,
+    /// que es justo lo que haría inútil la lista blanca. El troceado reconoce letras Unicode a
+    /// propósito: los identificadores de este proyecto llevan `ñ` (`tamañoDeLaVista`) y
+    /// partirlos daría trozos que no están en la lista.
     private static func identificadoresDe(fuente: String) -> Set<String> {
         let sinComentarios = fuenteSinComentarios(fuente)
 

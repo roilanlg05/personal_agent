@@ -421,7 +421,8 @@ public enum BrowserMandoEnvio {
     /// y el resto de la contraseña se escribiría ahí, quizá a la vista del stream.
     ///
     /// **LA INVALIDACIÓN, `vigente`**, se comprueba tras esperar a la cola anterior, tras cada
-    /// espera del reparto y **antes de cada `manda`**, y es lo que hace que la contraseña en
+    /// espera del reparto y antes de cada unidad: un mensaje, o un par down/up cuando
+    /// `enPares` es true (solo teclado). Nunca se corta entre el down y su up. Evita que la contraseña en
     /// vuelo no siga saliendo cuando el volante ya no es del usuario. Es un cierre que pregunta a
     /// quien encoló, y no `Task.cancel()`, por lo que midió la revisión adversarial de la ronda 8:
     /// cada llamada crea una tarea propia que espera a la anterior, así que cancelar la última
@@ -430,7 +431,7 @@ public enum BrowserMandoEnvio {
     /// nunca**: es lo que usan el puntero y el soltar defensivo, que se drenan siempre (cortarlos
     /// pierde el `mouseMoved` y el soltar de un gesto terminado, y deja `pulsar` sin `soltar`:
     /// medido en dos rondas, h3f). Lo que ya entró en `await mando.manda(...)` no se puede
-    /// retirar: un mensaje en ese punto sale o falla, la invalidación solo frena al siguiente.
+    /// retirar: un mensaje en ese punto sale o falla; se termina su par antes de cortar.
     ///
     /// Con `mando` a `nil` o sin mensajes **no se crea cola nueva**: se devuelve la que había,
     /// para no romper la cadena de orden de lo que ya estuviera en vuelo.
@@ -457,6 +458,7 @@ public enum BrowserMandoEnvio {
                               por mando: MandoDelNavegador?,
                               tras previa: Task<Void, Never>?,
                               vigente: (@MainActor () -> Bool)? = nil,
+                              enPares: Bool = false,
                               espera: @escaping Espera = esperaReal,
                               alFallar: @escaping @MainActor () -> Void) -> Task<Void, Never>? {
         guard let mando, !mensajes.isEmpty else { return previa }
@@ -465,8 +467,12 @@ public enum BrowserMandoEnvio {
             for (indice, mensaje) in mensajes.enumerated() {
                 if indice > 0 { await espera(BrowserMandoEntrada.intervaloEntreTeclas) }
                 // En la primera vuelta esto es «tras esperar a la cola anterior»; en las demás,
-                // «tras la espera del reparto». Siempre, inmediatamente antes del `manda`.
-                guard !Task.isCancelled, vigente?() ?? true else { return }
+                // «tras la espera del reparto», antes de empezar la siguiente unidad.
+                // El teclado se construye en pares down/up. Una vez enviado el down,
+                // su up se drena incluso si cambia la generación durante el await.
+                if !enPares || indice % 2 == 0 {
+                    guard !Task.isCancelled, vigente?() ?? true else { return }
+                }
                 guard await mando.manda(entrada: mensaje) else {
                     alFallar()
                     return
@@ -615,7 +621,8 @@ public final class BrowserMandoSesion {
     /// El usuario pulsó «Devolverlo» y el servidor todavía no ha publicado el `mando` nuevo.
     /// Mientras está puesto **ni el puntero ni el teclado emiten nada** (el soltar defensivo sí:
     /// no pasa por aquí). Se pone en `devuelve()` antes de cualquier espera, y se quita cuando el
-    /// volante cambia de manos o cuando devolverlo no llegó a salir del aparato.
+    /// volante cambia de manos, cuando devolverlo no salió o cuando caduca su plazo.
+    /// La caducidad avisa y permite reintentar; no modifica la concesión del servidor.
     ///
     /// POR QUÉ HACE FALTA (ronda 8, Codex). Entre pulsar el botón y que llegue el `mando` del
     /// servidor, `capturar` sigue a `true`; el dedo que sigue apoyado dispara otro `onChanged`, y
@@ -644,8 +651,15 @@ public final class BrowserMandoSesion {
     /// barra para avisarle. Se apaga cuando el servidor le vuelve a conceder el volante.
     public private(set) var entradaPerdida = false
 
-    public init(mando: MandoDelNavegador) {
+    private let plazoDeDevolucion: Duration
+    private let esperaDeDevolucion: BrowserMandoEnvio.Espera
+
+    public init(mando: MandoDelNavegador,
+                plazoDeDevolucion: Duration = .seconds(6),
+                esperaDeDevolucion: @escaping BrowserMandoEnvio.Espera = BrowserMandoEnvio.esperaReal) {
         self.mando = mando
+        self.plazoDeDevolucion = plazoDeDevolucion
+        self.esperaDeDevolucion = esperaDeDevolucion
     }
 
     /// El dedo toca o se mueve sobre la imagen. Devuelve si **de este punto salió un mensaje**,
@@ -794,6 +808,7 @@ public final class BrowserMandoSesion {
         let generacion = generacionDeTeclado
         cola = BrowserMandoEnvio.encola(mensajes, por: mando, tras: cola,
                                         vigente: { [weak self] in self?.generacionDeTeclado == generacion },
+                                        enPares: true,
                                         alFallar: { [weak self] in self?.notaQueNoSalio() })
     }
 
@@ -813,6 +828,20 @@ public final class BrowserMandoSesion {
     public func devuelve() -> Task<Bool, Never> {
         devolviendo = true
         generacionDeTeclado += 1
+        let generacion = generacionDeTeclado
+        let espera = esperaDeDevolucion
+        let plazo = plazoDeDevolucion
+        // El plazo incluye el envío bloqueado, no solo la espera posterior al Bool.
+        // No se cambia quienConduce: solo el servidor puede conceder el volante.
+        // Al caducar se permite reintentar y se muestra el aviso existente; el contacto
+        // cerrado sigue bloqueado y ningún lote invalidado vuelve a la vida.
+        Task { @MainActor [weak self] in
+            await espera(plazo)
+            guard let self, self.devolviendo,
+                  self.generacionDeTeclado == generacion else { return }
+            self.devolviendo = false
+            self.notaQueNoSalio()
+        }
         let cierre = cierraElGesto()
         let mando = self.mando
         return Task { @MainActor [weak self] in
@@ -821,7 +850,9 @@ public final class BrowserMandoSesion {
             }
             var salio = false
             if let mando { salio = await BrowserMandoEnvio.ejecuta(.devuelve, por: mando) }
-            if !salio { self?.devolviendo = false }
+            if !salio, self?.generacionDeTeclado == generacion {
+                self?.devolviendo = false
+            }
             return salio
         }
     }

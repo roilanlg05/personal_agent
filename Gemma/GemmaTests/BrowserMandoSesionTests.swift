@@ -93,11 +93,27 @@ final class BrowserMandoSesionTests: XCTestCase {
             }
         }
         XCTAssertEqual(BrowserPanelView.textoDeEntradaPerdida,
-                       "Lo último que escribiste o tocaste NO llegó al navegador. Vuelve a tomar el volante y repítelo.",
+                       "Hay un problema con la entrada o el volante. Comprueba la página, vuelve a tomar el volante y repite lo que falte.",
                        "la frase completa: dice qué pasó y qué hacer, y nada de lo escrito")
     }
 
     /// El primer fallo corta su lote; el lote posterior sigue intentando salir.
+    /// Invalida durante el reparto que separa down y up: el up debe salir,
+    /// pero no el siguiente down. Mide la salida completa, no solo un contador vacío.
+    @MainActor func test_la_generacion_solo_corta_entre_pares_de_teclado() async {
+        let mando = MandoDeMentira()
+        let corte = Contador()
+        let terminado = Contador()
+        let mensajes = BrowserMandoEntrada.mensajesDeTeclado(anterior: "", nuevo: "ab")
+        let cola = BrowserMandoEnvio.encola(mensajes, por: mando, tras: nil,
+            vigente: { corte.valor == 0 }, enPares: true,
+            espera: { _ in corte.suma() }, alFallar: { XCTFail("el envío no debía fallar") })
+        Task { await cola?.value; terminado.suma() }
+        let fin = await esperaHastaPorReloj(.seconds(2)) { terminado.valor == 1 }
+        XCTAssertTrue(fin)
+        XCTAssertEqual(mando.entradas, Array(mensajes.prefix(2)))
+    }
+
     @MainActor func test_un_lote_fallido_no_cancela_el_lote_posterior() async {
         let mando = MandoDeMentira(salida: false)
         let fallos = Contador()
@@ -389,7 +405,7 @@ final class BrowserMandoSesionTests: XCTestCase {
         let mio = await esperaHastaPorReloj(.seconds(2)) { estado.quienConduce == .yo }
         XCTAssertTrue(mio)
 
-        let pegado = (0..<60).map { "a\($0)" }
+        let pegado = BrowserMandoEntrada.mensajesDeTeclado(anterior: "", nuevo: String(repeating: "a", count: 30))
         sesion.teclea(pegado)
         sesion.teclea(["b0", "b1"])
         let empezo = await esperaHastaPorReloj(.seconds(2)) { mando.entradas.count >= 3 }
@@ -406,7 +422,9 @@ final class BrowserMandoSesionTests: XCTestCase {
         let drenado = await esperaHastaPorReloj(.seconds(3)) { mando.entradas.last == "nuevo" }
         XCTAssertTrue(drenado)
         XCTAssertLessThan(alPerderlo, pegado.count)
-        XCTAssertEqual(Array(mando.entradas.dropFirst(alPerderlo)), ["nuevo"])
+        // Si la transición cayó tras un down, se conserva exactamente su up.
+        let limiteDelPar = ((alPerderlo + 1) / 2) * 2
+        XCTAssertEqual(mando.entradas, Array(pegado.prefix(limiteDelPar)) + ["nuevo"])
         XCTAssertFalse(mando.entradas.contains("b0"))
         rele.finish()
     }
@@ -518,6 +536,125 @@ final class BrowserMandoSesionTests: XCTestCase {
     /// **SI DEVOLVERLO NO SALE DEL APARATO, LA SESIÓN VUELVE A ACEPTAR ENTRADA.** El servidor no
     /// se ha enterado y el volante sigue siendo del usuario: dejar `devolviendo` puesto le dejaría
     /// conduciendo con todo lo que toque y teclee rechazado.
+    @MainActor func test_la_sesion_conserva_el_keyUp_si_pierde_el_volante_durante_keyDown() async {
+        let envio = EnvioColgado()
+        let mando = MandoDeMentira(antesDeMandar: { await envio.cuelga() })
+        let sesion = BrowserMandoSesion(mando: mando)
+        let viejo = BrowserMandoEntrada.mensajesDeTeclado(anterior: "", nuevo: "ab")
+        let nuevo = BrowserMandoEntrada.mensajesDeTeclado(anterior: "", nuevo: "c")
+        sesion.teclea(viejo)
+        let dentro = await esperaHastaPorReloj(.seconds(2)) { envio.entro }
+        XCTAssertTrue(dentro)
+        sesion.cambioElVolante()
+        sesion.teclea(nuevo)
+        envio.libera()
+        let fin = await esperaHastaPorReloj(.seconds(2)) { mando.entradas.count >= 4 }
+        XCTAssertTrue(fin)
+        XCTAssertEqual(mando.entradas, Array(viejo.prefix(2)) + nuevo)
+    }
+
+    @MainActor func test_devolver_sin_confirmacion_caduca_con_aviso_y_admite_un_lote_nuevo() async {
+        let mando = MandoDeMentira()
+        let reloj = EnvioColgado()
+        let sesion = BrowserMandoSesion(mando: mando, plazoDeDevolucion: .seconds(3),
+            esperaDeDevolucion: { plazo in
+                XCTAssertEqual(plazo, .seconds(3))
+                await reloj.cuelga()
+            })
+        sesion.devuelve()
+        let enviado = await esperaHastaPorReloj(.seconds(2)) { mando.devoluciones == 1 && reloj.entro }
+        XCTAssertTrue(enviado)
+        XCTAssertTrue(sesion.devolviendo)
+        sesion.teclea(BrowserMandoEntrada.mensajesDeTeclado(anterior: "", nuevo: "x"))
+        reloj.libera()
+        let vencido = await esperaHastaPorReloj(.seconds(2)) { !sesion.devolviendo && sesion.entradaPerdida }
+        XCTAssertTrue(vencido, "el envío salió, pero sin confirmación el bloqueo debe caducar con aviso")
+        XCTAssertEqual(BrowserPanelView.avisoDeApuntado(quienConduce: .yo, sePuedeApuntar: true,
+                                                       entradaPerdida: sesion.entradaPerdida),
+                       BrowserPanelView.textoDeEntradaPerdida)
+        let nuevo = BrowserMandoEntrada.mensajesDeTeclado(anterior: "", nuevo: "y")
+        sesion.teclea(nuevo)
+        let salio = await esperaHastaPorReloj(.seconds(2)) { mando.entradas.count == nuevo.count }
+        XCTAssertTrue(salio)
+        XCTAssertEqual(mando.entradas, nuevo, "el lote descartado no debe revivir al caducar")
+    }
+
+    @MainActor func test_un_reloj_de_devolucion_antiguo_no_resuelve_la_devolucion_nueva() async {
+        let primero = EnvioColgado()
+        let segundo = EnvioColgado()
+        let turnos = Contador()
+        let terminados = Contador()
+        let sesion = BrowserMandoSesion(mando: MandoDeMentira(), esperaDeDevolucion: { _ in
+            turnos.suma()
+            if turnos.valor == 1 { await primero.cuelga() } else { await segundo.cuelga() }
+            terminados.suma()
+        })
+        sesion.devuelve()
+        let inicio = await esperaHastaPorReloj(.seconds(2)) { primero.entro }
+        XCTAssertTrue(inicio)
+        sesion.cambioElVolante()
+        sesion.devuelve()
+        let otro = await esperaHastaPorReloj(.seconds(2)) { segundo.entro }
+        XCTAssertTrue(otro)
+        primero.libera()
+        let viejo = await esperaHastaPorReloj(.seconds(2)) { terminados.valor == 1 }
+        XCTAssertTrue(viejo)
+        XCTAssertTrue(sesion.devolviendo, "un plazo antiguo no debe abrir la puerta de la petición nueva")
+        XCTAssertFalse(sesion.entradaPerdida)
+        segundo.libera()
+        let nuevo = await esperaHastaPorReloj(.seconds(2)) { sesion.entradaPerdida && !sesion.devolviendo }
+        XCTAssertTrue(nuevo)
+    }
+
+    /// Sin await/yield entre aplicar y afirmar: Mh debe fallar aquí aunque la Task
+    /// diferida pudiera ejecutarse en el próximo salto del actor.
+    @MainActor func test_el_coordinador_avisa_sincronicamente_al_aplicar_mando_y_closed() throws {
+        for evento in [BrowserRelayEvent.mando(quien: .agente), .closed(reason: "fin")] {
+            let (flujo, rele) = AsyncStream<BrowserRelayEvent>.makeStream()
+            let c = BrowserPanelCoordinator(stream: { (flujo, MandoDeMentira()) })
+            let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+            let sesion = try XCTUnwrap(c.sesion(de: id))
+            c.aplica(.mando(quien: .yo), al: id)
+            sesion.devuelve()
+            XCTAssertTrue(sesion.devolviendo)
+            c.aplica(evento, al: id)
+            XCTAssertFalse(sesion.devolviendo, "el coordinador difirió el aviso a la sesión")
+            XCTAssertTrue(sesion.toca(punto: cuarto, vista: imagen, tamañoDeLaImagen: imagen,
+                                      dimensionesDelCable: cable, contacto: cuarto))
+            sesion.levanta(punto: cuarto, vista: imagen, tamañoDeLaImagen: imagen,
+                           dimensionesDelCable: cable, contacto: cuarto)
+            rele.finish()
+        }
+    }
+
+    /// HUECO medido: SwiftUI solo proporciona el mismo origen para dos historias
+    /// indistinguibles: contacto viejo aún apoyado o clic nuevo en el mismo píxel.
+    /// Se conserva el rechazo seguro hasta onEnded; no se inventa una identidad.
+    @MainActor func test_colision_exacta_del_contacto_sin_onEnded_sigue_declarada() async {
+        let mando = MandoDeMentira()
+        let sesion = BrowserMandoSesion(mando: mando)
+        XCTAssertTrue(sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen,
+                                  dimensionesDelCable: cable, contacto: centro))
+        let cierre = sesion.cierraElGesto()
+        sesion.cambioElVolante()
+        sesion.cambioElVolante()
+        let r1 = sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen,
+                             dimensionesDelCable: cable, contacto: centro)
+        XCTAssertFalse(r1, "el contacto viejo debe seguir ignorado; el nuevo idéntico se pierde también")
+        sesion.levanta(punto: centro, vista: imagen, tamañoDeLaImagen: imagen,
+                       dimensionesDelCable: cable, contacto: centro)
+        let r2 = sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen,
+                             dimensionesDelCable: cable, contacto: centro)
+        XCTAssertTrue(r2)
+        sesion.levanta(punto: centro, vista: imagen, tamañoDeLaImagen: imagen,
+                       dimensionesDelCable: cable, contacto: centro)
+        _ = cierre
+        let fin = await esperaHastaPorReloj(.seconds(2)) { mando.entradas.count == 4 }
+        XCTAssertTrue(fin)
+        XCTAssertEqual(mando.entradas, [pulsadoEnElCentro, soltadoEnElCentro,
+                                       pulsadoEnElCentro, soltadoEnElCentro])
+    }
+
     @MainActor func test_si_devolver_no_sale_la_sesion_vuelve_a_aceptar_entrada() async {
         let mando = MandoDeMentira(salida: false)
         let sesion = BrowserMandoSesion(mando: mando)

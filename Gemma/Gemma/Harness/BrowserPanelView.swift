@@ -249,7 +249,7 @@ struct BrowserPanelView: View {
     /// Lo que se le dice al usuario cuando algo de lo que mandó no salió del aparato. Dice qué
     /// pasó y qué hacer, y nada de lo que escribió.
     static let textoDeEntradaPerdida =
-        "Lo último que escribiste o tocaste NO llegó al navegador. Vuelve a tomar el volante y repítelo."
+        "Hay un problema con la entrada o el volante. Comprueba la página, vuelve a tomar el volante y repite lo que falte."
 
     /// Si la vista captura los gestos y las teclas del usuario.
     ///

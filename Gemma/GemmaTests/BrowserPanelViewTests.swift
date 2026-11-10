@@ -1019,7 +1019,7 @@ final class BrowserPanelViewTests: XCTestCase {
         XCTAssertTrue(f.contains("sesion?.teclea(BrowserMandoEntrada.mensajesDeTeclado(anterior: anterior, nuevo: nuevo))"))
         let coordinador = TroceadoDeFuente.codigoIncondicional(
             try fuenteDeProduccion("Gemma/Harness/BrowserPanelCoordinator.swift"))
-        XCTAssertTrue(coordinador.contains("self?.sesiones[id]?.cambioElVolante()"))
+        XCTAssertTrue(coordinador.contains("sesiones[id]?.cambioElVolante()"))
 
         // H4 (ronda 6) — lo que no sale SE DICE, en las tres piezas que solo viven en el cuerpo:
         // el teclado de la barra apunta su fallo en la sesión, el aviso lee la sesión, y un
@@ -1381,7 +1381,11 @@ final class BrowserPanelViewTests: XCTestCase {
         "salio", // booleano del envío de devolver, sin contenido.
         "startLocation", // identidad del contacto de SwiftUI.
         "teclea", // entrada a la cadena única de la sesión.
-        "vigente", // consulta la generación antes de cada envío.
+        "vigente", // consulta la generación antes de cada par de teclado.
+        // Ronda 9: los tres nombres rechazados en round9-whitelist-red.log, revisados a mano.
+        "enPares", // conserva el up del down ya enviado; solo el teclado lo activa.
+        "esperaDeDevolucion", // reloj inyectable sin acceso a contenido de entrada.
+        "plazoDeDevolucion", // tope del bloqueo hasta confirmación del mando.
         // las palabras de la única cadena literal del fichero, la pista del campo de texto
         // («lo que escribas va a la página»). Son prosa, no identificadores, y entran porque el
         // troceado no distingue una cadena de un nombre. Son también la razón de que el corte

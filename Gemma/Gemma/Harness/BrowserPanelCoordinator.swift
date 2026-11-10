@@ -116,18 +116,7 @@ public final class BrowserPanelCoordinator {
         PanelLog.note("panel \(PanelLog.corto(id)) abierto por \(toolName); navegadorAbierto heredado=\(browserLeftOpen)")
         consumers[id] = Task { @MainActor [weak self, weak state] in
             for await event in stream {
-                let antes = state?.quienConduce
-                state?.apply(event)
-                // 🔴 EL VOLANTE CAMBIÓ DE MANOS: LA SESIÓN SE ENTERA EN ESTE MISMO PASO (ronda 8).
-                // Es el punto más temprano y síncrono en que el cliente sabe que el volante ya no
-                // es del usuario —un `mando` del servidor o un `.closed`—, y aquí se invalidan
-                // las teclas pendientes de TODOS los lotes en vuelo. Hacerlo en el observador de
-                // la vista (`onChange(of: state.quienConduce)`) dejaba una ventana en la que una
-                // tecla de un pegado todavía salía, y si el usuario recuperaba el volante antes
-                // de que el pegado acabara, el resto se escribía en el campo enfocado entonces.
-                if state?.quienConduce != antes {
-                    self?.sesiones[id]?.cambioElVolante()
-                }
+                self?.aplica(event, al: id)
             }
             // Red de seguridad, no cortesía: el flujo tiene búfer `.bufferingNewest(64)` y un
             // consumidor lento puede perder un `.closed`. Que el flujo termine congela el panel
@@ -153,6 +142,17 @@ public final class BrowserPanelCoordinator {
             self?.sesiones.removeValue(forKey: id)?.cambioElVolante()
         }
         return id
+    }
+
+    /// Aplica un evento y avisa a la sesión en el mismo paso de MainActor.
+    /// El consumidor usa este paso también: no se difiere el aviso a otra tarea.
+    func aplica(_ event: BrowserRelayEvent, al id: String) {
+        guard let state = panels[id] else { return }
+        let antes = state.quienConduce
+        state.apply(event)
+        if state.quienConduce != antes {
+            sesiones[id]?.cambioElVolante()
+        }
     }
 
     /// El volante del panel `id`, o `nil` si ese panel no existe, ya se retiró, o se abrió sin

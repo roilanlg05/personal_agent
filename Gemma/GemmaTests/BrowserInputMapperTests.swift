@@ -463,7 +463,7 @@ final class BrowserInputMapperTests: XCTestCase {
                           "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
         }
 
-        let usados = Self.identificadoresDe(fuente: fuente)
+        let usados = TroceadoDeFuente.identificadores(de: fuente)
 
         // Guarda de vacuidad 2: que la extracción haya extraído algo, y algo reconocible. Sin
         // esto, un fallo del troceado (un comentario mal cortado, un cambio de formato) daría un
@@ -509,36 +509,4 @@ final class BrowserInputMapperTests: XCTestCase {
         "xDeLaImagen", "yDeLaImagen", "xDelViewport", "yDelViewport",
     ]
 
-    /// Los identificadores de un fuente Swift, **sin los comentarios**.
-    ///
-    /// Los comentarios se quitan porque son prosa y meterían cientos de palabras en el conjunto,
-    /// que es justo lo que haría inútil la lista blanca. Cortar por `//` hasta el fin de línea es
-    /// seguro en ESTE fichero porque no tiene ni una cadena literal —no hay ningún `//` que
-    /// pueda vivir dentro de un literal— y eso lo comprueba la propia lista blanca: una cadena
-    /// nueva traería identificadores nuevos o rompería el troceado, y el guarda de vacuidad 2 lo
-    /// caza. El troceado reconoce letras Unicode a propósito: los identificadores de este
-    /// proyecto llevan `ñ` (`tamañoDeLaVista`) y partirlos daría trozos que no están en la lista.
-    private static func identificadoresDe(fuente: String) -> Set<String> {
-        let sinComentarios = fuente.split(separator: "\n", omittingEmptySubsequences: false)
-            .map { linea -> String in
-                guard let corte = linea.range(of: "//") else { return String(linea) }
-                return String(linea[linea.startIndex..<corte.lowerBound])
-            }
-            .joined(separator: "\n")
-
-        var encontrados: Set<String> = []
-        var actual = ""
-        for caracter in sinComentarios.unicodeScalars {
-            let esLetra = CharacterSet.letters.contains(caracter)
-            let esDigito = CharacterSet.decimalDigits.contains(caracter)
-            if esLetra || caracter == "_" || (!actual.isEmpty && esDigito) {
-                actual.unicodeScalars.append(caracter)
-            } else {
-                if !actual.isEmpty { encontrados.insert(actual) }
-                actual = ""
-            }
-        }
-        if !actual.isEmpty { encontrados.insert(actual) }
-        return encontrados
-    }
 }

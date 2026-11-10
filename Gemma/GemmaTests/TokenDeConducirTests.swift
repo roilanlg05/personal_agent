@@ -327,8 +327,8 @@ final class TokenDeConducirTests: XCTestCase {
                           "la ruta del hermano ya no apunta al fichero de producción: falta \(ancla)")
         }
 
-        let usados = Self.identificadoresDe(fuente: fuente)
-            .union(Self.identificadoresDe(fuente: hermano))
+        let usados = TroceadoDeFuente.identificadores(de: fuente)
+            .union(TroceadoDeFuente.identificadores(de: hermano))
 
         // Guarda de vacuidad 2: que el troceado haya extraído algo reconocible. Sin esto, un
         // fallo del troceado daría el conjunto vacío, que cabe en cualquier lista blanca.
@@ -394,35 +394,6 @@ final class TokenDeConducirTests: XCTestCase {
         "lambert", "dev", "group", "Gemma", "secretos",
     ]
 
-    /// Los identificadores de un fuente Swift, **sin los comentarios** (son prosa y meterían
-    /// cientos de palabras, que es lo que haría inútil la lista blanca). El troceado reconoce
-    /// letras Unicode a propósito: los identificadores de este proyecto llevan `ñ`.
-    /// No es privado: `ClaveDeProveedorTests` lo reusa. Dos tokenizadores serían dos sitios
-    /// donde el troceado puede divergir, y un troceado roto devuelve el conjunto vacío, que cabe
-    /// en cualquier lista blanca.
-    static func identificadoresDe(fuente: String) -> Set<String> {
-        let sinComentarios = fuente.split(separator: "\n", omittingEmptySubsequences: false)
-            .map { linea -> String in
-                guard let corte = linea.range(of: "//") else { return String(linea) }
-                return String(linea[linea.startIndex..<corte.lowerBound])
-            }
-            .joined(separator: "\n")
-
-        var encontrados: Set<String> = []
-        var actual = ""
-        for caracter in sinComentarios.unicodeScalars {
-            let esLetra = CharacterSet.letters.contains(caracter)
-            let esDigito = CharacterSet.decimalDigits.contains(caracter)
-            if esLetra || caracter == "_" || (!actual.isEmpty && esDigito) {
-                actual.unicodeScalars.append(caracter)
-            } else {
-                if !actual.isEmpty { encontrados.insert(actual) }
-                actual = ""
-            }
-        }
-        if !actual.isEmpty { encontrados.insert(actual) }
-        return encontrados
-    }
 
     // MARK: el llavero de verdad — medido, no heredado
 

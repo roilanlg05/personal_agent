@@ -886,7 +886,7 @@ final class BrowserPanelViewTests: XCTestCase {
                           "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
         }
 
-        let usados = Self.identificadoresDe(fuente: fuente)
+        let usados = TroceadoDeFuente.identificadores(de: fuente)
 
         // Guarda de vacuidad 2: que la extracción haya extraído algo, y algo reconocible. Sin
         // esto, un fallo del troceado daría un conjunto vacío, que está contenido en cualquier
@@ -1056,7 +1056,7 @@ final class BrowserPanelViewTests: XCTestCase {
         // **LOS COMENTARIOS SE QUITAN ANTES DE MEDIR NADA.** Una sonda de esta misma rama dio
         // verde con la asignación del anillo escrita SOLO en un comentario, que es lo mismo que
         // no estar escrita. El troceador es el de la lista blanca, reusado.
-        let f = Self.fuenteSinComentarios(crudo)
+        let f = TroceadoDeFuente.sinComentarios(crudo)
         XCTAssertFalse(f.contains("POR QUÉ UN PROTOCOLO Y NO EL ACTOR"),
                        "el troceador de comentarios no ha quitado los comentarios: todo lo de abajo "
                        + "se podría cumplir con prosa en vez de con código")
@@ -1272,102 +1272,4 @@ final class BrowserPanelViewTests: XCTestCase {
         "a", "escribas", "la", "lo", "página", "que", "va",
     ]
 
-    /// El fuente sin sus comentarios de línea, que es el paso previo de **toda** medición sobre
-    /// el fuente de este proyecto: una aserción contra el fuente crudo se cumple con la
-    /// característica escrita en un comentario, y eso ya se midió en esta rama.
-    ///
-    /// **POR QUÉ NO VALE CORTAR EN EL PRIMER `//` DE LA LÍNEA, MEDIDO.** Es lo que hacía la
-    /// versión anterior, y un revisor fresco midió el agujero con la suite entera:
-    ///
-    ///     if "//".isEmpty { } else { ultimoPunteroDeLaVista = valor.location }   → VERDE
-    ///     if "x//y".isEmpty { } else { print("toque en \(valor.location)") }     → VERDE
-    ///     print("toque en \(valor.location)")               (control, a la vista) → ROJO
-    ///
-    /// El corte ciego se tragaba **todo lo que fuera detrás de una cadena que contuviera `//`**,
-    /// así que la línea entera se volvía invisible para **todas** las aserciones de texto de
-    /// esta pantalla — las del anillo y, lo grave, **la lista blanca que existe para que la
-    /// contraseña del usuario no se registre**. No hace falta mala fe para tropezar con eso: un
-    /// `let ayuda = "https://…"` con cualquier cosa detrás en la misma línea ya lo dispara.
-    ///
-    /// El argumento que tenía escrito —«ninguna cadena de este fichero contiene `//`»— era sobre
-    /// **el contenido de hoy**, no una propiedad, y la coletilla que le añadí —«y si alguna
-    /// llegara a contenerlo, el guarda de vacuidad 2 lo caza»— era **falsa**: ese guarda solo
-    /// detecta que el troceador entero se rompa (`count > 150`, `mensajesDeTeclado` ausente), no
-    /// que se le esconda **una** línea.
-    ///
-    /// Lo que hay ahora es un corte que distingue los dos estados, código y cadena, y que en la
-    /// duda **no corta**: dejar un comentario dentro solo produce ruido visible (una roja que se
-    /// mira), mientras que tragarse una línea de código produce silencio, que es el fallo que
-    /// esta pantalla no se puede permitir. **EL HUECO QUE QUEDA, DECLARADO Y NO ATRIBUIDO A
-    /// NADIE:** una línea que viva dentro de un literal multilínea (`"""`) se devuelve entera,
-    /// comentarios incluidos, así que su prosa entra en el conjunto de identificadores. Hoy
-    /// ninguno de los ficheros que esta pantalla mide tiene literales multilínea; el día que los
-    /// tenga, la lista blanca se pondrá roja con las palabras de esa prosa, que es el lado
-    /// ruidoso y no el silencioso.
-    private static func fuenteSinComentarios(_ fuente: String) -> String {
-        var enMultilinea = false
-        return fuente.split(separator: "\n", omittingEmptySubsequences: false)
-            .map { linea -> String in
-                let texto = String(linea)
-                let triples = texto.components(separatedBy: "\"\"\"").count - 1
-                guard !enMultilinea, triples == 0 else {
-                    if triples % 2 == 1 { enMultilinea.toggle() }
-                    return texto
-                }
-                return Self.sinComentarioDeLinea(texto)
-            }
-            .joined(separator: "\n")
-    }
-
-    /// Corta `linea` en su primer `//` **que esté fuera de una cadena literal**, y la devuelve
-    /// entera si no hay ninguno.
-    ///
-    /// Las comillas se cuentan respetando el escape (`\"` no abre ni cierra nada), así que las
-    /// cadenas crudas (`#"…"#`) quedan protegidas igual: sus comillas son comillas de verdad.
-    private static func sinComentarioDeLinea(_ linea: String) -> String {
-        var resultado = ""
-        var enCadena = false
-        var escapando = false
-        var anterior: Character?
-        for caracter in linea {
-            if escapando {
-                escapando = false
-            } else if caracter == "\\", enCadena {
-                escapando = true
-            } else if caracter == "\"" {
-                enCadena.toggle()
-            } else if caracter == "/", anterior == "/", !enCadena {
-                resultado.removeLast()      // la primera barra ya estaba puesta
-                return resultado
-            }
-            resultado.append(caracter)
-            anterior = caracter
-        }
-        return resultado
-    }
-
-    /// Los identificadores de un fuente Swift, **sin los comentarios**.
-    ///
-    /// Los comentarios se quitan porque son prosa y meterían cientos de palabras en el conjunto,
-    /// que es justo lo que haría inútil la lista blanca. El troceado reconoce letras Unicode a
-    /// propósito: los identificadores de este proyecto llevan `ñ` (`tamañoDeLaVista`) y
-    /// partirlos daría trozos que no están en la lista.
-    private static func identificadoresDe(fuente: String) -> Set<String> {
-        let sinComentarios = fuenteSinComentarios(fuente)
-
-        var encontrados: Set<String> = []
-        var actual = ""
-        for caracter in sinComentarios.unicodeScalars {
-            let esLetra = CharacterSet.letters.contains(caracter)
-            let esDigito = CharacterSet.decimalDigits.contains(caracter)
-            if esLetra || caracter == "_" || (!actual.isEmpty && esDigito) {
-                actual.unicodeScalars.append(caracter)
-            } else {
-                if !actual.isEmpty { encontrados.insert(actual) }
-                actual = ""
-            }
-        }
-        if !actual.isEmpty { encontrados.insert(actual) }
-        return encontrados
-    }
 }

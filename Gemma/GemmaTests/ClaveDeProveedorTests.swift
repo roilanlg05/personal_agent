@@ -537,8 +537,8 @@ final class ClaveDeProveedorTests: XCTestCase {
             XCTAssertTrue(viejo.contains(ancla), "la ruta del fuente viejo ya no vale: \(ancla)")
         }
 
-        let usados = TokenDeConducirTests.identificadoresDe(fuente: nuevo)
-            .union(TokenDeConducirTests.identificadoresDe(fuente: viejo))
+        let usados = TroceadoDeFuente.identificadores(de: nuevo)
+            .union(TroceadoDeFuente.identificadores(de: viejo))
 
         // Guarda de vacuidad 2: que el troceado haya extraído algo reconocible. Sin esto, un
         // fallo del troceado daría el conjunto vacío, que cabe en cualquier lista blanca.

@@ -19,9 +19,16 @@ import Foundation
 ///     let width = "x//y"; print("toque en \(punto)")                      → VERDE
 ///     // en `TokenDeConducir.guardar`, que ve el TOKEN del navegador
 ///     let texto = "dev//dev"; print("token \(valor)")                      → VERDE
+///     // en `ClaveDeProveedor.guardar`, que ve las CLAVES DE PAGO del usuario
+///     let texto = "dev//dev"; print("clave \(valor)")                      → VERDE
 ///
-/// y sus dos controles —las mismas líneas **sin** la cadena delante— salían rojos. Es decir: la
+/// y sus tres controles —las mismas líneas **sin** la cadena delante— salían rojos. Es decir: la
 /// red existía, funcionaba, y bastaba una cadena con `//` por delante para cegarla.
+///
+/// La tercera se midió **aparte y a propósito**, aunque comparta el troceado con la segunda y
+/// por tanto estuviera cubierta por deducción: en esta misma tarea la cobertura deducida falló
+/// dos veces, y las dos veces el argumento parecía correcto. El par escondida/control sobre las
+/// claves de pago está medido directamente, no inferido.
 enum TroceadoDeFuente {
 
     /// El fuente sin sus comentarios de línea, que es el paso previo de **toda** medición sobre

@@ -279,6 +279,43 @@ final class TroceadoDeFuenteTests: XCTestCase {
         XCTAssertTrue(ids.contains("let"), "guarda de vacuidad: el conjunto no está vacío")
     }
 
+    // MARK: el código incondicional (H1 de la revisión de rama)
+
+    /// Una presencia sobre `codigoIncondicional` **no** se cumple con el código dentro de una
+    /// rama de compilación condicional, sea cual sea la rama y la plataforma, y sí con el mismo
+    /// código fuera. El par se mide junto: sin el acierto, una función que devolviera `""`
+    /// pasaría todas las de «no está».
+    func test_el_codigo_incondicional_no_cuenta_ninguna_rama_condicional() {
+        let fuera = "let a = 1\n        ClaveDeProveedor.migrarTodas()\nlet b = 2"
+        XCTAssertTrue(TroceadoDeFuente.codigoIncondicional(fuera).contains("ClaveDeProveedor.migrarTodas()"),
+                      "el código incondicional se perdió: esto pondría rojas todas las presencias")
+        XCTAssertTrue(TroceadoDeFuente.codigoIncondicional(fuera).contains("let b = 2"))
+
+        for envoltorio in [("#if os(iOS)", "#endif"),
+                           ("    #if os(macOS)", "    #endif"),
+                           ("#if !os(macOS)", "#endif"),
+                           ("#if DEBUG\nlet x = 0\n#else", "#endif"),
+                           ("#if os(iOS)\nlet x = 0\n#elseif canImport(UIKit)", "#endif"),
+                           ("#if os(iOS)\n#if DEBUG\n#endif", "#endif")] {
+            let dentro = "let a = 1\n\(envoltorio.0)\n        ClaveDeProveedor.migrarTodas()\n\(envoltorio.1)\nlet b = 2"
+            let codigo = TroceadoDeFuente.codigoIncondicional(dentro)
+            XCTAssertFalse(codigo.contains("ClaveDeProveedor.migrarTodas()"),
+                           "dentro de `\(envoltorio.0)` la presencia se cumple: en otra plataforma "
+                           + "esa línea no está en el binario")
+            XCTAssertTrue(codigo.contains("let b = 2"),
+                          "tras el `#endif` de `\(envoltorio.0)` se perdió el código incondicional")
+        }
+        // Y sigue quitando comentarios, porque va encima de `sinComentarios`.
+        XCTAssertFalse(TroceadoDeFuente.codigoIncondicional("/* ClaveDeProveedor.migrarTodas() */")
+                        .contains("migrarTodas"))
+        // Con CRLF también: `"\r\n"` es un solo `Character`.
+        XCTAssertFalse(TroceadoDeFuente.codigoIncondicional("let a = 1\r\n#if os(iOS)\r\nmigrarTodas()\r\n#endif\r\n")
+                        .contains("migrarTodas"),
+                       "detrás de un CRLF la directiva no se vio")
+        // `#iffy` no es una directiva.
+        XCTAssertTrue(TroceadoDeFuente.codigoIncondicional("#iffy\nlet c = 3").contains("let c = 3"))
+    }
+
     /// Y los identificadores con `ñ` no se parten: `tamañoDeLaVista` es un nombre de este
     /// proyecto, y partirlo daría trozos que no están en ninguna lista blanca.
     func test_los_identificadores_con_letras_unicode_no_se_parten() {

@@ -523,7 +523,9 @@ final class TokenDeConducirTests: XCTestCase {
         XCTAssertTrue(codigoDeAjustes.contains("TokenDeConducir.migrar()"),
                       "y migra al abrir Ajustes")
 
-        let app = TroceadoDeFuente.sinComentarios(try fuenteDeLaApp("GemmaApp.swift"))
+        // Sobre el código INCONDICIONAL: una migración de arranque dentro de un `#if` falta en
+        // alguna plataforma, y la presencia sobre `sinComentarios` se cumplía igual (H1, ronda 6).
+        let app = TroceadoDeFuente.codigoIncondicional(try fuenteDeLaApp("GemmaApp.swift"))
         XCTAssertTrue(app.contains("struct GemmaApp: App"), "la ruta ya no apunta a GemmaApp")
         XCTAssertTrue(app.contains("TokenDeConducir.migrar()"),
                       "el arranque tiene que migrar: si no, quien no abra Ajustes se queda el "

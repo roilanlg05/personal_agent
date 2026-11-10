@@ -458,8 +458,13 @@ final class BrowserInputMapperTests: XCTestCase {
 
         // Guarda de vacuidad 1: que la ruta apunte al fichero de verdad. Todas las aserciones de
         // esta prueba son AUSENCIAS y pasarían solas con el fichero vacío o la ruta mal.
+        //
+        // **SOBRE EL FUENTE TROCEADO** (H8 de la revisión de rama, Ruling 18: presencia →
+        // troceado, guardas de vacuidad incluidos). Sobre el crudo, este guarda se cumplía con
+        // `enum BrowserInputMapper` citado dentro de un comentario, con la declaración borrada.
+        let codigo = TroceadoDeFuente.sinComentarios(fuente)
         for ancla in ["enum BrowserInputMapper", "func paginaDesde", "DimensionesDelCable"] {
-            XCTAssertTrue(fuente.contains(ancla),
+            XCTAssertTrue(codigo.contains(ancla),
                           "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
         }
 

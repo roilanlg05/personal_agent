@@ -77,7 +77,13 @@ final class AgentBrowserRegistrationTests: XCTestCase {
         // pruebas. Es decir: las dos redes existían, funcionaban, y un comentario de bloque las
         // cegaba. El troceado compartido es el único sitio donde esto se arregla una vez; una
         // copia a mano aquí sería un bypass por construcción.
-        let text = TroceadoDeFuente.sinComentarios(try String(contentsOf: source, encoding: .utf8))
+        //
+        // Y SOBRE EL CÓDIGO **INCONDICIONAL** (`codigoIncondicional`), no solo sin comentarios
+        // (H1 de la revisión de rama, medido con la suite entera: m7). Con la llamada envuelta en
+        // `#if os(iOS) … #endif` el texto seguía en el fichero, esta presencia se cumplía, y el
+        // registro entero del navegador estaba fuera del binario de macOS con la suite en su
+        // verde exacto. Un `#if os(macOS)` lo dejaría fuera del teléfono, que es el cliente real.
+        let text = TroceadoDeFuente.codigoIncondicional(try String(contentsOf: source, encoding: .utf8))
         XCTAssertTrue(text.contains("Self.registerBrowserTools(into: registry,"),
                       "runAgentTurn ya no llama a registerBrowserTools: un turno real no registraría ninguna herramienta de navegador")
         // La propiedad que de verdad hay que clavar: el permiso para cerrar sale del MENSAJE

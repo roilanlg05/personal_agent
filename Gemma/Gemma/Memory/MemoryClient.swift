@@ -352,7 +352,8 @@ final class MemoryClient {
     /// El token con el que se firma cada petición: **el que haya, recortado, y nada más.**
     ///
     /// AQUÍ HABÍA UN PLACEHOLDER DÉBIL CABLEADO EN EL BINARIO, y se quita en la Tarea 6b. Decía
-    /// `t.isEmpty ? "replace-me-with-a-long-random-string" : t`, o sea: con el ajuste vacío, el
+    /// `t.isEmpty ? "replace-me-with-…" : t` (el literal entero, con sus comillas, no se escribe
+    /// ni en prosa: `TokenDeMemoriaTests` lo busca en el fuente CRUDO), o sea: con el ajuste vacío, el
     /// cliente firmaba con el token de fábrica del `.env` del compose del i3. Tres cosas malas de
     /// golpe, y la tercera es la que lo hacía invisible:
     ///

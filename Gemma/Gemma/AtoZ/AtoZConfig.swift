@@ -128,7 +128,8 @@ final class AtoZSessionManager: ObservableObject {
     /// olvidado deja el token viejo vivo y el arreglo a medias.
     ///
     /// Y AQUÍ HABÍA EL MISMO PLACEHOLDER DÉBIL CABLEADO que en `MemoryClient`
-    /// (`t.isEmpty ? "replace-me-with-a-long-random-string" : t`). Se quita: una credencial
+    /// (`t.isEmpty ? "replace-me-with-…" : t`; el literal entero no se escribe ni en prosa,
+    /// porque `TokenDeMemoriaTests` lo busca en el fuente CRUDO). Se quita: una credencial
     /// conocida en el binario no es un valor por omisión razonable, y en cuanto el usuario rote el
     /// token del servidor lo único que haría es cambiar un fallo visible por un 401 inexplicable.
     private var memoryBearerToken: String {

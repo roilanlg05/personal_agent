@@ -421,8 +421,8 @@ final class BrowserRelayClientTests: XCTestCase {
     /// crearía justo lo que esto prohíbe, un sitio más donde una contraseña puede acabar.
     ///
     /// El precio de esta prueba, dicho a propósito: las dos líneas de registro que quedan en el
-    /// fichero no pueden usar las palabras «entrada» ni «texto». (Desde que esto mide sobre el
-    /// fuente **troceado**, su prosa sí puede: el comentario de final de línea ya no entra.)
+    /// fichero no pueden usar las palabras «entrada» ni «texto», **tampoco en su comentario**: la
+    /// ausencia se mide sobre el fuente CRUDO desde la ronda 6 (ver el cuerpo).
     ///
     /// EL HUECO QUE QUEDA, DECLARADO CON SU DISPARADOR Y NO ATRIBUIDO A NADIE. Esto mide **línea
     /// a línea**, así que una fuga **partida en dos líneas** la esquiva. Disparador exacto,
@@ -460,7 +460,14 @@ final class BrowserRelayClientTests: XCTestCase {
         }
         let registradores = ["PanelLog", "print(", "NSLog", "os_log", "Logger", "OSLog", "debugPrint"]
         var lineasDeRegistro = 0
-        for linea in codigo.split(whereSeparator: { $0.isNewline }) {
+        // 🔴 LAS AUSENCIAS, SOBRE EL CRUDO (H7 de la revisión de rama, Ruling 18). Hasta la ronda 6
+        // este bucle recorría `codigo` —el troceado—, y una ausencia sobre el troceado se cumple
+        // si el troceado se traga la línea: el día del próximo hueco léxico, una fuga de las
+        // pulsaciones del usuario al log unificado de macOS pasaría **en verde**. Sobre el crudo
+        // lo peor que pasa es lo contrario —un comentario con «entrada» en una línea de registro
+        // pone esto rojo sin fuga—, que es ruido visible. Medido al cambiarlo: hoy no hay ninguna
+        // línea así en el fichero. Las anclas de arriba siguen sobre el troceado: son presencias.
+        for linea in fuente.split(whereSeparator: { $0.isNewline }) {
             let limpia = linea.trimmingCharacters(in: .whitespaces)
             guard registradores.contains(where: { linea.contains($0) }) else { continue }
             lineasDeRegistro += 1
@@ -471,6 +478,13 @@ final class BrowserRelayClientTests: XCTestCase {
         }
         XCTAssertGreaterThan(lineasDeRegistro, 0,
                              "guarda de vacuidad: sin ninguna línea de registro que mirar, esto no afirma nada")
+        // Y el guarda de vacuidad, que es una PRESENCIA, se cuenta también sobre el CÓDIGO: sobre
+        // el crudo se cumpliría con un comentario que nombre `PanelLog`, sin una sola línea de
+        // registro de verdad que mirar.
+        let lineasDeRegistroDeCodigo = codigo.split(whereSeparator: { $0.isNewline })
+            .filter { linea in registradores.contains(where: { linea.contains($0) }) }.count
+        XCTAssertGreaterThan(lineasDeRegistroDeCodigo, 0,
+                             "guarda de vacuidad: ninguna línea de CÓDIGO registra nada, así que esto no afirma nada")
     }
 
     private func fuenteDelCliente() throws -> String {

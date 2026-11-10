@@ -225,10 +225,23 @@ enum TroceadoDeFuente {
     ///     **presencia**, que es el otro lado del silencio. Lo que de verdad hace inofensivo este
     ///     hueco **no es la resincronización**: es que `""""` **no compila** (`error: multi-line
     ///     string literal content must begin on a new line`), igual que el hueco nº2.
-    ///  4. **Compilación condicional.** `#if os(iOS)` no se interpreta: los identificadores de las
-    ///     **dos** ramas entran en el conjunto. No es un hueco de silencio —se ve más, no menos—,
-    ///     pero una lista blanca puede estar permitiendo un nombre de una rama que en esta
-    ///     plataforma no se compila.
+    ///  4. **Compilación condicional.** `#if os(iOS)` no se interpreta: el texto de **todas** las
+    ///     ramas sale del troceado tal cual. ⚠️ **ESTA DECLARACIÓN DECÍA «NO ES UN HUECO DE
+    ///     SILENCIO —SE VE MÁS, NO MENOS—», Y ERA FALSA** (H1 de la revisión de rama, medido con la
+    ///     suite entera). Es verdad para una **lista blanca** y para una **ausencia**, que ven de
+    ///     más. Es **falso para toda PRESENCIA**: una presencia pregunta «¿está este texto?», y
+    ///     el texto sigue ahí aunque la rama no compile en la plataforma que el usuario ejecuta.
+    ///     Disparador exacto: envolver `ClaveDeProveedor.migrarTodas()` de `GemmaApp` o
+    ///     `Self.registerBrowserTools(…)` de `HarnessModel` en `#if os(iOS) … #endif` retiraba del
+    ///     binario de macOS la migración de las claves de pago o el registro entero del
+    ///     navegador, **con la suite en su verde exacto** (m6, m7). **Este troceado no lo puede
+    ///     cerrar**, porque saber qué rama compila no es léxico: depende de la plataforma, de
+    ///     `canImport`, de las banderas del compilador. Lo que sí se puede hacer, y es lo que hace
+    ///     `codigoIncondicional`, es no intentar saberlo: quitar **todas** las ramas, de modo que
+    ///     una presencia solo se cumpla con código que compila **en todas las plataformas**.
+    ///     Las pantallas que afirman presencias de **arranque** (las migraciones de `GemmaApp`, el
+    ///     registro del navegador) usan ésa; las listas blancas siguen con `sinComentarios`,
+    ///     porque ahí ver de más es lo correcto.
     ///  5. **Lo que Swift añada mañana a su gramática léxica.** Es el hueco de fondo y no se cierra
     ///     con otra ronda: ver «QUÉ NO DEFIENDE».
     ///  6. **Esto distingue código de comentario; no reconstruye expresiones.** No es un hueco del
@@ -435,6 +448,76 @@ enum TroceadoDeFuente {
             }
         }
         return String(salida)
+    }
+
+    /// El código que compila **en todas las plataformas**: el fuente sin comentarios
+    /// (`sinComentarios`) y **sin ningún bloque de compilación condicional** — de cada `#if` a su
+    /// `#endif`, con todas sus ramas (`#elseif`, `#else`) y los anidados, se quita todo.
+    ///
+    /// # POR QUÉ, Y PARA QUÉ ASERCIONES (H1 de la revisión de rama)
+    ///
+    /// Una aserción de **PRESENCIA** sobre `sinComentarios` se cumple con el código dentro de un
+    /// `#if os(iOS)`, que en macOS **no existe en el binario**. Medido con la suite entera: con
+    /// `ClaveDeProveedor.migrarTodas()` o `Self.registerBrowserTools(…)` envueltos así, la suite
+    /// se quedaba en su verde exacto con la migración de las claves de pago o el registro del
+    /// navegador fuera del binario de macOS. Saber **qué** rama compila no es léxico —depende de
+    /// la plataforma, de `canImport`, de banderas— y este troceado no lo va a saber; así que no
+    /// lo intenta: **ninguna** rama cuenta. Una presencia sobre este texto solo se cumple con
+    /// código incondicional.
+    ///
+    /// Es el lado que hay que elegir para las presencias de **arranque**, y no por comodidad:
+    /// una migración envuelta en `#if os(macOS)` compila en la plataforma de la prueba y **falta
+    /// en el teléfono**, que es el cliente real del usuario. Si algún día una presencia tiene que
+    /// estar legítimamente en una rama, esta función la pone roja: **ruido visible**, y entonces
+    /// esa presencia se mide con `sinComentarios` y con su motivo escrito al lado.
+    ///
+    /// NO ES PARA LAS LISTAS BLANCAS NI PARA LAS AUSENCIAS, que tienen que ver **de más**: un
+    /// nombre de una rama que no compila aquí sigue siendo código del proyecto.
+    ///
+    /// LO QUE NO DEFIENDE, con su disparador: una línea de una cadena **multilínea** que empiece
+    /// por `#if` se toma por directiva (el troceado conserva el contenido de las cadenas). Sin su
+    /// `#endif` se lleva el resto del fichero: la presencia se pone **roja**, que es el lado
+    /// visible. Y una directiva que no empiece la línea no se reconoce; Swift exige que la
+    /// empiece.
+    static func codigoIncondicional(_ fuente: String) -> String {
+        var salida: [Substring] = []
+        var profundidad = 0
+        // Los tres fines de línea del compilador, comparados como `Character`: `"\r\n"` es UN
+        // `Character` y no es igual a `"\n"` (ver «LA UNIDAD EN LA QUE SE RECORRE EL FUENTE»),
+        // así que partir por `"\n"` a secas no partiría un fichero con CRLF y una directiva
+        // detrás de un CRLF no se vería.
+        let lineas = sinComentarios(fuente).split(omittingEmptySubsequences: false,
+                                                  whereSeparator: { $0 == "\n" || $0 == "\r\n" || $0 == "\r" })
+        for linea in lineas {
+            let directiva = Self.directiva(de: linea)
+            switch directiva {
+            case "#if":
+                profundidad += 1
+                salida.append("")
+            case "#endif":
+                profundidad = max(0, profundidad - 1)
+                salida.append("")
+            case "#elseif", "#else":
+                salida.append("")
+            default:
+                salida.append(profundidad == 0 ? linea : "")
+            }
+        }
+        return salida.joined(separator: "\n")
+    }
+
+    /// La directiva de compilación condicional con la que empieza la línea, o `nil`. Las cuatro
+    /// palabras se reconocen enteras: `#ifdef` no es Swift, y `#iffy` no es `#if`.
+    private static func directiva(de linea: Substring) -> String? {
+        let recortada = linea.drop(while: { $0 == " " || $0 == "\t" })
+        for palabra in ["#elseif", "#endif", "#else", "#if"] where recortada.hasPrefix(palabra) {
+            let resto = recortada.dropFirst(palabra.count)
+            guard let siguiente = resto.unicodeScalars.first else { return palabra }
+            if siguiente == " " || siguiente == "\t" || siguiente == "(" || siguiente == "!"
+                || siguiente == "\r" { return palabra }
+            return nil
+        }
+        return nil
     }
 
     /// Los identificadores de un fuente Swift, **sin los comentarios**.

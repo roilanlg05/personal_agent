@@ -471,7 +471,13 @@ final class ClaveDeProveedorTests: XCTestCase {
 
         // Troceado también, y por el mismo motivo: son dos PRESENCIAS y además una condición de
         // orden entre ellas. Es la mitad de N2 que se midió en verde exacto.
-        let arranque = TroceadoDeFuente.sinComentarios(try fuente("Gemma/GemmaApp.swift"))
+        //
+        // Y SOBRE EL CÓDIGO **INCONDICIONAL** (H1 de la revisión de rama, m6 medido con la suite
+        // entera): con `ClaveDeProveedor.migrarTodas()` envuelta en `#if os(iOS) … #endif`, esta
+        // presencia se cumplía con la migración de las claves de pago fuera del binario de macOS
+        // —el banner «Falta la API Key» sobre una key que el usuario sí tiene, y la copia en claro
+        // en el llavero viejo—. `codigoIncondicional` no cuenta ninguna rama condicional.
+        let arranque = TroceadoDeFuente.codigoIncondicional(try fuente("Gemma/GemmaApp.swift"))
         let migracion = try XCTUnwrap(arranque.range(of: "ClaveDeProveedor.migrarTodas()"),
                                       "el arranque ya no migra las API keys")
         let construccion = try XCTUnwrap(arranque.range(of: "return HarnessModel()"))

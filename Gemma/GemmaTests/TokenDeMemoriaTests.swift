@@ -503,7 +503,15 @@ final class TokenDeMemoriaTests: XCTestCase {
                           "guarda de vacuidad: tras quitar los comentarios, \(relativa) ya no "
                           + "contiene \(ancla). O la ruta está mal o el troceado está roto, y "
                           + "entonces la aserción de abajo pasaría sola.")
-            XCTAssertFalse(fuente.contains(literal),
+            // 🔴 LA AUSENCIA, SOBRE EL CRUDO (H7 de la revisión de rama, Ruling 18). Hasta la
+            // ronda 6 iba sobre `fuente` —el troceado—, y una ausencia sobre el troceado se cumple
+            // si el troceado se traga la línea: el próximo hueco léxico sería la credencial
+            // conocida del `.env` del i3 recableada en el binario, **en verde**. Sobre el crudo lo
+            // peor es lo contrario, un rojo por prosa, que es ruido visible: por eso los dos
+            // comentarios de producción que citaban el literal entero (`MemoryClient`,
+            // `AtoZConfig`) lo citan ahora cortado. El ancla de arriba sigue sobre el troceado,
+            // porque es una PRESENCIA.
+            XCTAssertFalse(completo.contains(literal),
                            """
                            \(relativa) vuelve a cablear el placeholder débil del `.env` del i3. \
                            Una credencial conocida en el binario no es un valor por omisión: con \
@@ -621,7 +629,9 @@ final class TokenDeMemoriaTests: XCTestCase {
         XCTAssertTrue(codigoDeAjustes.contains("TokenDeMemoria.migrar()"),
                       "y migra al abrir Ajustes")
 
-        let app = TroceadoDeFuente.sinComentarios(try fuenteDeLaApp("GemmaApp.swift"))
+        // Sobre el código INCONDICIONAL: una migración de arranque dentro de un `#if` falta en
+        // alguna plataforma, y la presencia sobre `sinComentarios` se cumplía igual (H1, ronda 6).
+        let app = TroceadoDeFuente.codigoIncondicional(try fuenteDeLaApp("GemmaApp.swift"))
         XCTAssertTrue(app.contains("struct GemmaApp: App"), "la ruta ya no apunta a GemmaApp")
         let migracion = try XCTUnwrap(app.range(of: "TokenDeMemoria.migrar()"),
                                       "el arranque tiene que migrar: si no, quien no abra Ajustes "

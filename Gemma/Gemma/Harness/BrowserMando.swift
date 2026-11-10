@@ -105,10 +105,19 @@ public enum BrowserMandoEntrada {
     /// o que el stream suba de 25 fps.
     public static let muestrasPorSegundo = 30
 
-    /// El intervalo mínimo entre dos muestras de un gesto continuo. 33 ms ≈ 30,3 muestras por
-    /// segundo: se redondea a milisegundos enteros porque el reloj del muestreo es un instante
-    /// monótono y la precisión de más no compra nada.
-    public static let intervaloDeMuestreo: Duration = .milliseconds(33)
+    /// El intervalo mínimo entre dos muestras de un gesto continuo, y **el único valor que
+    /// gobierna la cadencia**: es el que lee `tocaMuestrear`.
+    ///
+    /// SE DERIVA DE `muestrasPorSegundo` Y NO SE ESCRIBE APARTE, y el motivo es un defecto medido
+    /// (H2 de la revisión de rama). Antes era un literal (`.milliseconds(33)`) al lado de una
+    /// `muestrasPorSegundo = 30` que **nadie leía**: las tres cotas razonadas de ahí arriba y la
+    /// prueba del presupuesto del relé vigilaban la constante muerta, y bajar este intervalo a
+    /// 1 ms —1000 muestras por segundo, 8,3 veces el presupuesto entero del relé— dejaba la
+    /// suite verde. Con la derivación hay un solo número, y la prueba
+    /// (`test_el_muestreo_elegido_deja_sitio_al_teclado_en_el_presupuesto_del_rele`) mide
+    /// **éste**. 1 s / 30 = 33,3 ms: el reloj del muestreo es un instante monótono con precisión
+    /// de sobra, así que no hace falta redondear.
+    public static let intervaloDeMuestreo: Duration = .seconds(1) / muestrasPorSegundo
 
     /// El intervalo mínimo entre dos mensajes de teclado.
     ///

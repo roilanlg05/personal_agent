@@ -360,13 +360,25 @@ final class BrowserPanelViewTests: XCTestCase {
     /// 10 pulsaciones por segundo y cada una son dos mensajes (`keyDown` + `keyUp`), o sea ~20;
     /// arrastrar y teclear a la vez es el peor caso humano. Con el arrastre quedándose como
     /// mucho con la mitad del presupuesto, las dos cosas juntas no lo agotan nunca.
+    ///
+    /// 🔴 LAS COTAS VAN SOBRE `intervaloDeMuestreo`, QUE ES LO QUE PRODUCCIÓN LEE (H2 de la
+    /// revisión de rama). Esta prueba medía antes **solo** `muestrasPorSegundo`, que ningún
+    /// código de producción consumía: bajar el intervalo de verdad a 1 ms (8,3× el presupuesto
+    /// del relé) la dejaba verde, y mover la constante muerta la ponía roja. Medía el número
+    /// decorativo y no el que manda. Ahora el intervalo se deriva de `muestrasPorSegundo`, y
+    /// aquí se fijan las dos cosas: las cotas sobre el intervalo y la relación entre los dos,
+    /// para que `muestrasPorSegundo` no vuelva a quedarse huérfana.
     func test_el_muestreo_elegido_deja_sitio_al_teclado_en_el_presupuesto_del_rele() {
         XCTAssertEqual(Entrada.topeDeEntradasPorSegundoDelRele, 120,
                        "es la constante medida del relé (`MAX_ENTRADAS_POR_VENTANA`); si cambia allí, cambia aquí")
-        XCTAssertLessThanOrEqual(Entrada.muestrasPorSegundo, Entrada.topeDeEntradasPorSegundoDelRele / 2,
-                                 "el arrastre no puede quedarse con más de la mitad del presupuesto del visor")
-        XCTAssertGreaterThan(Entrada.muestrasPorSegundo, 25,
-                             "por debajo del ritmo del stream (25 fps medidos) el arrastre se vería a saltos")
+        let mitadDelPresupuesto = Entrada.topeDeEntradasPorSegundoDelRele / 2
+        XCTAssertGreaterThanOrEqual(Entrada.intervaloDeMuestreo * mitadDelPresupuesto, .seconds(1),
+                                    "el arrastre se queda con más de la mitad del presupuesto del visor: "
+                                    + "lo que pase del tope el relé lo tira EN SILENCIO y la página deja de responder")
+        XCTAssertLessThanOrEqual(Entrada.intervaloDeMuestreo * 25, .seconds(1),
+                                 "por debajo del ritmo del stream (25 fps medidos) el arrastre se vería a saltos")
+        XCTAssertEqual(Entrada.intervaloDeMuestreo, .seconds(1) / Entrada.muestrasPorSegundo,
+                       "el intervalo ya no sale de `muestrasPorSegundo`: una de las dos es decorativa otra vez")
     }
 
     // MARK: el anillo del puntero del usuario
@@ -1327,6 +1339,8 @@ final class BrowserPanelViewTests: XCTestCase {
         "BrowserMandoSesion", "sesion", "toca", "levanta", "retira", "olvidaElGesto", "enVuelo",
         "alFallar", "notaQueNoSalio", "olvidaElFallo", "entradaPerdida", "en",
         "Observable", "class", "final", "init", "self", "weak", "set",
+        // y H2: `seconds` es la unidad de la derivación `intervaloDeMuestreo = .seconds(1) / …`.
+        "seconds",
         // las palabras de la única cadena literal del fichero, la pista del campo de texto
         // («lo que escribas va a la página»). Son prosa, no identificadores, y entran porque el
         // troceado no distingue una cadena de un nombre. Son también la razón de que el corte

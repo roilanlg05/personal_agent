@@ -46,6 +46,52 @@ import Foundation
 /// Cada una de las cinco se midió **aparte y a propósito**, aunque compartan el troceado y por
 /// tanto estuvieran cubiertas por deducción: en esta misma tarea la cobertura deducida falló
 /// **tres** veces, y las tres el argumento parecía correcto.
+///
+/// # LA REGLA, Y ES LA QUE IMPIDE QUE ESTO VUELVA A PASAR
+///
+/// **Toda prueba de este proyecto que lea fuente Swift usa este troceado.** No «las listas
+/// blancas»: **toda**. Y **una copia a mano es un bypass por construcción**, porque cada arreglo
+/// que entra aquí pasa de largo por ella — eso es literalmente la historia de este fichero: cinco
+/// copias, tres arreglos, y la frase «cero copias restantes» escrita dos rondas antes de ser
+/// verdad. El censo de la ronda 4 se hizo buscando la **forma exacta** (`range(of: "//")`) y por
+/// eso no encontró la sexta copia, que estaba escrita con `hasPrefix("//")`. Un censo por forma no
+/// es un censo: lo que hay que enumerar son **las pruebas que leen fuente**.
+///
+/// # EL CENSO, ENUMERADO (2026-11-10), QUE ES LO QUE CIERRA EL CONJUNTO
+///
+/// Nueve ficheros de prueba localizan ficheros del proyecto con `#filePath`. **Ocho** leen fuente
+/// Swift, y los ocho pasan por aquí:
+///
+///     fichero de prueba                 qué lee                      cómo mide
+///     BrowserPanelViewTests             BrowserMando, BrowserPanelView   troceado (4 usos)
+///     BrowserInputMapperTests           BrowserInputMapper               troceado
+///     TokenDeConducirTests              TokenDeConducir, TokenDeMemoria,
+///                                       SettingsView, GemmaApp           troceado + 1 ausencia cruda
+///     ClaveDeProveedorTests             ClaveDeProveedor, LlaveroViejo…,
+///                                       HarnessModel, SettingsView,
+///                                       GemmaApp                         troceado + 3 ausencias crudas
+///     TokenDeMemoriaTests               SettingsView, HarnessModel,
+///                                       GemmaApp                         troceado + 3 ausencias crudas
+///     BrowserRelayClientTests           BrowserRelayClient               troceado (era copia a mano)
+///     BrowserInputEventsTests           BrowserInputEvents               troceado + ausencias crudas
+///     AgentBrowserRegistrationTests     HarnessModel                     troceado
+///     InfoPlistPrivacyKeysTests         AppInfo.plist                    n/a: no es fuente Swift
+///
+/// # Y POR QUÉ ALGUNAS ASERCIONES SE QUEDAN SOBRE EL FUENTE CRUDO, A PROPÓSITO
+///
+/// Porque las dos direcciones del error no son simétricas, y cada clase de aserción se mide donde
+/// no se la puede engañar:
+///
+///  - una **PRESENCIA** (incluidos **todos** los guardas de vacuidad, que son presencias) va sobre
+///    el **troceado**: sobre el crudo se cumple con la característica BORRADA —se envuelve la
+///    línea en `/* */`, el código desaparece y el texto se conserva—;
+///  - una **AUSENCIA** va sobre el **crudo**: ahí lo peligroso es lo contrario, que el troceado se
+///    trague una línea y la fuga pase en verde. Sobre el crudo, un `print(` escrito en un
+///    comentario pone la prueba roja — ruido visible, que es el lado seguro.
+///
+/// Las listas blancas son el caso en el que esto no se puede elegir: su conjunto **tiene** que
+/// venir del troceado, porque la prosa de los comentarios metería cientos de palabras y la lista
+/// dejaría de medir. Ahí el precio está pagado desde el principio y declarado.
 enum TroceadoDeFuente {
 
     /// El estado del troceador. Son cuatro contextos y no dos, y eso es justo lo que las dos
@@ -120,6 +166,40 @@ enum TroceadoDeFuente {
     /// efecto secundario las palabras de las cadenas siguen entrando en el conjunto — que es
     /// justo lo que las cinco redes ya tenían asumido y justificado.
     ///
+    /// # LA UNIDAD EN LA QUE SE RECORRE EL FUENTE: ESCALARES UNICODE, Y NO ES UN DETALLE
+    ///
+    /// Es la decisión técnica de la que dependía el hueco más grave que esta rama ha tenido, y
+    /// estuvo **en las tres versiones** del troceado. Las dos primeras recorrían `Array(fuente)`,
+    /// que son `Character`, y **un `Character` de Swift es un grafema extendido**: un conjunto de
+    /// escalares que se presenta como un signo. De ahí salen dos cosas que parecen imposibles:
+    ///
+    ///  - `"\r\n"` es **UN** `Character`, y **no** es igual a `"\n"`. Así que el salto del
+    ///    comentario de línea no paraba en una línea terminada en CRLF y **se comía la línea
+    ///    siguiente**, y la resincronización tampoco se disparaba. Medido con la suite ENTERA en
+    ///    **verde exacto** (1407/4/15 · 1426, 2026-11-10) con
+    ///    `print("token \(valor)")` vivo en `TokenDeConducir.guardar` detrás de un comentario
+    ///    terminado en CRLF: el token que conduce un Chrome con la sesión de Google del usuario
+    ///    dentro yéndose al log unificado de macOS, y ni una queja. Control (el mismo `print` a la
+    ///    vista): rojo. Alcanzable: no hay `.gitattributes`, `core.autocrlf` está sin poner, git
+    ///    commitea el CRLF verbatim y el fichero compila.
+    ///  - una **comilla seguida de una marca combinante** (`"` + U+0301) es también **UN**
+    ///    `Character`, que **no** es igual a `"\""`. Con el recorrido por grafemas la comilla de
+    ///    apertura era invisible, el troceador se creía en código, veía el `//` de dentro de la
+    ///    cadena y **se tragaba el resto de la línea**. `let texto = "<U+0301>//x"; print(…)`
+    ///    compila (`swiftc -parse` lo acepta: el lexador de Swift trabaja en escalares).
+    ///
+    /// Las dos son **la misma** avería: «este grafema contiene el delimitador pero no es igual a
+    /// él». Tapar sólo el CRLF (reconocer `\r` y seguir en `Character`) habría dejado la segunda
+    /// viva, así que la unidad del recorrido es ahora **el escalar Unicode, la del compilador**, y
+    /// la clase entera se cierra de una vez. Medido: con los dos troceados pasados por los **156
+    /// ficheros `.swift` de producción**, la salida es **idéntica en los 156** y los conjuntos de
+    /// identificadores también (`difierenTexto=0 difierenIds=0`), así que ninguna lista blanca se
+    /// relaja ni se endurece por este cambio.
+    ///
+    /// Y los fines de línea son **tres**: `\n`, `\r\n` y el `\r` solo, que es lo que el compilador
+    /// reconoce (comprobado con `swiftc -parse`). U+2028 **no** lo es —comprobado también—, así
+    /// que aquí tampoco: coincidir con el compilador es la propiedad, no «reconocer saltos».
+    ///
     /// # LOS HUECOS QUE QUEDAN, UNO POR UNO, CON SU DISPARADOR, Y NO ATRIBUIDOS A NINGUNA PRUEBA
     ///
     ///  1. **Literales de regex corrientes (`/…/`).** No se reconocen: para el troceado son dos
@@ -132,36 +212,71 @@ enum TroceadoDeFuente {
     ///     contexto de código sin un `*/` detrás. Medido. No es alcanzable en un fichero
     ///     commiteado, porque **no compila**: la corrección del quitado de bloques se apoya en que
     ///     el fichero compile, y eso es una dependencia, no una garantía propia.
-    ///  3. **Cuatro comillas seguidas en código (`""""`).** Se cierra el multilínea con las tres
-    ///     primeras y queda una comilla suelta, que abre una cadena que muere en el salto de línea
-    ///     por la resincronización. Medido: **no esconde** (el resto de la línea sigue visible),
-    ///     pero el troceado deja de ser correcto desde ahí hasta el final de la línea.
+    ///  3. **Cuatro comillas seguidas en código (`""""`).** ESTA DECLARACIÓN ESTABA MAL EN DOS
+    ///     SENTIDOS y se corrige con lo medido, porque un hueco mal declarado es peor que uno sin
+    ///     declarar. Lo que pasa de verdad: las **tres primeras** comillas **ABREN** un multilínea
+    ///     (`corrida(i,"\"") >= 3`) y la cuarta se queda dentro como contenido. La
+    ///     resincronización **no toca los marcos multilínea por construcción**
+    ///     (`case .cadena(_, let multilinea): return !multilinea`), así que el marco **cruza
+    ///     líneas** y el quitado de comentarios se apaga **en todo el resto del fichero**, no
+    ///     «hasta el final de la línea». Comprobado: con `let a = """"` en la primera línea, un
+    ///     `// SECRETO_EN_COMENTARIO` dos líneas más abajo **sobrevive** al troceado.
+    ///     Y «no esconde» es correcto pero irrelevante: deja ciegas las aserciones de
+    ///     **presencia**, que es el otro lado del silencio. Lo que de verdad hace inofensivo este
+    ///     hueco **no es la resincronización**: es que `""""` **no compila** (`error: multi-line
+    ///     string literal content must begin on a new line`), igual que el hueco nº2.
     ///  4. **Compilación condicional.** `#if os(iOS)` no se interpreta: los identificadores de las
     ///     **dos** ramas entran en el conjunto. No es un hueco de silencio —se ve más, no menos—,
     ///     pero una lista blanca puede estar permitiendo un nombre de una rama que en esta
     ///     plataforma no se compila.
     ///  5. **Lo que Swift añada mañana a su gramática léxica.** Es el hueco de fondo y no se cierra
     ///     con otra ronda: ver «QUÉ NO DEFIENDE».
+    ///  6. **Esto distingue código de comentario; no reconstruye expresiones.** No es un hueco del
+    ///     troceado, pero es un límite suyo que una pantalla ya paga, y se escribe aquí para que
+    ///     nadie lo confunda con algo que el troceado arregle: una red que mida **línea a línea**
+    ///     se esquiva partiendo la fuga en dos líneas. Disparador exacto, medido en
+    ///     `BrowserRelayClientTests` (oculta verde, control roja):
+    ///     `PanelLog.note("lo que el usuario teclea: "` en una línea y `+ entrada)` en la
+    ///     siguiente. Está declarado también en esa prueba, y cerrarlo pide juntar las
+    ///     continuaciones de una llamada, que es otra vez un analizador de Swift a mano.
     ///
     /// La resincronización acota un error de lexado a **una línea** solo cuando el marco mal
     /// abierto es de una línea (cadena normal o regex extendido en una línea). Un error dentro de
     /// un literal multilínea, de un regex extendido multilínea o de un comentario de bloque **no
     /// está acotado**: se arrastra hasta que su cierre aparezca.
     static func sinComentarios(_ fuente: String) -> String {
-        let c = Array(fuente)
-        var salida = ""
+        // LA UNIDAD: **escalares Unicode**, que es la unidad en la que lexa el compilador, y no
+        // `Character`. Ver «LA UNIDAD EN LA QUE SE RECORRE EL FUENTE» en el doc-comment: con
+        // `Character` (grafema extendido) `"\r\n"` es UN solo carácter y **no** es igual a
+        // `"\n"`, y una comilla seguida de una marca combinante es UN solo carácter que **no** es
+        // igual a `"\""`. Las dos cosas estaban medidas con la suite entera en verde exacto.
+        let c = Array(fuente.unicodeScalars)
+        var salida = String.UnicodeScalarView()
         salida.reserveCapacity(c.count)
         var i = 0
         var pila: [Marco] = []
 
         /// Cuántos `cual` seguidos hay a partir de `desde`. Los `#` de las cadenas crudas y las
         /// comillas de los multilínea se cuentan, no se suponen.
-        func corrida(_ desde: Int, _ cual: Character) -> Int {
+        func corrida(_ desde: Int, _ cual: Unicode.Scalar) -> Int {
             var n = 0
             var j = desde
             while j < c.count, c[j] == cual { n += 1; j += 1 }
             return n
         }
+
+        /// Los terminadores de línea **del compilador de Swift**, que son tres y no uno: `\n`,
+        /// `\r\n` y el `\r` solo (comprobado con `swiftc -parse`: con cualquiera de los tres, un
+        /// token basura detrás del terminador da error en la línea de DESPUÉS). Recorriendo por
+        /// escalares, un `\r\n` son dos elementos y los dos contestan `true`, así que el salto
+        /// del comentario de línea para en el `\r`, la resincronización se dispara ahí, y el
+        /// `\r` y el `\n` salen los dos a la salida: el texto troceado conserva las mismas
+        /// líneas y el mismo terminador que la entrada.
+        ///
+        /// U+2028 (LINE SEPARATOR) **no** está aquí a propósito: medido, Swift **no** lo trata
+        /// como fin de línea, así que tratarlo como tal sería desalinearse del compilador en la
+        /// dirección peligrosa (cerrar un comentario que el compilador deja abierto).
+        func esFinDeLinea(_ s: Unicode.Scalar) -> Bool { s == "\n" || s == "\r" }
 
         while i < c.count {
             let ch = c[i]
@@ -169,7 +284,7 @@ enum TroceadoDeFuente {
             // LA RESINCRONIZACIÓN. Si al llegar al salto de línea hay abierto un marco que no
             // puede cruzar líneas, el lexado está roto: se cierra ése y todo lo que se apoyaba en
             // él, para que el estropicio no pase de esta línea. Ver el doc-comment.
-            if ch == "\n" {
+            if esFinDeLinea(ch) {
                 if let k = pila.firstIndex(where: {
                     switch $0 {
                     case .cadena(_, let multilinea), .regex(_, let multilinea): return !multilinea
@@ -200,7 +315,7 @@ enum TroceadoDeFuente {
                         i = j + 1
                         continue
                     }
-                    if vistos == numerales, j < c.count, c[j] != "\n" {
+                    if vistos == numerales, j < c.count, !esFinDeLinea(c[j]) {
                         salida.append(contentsOf: c[i...j])
                         i = j + 1
                         continue
@@ -230,7 +345,7 @@ enum TroceadoDeFuente {
                 // Literal de regex EXTENDIDO (`#/…/#`): ahí un `/` suelto es legal, así que un
                 // `//` dentro no es un comentario. Era un camino de verdad para esconder media
                 // línea, medido antes de cerrarlo.
-                if ch == "\\", i + 1 < c.count, c[i + 1] != "\n" {
+                if ch == "\\", i + 1 < c.count, !esFinDeLinea(c[i + 1]) {
                     salida.append(contentsOf: c[i...(i + 1)])
                     i += 2
                     continue
@@ -248,7 +363,7 @@ enum TroceadoDeFuente {
             default:
                 // CONTEXTO DE CÓDIGO: fuera de toda cadena, o dentro de una interpolación.
                 if ch == "/", i + 1 < c.count, c[i + 1] == "/" {
-                    while i < c.count, c[i] != "\n" { i += 1 }
+                    while i < c.count, !esFinDeLinea(c[i]) { i += 1 }
                     continue
                 }
                 // LOS COMENTARIOS DE BLOQUE DE SWIFT **ANIDAN**: `/* /* */ */` es uno solo, así
@@ -267,7 +382,7 @@ enum TroceadoDeFuente {
                             profundidad -= 1
                             i += 2
                         } else {
-                            if c[i] == "\n" { salida.append("\n") }
+                            if esFinDeLinea(c[i]) { salida.append(c[i]) }
                             i += 1
                         }
                     }
@@ -279,7 +394,7 @@ enum TroceadoDeFuente {
                     let numerales = corrida(i, "#")
                     if i + numerales < c.count, c[i + numerales] == "/" {
                         let largo = numerales + 1
-                        let multilinea = i + largo < c.count && c[i + largo] == "\n"
+                        let multilinea = i + largo < c.count && esFinDeLinea(c[i + largo])
                         salida.append(contentsOf: c[i..<(i + largo)])
                         pila.append(.regex(numerales: numerales, multilinea: multilinea))
                         i += largo
@@ -319,7 +434,7 @@ enum TroceadoDeFuente {
                 i += 1
             }
         }
-        return salida
+        return String(salida)
     }
 
     /// Los identificadores de un fuente Swift, **sin los comentarios**.

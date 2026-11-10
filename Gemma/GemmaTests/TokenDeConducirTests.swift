@@ -307,12 +307,19 @@ final class TokenDeConducirTests: XCTestCase {
 
         // Guarda de vacuidad 1: que la ruta apunte al fichero de verdad. Todas las aserciones de
         // esta prueba son AUSENCIAS y pasarían solas con el fichero vacío o la ruta mal.
+        //
+        // **Sobre el fuente TROCEADO**, no sobre el crudo: el guarda es una PRESENCIA, y una
+        // presencia sobre el crudo se cumple con la característica borrada —basta envolver la
+        // declaración en `/* */`—. Un guarda de vacuidad que pasa con el fichero entero comentado
+        // no guarda nada. (La clase está medida con la suite entera en esta rama: ver N2 en el
+        // informe de la ronda 5.)
+        let codigo = TroceadoDeFuente.sinComentarios(fuente)
         for ancla in ["protocol AlmacenDeSecretos", "struct LlaveroDelSistema: AlmacenDeSecretos {",
                       "enum TokenDeConducir: SecretoDelDispositivo {",
                       "protocol SecretoDelDispositivo", "extension SecretoDelDispositivo {",
                       "kSecUseDataProtectionKeychain",
                       "public static let claseDeAccesibilidad"] {
-            XCTAssertTrue(fuente.contains(ancla),
+            XCTAssertTrue(codigo.contains(ancla),
                           "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
         }
 
@@ -321,9 +328,10 @@ final class TokenDeConducirTests: XCTestCase {
         // propio de `TokenDeMemoria.swift` son dos constantes. Una lista blanca por fichero
         // serían dos sitios donde relajar la regla.
         let hermano = try fuenteDelHermano()
+        let codigoDelHermano = TroceadoDeFuente.sinComentarios(hermano)
         for ancla in ["enum TokenDeMemoria: SecretoDelDispositivo {",
                       "public static let claveVieja"] {
-            XCTAssertTrue(hermano.contains(ancla),
+            XCTAssertTrue(codigoDelHermano.contains(ancla),
                           "la ruta del hermano ya no apunta al fichero de producción: falta \(ancla)")
         }
 
@@ -493,23 +501,29 @@ final class TokenDeConducirTests: XCTestCase {
     /// arranque: si se cae de `GemmaApp`, el usuario que no vuelva a abrir Ajustes se queda el
     /// token en claro para siempre.
     func test_la_vista_y_el_arranque_no_guardan_el_token_en_userdefaults() throws {
+        // LAS PRESENCIAS SOBRE EL FUENTE TROCEADO Y LA AUSENCIA SOBRE EL CRUDO. Una presencia
+        // sobre el crudo se cumple con la característica BORRADA (la línea envuelta en `/* */`:
+        // el código desaparece, el texto se conserva), y una ausencia sobre el troceado se cumple
+        // con la fuga escondida si el troceado se traga una línea. Cada dirección mide donde no
+        // se puede engañar.
         let ajustes = try fuenteDeLaApp("Settings/SettingsView.swift")
+        let codigoDeAjustes = TroceadoDeFuente.sinComentarios(ajustes)
 
         // Guarda de vacuidad: que el fichero sea el que creemos y siga teniendo el campo.
-        XCTAssertTrue(ajustes.contains("Section(\"Navegador (i3)\")"),
+        XCTAssertTrue(codigoDeAjustes.contains("Section(\"Navegador (i3)\")"),
                       "la ruta ya no apunta a SettingsView")
-        XCTAssertTrue(ajustes.contains("esSecreto: true, texto: $browserBearerToken"),
+        XCTAssertTrue(codigoDeAjustes.contains("esSecreto: true, texto: $browserBearerToken"),
                       "el campo del token sigue pintándose como secreto")
 
         XCTAssertFalse(ajustes.contains("@AppStorage(SettingsKeys.browserBearerToken)"),
                        "el token de conducir NO puede volver a `@AppStorage`: ése era el defecto")
-        XCTAssertTrue(ajustes.contains("TokenDeConducir.leer()"), "lo lee del llavero")
-        XCTAssertTrue(ajustes.contains("TokenDeConducir.guardar(nuevo)"),
+        XCTAssertTrue(codigoDeAjustes.contains("TokenDeConducir.leer()"), "lo lee del llavero")
+        XCTAssertTrue(codigoDeAjustes.contains("TokenDeConducir.guardar(nuevo)"),
                       "y lo guarda en el llavero en cada cambio")
-        XCTAssertTrue(ajustes.contains("TokenDeConducir.migrar()"),
+        XCTAssertTrue(codigoDeAjustes.contains("TokenDeConducir.migrar()"),
                       "y migra al abrir Ajustes")
 
-        let app = try fuenteDeLaApp("GemmaApp.swift")
+        let app = TroceadoDeFuente.sinComentarios(try fuenteDeLaApp("GemmaApp.swift"))
         XCTAssertTrue(app.contains("struct GemmaApp: App"), "la ruta ya no apunta a GemmaApp")
         XCTAssertTrue(app.contains("TokenDeConducir.migrar()"),
                       "el arranque tiene que migrar: si no, quien no abra Ajustes se queda el "

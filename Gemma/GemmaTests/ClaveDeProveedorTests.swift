@@ -396,20 +396,33 @@ final class ClaveDeProveedorTests: XCTestCase {
     /// entere. Y si la migración se cae de `GemmaApp`, el usuario se queda con las keys en el
     /// llavero viejo para siempre.
     func test_ajustes_y_el_arranque_pasan_por_el_almacen_nuevo() throws {
+        // LAS DOS DIRECCIONES SE MIDEN SOBRE TEXTOS DISTINTOS, Y NO ES UN DESCUIDO.
+        //
+        //  - Una **PRESENCIA** va sobre el fuente **troceado**: sobre el crudo se cumple con la
+        //    característica BORRADA (se envuelve la línea en `/* */`, el código desaparece y el
+        //    texto se conserva). Medido con la suite entera el 2026-11-10: con
+        //    `ClaveDeProveedor.migrarTodas()` de `GemmaApp` envuelta en `/* */`, esta prueba pasaba
+        //    con la migración de las API keys de pago borrada; borrarla de verdad la pone roja.
+        //  - Una **AUSENCIA** va sobre el fuente **CRUDO**, a propósito: ahí lo peligroso es lo
+        //    contrario, que el troceado se trague una línea y la fuga pase en verde (es G1/N1, el
+        //    bypass que costó cuatro rondas). Sobre el crudo, un `KeychainStore` escrito en un
+        //    comentario pone la prueba roja: ruido visible, que es el lado seguro de un trinquete
+        //    de ausencia.
         let ajustes = try fuente("Gemma/Settings/SettingsView.swift")
+        let codigoDeAjustes = TroceadoDeFuente.sinComentarios(ajustes)
         // Guarda de vacuidad: que la ruta apunte al fichero de verdad. Las aserciones de ausencia
         // pasarían solas con el fichero vacío o la ruta mal.
-        XCTAssertTrue(ajustes.contains("private struct ProviderPicker: View {"),
+        XCTAssertTrue(codigoDeAjustes.contains("private struct ProviderPicker: View {"),
                       "la ruta de Ajustes ya no apunta al fichero de producción")
-        XCTAssertTrue(ajustes.contains("ClaveDeProveedor.guardar(k, proveedor: kind.rawValue)"),
+        XCTAssertTrue(codigoDeAjustes.contains("ClaveDeProveedor.guardar(k, proveedor: kind.rawValue)"),
                       "Ajustes ya no guarda la API key en el llavero del dispositivo")
-        XCTAssertTrue(ajustes.contains("ClaveDeProveedor.leer(proveedor: kind.rawValue)"),
+        XCTAssertTrue(codigoDeAjustes.contains("ClaveDeProveedor.leer(proveedor: kind.rawValue)"),
                       "el campo de Ajustes ya no mira el almacén nuevo para saber si hay key")
         XCTAssertFalse(ajustes.contains("KeychainStore"),
                        "Ajustes volvió al almacén viejo, que escribe una copia EN CLARO")
 
         let modelo = try fuente("Gemma/Harness/HarnessModel.swift")
-        XCTAssertTrue(modelo.contains("nonisolated static func clavesDelAlmacen("),
+        XCTAssertTrue(TroceadoDeFuente.sinComentarios(modelo).contains("nonisolated static func clavesDelAlmacen("),
                       "la ruta del modelo ya no apunta al fichero de producción")
         XCTAssertFalse(modelo.contains("KeychainStore"),
                        "un lector del modelo volvió al almacén viejo")
@@ -456,7 +469,9 @@ final class ClaveDeProveedorTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(lineasConElGlobal, 3,
                                     "guarda de vacuidad: la regla no ha mirado ninguna línea")
 
-        let arranque = try fuente("Gemma/GemmaApp.swift")
+        // Troceado también, y por el mismo motivo: son dos PRESENCIAS y además una condición de
+        // orden entre ellas. Es la mitad de N2 que se midió en verde exacto.
+        let arranque = TroceadoDeFuente.sinComentarios(try fuente("Gemma/GemmaApp.swift"))
         let migracion = try XCTUnwrap(arranque.range(of: "ClaveDeProveedor.migrarTodas()"),
                                       "el arranque ya no migra las API keys")
         let construccion = try XCTUnwrap(arranque.range(of: "return HarnessModel()"))
@@ -540,14 +555,19 @@ final class ClaveDeProveedorTests: XCTestCase {
         let nuevo = try fuente("Gemma/Settings/ClaveDeProveedor.swift")
         let viejo = try fuente("Gemma/Settings/LlaveroViejoDeApiKeys.swift")
 
-        // Guarda de vacuidad 1: que las rutas apunten a los ficheros de verdad.
+        // Guarda de vacuidad 1: que las rutas apunten a los ficheros de verdad. **Sobre el fuente
+        // troceado**: un guarda de vacuidad es una PRESENCIA, y sobre el crudo se satisface con
+        // la declaración escrita en un comentario. Un guarda que se cumple con el fichero
+        // comentado no guarda nada.
+        let codigoNuevo = TroceadoDeFuente.sinComentarios(nuevo)
+        let codigoViejo = TroceadoDeFuente.sinComentarios(viejo)
         for ancla in ["enum ClaveDeProveedor {", "static func migrar(proveedor: String,",
                       "enum Resultado: String, Equatable, Sendable {"] {
-            XCTAssertTrue(nuevo.contains(ancla), "la ruta del fuente nuevo ya no vale: \(ancla)")
+            XCTAssertTrue(codigoNuevo.contains(ancla), "la ruta del fuente nuevo ya no vale: \(ancla)")
         }
         for ancla in ["public struct LlaveroViejoDeApiKeys: AlmacenSoloDeLectura {",
                       "public static let servicioDeLasApiKeys"] {
-            XCTAssertTrue(viejo.contains(ancla), "la ruta del fuente viejo ya no vale: \(ancla)")
+            XCTAssertTrue(codigoViejo.contains(ancla), "la ruta del fuente viejo ya no vale: \(ancla)")
         }
 
         let usados = TroceadoDeFuente.identificadores(de: nuevo)

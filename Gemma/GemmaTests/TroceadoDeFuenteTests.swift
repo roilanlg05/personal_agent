@@ -28,6 +28,20 @@ import XCTest
 /// bloques se pase de largo: el bloque **anidado** y el `/*` **dentro de una cadena**. Los dos que
 /// solo mata la variante borrada son los controles de que el troceado siga haciendo su trabajo.
 ///
+/// LOS CINCO CASOS NUEVOS DE LA RONDA 5 (el fin de línea y la marca combinante) tienen su propia
+/// tabla, con la misma regla y las mismas cifras medidas, contra las dos variantes que son los
+/// arreglos a medias de ese hallazgo:
+///
+///     variante                                                        casos en verde
+///     la de esta ronda (escalares Unicode + los tres terminadores)          5 / 5
+///     «revertir solo la unidad» (grafemas, con los tres terminadores)       1 / 5
+///     «revertir solo el CRLF» (escalares, solo `\n`)                        1 / 5
+///
+/// Ninguno de los cinco pasa con las tres, así que ninguno es vacuo, y cada arreglo a medias deja
+/// **cuatro de las cinco aserciones en rojo**: los grafemas ponen rojas **las dos pruebas** nuevas
+/// y «solo `\n`» pone roja la del fin de línea. Ése es el criterio de que el instrumento tiene
+/// medida propia, aplicado al arreglo de esta ronda.
+///
 /// Y LO QUE ESTAS PRUEBAS **NO** CUBREN está escrito en el doc-comment de `TroceadoDeFuente`, con
 /// su disparador exacto cada uno, y no se lo atribuyo a ninguna de las de aquí.
 final class TroceadoDeFuenteTests: XCTestCase {
@@ -173,6 +187,78 @@ final class TroceadoDeFuenteTests: XCTestCase {
         trocea("let a = \"abierta\nlet b = 2 // fuga\nlet c = 3",
                "let a = \"abierta\nlet b = 2 \nlet c = 3",
                "una cadena sin cerrar apagó el troceado de las líneas siguientes")
+    }
+
+    // MARK: el fin de línea, que son TRES y no uno (N1: la unidad del recorrido)
+
+    /// **EL FIN DE LÍNEA CRLF, Y EL `\r` SOLO.** El troceado recorría el fuente por `Character`, y
+    /// un `Character` de Swift es un **grafema extendido**: `"\r\n"` es **UN** carácter y **no** es
+    /// igual a `"\n"`. Así que el salto del comentario de línea (`while c[i] != "\n"`) no paraba en
+    /// una línea terminada en CRLF y **se comía la línea siguiente**, y la resincronización tampoco
+    /// se disparaba. El compilador, en cambio, sí trata los tres terminadores como fin de línea
+    /// (medido con `swiftc -parse`: un token basura detrás de `\r\n` o de `\r` da error en la línea
+    /// de DESPUÉS).
+    ///
+    /// Medido con la suite ENTERA antes del arreglo: con
+    ///
+    ///     let texto = "dev" // nota<CR><LF>
+    ///     print("token \(valor)")<LF>
+    ///
+    /// en `TokenDeConducir.guardar`, la suite se quedaba en su **verde exacto** con el token del
+    /// navegador yéndose al log unificado de macOS; el residuo visible era `let`, `texto`, `dev`,
+    /// los tres ya en la lista blanca, así que el verde no venía de la lista. El control —el mismo
+    /// `print` a la vista— salía rojo.
+    ///
+    /// El daño era quirúrgico, que es lo que lo hacía peligroso: el salto se detenía en el `\n` de
+    /// la línea de la fuga, así que el troceado seguía correcto a partir de ahí y los guardas de
+    /// vacuidad de la lista blanca (el ancla de ruta y el `count > 60`) seguían pasando.
+    ///
+    /// Alcanzable: no hay `.gitattributes` y `core.autocrlf` está sin poner, así que git commitea
+    /// el CRLF verbatim, y el fichero compila. Hoy no hay ningún fuente con CR, pero nada lo
+    /// impide: basta un editor o una herramienta que escriba CRLF.
+    func test_el_crlf_y_el_cr_son_fin_de_linea_igual_que_para_el_compilador() {
+        trocea("let texto = \"dev\" // nota\r\nprint(\"token \\(valor)\")\n",
+               "let texto = \"dev\" \r\nprint(\"token \\(valor)\")\n",
+               "un comentario terminado en CRLF se tragó la línea siguiente: con `Character`, "
+               + "`\"\\r\\n\"` es UN grafema y no es igual a `\"\\n\"`")
+        trocea("let texto = \"dev\" // nota\rprint(\"token \\(valor)\")\n",
+               "let texto = \"dev\" \rprint(\"token \\(valor)\")\n",
+               "un comentario terminado en un `\\r` solo se tragó el resto del fichero")
+        // Y el terminador se CONSERVA tal cual (no se normaliza a `\n`): las aserciones de bloque
+        // contiguo de la prueba del anillo comparan texto literal del fuente, así que el troceado
+        // no puede reescribir lo que no es un comentario.
+        trocea("let a = 1\r\n/* uno\r\ndos */\r\nlet b = 2\r\n",
+               "let a = 1\r\n\r\n\r\nlet b = 2\r\n",
+               "un bloque con líneas CRLF tiene que conservar sus terminadores, los dos escalares")
+        // La resincronización también tiene que dispararse en el CR: si no, una cadena sin cerrar
+        // en una línea CRLF apaga el troceado del resto del fichero, que es el hueco de los `\"\"\"`
+        // descompensados con otra forma.
+        trocea("let a = \"abierta\r\nlet b = 2 // fuga\r\nlet c = 3",
+               "let a = \"abierta\r\nlet b = 2 \r\nlet c = 3",
+               "la resincronización no se dispara en el CR: el daño de una cadena sin cerrar pasa "
+               + "de su línea")
+    }
+
+    /// **LA HERMANA DEL MISMO HALLAZGO, Y ES LA QUE FIJA LA UNIDAD.** El CRLF se podría haber
+    /// tapado reconociendo `\r` y dejando el recorrido en `Character`. No se hizo, y éste es el
+    /// caso que dice por qué: una comilla seguida de una **marca combinante** (`"` + U+0301) es
+    /// también **UN** `Character`, que **no** es igual a `"\""`. Con el recorrido por grafemas la
+    /// comilla de apertura es invisible, el troceador cree estar en código, ve el `//` de dentro
+    /// de la cadena y **se traga el resto de la línea**.
+    ///
+    /// Medido: `let texto = "<U+0301>//x"; print("token \(valor)")` compila (`swiftc -parse` lo
+    /// acepta: el lexador de Swift trabaja en escalares) y el troceado por grafemas devolvía
+    /// `let texto = "<U+0301>` — el `print` **escondido**, y el residuo visible `let` y `texto`,
+    /// los dos ya en la lista blanca.
+    ///
+    /// Por eso la unidad del recorrido es el **escalar Unicode**, que es la del compilador, y no
+    /// una lista de terminadores parcheada sobre los grafemas: la clase entera de «este grafema
+    /// contiene el delimitador pero no es igual a él» se cierra de una vez.
+    func test_una_marca_combinante_tras_la_comilla_no_esconde_la_linea() {
+        trocea("let texto = \"\u{0301}//x\"; print(\"token \\(valor)\")",
+               "let texto = \"\u{0301}//x\"; print(\"token \\(valor)\")",
+               "la comilla con una marca combinante detrás no se reconoció como comilla: el "
+               + "recorrido va por grafemas y no por escalares")
     }
 
     // MARK: y el conjunto de identificadores, que es lo que las cinco redes comparan

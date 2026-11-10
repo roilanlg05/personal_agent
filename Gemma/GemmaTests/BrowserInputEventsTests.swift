@@ -131,16 +131,29 @@ final class BrowserInputEventsTests: XCTestCase {
     /// otro tipo. No hay parámetro de tipo en ninguna de las tres firmas; esto cubre el resto.
     func test_el_fichero_no_menciona_ningun_otro_tipo_de_entrada() throws {
         let fuente = try fuenteDeProduccion()
+        let codigo = TroceadoDeFuente.sinComentarios(fuente)
         // Guarda de vacuidad: si el fichero estuviera vacío, o esta ruta no apuntara a nada
         // útil, la aserción de abajo pasaría sola. Primero se comprueba que es el fichero real.
-        XCTAssertTrue(fuente.contains("enum BrowserInputEvents"), "la ruta del fuente ya no apunta al fichero de producción")
+        // **Sobre el fuente troceado**: es una PRESENCIA, y sobre el crudo se cumple con la
+        // declaración envuelta en `/* */` —característica borrada, texto conservado—, que es la
+        // clase medida en verde exacto en esta rama (N2).
+        XCTAssertTrue(codigo.contains("enum BrowserInputEvents"), "la ruta del fuente ya no apunta al fichero de producción")
 
-        let regex = try NSRegularExpression(pattern: "input_[a-z_]+")
-        let rango = NSRange(fuente.startIndex..., in: fuente)
-        let encontrados = Set(regex.matches(in: fuente, range: rango).compactMap { coincidencia -> String? in
-            Range(coincidencia.range, in: fuente).map { String(fuente[$0]) }
-        })
-        XCTAssertEqual(encontrados, ["input_mouse", "input_keyboard", "input_touch"])
+        func tiposEn(_ texto: String) throws -> Set<String> {
+            let regex = try NSRegularExpression(pattern: "input_[a-z_]+")
+            let rango = NSRange(texto.startIndex..., in: texto)
+            return Set(regex.matches(in: texto, range: rango).compactMap { coincidencia -> String? in
+                Range(coincidencia.range, in: texto).map { String(texto[$0]) }
+            })
+        }
+        // LAS DOS DIRECCIONES, Y NO SOBRAN. Sobre el **código** (troceado): que los tres tipos
+        // existan de verdad y no haya un cuarto escrito en código —si esto fuera solo sobre el
+        // crudo, los tres se podrían haber borrado y quedarse nombrados en un comentario, y la
+        // igualdad seguiría pasando—. Y sobre el **crudo**: que no haya un cuarto en ninguna
+        // parte, ni en la prosa, que es el lado seguro de una ausencia (si el troceado se
+        // tragara la línea de un `input_scroll`, la ausencia sobre el troceado pasaría en verde).
+        XCTAssertEqual(try tiposEn(codigo), ["input_mouse", "input_keyboard", "input_touch"])
+        XCTAssertEqual(try tiposEn(fuente), ["input_mouse", "input_keyboard", "input_touch"])
     }
 
     // MARK: el tope del relé
@@ -212,8 +225,15 @@ final class BrowserInputEventsTests: XCTestCase {
         // Guarda de vacuidad, igual que arriba: la aserción de abajo es una AUSENCIA y pasaría
         // sola si el fichero estuviera vacío o la ruta estuviera mal. Primero, que sea el
         // fichero de verdad y que tenga dentro las tres funciones que manejan la tecla.
+        // Los anclas, **sobre el fuente troceado**: son PRESENCIAS y sobre el crudo se cumplen
+        // con las cuatro funciones comentadas. La lista de registradores de abajo se queda sobre
+        // el **crudo** a propósito: es una AUSENCIA, y ahí el crudo es estrictamente más fuerte
+        // —un `print(` escrito en un comentario pone esto rojo (ruido visible), mientras que
+        // sobre el troceado una línea que el troceado se tragara pasaría en verde (silencio, que
+        // es G1/N1, el bypass que costó cuatro rondas en esta rama).
+        let codigo = TroceadoDeFuente.sinComentarios(fuente)
         for ancla in ["enum BrowserInputEvents", "func mouse", "func keyboard", "func touch", "func cabeEnElTope"] {
-            XCTAssertTrue(fuente.contains(ancla), "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
+            XCTAssertTrue(codigo.contains(ancla), "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
         }
         for registro in ["PanelLog", "print(", "NSLog", "os_log", "Logger", "OSLog", "FileHandle", "debugPrint"] {
             XCTAssertFalse(fuente.contains(registro),

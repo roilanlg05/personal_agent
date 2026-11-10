@@ -881,8 +881,12 @@ final class BrowserPanelViewTests: XCTestCase {
 
         // Guarda de vacuidad 1: que la ruta apunte al fichero de verdad. Todas las aserciones de
         // esta prueba son AUSENCIAS y pasarían solas con el fichero vacío o la ruta mal.
+        //
+        // **Sobre el fuente TROCEADO**: el guarda es una PRESENCIA, y una presencia sobre el
+        // crudo se cumple con la declaración envuelta en `/* */` —característica borrada, texto
+        // conservado—. Un guarda de vacuidad que pasa con el fichero comentado no guarda nada.
         for ancla in ["enum BrowserMandoEntrada", "func mensajesDeTeclado", "protocol MandoDelNavegador"] {
-            XCTAssertTrue(fuente.contains(ancla),
+            XCTAssertTrue(TroceadoDeFuente.sinComentarios(fuente).contains(ancla),
                           "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
         }
 
@@ -916,8 +920,13 @@ final class BrowserPanelViewTests: XCTestCase {
     /// fichero, y eso es lo que esta prueba sostiene.
     func test_el_panel_delega_toda_la_entrada_en_el_fichero_vigilado() throws {
         let panel = try fuenteDeProduccion("Gemma/Harness/BrowserPanelView.swift")
+        // La PRESENCIA de la delegación va sobre el fuente troceado (sobre el crudo se cumple con
+        // la línea comentada); las AUSENCIAS de abajo van sobre el crudo, que es el lado seguro
+        // de un trinquete de ausencia: ahí lo que hay que impedir es que el troceado se trague
+        // una línea y la primitiva vuelva en verde.
+        let codigoDelPanel = TroceadoDeFuente.sinComentarios(panel)
         for delegacion in ["BrowserMandoGestos", "BrowserMandoBarra"] {
-            XCTAssertTrue(panel.contains(delegacion),
+            XCTAssertTrue(codigoDelPanel.contains(delegacion),
                           "el panel ya no delega la entrada: falta \(delegacion)")
         }
         for primitiva in ["SecureField", "TextField", "DragGesture", "onKeyPress",
@@ -953,7 +962,15 @@ final class BrowserPanelViewTests: XCTestCase {
     /// pondrá roja y habrá que mirar lo que cambió. Es ruido visible en vez de silencio, el mismo
     /// intercambio que la lista blanca.
     func test_el_cuerpo_del_mando_cablea_las_puertas_que_la_suite_no_puede_ejecutar() throws {
-        let f = try fuenteDeProduccion("Gemma/Harness/BrowserMando.swift")
+        // **SOBRE EL FUENTE TROCEADO**, igual que su gemela de más abajo (la del anillo), y por
+        // el mismo motivo medido: todas las aserciones de esta prueba son PRESENCIAS, y una
+        // presencia sobre el texto crudo **se cumple con la característica borrada**. El par
+        // oculta/control está medido con la suite entera: envolver el bloque en `/* */` dejaba la
+        // suite en su verde exacto con la característica fuera, y borrarlo de verdad la ponía
+        // roja. Los dos recuentos exactos (`components(separatedBy:)`) también quedan sobre
+        // código y no sobre prosa, que es lo que los hace recuentos.
+        let f = TroceadoDeFuente.sinComentarios(
+            try fuenteDeProduccion("Gemma/Harness/BrowserMando.swift"))
 
         // Guarda de vacuidad: que la ruta apunte al fichero de verdad. Todas las aserciones de
         // abajo son presencias de texto y pasarían con la ruta mal si el fichero no existiera…

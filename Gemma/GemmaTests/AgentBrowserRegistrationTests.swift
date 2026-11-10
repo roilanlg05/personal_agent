@@ -66,7 +66,18 @@ final class AgentBrowserRegistrationTests: XCTestCase {
         let testFile = URL(fileURLWithPath: #filePath)
         let source = testFile.deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Gemma/Harness/HarnessModel.swift")
-        let text = try String(contentsOf: source, encoding: .utf8)
+        // SOBRE EL FUENTE **TROCEADO**, no sobre el crudo, y es la diferencia entre medir y no
+        // medir. Las dos aserciones de abajo son de PRESENCIA, y una presencia sobre el texto
+        // crudo **se cumple con la característica borrada**: basta envolver la llamada en
+        // `/* */` para que el código desaparezca y el texto se conserve. Medido con la suite
+        // ENTERA el 2026-11-10: con esta línea y la de `ClaveDeProveedor.migrarTodas()` de
+        // `GemmaApp` envueltas en `/* */`, la suite se quedaba en su VERDE EXACTO con dos
+        // características de producción borradas —el registro de las herramientas del navegador
+        // y la migración de las API keys de pago—; borrarlas de verdad ponía rojas estas dos
+        // pruebas. Es decir: las dos redes existían, funcionaban, y un comentario de bloque las
+        // cegaba. El troceado compartido es el único sitio donde esto se arregla una vez; una
+        // copia a mano aquí sería un bypass por construcción.
+        let text = TroceadoDeFuente.sinComentarios(try String(contentsOf: source, encoding: .utf8))
         XCTAssertTrue(text.contains("Self.registerBrowserTools(into: registry,"),
                       "runAgentTurn ya no llama a registerBrowserTools: un turno real no registraría ninguna herramienta de navegador")
         // La propiedad que de verdad hay que clavar: el permiso para cerrar sale del MENSAJE

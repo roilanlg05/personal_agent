@@ -421,22 +421,47 @@ final class BrowserRelayClientTests: XCTestCase {
     /// crearía justo lo que esto prohíbe, un sitio más donde una contraseña puede acabar.
     ///
     /// El precio de esta prueba, dicho a propósito: las dos líneas de registro que quedan en el
-    /// fichero no pueden usar las palabras «entrada» ni «texto» ni en su prosa. Es un precio
-    /// barato y la alternativa (buscar solo interpolaciones) se la salta un `+`.
+    /// fichero no pueden usar las palabras «entrada» ni «texto». (Desde que esto mide sobre el
+    /// fuente **troceado**, su prosa sí puede: el comentario de final de línea ya no entra.)
+    ///
+    /// EL HUECO QUE QUEDA, DECLARADO CON SU DISPARADOR Y NO ATRIBUIDO A NADIE. Esto mide **línea
+    /// a línea**, así que una fuga **partida en dos líneas** la esquiva. Disparador exacto,
+    /// medido textualmente sobre el código de esta red (oculta verde, control roja):
+    ///
+    ///     PanelLog.note("lo que el usuario teclea: "
+    ///                   + entrada)
+    ///
+    /// La primera línea tiene el registrador y no la palabra; la segunda tiene la palabra y no el
+    /// registrador. Cerrarlo pide juntar las continuaciones de una llamada antes de mirar, que es
+    /// otra vez un analizador de Swift a mano (ver «QUÉ NO DEFIENDE» en `TroceadoDeFuente`), y no
+    /// se arregla con el troceado: el troceado es el que distingue código de comentario, no el
+    /// que reconstruye expresiones.
     func test_ninguna_linea_de_registro_de_este_cliente_lleva_la_entrada_del_usuario() throws {
+        // EL TROCEADO ES **EL COMPARTIDO** (`TroceadoDeFuente`), Y AQUÍ VIVÍA UNA SEXTA COPIA A
+        // MANO. Esta pantalla filtraba los comentarios con un `guard !limpia.hasPrefix("//")`
+        // propio, escrito con `hasPrefix` en vez de con `range(of:)`, y por eso **el censo de
+        // «cero copias restantes» de dos rondas atrás no la encontró**: buscaba la forma exacta
+        // de las otras cinco. Una copia a mano es un bypass por construcción —cada arreglo del
+        // troceado compartido pasa de largo por ella—, y este filtro por prefijo tenía además su
+        // propio defecto: no sabe nada de cadenas, así que un `//` dentro de una cadena en el
+        // margen izquierdo lo habría tratado como comentario, y no quitaba el comentario de
+        // **final** de línea, con lo que una línea de registro legítima con la palabra «entrada»
+        // en su comentario ponía esto rojo sin que hubiera fuga.
         let fuente = try fuenteDelCliente()
+        let codigo = TroceadoDeFuente.sinComentarios(fuente)
         // Guarda de vacuidad en dos mitades: que la ruta apunte al fichero de verdad, y que el
         // fichero tenga dentro tanto las funciones que tocan la entrada como al menos una línea
         // de registro. Sin la segunda, un fichero sin un solo rastro pasaría esta prueba sola.
+        // Sobre el **código** troceado: son PRESENCIAS, y sobre el crudo se cumplen con las
+        // declaraciones envueltas en `/* */` (característica borrada, texto conservado).
         for ancla in ["func manda(entrada: String)", "func enviaPorElCanal(_ texto: String)",
                       "func tomaElMando()", "PanelLog.note"] {
-            XCTAssertTrue(fuente.contains(ancla), "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
+            XCTAssertTrue(codigo.contains(ancla), "la ruta del fuente ya no apunta al fichero de producción: falta \(ancla)")
         }
         let registradores = ["PanelLog", "print(", "NSLog", "os_log", "Logger", "OSLog", "debugPrint"]
         var lineasDeRegistro = 0
-        for linea in fuente.split(separator: "\n", omittingEmptySubsequences: false) {
+        for linea in codigo.split(whereSeparator: { $0.isNewline }) {
             let limpia = linea.trimmingCharacters(in: .whitespaces)
-            guard !limpia.hasPrefix("//") else { continue }  // la documentación los nombra, y debe
             guard registradores.contains(where: { linea.contains($0) }) else { continue }
             lineasDeRegistro += 1
             for prohibido in ["entrada", "texto"] {

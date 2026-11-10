@@ -596,26 +596,32 @@ final class TokenDeMemoriaTests: XCTestCase {
     /// `init` llama a `ensureVoice()`, que ya lee el token. Si se cayera al `.task` de abajo, el
     /// primer arranque tras la actualización dejaría al usuario sin voz hasta reiniciar.
     func test_la_vista_y_el_arranque_no_guardan_el_token_en_userdefaults() throws {
+        // Las PRESENCIAS van sobre el fuente troceado y las AUSENCIAS sobre el crudo; el motivo,
+        // con su medición, está en `TokenDeConducirTests` y en el doc-comment de
+        // `TroceadoDeFuente`: una presencia sobre el crudo se cumple con la línea envuelta en
+        // `/* */` —característica borrada, texto conservado—, y una ausencia sobre el troceado se
+        // cumple si el troceado se traga la línea de la fuga.
         let ajustes = try fuenteDeLaApp("Settings/SettingsView.swift")
+        let codigoDeAjustes = TroceadoDeFuente.sinComentarios(ajustes)
 
         // Guardas de vacuidad: que el fichero sea el que creemos y siga teniendo el campo, y que
         // el campo siga pintándose como secreto.
-        XCTAssertTrue(ajustes.contains("Section(\"Memory Service\")"),
+        XCTAssertTrue(codigoDeAjustes.contains("Section(\"Memory Service\")"),
                       "la ruta ya no apunta a SettingsView")
-        XCTAssertTrue(ajustes.contains("esSecreto: true, texto: $memoryBearerToken"),
+        XCTAssertTrue(codigoDeAjustes.contains("esSecreto: true, texto: $memoryBearerToken"),
                       "el campo del token sigue pintándose como secreto")
 
         XCTAssertFalse(ajustes.contains("@AppStorage(\"memoryBearerToken\")"),
                        "el token de memoria NO puede volver a `@AppStorage`: ése era el defecto")
         XCTAssertFalse(ajustes.contains("@AppStorage(SettingsKeys.memoryBearerToken)"),
                        "tampoco por la constante")
-        XCTAssertTrue(ajustes.contains("TokenDeMemoria.leer()"), "lo lee del llavero")
-        XCTAssertTrue(ajustes.contains("TokenDeMemoria.guardar(nuevo)"),
+        XCTAssertTrue(codigoDeAjustes.contains("TokenDeMemoria.leer()"), "lo lee del llavero")
+        XCTAssertTrue(codigoDeAjustes.contains("TokenDeMemoria.guardar(nuevo)"),
                       "y lo guarda en el llavero en cada cambio")
-        XCTAssertTrue(ajustes.contains("TokenDeMemoria.migrar()"),
+        XCTAssertTrue(codigoDeAjustes.contains("TokenDeMemoria.migrar()"),
                       "y migra al abrir Ajustes")
 
-        let app = try fuenteDeLaApp("GemmaApp.swift")
+        let app = TroceadoDeFuente.sinComentarios(try fuenteDeLaApp("GemmaApp.swift"))
         XCTAssertTrue(app.contains("struct GemmaApp: App"), "la ruta ya no apunta a GemmaApp")
         let migracion = try XCTUnwrap(app.range(of: "TokenDeMemoria.migrar()"),
                                       "el arranque tiene que migrar: si no, quien no abra Ajustes "
@@ -632,11 +638,12 @@ final class TokenDeMemoriaTests: XCTestCase {
     /// Es lo que permite que ninguna prueba toque la entrada de producción del llavero.
     func test_el_modelo_lee_los_secretos_del_almacen_que_recibe() throws {
         let arnes = try fuenteDeLaApp("Harness/HarnessModel.swift")
-        XCTAssertTrue(arnes.contains("let almacenDeSecretos: any AlmacenDeSecretos"),
+        let codigoDelArnes = TroceadoDeFuente.sinComentarios(arnes)
+        XCTAssertTrue(codigoDelArnes.contains("let almacenDeSecretos: any AlmacenDeSecretos"),
                       "la ruta ya no apunta a HarnessModel o el almacén dejó de ser inyectable")
-        XCTAssertTrue(arnes.contains("Self.memorySettings(almacen: almacenDeSecretos)"),
+        XCTAssertTrue(codigoDelArnes.contains("Self.memorySettings(almacen: almacenDeSecretos)"),
                       "`ensureMemory` tiene que usar el almacén inyectado")
-        XCTAssertTrue(arnes.contains("Self.voiceSettings(almacen: almacenDeSecretos)"),
+        XCTAssertTrue(codigoDelArnes.contains("Self.voiceSettings(almacen: almacenDeSecretos)"),
                       "`ensureVoice` tiene que usar el almacén inyectado")
         XCTAssertFalse(arnes.contains("forKey: \"memoryBearerToken\""),
                        "ningún lector puede volver a `UserDefaults` por el token")

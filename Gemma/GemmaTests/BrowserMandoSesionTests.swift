@@ -130,7 +130,13 @@ final class BrowserMandoSesionTests: XCTestCase {
     /// lo que había salido: el relé solo acepta entrada del portador, y el portador ES el
     /// socket, así que lo que salga después no llega a la página.
     @MainActor func test_retirar_el_panel_a_mitad_de_gesto_suelta_el_boton_antes_de_cerrar_el_socket() async throws {
-        let mando = MandoDeMentira()
+        // EL `mousePressed` SE QUEDA COLGADO EN EL ENVÍO, y es lo que hace medible el orden. Sin
+        // la puerta, todo sale en el mismo puñado de saltos del hilo principal y el cierre del
+        // socket (que también es asíncrono: `onTermination` no corre en el `cancel()`) llegaba
+        // detrás por suerte. MEDIDO: con el consumidor cancelado ANTES de esperar al soltar
+        // (h3b de la ronda 6) la versión sin puerta de esta prueba seguía verde.
+        let puerta = PrimeraEnLaPuerta()
+        let mando = MandoDeMentira(antesDeMandar: { await puerta.pasa() })
         let alCerrar = Foto()
         let c = BrowserPanelCoordinator(stream: {
             (AsyncStream { cont in cont.onTermination = { _ in alCerrar.toma(mando.entradas) } }, mando)
@@ -140,8 +146,15 @@ final class BrowserMandoSesionTests: XCTestCase {
 
         XCTAssertTrue(sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen, dimensionesDelCable: cable),
                       "el toque en el centro tiene que mandar el `mousePressed`; sin esto el resto pasaría sin gesto")
+        let colgado = await puerta.esperaQueAlguienEntre()
+        XCTAssertTrue(colgado, "el `mousePressed` no llegó al envío: la prueba no mediría el orden")
 
         c.endTurn(survive: false, porque: "la prueba del botón hundido")
+        // Con el pulsar todavía en vuelo, el socket NO puede haberse cerrado: es la propiedad.
+        for _ in 0..<1_000 { await Task.yield() }
+        XCTAssertFalse(alCerrar.tomada,
+                       "el socket se cerró con el `mousePressed` todavía en vuelo: el soltar no llegará nunca")
+        puerta.abre()
         let cerrado = await esperaHasta { alCerrar.tomada }
         XCTAssertTrue(cerrado, "el socket del panel retirado no se cerró nunca")
         XCTAssertEqual(alCerrar.foto, [pulsadoEnElCentro, soltadoEnElCentro],

@@ -392,7 +392,7 @@ final class BrowserPanelViewTests: XCTestCase {
     /// se mandó, y el usuario no tiene forma de saber cuál de los dos pasó.
     ///
     /// LO QUE EL ANILLO NO DICE, DICHO POR DELANTE: no dice «la página lo recibió». No se puede
-    /// decir — `BrowserMandoEnvio.encola` descarta el booleano del envío, y ese booleano
+    /// decir — el booleano del envío (que `BrowserMandoEnvio.encola` ya no tira desde la ronda 6)
     /// significa «el mensaje salió del aparato», no «la página lo aplicó». Un acuse por punto
     /// sería un dato nuevo en el cable. El anillo dice exactamente «de aquí salió entrada», que
     /// es lo máximo que este lado sabe.
@@ -1029,6 +1029,16 @@ final class BrowserPanelViewTests: XCTestCase {
         XCTAssertTrue(f.contains("if state.quienConduce == .yo { sesion?.olvidaElFallo() }"),
                       "el aviso de lo que no salió ya no se apaga con el volante nuevo, o se apaga con cualquier cambio")
 
+        // N2 (ronda 7) — devolver el volante cierra antes el gesto abierto, con la espera
+        // acotada. Lo que hace `cierraElGesto` se ejecuta en `BrowserMandoSesionTests`; que el
+        // botón lo llame solo se ve aquí.
+        XCTAssertTrue(f.contains("""
+                    if accion == .devuelve, let cierre = sesion?.cierraElGesto() {
+                        await BrowserMandoEnvio.espera(cierre, comoMucho: BrowserMandoEnvio.plazoParaLoQueQuedaEnVuelo)
+                    }
+        """.trimmingCharacters(in: .newlines)),
+                      "devolver el volante ya no cierra el gesto abierto: con otro dedo sobre la imagen, botón hundido")
+
         // MD — el borrado del campo NO manda `Backspace` a la página: el número de pulsaciones
         // delataría la longitud de la contraseña.
         XCTAssertTrue(f.contains(
@@ -1341,6 +1351,17 @@ final class BrowserPanelViewTests: XCTestCase {
         "Observable", "class", "final", "init", "self", "weak", "set",
         // y H2: `seconds` es la unidad de la derivación `intervaloDeMuestreo = .seconds(1) / …`.
         "seconds",
+        // la ronda 7: el tope de verdad de la espera (N1) y el cierre del gesto al devolver el
+        // volante (N2). Revisados uno a uno: **ninguno escribe, persiste, notifica ni acumula**.
+        // `withCheckedContinuation`/`CheckedContinuation`/`resume`/`continuacion` y la clase
+        // `ReanudaUnaSolaVez` (`unaSola`, `reanuda`) son la carrera entre el envío y el reloj,
+        // en memoria y sin datos: la continuación lleva `Void`. `espera` ya estaba;
+        // `comoMucho`/`plazo`/`plazoParaLoQueQuedaEnVuelo`/`tarea` son su firma y su constante;
+        // `cierraElGesto`/`cierre` cierran el gesto (borran el punto, no lo guardan);
+        // `nonisolated` es lenguaje.
+        "withCheckedContinuation", "CheckedContinuation", "resume", "continuacion",
+        "ReanudaUnaSolaVez", "unaSola", "reanuda", "comoMucho", "plazo",
+        "plazoParaLoQueQuedaEnVuelo", "tarea", "cierraElGesto", "cierre", "nonisolated",
         // las palabras de la única cadena literal del fichero, la pista del campo de texto
         // («lo que escribas va a la página»). Son prosa, no identificadores, y entran porque el
         // troceado no distingue una cadena de un nombre. Son también la razón de que el corte

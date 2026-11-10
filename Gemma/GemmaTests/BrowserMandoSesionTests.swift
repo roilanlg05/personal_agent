@@ -163,6 +163,65 @@ final class BrowserMandoSesionTests: XCTestCase {
         XCTAssertNil(c.sesion(de: id), "el panel retirado se queda con su sesión, y con ella el cliente del relé")
     }
 
+    /// **UN ENVÍO COLGADO NO RETIENE EL SOCKET MÁS QUE EL PLAZO** (N1 de la re-revisión de la
+    /// ronda 6). La espera de `retire` tenía un tope escrito y no tenía tope de verdad: con un
+    /// envío que no vuelve, el socket del panel retirado se quedaba abierto, el relé seguía
+    /// viendo al usuario como portador y **el agente recibía 409 en cada herramienta**.
+    ///
+    /// Se mide con el plazo **de producción** (`plazoParaLoQueQuedaEnVuelo`), no con uno
+    /// inyectado: una prueba con su propio plazo dejaría vivo cualquier cambio del de verdad.
+    /// Y con un reloj de verdad y una espera ACOTADA que devuelve un `Bool`: si el tope vuelve
+    /// a desaparecer, esto es un rojo con su frase, no un cuelgue.
+    @MainActor func test_un_envio_colgado_no_retiene_el_socket_mas_que_el_plazo() async throws {
+        let colgado = EnvioColgado()
+        defer { colgado.libera() }
+        let mando = MandoDeMentira(antesDeMandar: { await colgado.cuelga() })
+        let alCerrar = Foto()
+        let c = BrowserPanelCoordinator(stream: {
+            (AsyncStream { cont in cont.onTermination = { _ in alCerrar.toma(mando.entradas) } }, mando)
+        })
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        let sesion = try XCTUnwrap(c.sesion(de: id))
+        XCTAssertTrue(sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen, dimensionesDelCable: cable))
+        let entro = await esperaHasta { colgado.entro }
+        XCTAssertTrue(entro, "el envío no llegó a colgarse: la prueba no mediría el tope")
+
+        let plazo = BrowserMandoEnvio.plazoParaLoQueQuedaEnVuelo
+        let reloj = ContinuousClock()
+        let t0 = reloj.now
+        c.endTurn(survive: false, porque: "la prueba del envío colgado")
+        let cerrado = await esperaHastaPorReloj(plazo + .seconds(2)) { alCerrar.tomada }
+        let tardo = t0.duration(to: reloj.now)
+        XCTAssertTrue(cerrado,
+                      "con un envío colgado el socket del panel retirado no se cerró en \(plazo + .seconds(2)): "
+                      + "el relé seguiría viendo al usuario como portador y el agente recibiría 409")
+        XCTAssertTrue(colgado.entro && !colgado.liberado,
+                      "el socket tiene que cerrarse CON el envío todavía colgado; si no, esto no mide el tope")
+        XCTAssertEqual(alCerrar.foto, [], "el envío colgado no salió, y nada salió detrás de él")
+        XCTAssertGreaterThanOrEqual(tardo, plazo - .milliseconds(100),
+                                    "el socket se cerró antes del plazo: no se esperó a lo que quedaba en vuelo")
+    }
+
+    /// **DEVOLVER EL VOLANTE A MITAD DE GESTO CIERRA EL GESTO** (N2), sin soltar el mando: el
+    /// panel sigue vivo y el usuario puede volver a tomarlo. El soltar sale en el último punto
+    /// bueno, y la sesión sigue mandando: el siguiente toque es un clic nuevo.
+    @MainActor func test_cerrar_el_gesto_suelta_el_boton_y_la_sesion_sigue_viva() async {
+        let mando = MandoDeMentira()
+        let sesion = BrowserMandoSesion(mando: mando)
+        XCTAssertTrue(sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen, dimensionesDelCable: cable))
+        let cierre = sesion.cierraElGesto()
+        XCTAssertNotNil(cierre, "con un gesto abierto, cerrar tiene que devolver la cola para esperarla")
+        let salio = await esperaHasta { mando.entradas.count == 2 }
+        XCTAssertTrue(salio)
+        XCTAssertEqual(mando.entradas, [pulsadoEnElCentro, soltadoEnElCentro], "el gesto no se cerró con su soltar")
+
+        XCTAssertTrue(sesion.toca(punto: cuarto, vista: imagen, tamañoDeLaImagen: imagen, dimensionesDelCable: cable))
+        let tres = await esperaHasta { mando.entradas.count == 3 }
+        XCTAssertTrue(tres, "tras cerrar el gesto la sesión dejó de mandar: cerrar no es retirar")
+        XCTAssertEqual(mando.entradas.last,
+                       #"{"button":"left","clickCount":1,"eventType":"mousePressed","type":"input_mouse","x":320,"y":180}"#)
+    }
+
     /// Y sin gesto abierto no se manda nada, y el socket se cierra **en el acto**, como antes de
     /// esta ronda: el soltar defensivo es para el gesto abierto, no un mensaje de cortesía.
     @MainActor func test_retirar_el_panel_sin_gesto_abierto_no_manda_nada() async throws {
@@ -294,6 +353,36 @@ final class BrowserMandoSesionTests: XCTestCase {
             await Task.yield()
         }
         return condicion()
+    }
+
+    /// Como `esperaHasta`, pero por **reloj de pared**: lo que se mide aquí es un plazo en
+    /// segundos, y los saltos del hilo principal no son tiempo. Acotada y devolviendo `Bool`.
+    @MainActor private func esperaHastaPorReloj(_ limite: Duration, _ condicion: @MainActor () -> Bool) async -> Bool {
+        let reloj = ContinuousClock()
+        let fin = reloj.now.advanced(by: limite)
+        while reloj.now < fin {
+            if condicion() { return true }
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        return condicion()
+    }
+
+    /// Un envío que NO VUELVE hasta que la prueba lo libera (o, como red, a los 30 s): el envío
+    /// colgado de un enlace muerto, que no atiende a la cancelación.
+    private final class EnvioColgado: @unchecked Sendable {
+        private let candado = NSLock()
+        private var _entro = false
+        private var _liberado = false
+        var entro: Bool { candado.withLock { _entro } }
+        var liberado: Bool { candado.withLock { _liberado } }
+        func libera() { candado.withLock { _liberado = true } }
+        func cuelga() async {
+            candado.withLock { _entro = true }
+            let fin = ContinuousClock.now.advanced(by: .seconds(30))
+            while !liberado, ContinuousClock.now < fin {
+                try? await Task.sleep(for: .milliseconds(5))
+            }
+        }
     }
 
     private final class Contador: @unchecked Sendable {

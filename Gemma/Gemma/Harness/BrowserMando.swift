@@ -199,10 +199,10 @@ public enum BrowserMandoEntrada {
     /// anillo es, literalmente, la única realimentación de dónde cayó su dedo.
     ///
     /// LO QUE EL ANILLO DICE, Y LO QUE NO. Dice «de este punto salió un mensaje de entrada».
-    /// **No** dice «la página lo recibió», y no se puede decir: `BrowserMandoEnvio.encola`
-    /// descarta el booleano del envío, y ese booleano significa «el mensaje salió del aparato»,
-    /// no «la página lo aplicó». Un acuse de recepción por punto sería un dato nuevo en el
-    /// cable.
+    /// **No** dice «la página lo recibió», y no se puede decir: el booleano del envío (que
+    /// `BrowserMandoEnvio.encola` ya no tira: un `false` sube el aviso de lo que no salió)
+    /// significa «el mensaje salió del aparato», no «la página lo aplicó». Un acuse de recepción
+    /// por punto sería un dato nuevo en el cable.
     ///
     /// LAS DOS PUERTAS SON `&&`, Y LAS DOS SON OBLIGATORIAS:
     ///
@@ -452,6 +452,66 @@ public enum BrowserMandoEnvio {
         }
     }
 
+    /// Cuánto se espera, como mucho, a que salga lo que quedaba en vuelo de un gesto (el soltar
+    /// defensivo incluido) antes de dar el volante por perdido: antes de cerrar el socket de un
+    /// panel retirado (`BrowserPanelCoordinator.retire`) y antes de devolver el volante
+    /// (`BrowserMandoBarra.pulsa`).
+    ///
+    /// 1 s ES UN JUICIO, NO UNA MEDICIÓN, con su razón. La cola de un gesto es un mensaje por
+    /// eslabón y sin esperas (el reparto en el tiempo es del teclado), así que con el enlace
+    /// sano se vacía en milisegundos; si un segundo no basta, el enlace está muerto en la
+    /// práctica. Lo que SÍ está medido es que el tope existe (`BrowserMandoSesionTests`
+    /// `.test_un_envio_colgado_no_retiene_el_socket_mas_que_el_plazo`): con un envío que no
+    /// vuelve, el socket se cierra al cumplirse el plazo. Más largo retrasaría liberar el
+    /// socket, y con él el volante: mientras el socket viva el relé sigue viendo al usuario
+    /// como portador y **el agente recibe 409 en cada herramienta**.
+    ///
+    /// Lo que cuesta pasarse del plazo: el soltar que seguía colgado no llega, y el botón puede
+    /// quedar hundido igual que con un corte de red (hueco declarado, del relé).
+    nonisolated public static let plazoParaLoQueQuedaEnVuelo: Duration = .seconds(1)
+
+    /// Espera a `tarea` **o** a que pase `plazo`, lo que llegue antes, y vuelve EN ESE MOMENTO.
+    ///
+    /// 🔴 LA VERSIÓN ANTERIOR NO TENÍA TOPE, y el motivo es una regla de Swift que no se ve: un
+    /// `withTaskGroup` espera a **todos** sus hijos al salir, y `await tarea.value` no atiende
+    /// a `cancelAll()` (cancela al hijo que espera, no a la tarea esperada). Medido por el
+    /// revisor con una sonda aislada: plazo 1 s, envío de 5 s → volvía a los 5,04 s. El
+    /// comentario prometía un tope que no existía, y con un envío colgado el socket del panel
+    /// retirado se quedaba abierto: el relé seguía viendo al usuario como portador y el agente
+    /// recibía 409 en cada herramienta.
+    ///
+    /// Ahora la espera y el reloj corren en dos tareas **independientes** que compiten por
+    /// reanudar UNA continuación; la primera que llega la reanuda y la otra encuentra la
+    /// continuación ya gastada y no hace nada. Nadie espera a la perdedora. La tarea esperada
+    /// **no se cancela**: no detendría un envío colgado (el envío no atiende a la cancelación) y
+    /// sí podría cortar un mensaje que todavía no ha salido, que es la avería de `retira()` con
+    /// la cola cancelada. Lo que la para es cerrar el socket, que es lo que hace quien llama.
+    public static func espera(_ tarea: Task<Void, Never>, comoMucho plazo: Duration) async {
+        await withCheckedContinuation { (continuacion: CheckedContinuation<Void, Never>) in
+            let unaSola = ReanudaUnaSolaVez(continuacion)
+            Task { @MainActor in
+                await tarea.value
+                unaSola.reanuda()
+            }
+            Task { @MainActor in
+                try? await Task.sleep(for: plazo)
+                unaSola.reanuda()
+            }
+        }
+    }
+
+    /// Una continuación que se reanuda **una sola vez** aunque la reclamen dos. Todo en el hilo
+    /// principal, así que el `Bool` no necesita candado.
+    @MainActor
+    private final class ReanudaUnaSolaVez {
+        private var continuacion: CheckedContinuation<Void, Never>?
+        init(_ continuacion: CheckedContinuation<Void, Never>) { self.continuacion = continuacion }
+        func reanuda() {
+            continuacion?.resume()
+            continuacion = nil
+        }
+    }
+
     /// Ejecuta la acción del botón. Devuelve si el mensaje **salió del aparato**, que es lo único
     /// que el cliente puede saber: el servidor no contesta a una toma, ni para bien ni para mal.
     ///
@@ -572,16 +632,26 @@ public final class BrowserMandoSesion {
     /// Y la sesión queda **cerrada**: sin mando, sin gesto y sin cola. Un `.onEnded` tardío no
     /// manda nada, y el cliente del relé deja de estar referenciado desde aquí.
     public func retira() -> Task<Void, Never>? {
+        let enVuelo = cierraElGesto()
+        mando = nil
+        cola = nil
+        return enVuelo
+    }
+
+    /// **CIERRA EL GESTO ABIERTO SIN SOLTAR EL MANDO**: el soltar defensivo de `retira()`, para
+    /// cuando el panel sigue vivo y el volante se va a perder por decisión del usuario
+    /// (el botón «Devolverlo» pulsado con otro dedo todavía sobre la imagen: N2 de la
+    /// re-revisión de la ronda 6). Devuelve la cola hasta su último mensaje para que quien
+    /// llama espere —acotado, `BrowserMandoEnvio.espera`— a que salga **antes** de devolver el
+    /// volante: tras el `mando` del servidor, el relé ya no aceptaría el soltar.
+    public func cierraElGesto() -> Task<Void, Never>? {
         if let donde = ultimaPagina {
             cola = BrowserMandoEnvio.encola([BrowserMandoEntrada.soltado(en: donde)], por: mando, tras: cola,
                                             alFallar: { [weak self] in self?.notaQueNoSalio() })
         }
-        let enVuelo = cola
-        mando = nil
-        cola = nil
         ultimaPagina = nil
         ultimoMuestreo = nil
-        return enVuelo
+        return cola
     }
 
     /// **EL VOLANTE SE PERDIÓ POR OTRO CAMINO** (el servidor se lo dio a otro, o se cortó la
@@ -865,6 +935,13 @@ struct BrowserMandoBarra: View {
         // `"agente"` y ése es el que mueve el rótulo.
         if accion == .toma { pidiendoDesde = ContinuousClock.Instant.now }
         Task {
+            // DEVOLVER A MITAD DE GESTO CIERRA EL GESTO ANTES (N2). Con un dedo sobre la imagen y
+            // otro en este botón, el `mando` del servidor llegaría con un `mousePressed` sin su
+            // `mouseReleased`, y tras él el relé ya no acepta el soltar: botón hundido. Se espera
+            // acotado, igual que al retirar el panel.
+            if accion == .devuelve, let cierre = sesion?.cierraElGesto() {
+                await BrowserMandoEnvio.espera(cierre, comoMucho: BrowserMandoEnvio.plazoParaLoQueQuedaEnVuelo)
+            }
             // EL BOOLEANO NO SE TIRA, y es información gratis. Significa «el mensaje salió del
             // aparato»; un `false` es que no hay conexión o que el mensaje pasa del tope del
             // relé, o sea algo que el aparato YA SABE. Tirarlo dejaba el botón en «pidiendo…» y

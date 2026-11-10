@@ -262,31 +262,9 @@ public final class BrowserPanelCoordinator {
             consumidor?.cancel()
             return
         }
-        let plazo = Self.plazoParaLoQueQuedaEnVuelo
         Task { @MainActor in
-            await Self.espera(enVuelo, comoMucho: plazo)
+            await BrowserMandoEnvio.espera(enVuelo, comoMucho: BrowserMandoEnvio.plazoParaLoQueQuedaEnVuelo)
             consumidor?.cancel()
-        }
-    }
-
-    /// Cuánto se espera, como mucho, a que salga lo que quedaba en vuelo (el soltar defensivo
-    /// incluido) antes de cerrar el socket de un panel retirado.
-    ///
-    /// NO HAY MEDICIÓN: 1 s es un juicio, con su razón. La cola de un gesto es un mensaje por
-    /// eslabón y sin esperas (el reparto en el tiempo es del teclado), así que con el enlace
-    /// sano se vacía en milisegundos; si un segundo no basta, el enlace está muerto en la
-    /// práctica y esperar más solo retrasa liberar el socket —y el volante, que el relé
-    /// devuelve al agente cuando el portador se va—. ACOTADO A PROPÓSITO: una espera sin tope
-    /// sobre un envío colgado dejaría el socket abierto para siempre, con el panel ya congelado.
-    nonisolated static let plazoParaLoQueQuedaEnVuelo: Duration = .seconds(1)
-
-    /// Espera a `tarea`, o a que pase `plazo`, lo que llegue antes.
-    private static func espera(_ tarea: Task<Void, Never>, comoMucho plazo: Duration) async {
-        await withTaskGroup(of: Void.self) { grupo in
-            grupo.addTask { await tarea.value }
-            grupo.addTask { try? await Task.sleep(for: plazo) }
-            await grupo.next()
-            grupo.cancelAll()
         }
     }
 

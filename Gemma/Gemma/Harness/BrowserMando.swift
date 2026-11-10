@@ -268,9 +268,20 @@ public enum BrowserMandoEntrada {
                                               boton: .izquierdo, pulsaciones: 0)], pagina)
         case .suelta:
             guard let donde = pagina ?? ultimaPagina else { return ([], nil) }
-            return ([BrowserInputEvents.mouse(tipo: .soltado, x: Int(donde.x), y: Int(donde.y),
-                                              boton: .izquierdo, pulsaciones: 1)], nil)
+            return ([soltado(en: donde)], nil)
         }
+    }
+
+    /// El `mouseReleased` que cierra un gesto en el punto de la página `donde`.
+    ///
+    /// Es UNA función y la usan los dos caminos que levantan el botón —el `.suelta` de un gesto
+    /// que termina por su pie y el cierre defensivo de `BrowserMandoSesion.retira()` cuando el
+    /// panel se retira a mitad de gesto— para que los dos manden **exactamente** el mismo
+    /// mensaje. Dos copias del literal se podrían separar, y un soltar que la página no reconoce
+    /// como el par de su `mousePressed` deja el botón tan hundido como no mandarlo.
+    public static func soltado(en donde: CGPoint) -> String {
+        BrowserInputEvents.mouse(tipo: .soltado, x: Int(donde.x), y: Int(donde.y),
+                                 boton: .izquierdo, pulsaciones: 1)
     }
 
     // MARK: el teclado
@@ -399,17 +410,35 @@ public enum BrowserMandoEnvio {
     ///
     /// Con `mando` a `nil` o sin mensajes **no se crea cola nueva**: se devuelve la que había,
     /// para no romper la cadena de orden de lo que ya estuviera en vuelo.
+    ///
+    /// **UN ENVÍO QUE FALLA SE DICE, Y CORTA EL RESTO DEL LOTE.** El `Bool` de `manda(entrada:)`
+    /// significa «el mensaje salió del aparato», y un `false` es información que el aparato ya
+    /// tiene en la mano: no hay canal (el socket se cayó y `enviaPorElCanal` lo soltó) o el
+    /// mensaje pasa del tope del relé. Antes se tiraba, y el `.closed` que baja el rótulo llega
+    /// **después**, por otra tarea (el bucle de recepción): en esa ventana el panel seguía
+    /// diciendo «Conduces tú» y el usuario tecleaba su contraseña entera hacia ninguna parte,
+    /// sin un solo error. `alFallar` es lo que lo hace visible (ver
+    /// `BrowserPanelView.avisoDeApuntado`). El resto del lote no se intenta: sin canal fallaría
+    /// igual, y con el tope pasado lo que saliera sería una contraseña con un hueco en medio,
+    /// que es peor que ninguna porque la página contesta «contraseña incorrecta».
+    ///
+    /// `alFallar` **no recibe nada**, a propósito: ni el mensaje, ni su índice, ni cuántos
+    /// quedaban. Cualquiera de los tres diría algo de lo que el usuario escribió.
     public static func encola(_ mensajes: [String],
                               por mando: MandoDelNavegador?,
                               tras previa: Task<Void, Never>?,
-                              espera: @escaping Espera = esperaReal) -> Task<Void, Never>? {
+                              espera: @escaping Espera = esperaReal,
+                              alFallar: @escaping @MainActor () -> Void) -> Task<Void, Never>? {
         guard let mando, !mensajes.isEmpty else { return previa }
         return Task {
             await previa?.value
             for (indice, mensaje) in mensajes.enumerated() {
                 if indice > 0 { await espera(BrowserMandoEntrada.intervaloEntreTeclas) }
                 guard !Task.isCancelled else { return }
-                await mando.manda(entrada: mensaje)
+                guard await mando.manda(entrada: mensaje) else {
+                    alFallar()
+                    return
+                }
             }
         }
     }
@@ -428,6 +457,181 @@ public enum BrowserMandoEnvio {
         case .toma: return await mando.tomaElMando()
         case .devuelve: return await mando.devuelveElMando()
         }
+    }
+}
+
+/// Lo que un panel lleva EN CURSO con el volante: el gesto abierto sobre la imagen, su cola de
+/// envíos, y si algo de lo que el usuario mandó **no salió**. Uno por panel, y lo tiene el
+/// coordinador al lado del mando de ese panel.
+///
+/// POR QUÉ EXISTE, Y POR QUÉ NO VIVE EN EL CUERPO DE LA VISTA, que es donde vivía. Dos motivos,
+/// y el primero es el defecto que el usuario sufría:
+///
+///   1. **EL BOTÓN HUNDIDO.** Retirar el panel a mitad de un gesto —el usuario manda otro
+///      mensaje, pulsa detener, o salta el tope de inactividad— congela el panel y **cierra el
+///      socket en el mismo paso** (`BrowserPanelCoordinator.retire`). Con el gesto dentro de la
+///      vista, nadie fuera de ella sabía que había un `mousePressed` sin su `mouseReleased`, y
+///      el `.onEnded` del `DragGesture` no está garantizado: `allowsHitTesting(false)` deja al
+///      reconocedor sin entrada y `DragGesture` no tiene `onCancelled`. Resultado: el Chrome del
+///      i3, con la sesión de Google del usuario dentro, se quedaba con el botón izquierdo
+///      **pulsado**, y desde ahí todo lo que tocaran él o el agente **arrastraba**. Con el gesto
+///      aquí, el coordinador puede cerrarlo (`retira()`) **antes** de cerrar el socket.
+///   2. **LO QUE NO SALIÓ.** El aviso de «tu entrada no llegó» tiene que verse en la barra
+///      aunque el fallo venga del gesto, y las dos vistas son hermanas: la única forma de que
+///      compartan ese hecho es que viva en algo que las dos reciben.
+///
+/// Y de propina, el cuerpo de la vista deja de ser el único sitio donde vive la lógica del
+/// gesto, así que se puede **ejecutar** en una prueba en vez de afirmar la forma de su texto.
+///
+/// AQUÍ TAMPOCO SE REGISTRA NADA, igual que en todo este fichero (la lista blanca de
+/// `BrowserPanelViewTests` lo vigila): `ultimaPagina` es la coordenada del dedo del usuario, y
+/// sobre un teclado en pantalla eso es su contraseña. Guarda **un** punto, no un trazo.
+@Observable @MainActor
+public final class BrowserMandoSesion {
+    /// El volante de este panel. `nil` tras `retira()`: el panel retirado ya no manda nada, y
+    /// soltar la referencia es lo que deja que el cliente del relé —y su socket— se liberen.
+    private var mando: MandoDelNavegador?
+    /// El último punto de la página que se pudo mapear en el gesto en curso. **`nil` significa
+    /// «no hay gesto abierto que cerrar»**, igual que en `BrowserMandoEntrada.mensajesDePuntero`.
+    private var ultimaPagina: CGPoint?
+    /// Cuándo se mandó la última muestra del gesto. `nil` entre gestos, y eso es lo que
+    /// distingue la pulsación del movimiento.
+    private var ultimoMuestreo: ContinuousClock.Instant?
+    /// La cadena de envíos del gesto, en orden: ver `BrowserMandoEnvio.encola`.
+    private var cola: Task<Void, Never>?
+
+    /// Si algo de lo que el usuario mandó desde este panel **no salió del aparato**. Lo lee la
+    /// barra para avisarle. Se apaga cuando el servidor le vuelve a conceder el volante.
+    public private(set) var entradaPerdida = false
+
+    public init(mando: MandoDelNavegador) {
+        self.mando = mando
+    }
+
+    /// El dedo toca o se mueve sobre la imagen. Devuelve si **de este punto salió un mensaje**,
+    /// que es exactamente lo que el anillo del puntero puede marcar (ver
+    /// `BrowserMandoEntrada.puntero`).
+    ///
+    /// LO QUE DEVUELVE ES `mensajes`, NO `pagina`, y no se puede cambiar sin mentir. Un `.mueve`
+    /// cuyo punto no se puede mapear conserva la página VIEJA con CERO mensajes (para que el
+    /// soltar tenga dónde levantar el botón), y una muestra que el muestreo descarta tampoco se
+    /// manda: en los dos casos el anillo no se mueve.
+    public func toca(punto: CGPoint,
+                     vista: CGSize,
+                     tamañoDeLaImagen: CGSize,
+                     dimensionesDelCable: BrowserInputMapper.DimensionesDelCable?,
+                     ahora: ContinuousClock.Instant = .now) -> Bool {
+        // `onChanged` se dispara también con el primer contacto, así que la pulsación es el
+        // evento que llega sin muestreo previo.
+        let fase: BrowserMandoEntrada.Fase = ultimoMuestreo == nil ? .pulsa : .mueve
+        return !manda(fase: fase, punto: punto, vista: vista, tamañoDeLaImagen: tamañoDeLaImagen,
+                      dimensionesDelCable: dimensionesDelCable, ahora: ahora).isEmpty
+    }
+
+    /// El dedo se levanta: se manda el soltar (cayendo al último punto bueno si hace falta) y el
+    /// gesto queda cerrado. No devuelve nada a propósito: el soltar puede salir en el punto
+    /// VIEJO, así que su `punto` no es lo que viajó y el anillo no se puede mover con él.
+    public func levanta(punto: CGPoint,
+                        vista: CGSize,
+                        tamañoDeLaImagen: CGSize,
+                        dimensionesDelCable: BrowserInputMapper.DimensionesDelCable?) {
+        _ = manda(fase: .suelta, punto: punto, vista: vista, tamañoDeLaImagen: tamañoDeLaImagen,
+                  dimensionesDelCable: dimensionesDelCable, ahora: .now)
+        ultimoMuestreo = nil
+        ultimaPagina = nil
+    }
+
+    /// **EL PANEL SE RETIRA: SE CIERRA EL GESTO ABIERTO ANTES DE QUE SE CIERRE EL SOCKET.**
+    ///
+    /// Si había un `mousePressed` sin su `mouseReleased`, se encola el soltar en el último punto
+    /// bueno —la misma excepción deliberada a la dirección segura que hace el `.suelta`, y por
+    /// el mismo motivo: no mandarlo deja el botón hundido—. Va **detrás** de lo que ya esté en
+    /// la cola: un soltar que adelantara a su pulsar dejaría el botón hundido igual. Si no había
+    /// gesto abierto, no se manda nada.
+    ///
+    /// Devuelve la cola entera, hasta su último mensaje, para que el coordinador **espere a que
+    /// salga** antes de cerrar el socket: el relé solo acepta entrada del portador del volante,
+    /// y el portador ES el socket, así que lo que salga después de cerrarlo no llega. `nil` si
+    /// no hay nada en vuelo.
+    ///
+    /// LA COLA NO SE CANCELA, y es a propósito. Cada eslabón de la cola de un gesto es UN
+    /// mensaje sin espera, así que se vacía en milisegundos y no hay ninguna ráfaga que cortar;
+    /// y lo que se cortaría podría ser justo el `mousePressed` todavía sin salir —con el soltar
+    /// detrás, un `mouseReleased` huérfano— o el propio soltar de un gesto recién terminado.
+    /// El que corta la cola es el coordinador, cerrando el socket, y lo hace tras el último.
+    ///
+    /// Y la sesión queda **cerrada**: sin mando, sin gesto y sin cola. Un `.onEnded` tardío no
+    /// manda nada, y el cliente del relé deja de estar referenciado desde aquí.
+    public func retira() -> Task<Void, Never>? {
+        if let donde = ultimaPagina {
+            cola = BrowserMandoEnvio.encola([BrowserMandoEntrada.soltado(en: donde)], por: mando, tras: cola,
+                                            alFallar: { [weak self] in self?.notaQueNoSalio() })
+        }
+        let enVuelo = cola
+        mando = nil
+        cola = nil
+        ultimaPagina = nil
+        ultimoMuestreo = nil
+        return enVuelo
+    }
+
+    /// **EL VOLANTE SE PERDIÓ POR OTRO CAMINO** (el servidor se lo dio a otro, o se cortó la
+    /// conexión): el gesto se da por cerrado aquí, **sin mandar nada**.
+    ///
+    /// POR QUÉ NO SE MANDA EL SOLTAR AQUÍ, MEDIDO EN EL RELÉ Y NO SUPUESTO. Por estos caminos el
+    /// volante ya no es del usuario cuando la vista se entera: con un `.closed` el canal ya es
+    /// `nil` (`enviaPorElCanal` no manda nada), y con un `mando` del servidor el relé descarta
+    /// la entrada de quien no es el portador (`_reenvia_entrada` compara el portador por su
+    /// socket). Un soltar aquí no llegaría a la página por ningún camino. Lo que la página
+    /// necesita en esos casos lo tiene que hacer el relé, que es el único que sigue hablando con
+    /// el demonio — ver el hueco declarado en el informe de la ronda 6.
+    ///
+    /// LO QUE SÍ HACE, y es un defecto propio: sin esto `ultimoMuestreo` se quedaba puesto, así
+    /// que cuando el usuario recuperaba el volante su primer toque se clasificaba como `.mueve`
+    /// (un `mouseMoved`, sin `mousePressed`) y **ningún clic suyo funcionaba** hasta que un
+    /// `.onEnded` lo limpiara.
+    ///
+    /// La cola no se cancela, por el mismo motivo que en `retira()`.
+    public func olvidaElGesto() {
+        ultimaPagina = nil
+        ultimoMuestreo = nil
+    }
+
+    /// Un envío no salió del aparato. Ver `BrowserMandoEnvio.encola`.
+    public func notaQueNoSalio() {
+        entradaPerdida = true
+    }
+
+    /// El servidor le ha vuelto a conceder el volante: lo de antes ya está dicho.
+    public func olvidaElFallo() {
+        entradaPerdida = false
+    }
+
+    /// Mapea, muestrea y manda. El mapa se consulta **siempre**, también cuando el muestreo va a
+    /// descartar la muestra: es aritmética barata, y así el último punto bueno nunca se queda
+    /// atrás (lo caro, y lo que el tope del relé cuenta, es el mensaje). Devuelve lo que se
+    /// encoló, que es vacío cuando el muestreo descarta la muestra.
+    private func manda(fase: BrowserMandoEntrada.Fase,
+                       punto: CGPoint,
+                       vista: CGSize,
+                       tamañoDeLaImagen: CGSize,
+                       dimensionesDelCable: BrowserInputMapper.DimensionesDelCable?,
+                       ahora: ContinuousClock.Instant) -> [String] {
+        let salida = BrowserMandoEntrada.mensajesDePuntero(fase: fase,
+                                                           punto: punto,
+                                                           ultimaPagina: ultimaPagina,
+                                                           tamañoDeLaVista: vista,
+                                                           tamañoDeLaImagen: tamañoDeLaImagen,
+                                                           dimensionesDelCable: dimensionesDelCable)
+        ultimaPagina = salida.pagina
+        // La pulsación y el soltar no se muestrean nunca: son los dos extremos del clic.
+        if fase == .mueve, !BrowserMandoEntrada.tocaMuestrear(ultimo: ultimoMuestreo, ahora: ahora) {
+            return []
+        }
+        ultimoMuestreo = ahora
+        cola = BrowserMandoEnvio.encola(salida.mensajes, por: mando, tras: cola,
+                                        alFallar: { [weak self] in self?.notaQueNoSalio() })
+        return salida.mensajes
     }
 }
 
@@ -458,18 +662,10 @@ struct BrowserMandoGestos: View {
     let capturar: Bool
     let tamañoDeLaImagen: CGSize
     let dimensionesDelCable: BrowserInputMapper.DimensionesDelCable?
-    let mando: MandoDelNavegador?
-
-    /// El último punto de la página que se pudo mapear en este gesto, para que el soltar tenga
-    /// dónde levantar el botón si el dedo sale de la imagen.
-    @State private var ultimaPagina: CGPoint?
-    /// Cuándo se mandó la última muestra de este gesto. `nil` entre gestos, y eso es lo que
-    /// distingue la pulsación del movimiento.
-    @State private var ultimoMuestreo: ContinuousClock.Instant?
-    /// La cadena de envíos, en orden. Existe porque un `mouseReleased` que adelantara a su
-    /// `mousePressed` dejaría el botón hundido en la página remota: cada envío espera al
-    /// anterior, así que el orden de los mensajes es el orden de los gestos.
-    @State private var cola: Task<Void, Never>?
+    /// El gesto en curso, su cola y su mando. Vive en el coordinador y no aquí: es lo que deja
+    /// que retirar el panel cierre el gesto **antes** de cerrar el socket (ver
+    /// `BrowserMandoSesion`). `nil` sin relé configurado o con el panel ya retirado.
+    let sesion: BrowserMandoSesion?
 
     /// El último punto **de la vista** del que salió un mensaje de entrada, que es lo que el
     /// anillo marca.
@@ -487,15 +683,19 @@ struct BrowserMandoGestos: View {
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { valor in
-                            // `onChanged` se dispara también con el primer contacto, así que la
-                            // pulsación es el evento que llega sin muestreo previo.
-                            let fase: BrowserMandoEntrada.Fase = ultimoMuestreo == nil ? .pulsa : .mueve
-                            manda(fase: fase, punto: valor.location, vista: geometria.size)
+                            // EL ANILLO SE MUEVE SOLO SI DE ESTE PUNTO SALIÓ UN MENSAJE: ver
+                            // `BrowserMandoSesion.toca`, que decide por `mensajes` y después de
+                            // la puerta del muestreo.
+                            if sesion?.toca(punto: valor.location, vista: geometria.size,
+                                            tamañoDeLaImagen: tamañoDeLaImagen,
+                                            dimensionesDelCable: dimensionesDelCable) == true {
+                                ultimoPunteroDeLaVista = valor.location
+                            }
                         }
                         .onEnded { valor in
-                            manda(fase: .suelta, punto: valor.location, vista: geometria.size)
-                            ultimoMuestreo = nil
-                            ultimaPagina = nil
+                            sesion?.levanta(punto: valor.location, vista: geometria.size,
+                                            tamañoDeLaImagen: tamañoDeLaImagen,
+                                            dimensionesDelCable: dimensionesDelCable)
                         }
                 )
                 // EL ANILLO VA DENTRO DE ESTE `GeometryReader`, no fuera: el punto está guardado
@@ -518,45 +718,21 @@ struct BrowserMandoGestos: View {
                             .allowsHitTesting(false)
                     }
                 }
-                // Se pierde el volante, se va el anillo: ver `BrowserMandoEntrada.puntero`.
-                .onChange(of: capturar) { ultimoPunteroDeLaVista = nil }
+                // Se pierde el volante, se va el anillo (ver `BrowserMandoEntrada.puntero`) Y SE
+                // CIERRA EL GESTO. El `.onEnded` no está garantizado: con `allowsHitTesting` a
+                // `false` el reconocedor se queda sin entrada, y sin esto el primer toque tras
+                // recuperar el volante sería un `.mueve` y no un clic. Ver
+                // `BrowserMandoSesion.olvidaElGesto`.
+                .onChange(of: capturar) {
+                    ultimoPunteroDeLaVista = nil
+                    sesion?.olvidaElGesto()
+                }
                 // El punto está en coordenadas de la vista y sin su tamaño de referencia, así que
                 // al redimensionar ya no señala el mismo sitio de la imagen. Borrarlo es la salida
                 // honesta; remapearlo exigiría un mapa inverso, que no existe hoy.
                 .onChange(of: geometria.size) { ultimoPunteroDeLaVista = nil }
         }
         .allowsHitTesting(capturar)
-    }
-
-    /// Mapea, muestrea y manda. El mapa se consulta **siempre**, también cuando el muestreo va a
-    /// descartar la muestra: es aritmética barata, y así el último punto bueno nunca se queda
-    /// atrás (lo caro, y lo que el tope del relé cuenta, es el mensaje).
-    private func manda(fase: BrowserMandoEntrada.Fase, punto: CGPoint, vista: CGSize) {
-        let ahora = ContinuousClock.Instant.now
-        let salida = BrowserMandoEntrada.mensajesDePuntero(fase: fase,
-                                                           punto: punto,
-                                                           ultimaPagina: ultimaPagina,
-                                                           tamañoDeLaVista: vista,
-                                                           tamañoDeLaImagen: tamañoDeLaImagen,
-                                                           dimensionesDelCable: dimensionesDelCable)
-        ultimaPagina = salida.pagina
-        // La pulsación y el soltar no se muestrean nunca: son los dos extremos del clic.
-        if fase == .mueve, !BrowserMandoEntrada.tocaMuestrear(ultimo: ultimoMuestreo, ahora: ahora) {
-            return
-        }
-        ultimoMuestreo = ahora
-        // EL ANILLO SE MUEVE AQUÍ Y NO ANTES, y mira `mensajes`, NO `pagina`. `pagina` no
-        // significa «se mandó» en ninguno de los dos sentidos: un `.mueve` cuyo punto no se
-        // puede mapear devuelve la página VIEJA con CERO mensajes (conserva la memoria a
-        // propósito, para que el soltar tenga dónde levantar el botón), así que con `pagina` un
-        // dedo que sale de la imagen arrastrando movería el anillo a un punto del que no salió
-        // nada; y el `.suelta` devuelve `pagina: nil` SIEMPRE, también cuando sí manda el
-        // `mouseReleased`. El `.suelta` además no mueve el anillo porque puede mandar cayendo al
-        // punto VIEJO, así que su `punto` no es necesariamente lo que viajó. Y va después de la
-        // puerta de arriba porque una muestra que el muestreo descarta no se manda: marcarla
-        // sería la misma mentira.
-        if fase != .suelta, !salida.mensajes.isEmpty { ultimoPunteroDeLaVista = punto }
-        cola = BrowserMandoEnvio.encola(salida.mensajes, por: mando, tras: cola)
     }
 }
 
@@ -580,6 +756,10 @@ struct BrowserMandoBarra: View {
     let state: BrowserPanelState
     let mando: MandoDelNavegador?
     let sePuedeApuntar: Bool
+    /// Lo que este panel lleva en curso con el volante. La barra lee de aquí si algo de lo que
+    /// el usuario mandó **no salió** —también desde el gesto, que es su vista hermana— y
+    /// apunta aquí sus propios fallos.
+    let sesion: BrowserMandoSesion?
 
     @State private var tecleado = ""
     /// Cuándo se pidió el volante, si se está pidiendo. Es estado **de la vista** y no de
@@ -608,7 +788,8 @@ struct BrowserMandoBarra: View {
                 Spacer()
             }
             if let aviso = BrowserPanelView.avisoDeApuntado(quienConduce: state.quienConduce,
-                                                            sePuedeApuntar: sePuedeApuntar) {
+                                                            sePuedeApuntar: sePuedeApuntar,
+                                                            entradaPerdida: sesion?.entradaPerdida == true) {
                 Text(aviso)
                     .font(.caption2)
                     .foregroundStyle(.orange)
@@ -639,11 +820,18 @@ struct BrowserMandoBarra: View {
             // mandara, el número de pulsaciones delataría la longitud de la contraseña.
             tecleado = ""
             enfocado = false
+            // Un volante NUEVO deja atrás el aviso de lo que no salió: el usuario ya lo leyó, y
+            // lo que teclee a partir de aquí sale por un canal que el servidor acaba de confirmar.
+            // Mientras el volante no vuelva a ser suyo el aviso se queda, y es a propósito: el
+            // `.closed` que baja el rótulo llega justo después del fallo, y si el aviso se fuera
+            // con él no lo leería nadie.
+            if state.quienConduce == .yo { sesion?.olvidaElFallo() }
         }
         .onChange(of: tecleado) { anterior, nuevo in
             guard BrowserPanelView.capturaLosGestos(quienConduce: state.quienConduce) else { return }
             cola = BrowserMandoEnvio.encola(BrowserMandoEntrada.mensajesDeTeclado(anterior: anterior, nuevo: nuevo),
-                                            por: mando, tras: cola)
+                                            por: mando, tras: cola,
+                                            alFallar: { sesion?.notaQueNoSalio() })
         }
         // LA PETICIÓN SE CAE SOLA. Una toma rechazada no produce **ningún** mensaje (`Mando.toma`
         // devuelve `False` y el relé descarta ese booleano), y el tope de caudal del relé se

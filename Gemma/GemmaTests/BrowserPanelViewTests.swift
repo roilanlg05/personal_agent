@@ -523,7 +523,7 @@ final class BrowserPanelViewTests: XCTestCase {
         let mando = MandoDeMentira()
         let esperas = Esperas()
         let cola = BrowserMandoEnvio.encola(["a", "b", "c"], por: mando, tras: nil,
-                                            espera: { d in esperas.anota(d) })
+                                            espera: { d in esperas.anota(d) }, alFallar: {})
         await cola?.value
 
         XCTAssertEqual(mando.entradas, ["a", "b", "c"], "los tres mensajes salen, y en orden")
@@ -559,7 +559,7 @@ final class BrowserPanelViewTests: XCTestCase {
         let mando = MandoDeMentira()
         let puerta = Puerta()
         let cola = BrowserMandoEnvio.encola(["1", "2", "3", "4"], por: mando, tras: nil,
-                                            espera: { _ in await puerta.espera() })
+                                            espera: { _ in await puerta.espera() }, alFallar: {})
         // El primero sale sin esperar: eso es lo que prueba que la cola de verdad manda.
         let alguienLlegoALaPuerta = await puerta.esperaQueAlguienEntre()
         XCTAssertTrue(alguienLlegoALaPuerta,
@@ -685,11 +685,11 @@ final class BrowserPanelViewTests: XCTestCase {
                                               tamañoDeLaImagen: imagenMedida,
                                               dimensionesDelCable: nil))
 
-        XCTAssertEqual(BrowserPanelView.avisoDeApuntado(quienConduce: .yo, sePuedeApuntar: false),
+        XCTAssertEqual(BrowserPanelView.avisoDeApuntado(quienConduce: .yo, sePuedeApuntar: false, entradaPerdida: false),
                        "Tienes el volante y puedes escribir, pero este fotograma no se puede situar: ningún toque se mandará.")
-        XCTAssertNil(BrowserPanelView.avisoDeApuntado(quienConduce: .yo, sePuedeApuntar: true))
-        XCTAssertNil(BrowserPanelView.avisoDeApuntado(quienConduce: .agente, sePuedeApuntar: false))
-        XCTAssertNil(BrowserPanelView.avisoDeApuntado(quienConduce: .otroVisor, sePuedeApuntar: false))
+        XCTAssertNil(BrowserPanelView.avisoDeApuntado(quienConduce: .yo, sePuedeApuntar: true, entradaPerdida: false))
+        XCTAssertNil(BrowserPanelView.avisoDeApuntado(quienConduce: .agente, sePuedeApuntar: false, entradaPerdida: false))
+        XCTAssertNil(BrowserPanelView.avisoDeApuntado(quienConduce: .otroVisor, sePuedeApuntar: false, entradaPerdida: false))
     }
 
     // MARK: el viewport, del cable al panel
@@ -1005,6 +1005,18 @@ final class BrowserPanelViewTests: XCTestCase {
         XCTAssertTrue(f.contains("            cola?.cancel()"),
                       "la contraseña en vuelo ya no se corta al perder el volante")
 
+        // H4 (ronda 6) — lo que no sale SE DICE, en las tres piezas que solo viven en el cuerpo:
+        // el teclado de la barra apunta su fallo en la sesión, el aviso lee la sesión, y un
+        // volante nuevo lo apaga. El resto del ciclo (que `encola` llame a `alFallar`, que la
+        // sesión lo anote, que el aviso salga conduzca quien conduzca) se EJECUTA en
+        // `BrowserMandoSesionTests`; esto es lo único que la suite no puede ejecutar.
+        XCTAssertTrue(f.contains("alFallar: { sesion?.notaQueNoSalio() })"),
+                      "el teclado de la barra vuelve a tirar el fallo del envío: la contraseña se pierde sin aviso")
+        XCTAssertTrue(f.contains("entradaPerdida: sesion?.entradaPerdida == true) {"),
+                      "la barra ya no enseña el aviso de lo que no salió")
+        XCTAssertTrue(f.contains("if state.quienConduce == .yo { sesion?.olvidaElFallo() }"),
+                      "el aviso de lo que no salió ya no se apaga con el volante nuevo, o se apaga con cualquier cambio")
+
         // MD — el borrado del campo NO manda `Backspace` a la página: el número de pulsaciones
         // delataría la longitud de la contraseña.
         XCTAssertTrue(f.contains(
@@ -1015,9 +1027,11 @@ final class BrowserPanelViewTests: XCTestCase {
         XCTAssertTrue(f.contains("GeometryReader { geometria in"),
                       "el gesto ya no mide la vista donde se dibuja la imagen")
 
-        // El reparto en el tiempo y la cadena de orden se usan desde las dos vistas.
-        XCTAssertEqual(f.components(separatedBy: "BrowserMandoEnvio.encola(").count - 1, 2,
-                       "las dos vistas tienen que mandar por la cola repartida, no por su propio bucle")
+        // El reparto en el tiempo y la cadena de orden se usan en los TRES sitios que mandan: el
+        // gesto (`BrowserMandoSesion`, que es donde vive desde la ronda 6), su cierre defensivo
+        // al retirar el panel (`retira()`), y el teclado de la barra.
+        XCTAssertEqual(f.components(separatedBy: "BrowserMandoEnvio.encola(").count - 1, 3,
+                       "los tres envíos del mando tienen que ir por la cola repartida, no por su propio bucle")
 
         // El booleano de «el mensaje salió» NO se tira: baja el «pidiendo…» en el momento en vez
         // de dejar al usuario mirando un botón inerte los seis segundos de la caducidad. La
@@ -1060,6 +1074,9 @@ final class BrowserPanelViewTests: XCTestCase {
     ///     M7  quitar `.allowsHitTesting(false)` (el anillo se tragaría los toques)
     ///     M8/M9  quitar el borrado al perder el volante o al cambiar el tamaño de la vista
     ///
+    /// DESDE LA RONDA 6, M4, M5 y M6 YA NO SE MIDEN AQUÍ POR EL TEXTO: la lógica del gesto vive en
+    /// `BrowserMandoSesion` y se ejecuta (ver el cuerpo de la prueba).
+    ///
     /// EL PRECIO, dicho por delante y el mismo que el de la lista blanca: el día que esta vista
     /// se reescriba, esta prueba se pondrá roja y habrá que mirar lo que cambió.
     func test_el_anillo_solo_marca_el_ultimo_punto_que_produjo_un_mensaje() throws {
@@ -1067,52 +1084,41 @@ final class BrowserPanelViewTests: XCTestCase {
 
         // Guarda de vacuidad: toda aserción de texto pasa sola si la ruta no apunta al fichero
         // que uno se cree.
-        XCTAssertTrue(crudo.contains("struct BrowserMandoGestos"),
-                      "la ruta ya no apunta al fichero del mando: falta `struct BrowserMandoGestos`")
-
+        //
+        // **SOBRE EL FUENTE TROCEADO**, como toda PRESENCIA (Ruling 18, guardas de vacuidad
+        // incluidos): sobre el crudo, este guarda se cumplía con `struct BrowserMandoGestos`
+        // citado dentro de un comentario (H8 de la revisión de rama).
+        //
         // **LOS COMENTARIOS SE QUITAN ANTES DE MEDIR NADA.** Una sonda de esta misma rama dio
         // verde con la asignación del anillo escrita SOLO en un comentario, que es lo mismo que
         // no estar escrita. El troceador es el de la lista blanca, reusado.
         let f = TroceadoDeFuente.sinComentarios(crudo)
+        XCTAssertTrue(f.contains("struct BrowserMandoGestos"),
+                      "la ruta ya no apunta al fichero del mando: falta `struct BrowserMandoGestos`")
         XCTAssertFalse(f.contains("POR QUÉ UN PROTOCOLO Y NO EL ACTOR"),
                        "el troceador de comentarios no ha quitado los comentarios: todo lo de abajo "
                        + "se podría cumplir con prosa en vez de con código")
 
-        // --- el cuerpo de `manda(fase:punto:vista:)`, acotado ---
-        // Las aserciones de ORDEN van dentro de este trozo y no sobre el fichero entero: un
-        // índice calculado sobre todo el fuente no dice nada del orden dentro de la función.
-        let abre = try XCTUnwrap(f.range(of: "private func manda(fase:"),
-                                 "`manda(fase:punto:vista:)` ya no existe con ese nombre")
-        let cierra = try XCTUnwrap(f.range(of: "\n    }\n", range: abre.upperBound..<f.endIndex),
-                                   "no se encuentra el cierre de `manda(fase:punto:vista:)`")
-        let cuerpo = String(f[abre.lowerBound..<cierra.upperBound])
-        XCTAssertTrue(cuerpo.contains("BrowserMandoEntrada.mensajesDePuntero(fase: fase,"),
-                      "el trozo acotado no es el cuerpo de `manda`: no llama al mapa del puntero")
-        XCTAssertLessThan(cuerpo.count, f.count / 2,
-                          "el recorte no ha recortado: las aserciones de orden medirían el fichero entero")
-
-        // La prueba de que esta muestra produjo entrada es `salida.mensajes`, NO `salida.pagina`
-        // (M4), y el `.suelta` no mueve el anillo porque puede mandar en el punto viejo (M6).
-        XCTAssertTrue(cuerpo.contains(
-            "if fase != .suelta, !salida.mensajes.isEmpty { ultimoPunteroDeLaVista = punto }"),
-                      "el anillo ya no se mueve solo cuando la muestra produjo un mensaje: con "
-                      + "`pagina` en vez de `mensajes` marcaría un punto del que no salió nada")
-        XCTAssertFalse(cuerpo.contains("salida.pagina != nil"),
-                       "`pagina != nil` no es prueba de que se mandara: `.mueve` sin mapa conserva "
-                       + "la página con cero mensajes y `.suelta` manda devolviendo página `nil`")
-
-        // Una sola asignación (con dos, una podría estar antes de la puerta) y DESPUÉS de la
-        // puerta del muestreo (M5): una muestra que el muestreo tira no se manda, así que no
-        // puede mover el anillo. Al contrario que `ultimaPagina`, que va antes a propósito.
-        XCTAssertEqual(cuerpo.components(separatedBy: "ultimoPunteroDeLaVista = punto").count - 1, 1,
-                       "el anillo se asigna más de una vez en `manda`: una de ellas puede estar "
-                       + "del lado equivocado de la puerta del muestreo")
-        let asignacion = try XCTUnwrap(cuerpo.range(of: "ultimoPunteroDeLaVista = punto"))
-        let puerta = try XCTUnwrap(cuerpo.range(of: "ultimoMuestreo = ahora"),
-                                   "ya no hay puerta de muestreo que respetar")
-        XCTAssertGreaterThan(asignacion.lowerBound, puerta.lowerBound,
-                             "la asignación del anillo ha subido por delante de la puerta del "
-                             + "muestreo: marcaría muestras que el muestreo descarta")
+        // --- de dónde sale el punto del anillo (M4, M5, M6) ---
+        //
+        // DESDE LA RONDA 6 LA DECISIÓN SE EJECUTA, NO SE LEE. La lógica del gesto salió del
+        // cuerpo de la vista a `BrowserMandoSesion` (para que retirar el panel pudiera cerrar el
+        // gesto antes del socket: el botón hundido), y con ella las tres cosas que esta prueba
+        // afirmaba por la forma del texto pasan a medirse ejecutando: M4 (`mensajes` y no
+        // `pagina`) y M5 (después de la puerta del muestreo) en
+        // `test_la_sesion_solo_marca_el_anillo_cuando_sale_un_mensaje`, y M6 (el soltar no mueve
+        // el anillo) **lo impone el tipo**: `levanta` no devuelve nada. Lo que queda aquí es lo
+        // único que sigue viviendo en el cuerpo: que el anillo se mueva con lo que `toca`
+        // devuelve, y con el punto de ESTE evento.
+        XCTAssertTrue(f.contains("""
+                                    if sesion?.toca(punto: valor.location, vista: geometria.size,
+                                                    tamañoDeLaImagen: tamañoDeLaImagen,
+                                                    dimensionesDelCable: dimensionesDelCable) == true {
+                                        ultimoPunteroDeLaVista = valor.location
+                                    }
+        """.trimmingCharacters(in: .newlines)),
+                      "el anillo ya no se mueve solo cuando `toca` dice que salió un mensaje, o "
+                      + "ya no le pasa a `toca` el tamaño de LA VISTA y las dimensiones DEL CABLE")
 
         // --- el anillo del cuerpo: UN bloque contiguo, del `if let` al último modificador ---
         //
@@ -1175,7 +1181,14 @@ final class BrowserPanelViewTests: XCTestCase {
         // más arriba en este fichero), donde se cumple igual con la característica borrada.
 
         // --- las dos transiciones que lo borran (M8, M9) ---
-        XCTAssertTrue(f.contains(".onChange(of: capturar) { ultimoPunteroDeLaVista = nil }"),
+        // Y perder el volante cierra también el gesto (H3 de la ronda 6): sin `olvidaElGesto()`
+        // el primer toque tras recuperarlo sería un `.mueve` y no un clic.
+        XCTAssertTrue(f.contains("""
+                        .onChange(of: capturar) {
+                            ultimoPunteroDeLaVista = nil
+                            sesion?.olvidaElGesto()
+                        }
+        """.trimmingCharacters(in: .newlines)),
                       "perder el volante ya no borra el anillo: quedaría un cursor que nadie mueve")
         XCTAssertTrue(f.contains(".onChange(of: geometria.size) { ultimoPunteroDeLaVista = nil }"),
                       "redimensionar la vista ya no borra el anillo: el punto está guardado en "
@@ -1204,21 +1217,22 @@ final class BrowserPanelViewTests: XCTestCase {
         // La respuesta no es una tercera lista de formas conocidas, que tendría el mismo
         // agujero una capa más allá: es **acotar el total**. El `@State` aparece en el fichero
         // exactamente **cinco** veces —su declaración, el argumento del `overlay`, la asignación
-        // de `manda` y los dos borrados— y se le asigna exactamente **tres**. El recuento del
+        // del `.onChanged` (era la de `manda` hasta la ronda 6) y los dos borrados— y se le
+        // asigna exactamente **tres**. El recuento del
         // identificador a secas es el que cierra de verdad, porque no se puede esquivar
         // escribiendo `ultimoPunteroDeLaVista=punto` sin el espacio.
         XCTAssertEqual(f.components(separatedBy: "ultimoPunteroDeLaVista").count - 1, 5,
                        """
                        el anillo se usa en un sitio nuevo del fichero. Los cinco sitios \
                        legítimos son: la declaración del `@State`, el argumento del `overlay`, \
-                       la asignación de dentro de `manda` y los dos borrados. Un sexto uso tiene \
+                       la asignación del `.onChanged` y los dos borrados. Un sexto uso tiene \
                        que justificarse aquí: el anillo solo puede marcar el punto que produjo \
                        un mensaje, así que asignarlo en cualquier otro sitio —en el `.onEnded`, \
                        por ejemplo— lo pone donde puede no haberse mandado nada
                        """)
         XCTAssertEqual(f.components(separatedBy: "ultimoPunteroDeLaVista =").count - 1, 3,
                        "las asignaciones al anillo ya no son las tres que tienen que ser (una en "
-                       + "`manda`, tras la puerta del muestreo, y los dos borrados)")
+                       + "el `.onChanged`, con lo que devuelve `toca`, y los dos borrados)")
     }
 
     // MARK: lectura del fuente
@@ -1296,6 +1310,23 @@ final class BrowserPanelViewTests: XCTestCase {
         // diferencia de que ésta guarda UN punto, no una secuencia: no acumula el trazo.
         "Circle", "lineWidth", "overlay", "position", "puntero", "strokeBorder",
         "ultimoPunteroDeLaVista", "ultimoPunto",
+        // la ronda 6: el gesto sale del cuerpo de la vista a `BrowserMandoSesion` (H3, el botón
+        // hundido) y un envío que falla se dice (H4). Revisados uno a uno, y **ninguno escribe,
+        // persiste, notifica ni acumula** la tecla ni la coordenada:
+        //   - `BrowserMandoSesion`, `sesion`, `toca`, `levanta`, `retira`, `olvidaElGesto`,
+        //     `enVuelo`: la sesión y sus cuatro transiciones. Guarda **un** punto de la página (el
+        //     último bueno, el mismo que antes guardaba el `@State` de la vista), no un trazo, y
+        //     `retira`/`olvidaElGesto` lo **borran**.
+        //   - `alFallar`, `notaQueNoSalio`, `olvidaElFallo`, `entradaPerdida`: un **booleano**, sin
+        //     contenido, sin cuenta y sin índice — `alFallar` no recibe nada a propósito, porque
+        //     el mensaje, su índice o cuántos quedaban dirían algo de lo que se escribió.
+        //   - `en`: la etiqueta del parámetro de `soltado(en:)`.
+        //   - `Observable`, `class`, `final`, `init`, `self`, `weak`, `set` (de `private(set)`):
+        //     lenguaje. `@Observable` es la observación de SwiftUI en memoria, la misma que ya
+        //     lleva `BrowserPanelState`; no persiste nada.
+        "BrowserMandoSesion", "sesion", "toca", "levanta", "retira", "olvidaElGesto", "enVuelo",
+        "alFallar", "notaQueNoSalio", "olvidaElFallo", "entradaPerdida", "en",
+        "Observable", "class", "final", "init", "self", "weak", "set",
         // las palabras de la única cadena literal del fichero, la pista del campo de texto
         // («lo que escribas va a la página»). Son prosa, no identificadores, y entran porque el
         // troceado no distingue una cadena de un nombre. Son también la razón de que el corte

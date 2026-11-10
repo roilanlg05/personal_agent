@@ -352,7 +352,8 @@ struct AgentChatView: View {
                                    // El volante del panel de ESTA fila. Un panel retirado ya no
                                    // tiene, así que las filas del historial salen con el botón
                                    // apagado, que es la verdad: por ese socket ya no sale nada.
-                                   mando: entry.panelID.flatMap { model.browserPanels.mando(de: $0) })
+                                   mando: entry.panelID.flatMap { model.browserPanels.mando(de: $0) },
+                                   sesion: entry.panelID.flatMap { model.browserPanels.sesion(de: $0) })
                             .id(entry.id)
                     }
                     Color.clear.frame(height: 75)
@@ -577,6 +578,8 @@ struct ChatLogRow: View {
     let panel: BrowserPanelState?
     /// El volante de ese panel; `nil` si ya se retiró o si no hay relé configurado.
     let mando: MandoDelNavegador?
+    /// El gesto en curso y lo que no salió de ese panel; `nil` en los mismos casos que `mando`.
+    let sesion: BrowserMandoSesion?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -596,7 +599,7 @@ struct ChatLogRow: View {
                 ToolLogRow(entry: $entry)
 
             case "browserPanel":
-                if let panel { BrowserPanelView(state: panel, mando: mando) }
+                if let panel { BrowserPanelView(state: panel, mando: mando, sesion: sesion) }
 
             case "system":
                 HStack {

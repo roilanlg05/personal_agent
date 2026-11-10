@@ -35,6 +35,14 @@ public final class BrowserPanelCoordinator {
     /// mientras dure. Un panel retirado no puede conducir de todas formas: `freeze()` devuelve el
     /// volante al agente.
     private var mandos: [String: MandoDelNavegador] = [:]
+    /// Lo que cada panel VIVO lleva en curso con el volante: el gesto abierto y su cola.
+    ///
+    /// VIVE AQUÍ, AL LADO DEL MANDO, Y NO EN LA VISTA, porque este coordinador es el único que
+    /// cierra el socket (`retire`), y cerrar el socket con un `mousePressed` sin su
+    /// `mouseReleased` deja el botón del ratón **hundido** en el navegador del i3: desde ahí todo
+    /// lo que toquen el usuario o el agente arrastra. Ver `BrowserMandoSesion.retira()`. Se
+    /// suelta en los mismos sitios que `mandos`.
+    private var sesiones: [String: BrowserMandoSesion] = [:]
     /// El panel del turno en curso; `nil` entre turnos.
     public private(set) var activeID: String?
 
@@ -103,6 +111,7 @@ public final class BrowserPanelCoordinator {
         let state = BrowserPanelState()
         panels[id] = state
         mandos[id] = visor.mando
+        sesiones[id] = BrowserMandoSesion(mando: visor.mando)
         activeID = id
         PanelLog.note("panel \(PanelLog.corto(id)) abierto por \(toolName); navegadorAbierto heredado=\(browserLeftOpen)")
         consumers[id] = Task { @MainActor [weak self, weak state] in
@@ -127,6 +136,9 @@ public final class BrowserPanelCoordinator {
             // siempre. Por ese socket ya no sale ninguna pulsación, así que el volante se suelta
             // aquí también y no solo en `retire`.
             self?.mandos[id] = nil
+            // Sin socket no sale nada, así que aquí no hay soltar que mandar: se olvida el gesto
+            // y se suelta la sesión, que es la otra referencia viva al cliente del relé.
+            self?.sesiones.removeValue(forKey: id)?.olvidaElGesto()
         }
         return id
     }
@@ -136,6 +148,12 @@ public final class BrowserPanelCoordinator {
     /// teclea.
     public func mando(de id: String) -> MandoDelNavegador? {
         mandos[id]
+    }
+
+    /// El gesto en curso y lo que no salió del panel `id`, con el mismo ciclo de vida que
+    /// `mando(de:)`: `nil` si el panel no existe, ya se retiró o se abrió sin relé.
+    public func sesion(de id: String) -> BrowserMandoSesion? {
+        sesiones[id]
     }
 
     /// Resultado de una herramienta de navegador: aquí se decide si el navegador quedó abierto.
@@ -225,12 +243,51 @@ public final class BrowserPanelCoordinator {
 
     private func retire(_ id: String) {
         panels[id]?.freeze()
-        consumers[id]?.cancel()
-        consumers[id] = nil
+        let consumidor = consumers.removeValue(forKey: id)
         // El panel se queda en `panels` (es historial) pero su volante NO: cancelar el consumidor
         // termina el flujo, y el `onTermination` del flujo cierra el socket. Si el cliente
         // siguiera referenciado desde aquí, se quedaría vivo uno por panel visto.
         mandos[id] = nil
+        // 🔴 EL GESTO ABIERTO SE CIERRA ANTES QUE EL SOCKET, y el orden es la propiedad. El relé
+        // solo acepta entrada del portador del volante y el portador ES este socket: un soltar
+        // que saliera después de cerrarlo no llegaría, y el Chrome del i3 —con la sesión de
+        // Google del usuario dentro— se quedaría con el botón del ratón pulsado. Así que se
+        // encola el soltar (detrás de lo que ya esté en vuelo) y **solo cuando ha salido** se
+        // cancela el consumidor. Sin nada en vuelo, se cancela en el acto, como siempre.
+        //
+        // `freeze()` ya puso el rótulo en «conduce el agente» unas líneas más arriba, y no pasa
+        // nada: eso es estado local de la vista. El servidor sigue viendo al usuario como
+        // portador hasta que el socket se cierre, que es justo lo que deja salir el soltar.
+        guard let enVuelo = sesiones.removeValue(forKey: id)?.retira() else {
+            consumidor?.cancel()
+            return
+        }
+        let plazo = Self.plazoParaLoQueQuedaEnVuelo
+        Task { @MainActor in
+            await Self.espera(enVuelo, comoMucho: plazo)
+            consumidor?.cancel()
+        }
+    }
+
+    /// Cuánto se espera, como mucho, a que salga lo que quedaba en vuelo (el soltar defensivo
+    /// incluido) antes de cerrar el socket de un panel retirado.
+    ///
+    /// NO HAY MEDICIÓN: 1 s es un juicio, con su razón. La cola de un gesto es un mensaje por
+    /// eslabón y sin esperas (el reparto en el tiempo es del teclado), así que con el enlace
+    /// sano se vacía en milisegundos; si un segundo no basta, el enlace está muerto en la
+    /// práctica y esperar más solo retrasa liberar el socket —y el volante, que el relé
+    /// devuelve al agente cuando el portador se va—. ACOTADO A PROPÓSITO: una espera sin tope
+    /// sobre un envío colgado dejaría el socket abierto para siempre, con el panel ya congelado.
+    nonisolated static let plazoParaLoQueQuedaEnVuelo: Duration = .seconds(1)
+
+    /// Espera a `tarea`, o a que pase `plazo`, lo que llegue antes.
+    private static func espera(_ tarea: Task<Void, Never>, comoMucho plazo: Duration) async {
+        await withTaskGroup(of: Void.self) { grupo in
+            grupo.addTask { await tarea.value }
+            grupo.addTask { try? await Task.sleep(for: plazo) }
+            await grupo.next()
+            grupo.cancelAll()
+        }
     }
 
     private nonisolated static let closeToolName = "browser_close"

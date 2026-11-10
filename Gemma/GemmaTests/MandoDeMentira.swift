@@ -25,8 +25,19 @@ final class MandoDeMentira: MandoDelNavegador, @unchecked Sendable {
     /// Lo que devuelven los tres métodos: «el mensaje SALIÓ del aparato». `false` es el socket
     /// caído, que es el caso en que el botón no debe quedarse en «pidiendo…».
     private let salida: Bool
+    /// Lo que `manda(entrada:)` espera ANTES de anotar el mensaje, o `nil` para no esperar.
+    ///
+    /// Existe para que una prueba pueda medir el ORDEN de una cola: con un primer envío que se
+    /// queda colgado en esta espera, un mensaje que no estuviera encadenado detrás de él lo
+    /// adelantaría, y eso es justo lo que hay que poder ver (un `mouseReleased` que adelanta a
+    /// su `mousePressed` deja el botón hundido). Sin la espera, las tareas del hilo principal
+    /// salen en el orden en que se crearon y la cadena no se podría distinguir de la suerte.
+    private let antesDeMandar: (@Sendable () async -> Void)?
 
-    init(salida: Bool = true) { self.salida = salida }
+    init(salida: Bool = true, antesDeMandar: (@Sendable () async -> Void)? = nil) {
+        self.salida = salida
+        self.antesDeMandar = antesDeMandar
+    }
 
     var tomas: Int { candado.withLock { _tomas } }
     var devoluciones: Int { candado.withLock { _devoluciones } }
@@ -43,6 +54,7 @@ final class MandoDeMentira: MandoDelNavegador, @unchecked Sendable {
     }
 
     func manda(entrada: String) async -> Bool {
+        await antesDeMandar?()
         candado.withLock { _entradas.append(entrada) }
         return salida
     }

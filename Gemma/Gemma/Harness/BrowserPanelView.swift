@@ -10,6 +10,9 @@ struct BrowserPanelView: View {
     /// que es el único sitio que empareja un panel con su flujo. Sin valor por omisión a
     /// propósito: un `nil` implícito dejaría un botón muerto sin que nada se pusiera rojo.
     let mando: MandoDelNavegador?
+    /// El gesto en curso y lo que no salió, de ESTE panel. Lo entrega el coordinador al lado del
+    /// mando, y sin valor por omisión por la misma razón: ver `BrowserMandoSesion`.
+    let sesion: BrowserMandoSesion?
     @State private var image: CGImage?
 
     var body: some View {
@@ -79,7 +82,7 @@ struct BrowserPanelView: View {
                                 capturar: Self.capturaLosGestos(quienConduce: state.quienConduce),
                                 tamañoDeLaImagen: CGSize(width: image.width, height: image.height),
                                 dimensionesDelCable: state.dimensionesDelCable,
-                                mando: mando)
+                                sesion: sesion)
                         }
                 } else {
                     // NUNCA un rectángulo mudo. Sin imagen, el relleno era
@@ -126,7 +129,7 @@ struct BrowserPanelView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 220)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            BrowserMandoBarra(state: state, mando: mando, sePuedeApuntar: sePuedeApuntar)
+            BrowserMandoBarra(state: state, mando: mando, sePuedeApuntar: sePuedeApuntar, sesion: sesion)
             HStack(spacing: 6) {
                 Spacer()
                 // Presentación y nada más (spec §8(2)): si está vivo lo dice el i3.
@@ -230,10 +233,23 @@ struct BrowserPanelView: View {
     /// Solo sale cuando el volante es SUYO: decírselo mientras conduce el agente sería ruido
     /// sobre algo que no podría hacer de todas formas. Y dice que **escribir sí funciona**,
     /// porque es verdad y porque es lo que vino a hacer: el teclado no necesita coordenadas.
-    static func avisoDeApuntado(quienConduce: QuienConduce, sePuedeApuntar: Bool) -> String? {
+    ///
+    /// **Y EL AVISO DE LO QUE NO SALIÓ VA PRIMERO, Y SALE CONDUZCA QUIEN CONDUZCA.** Un envío que
+    /// falla (`BrowserMandoEnvio.encola`, `alFallar`) es un socket caído o un mensaje que pasa
+    /// del tope del relé, y el `.closed` que pone el rótulo en «conduce el agente» llega **justo
+    /// después**: si este aviso exigiera `.yo`, desaparecería en el mismo instante en que tiene
+    /// algo que decir. No dice **nada** de lo que se escribió —ni el texto, ni cuánto—: no lo
+    /// recibe.
+    static func avisoDeApuntado(quienConduce: QuienConduce, sePuedeApuntar: Bool, entradaPerdida: Bool) -> String? {
+        if entradaPerdida { return textoDeEntradaPerdida }
         guard quienConduce == .yo, !sePuedeApuntar else { return nil }
         return "Tienes el volante y puedes escribir, pero este fotograma no se puede situar: ningún toque se mandará."
     }
+
+    /// Lo que se le dice al usuario cuando algo de lo que mandó no salió del aparato. Dice qué
+    /// pasó y qué hacer, y nada de lo que escribió.
+    static let textoDeEntradaPerdida =
+        "Lo último que escribiste o tocaste NO llegó al navegador. Vuelve a tomar el volante y repítelo."
 
     /// Si la vista captura los gestos y las teclas del usuario.
     ///

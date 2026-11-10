@@ -1,0 +1,450 @@
+{
+  "implementation_sha": "08d9737e38559c3b1e4c09ac5410146cfea66d4b",
+  "official_verification": "BLOCKED: com.apple.testmanagerd.control denied by sandbox",
+  "runs": [
+    {
+      "name": "base-411606f",
+      "begin": "2026-11-10T13:34:26.400071-05:00",
+      "end": "2026-11-10T13:34:51.191841-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1413,
+      "failed": 5,
+      "skipped": 21,
+      "total": 1439,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "control",
+      "begin": "2026-11-10T13:34:51.236874-05:00",
+      "end": "2026-11-10T13:35:12.101375-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1428,
+      "failed": 5,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "A1-borra-tras-rechazo",
+      "begin": "2026-11-10T13:35:12.102525-05:00",
+      "end": "2026-11-10T13:35:30.724079-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1423,
+      "failed": 10,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]",
+        "-[GemmaTests.TokenDeConducirTests test_la_migracion_con_lectura_distinta_conserva_el_origen]",
+        "-[GemmaTests.TokenDeConducirTests test_la_migracion_que_no_lee_de_vuelta_lo_escrito_conserva_el_origen]",
+        "-[GemmaTests.TokenDeConducirTests test_la_migracion_que_no_puede_escribir_conserva_el_origen_y_se_reintenta]",
+        "-[GemmaTests.TokenDeMemoriaTests test_la_migracion_que_no_lee_de_vuelta_lo_escrito_conserva_el_origen]",
+        "-[GemmaTests.TokenDeMemoriaTests test_la_migracion_que_no_puede_escribir_conserva_el_origen_y_se_reintenta]"
+      ]
+    },
+    {
+      "name": "A2-no-verifica-lectura",
+      "begin": "2026-11-10T13:35:30.770558-05:00",
+      "end": "2026-11-10T13:35:52.704059-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1425,
+      "failed": 8,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]",
+        "-[GemmaTests.TokenDeConducirTests test_la_migracion_con_lectura_distinta_conserva_el_origen]",
+        "-[GemmaTests.TokenDeConducirTests test_la_migracion_que_no_lee_de_vuelta_lo_escrito_conserva_el_origen]",
+        "-[GemmaTests.TokenDeMemoriaTests test_la_migracion_que_no_lee_de_vuelta_lo_escrito_conserva_el_origen]"
+      ]
+    },
+    {
+      "name": "B1-no-bloquea-devolucion",
+      "begin": "2026-11-10T13:35:52.747545-05:00",
+      "end": "2026-11-10T13:36:12.605669-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1425,
+      "failed": 8,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.BrowserMandoSesionTests test_devolver_con_un_pegado_en_curso_suelta_el_boton_antes_del_plazo]",
+        "-[GemmaTests.BrowserMandoSesionTests test_devolver_no_deja_que_el_dedo_apoyado_abra_otro_gesto]",
+        "-[GemmaTests.BrowserMandoSesionTests test_si_devolver_no_sale_la_sesion_vuelve_a_aceptar_entrada]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "B2-acepta-contacto-cerrado",
+      "begin": "2026-11-10T13:36:12.649340-05:00",
+      "end": "2026-11-10T13:36:34.711245-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1427,
+      "failed": 6,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.BrowserMandoSesionTests test_devolver_no_deja_que_el_dedo_apoyado_abra_otro_gesto]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "B3-no-recupera-tras-fallo",
+      "begin": "2026-11-10T13:36:34.758591-05:00",
+      "end": "2026-11-10T13:36:56.722273-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1427,
+      "failed": 6,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.BrowserMandoSesionTests test_si_devolver_no_sale_la_sesion_vuelve_a_aceptar_entrada]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "C1-generacion-neutral",
+      "begin": "2026-11-10T13:36:56.774532-05:00",
+      "end": "2026-11-10T13:37:21.637948-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1423,
+      "failed": 10,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.BrowserMandoSesionTests test_devolver_con_un_pegado_en_curso_suelta_el_boton_antes_del_plazo]",
+        "-[GemmaTests.BrowserMandoSesionTests test_el_fin_del_flujo_corta_las_teclas_pendientes]",
+        "-[GemmaTests.BrowserMandoSesionTests test_lotes_pendientes_no_reviven_tras_perdida_y_concesion]",
+        "-[GemmaTests.BrowserMandoSesionTests test_perder_el_volante_corta_todos_los_lotes_de_teclado_y_recuperarlo_no_los_revive]",
+        "-[GemmaTests.BrowserMandoSesionTests test_retirar_con_un_pegado_en_curso_suelta_el_boton_antes_del_plazo]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "C2-cola-independiente",
+      "begin": "2026-11-10T13:37:21.688103-05:00",
+      "end": "2026-11-10T13:37:45.627340-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1426,
+      "failed": 7,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.BrowserMandoSesionTests test_lotes_pendientes_no_reviven_tras_perdida_y_concesion]",
+        "-[GemmaTests.BrowserMandoSesionTests test_perder_el_volante_corta_todos_los_lotes_de_teclado_y_recuperarlo_no_los_revive]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "C3-devolver-sin-invalidar",
+      "begin": "2026-11-10T13:37:45.677136-05:00",
+      "end": "2026-11-10T13:38:09.089182-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1427,
+      "failed": 6,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.BrowserMandoSesionTests test_devolver_con_un_pegado_en_curso_suelta_el_boton_antes_del_plazo]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "C4-retirar-sin-invalidar",
+      "begin": "2026-11-10T13:38:09.132355-05:00",
+      "end": "2026-11-10T13:38:30.084519-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1427,
+      "failed": 6,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.BrowserMandoSesionTests test_retirar_con_un_pegado_en_curso_suelta_el_boton_antes_del_plazo]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "C5-no-avisa-transicion",
+      "begin": "2026-11-10T13:38:30.131125-05:00",
+      "end": "2026-11-10T13:38:55.768635-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1424,
+      "failed": 9,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.BrowserMandoSesionTests test_devolver_no_deja_que_el_dedo_apoyado_abra_otro_gesto]",
+        "-[GemmaTests.BrowserMandoSesionTests test_lotes_pendientes_no_reviven_tras_perdida_y_concesion]",
+        "-[GemmaTests.BrowserMandoSesionTests test_perder_el_volante_corta_todos_los_lotes_de_teclado_y_recuperarlo_no_los_revive]",
+        "-[GemmaTests.BrowserPanelViewTests test_el_cuerpo_del_mando_cablea_las_puertas_que_la_suite_no_puede_ejecutar]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "C6-fin-sin-invalidar",
+      "begin": "2026-11-10T13:38:55.813847-05:00",
+      "end": "2026-11-10T13:39:17.986388-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1427,
+      "failed": 6,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.BrowserMandoSesionTests test_el_fin_del_flujo_corta_las_teclas_pendientes]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "final",
+      "begin": "2026-11-10T13:39:18.034850-05:00",
+      "end": "2026-11-10T13:39:38.067293-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1428,
+      "failed": 5,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "C7-puntero-sin-predecesor",
+      "begin": "2026-11-10T13:39:51.652023-05:00",
+      "end": "2026-11-10T13:40:15.598432-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1425,
+      "failed": 8,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.BrowserMandoSesionTests test_el_soltar_defensivo_va_detras_de_la_cola_y_en_el_ultimo_punto_bueno]",
+        "-[GemmaTests.BrowserMandoSesionTests test_lotes_pendientes_no_reviven_tras_perdida_y_concesion]",
+        "-[GemmaTests.BrowserMandoSesionTests test_un_clic_detras_de_un_pegado_sale_detras_del_pegado]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "B4-boton-difiere-el-bloqueo",
+      "begin": "2026-11-10T13:40:15.645871-05:00",
+      "end": "2026-11-10T13:40:35.301647-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1427,
+      "failed": 6,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.BrowserPanelViewTests test_el_cuerpo_del_mando_cablea_las_puertas_que_la_suite_no_puede_ejecutar]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "final-restaurado",
+      "begin": "2026-11-10T13:40:35.343317-05:00",
+      "end": "2026-11-10T13:40:57.192764-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1428,
+      "failed": 5,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    },
+    {
+      "name": "entrega-final",
+      "begin": "2026-11-10T13:43:20.677797-05:00",
+      "end": "2026-11-10T13:43:43.033742-05:00",
+      "xcode_exit": -5,
+      "xcode_cases": 0,
+      "direct_exit": 1,
+      "passed": 1428,
+      "failed": 5,
+      "skipped": 21,
+      "total": 1454,
+      "failures": [
+        "-[GemmaTests.AgentSystemPromptTests test_system_prompt_has_no_save_memory_instruction]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaExigeAmbosArgumentos]",
+        "-[GemmaTests.ContactAliasStoreTests test_herramientaParaEnsenarAlias]",
+        "-[GemmaTests.MemoryServiceLiveTests test_recall_degrades_gracefully_when_service_unreachable]",
+        "-[GemmaTests.ReminderCRUDToolTests test_update_mueve_la_hora]"
+      ]
+    }
+  ],
+  "restoration": {
+    "Gemma/Gemma/Harness/BrowserMando.swift": {
+      "disk": "12425d60237e89358b14c7008f6d29f039b5e40bf4c0a30631e9c122d79734a7",
+      "index": "12425d60237e89358b14c7008f6d29f039b5e40bf4c0a30631e9c122d79734a7"
+    },
+    "Gemma/Gemma/Harness/BrowserPanelCoordinator.swift": {
+      "disk": "566e4842b89aac6d1e8206bd7d5129af8f513d86676944a4a19c8416204d963d",
+      "index": "566e4842b89aac6d1e8206bd7d5129af8f513d86676944a4a19c8416204d963d"
+    },
+    "Gemma/Gemma/Settings/TokenDeConducir.swift": {
+      "disk": "037d72dc58f934cb243890da2862aa330a71a16fd38fab40509fb44c4b25c933",
+      "index": "037d72dc58f934cb243890da2862aa330a71a16fd38fab40509fb44c4b25c933"
+    },
+    "Gemma/GemmaTests/BrowserMandoSesionTests.swift": {
+      "disk": "ed8e2c1463e76ebccebecb1a1245ed3746dd4253f03502629e3812b9cfb2e42c",
+      "index": "ed8e2c1463e76ebccebecb1a1245ed3746dd4253f03502629e3812b9cfb2e42c"
+    },
+    "Gemma/GemmaTests/BrowserPanelViewTests.swift": {
+      "disk": "cc796a47bfaf3ad72a000a130100d1981e5154f40d0025604fa6754b0c870c69",
+      "index": "cc796a47bfaf3ad72a000a130100d1981e5154f40d0025604fa6754b0c870c69"
+    },
+    "Gemma/GemmaTests/TokenDeConducirTests.swift": {
+      "disk": "9c9a8f192fadec7c4a26348daab0d8977a3c1c2ee3d28662e22d985eaf3d8428",
+      "index": "9c9a8f192fadec7c4a26348daab0d8977a3c1c2ee3d28662e22d985eaf3d8428"
+    },
+    "Gemma/GemmaTests/TokenDeMemoriaTests.swift": {
+      "disk": "e748d3dc81cf0fa18e67b9b5c761cf8982d7b885393e68a79f62858fe9a024f3",
+      "index": "e748d3dc81cf0fa18e67b9b5c761cf8982d7b885393e68a79f62858fe9a024f3"
+    }
+  },
+  "mutation_restoration": {
+    "Gemma/Gemma/Harness/BrowserMando.swift": {
+      "disk": "12425d60237e89358b14c7008f6d29f039b5e40bf4c0a30631e9c122d79734a7",
+      "index": "12425d60237e89358b14c7008f6d29f039b5e40bf4c0a30631e9c122d79734a7"
+    },
+    "Gemma/Gemma/Harness/BrowserPanelCoordinator.swift": {
+      "disk": "566e4842b89aac6d1e8206bd7d5129af8f513d86676944a4a19c8416204d963d",
+      "index": "566e4842b89aac6d1e8206bd7d5129af8f513d86676944a4a19c8416204d963d"
+    },
+    "Gemma/Gemma/Settings/TokenDeConducir.swift": {
+      "disk": "ee03199d2cbe52638d87e0c4ebc7ebdc488873c82416e24dc1ae270547c2f073",
+      "index": "ee03199d2cbe52638d87e0c4ebc7ebdc488873c82416e24dc1ae270547c2f073"
+    },
+    "Gemma/GemmaTests/BrowserMandoSesionTests.swift": {
+      "disk": "ed8e2c1463e76ebccebecb1a1245ed3746dd4253f03502629e3812b9cfb2e42c",
+      "index": "ed8e2c1463e76ebccebecb1a1245ed3746dd4253f03502629e3812b9cfb2e42c"
+    },
+    "Gemma/GemmaTests/BrowserPanelViewTests.swift": {
+      "disk": "cc796a47bfaf3ad72a000a130100d1981e5154f40d0025604fa6754b0c870c69",
+      "index": "cc796a47bfaf3ad72a000a130100d1981e5154f40d0025604fa6754b0c870c69"
+    },
+    "Gemma/GemmaTests/TokenDeConducirTests.swift": {
+      "disk": "9c9a8f192fadec7c4a26348daab0d8977a3c1c2ee3d28662e22d985eaf3d8428",
+      "index": "9c9a8f192fadec7c4a26348daab0d8977a3c1c2ee3d28662e22d985eaf3d8428"
+    },
+    "Gemma/GemmaTests/TokenDeMemoriaTests.swift": {
+      "disk": "e748d3dc81cf0fa18e67b9b5c761cf8982d7b885393e68a79f62858fe9a024f3",
+      "index": "e748d3dc81cf0fa18e67b9b5c761cf8982d7b885393e68a79f62858fe9a024f3"
+    }
+  },
+  "driver_executed": "import subprocess, os, re, json, hashlib, datetime, sys\nfrom pathlib import Path\nroot=Path.cwd(); evidence=Path('/tmp/round8-evidence'); evidence.mkdir(exist_ok=True)\npaths=subprocess.check_output(['git','diff','--name-only','HEAD'],text=True).splitlines()\noriginal={p:(root/p).read_bytes() for p in paths}\nindex={p:subprocess.check_output(['git','show',':'+p]) for p in paths}\ndef sha(b): return hashlib.sha256(b).hexdigest()\nenv=os.environ.copy();env.update(CFFIXED_USER_HOME='/tmp/round8-cache',CLANG_MODULE_CACHE_PATH='/tmp/round8-cache/clang',SWIFTPM_MODULECACHE_OVERRIDE='/tmp/round8-cache/swift')\napp='/tmp/round8-cache/build/Build/Products/Debug/Gemma.app/Contents'\ndirect_env=env.copy();direct_env.update(DYLD_FRAMEWORK_PATH=app+'/Frameworks',DYLD_INSERT_LIBRARIES=app+'/MacOS/Gemma.debug.dylib')\ncommand=['xcodebuild','-IDEPackageSupportDisableManifestSandbox=YES','-project','Gemma/Gemma.xcodeproj','-scheme','Gemma','-destination','platform=macOS','-derivedDataPath','/tmp/round8-cache/build','-clonedSourcePackagesDirPath','/tmp/round8-cache/SourcePackages','-disableAutomaticPackageResolution','CODE_SIGNING_ALLOWED=NO','OTHER_SWIFT_FLAGS=$(inherited) -disable-sandbox','test']\nrows=[]\ndef run(name):\n    begin=datetime.datetime.now().astimezone().isoformat()\n    with (evidence/(name+'-xcode.log')).open('w') as f:\n        result=subprocess.run(command,env=env,stdout=f,stderr=subprocess.STDOUT,timeout=180)\n    xlog=(evidence/(name+'-xcode.log')).read_text()\n    if 'Testing started' not in xlog and 'Testing started completed' not in xlog:\n        # Some xcode versions fail at launch without the summary, but must have built the bundle.\n        if 'error:' in xlog and 'testmanagerd' not in xlog:\n            raise RuntimeError('build failed: '+name)\n    with (evidence/(name+'-direct.log')).open('w') as f:\n        test=subprocess.run(['/Applications/Xcode.app/Contents/Developer/usr/bin/xctest',app+'/PlugIns/GemmaTests.xctest'],env=direct_env,stdout=f,stderr=subprocess.STDOUT,timeout=120)\n    log=(evidence/(name+'-direct.log')).read_text()\n    cases=re.findall(r\"Test Case '([^']+)' (passed|failed|skipped)\",log)\n    passed=sum(t=='passed' for _,t in cases);skipped=sum(t=='skipped' for _,t in cases)\n    failed=sorted({n for n,t in cases if t=='failed'})\n    official=re.findall(r\"case '[^']+' (passed|failed|skipped)\",xlog)\n    row=dict(name=name,begin=begin,end=datetime.datetime.now().astimezone().isoformat(),xcode_exit=result.returncode,xcode_cases=len(official),direct_exit=test.returncode,passed=passed,failed=len(failed),skipped=skipped,total=passed+len(failed)+skipped,failures=failed)\n    rows.append(row);(evidence/'results.json').write_text(json.dumps(rows,indent=2));print(json.dumps(row),flush=True)\ndef restore():\n    for p,b in original.items(): (root/p).write_bytes(b)\n    # Three restoration checks: text, disk SHA256, index SHA256.\n    for p,b in original.items():\n        assert (root/p).read_bytes()==b\n        assert sha((root/p).read_bytes())==sha(b)\n        assert sha(subprocess.check_output(['git','show',':'+p]))==sha(index[p])\n    print('RESTORED text/disk/index',flush=True)\n    (evidence/'restoration.json').write_text(json.dumps({p:dict(disk=sha(b),index=sha(index[p])) for p,b in original.items()},indent=2))\ndef mutate(p,a,b):\n    text=(root/p).read_text();assert text.count(a)==1,(p,a,text.count(a));(root/p).write_text(text.replace(a,b))\nbm='Gemma/Gemma/Harness/BrowserMando.swift';tc='Gemma/Gemma/Settings/TokenDeConducir.swift';co='Gemma/Gemma/Harness/BrowserPanelCoordinator.swift'\nmutations=[\n('A1-borra-tras-rechazo',tc,'''            guard almacen.escribir(limpio, cuenta: cuenta),\n                  almacen.leer(cuenta: cuenta) == limpio\n            else { return false }''','''            _ = almacen.escribir(limpio, cuenta: cuenta)'''),\n('A2-no-verifica-lectura',tc,'''            guard almacen.escribir(limpio, cuenta: cuenta),\n                  almacen.leer(cuenta: cuenta) == limpio\n            else { return false }''','''            guard almacen.escribir(limpio, cuenta: cuenta) else { return false }'''),\n('B1-no-bloquea-devolucion',bm,'''    public func devuelve() -> Task<Bool, Never> {\n        devolviendo = true''','''    public func devuelve() -> Task<Bool, Never> {\n        devolviendo = false'''),\n('B2-acepta-contacto-cerrado',bm,'if contacto == contactoCerrado { return false }','if contacto == contactoCerrado, false { return false }'),\n('B3-no-recupera-tras-fallo',bm,'if !salio { self?.devolviendo = false }','if !salio { }'),\n('C1-generacion-neutral',bm,'vigente: { [weak self] in self?.generacionDeTeclado == generacion },','vigente: { [weak self] in self?.generacionDeTeclado == generacion || self?.generacionDeTeclado != generacion },'),\n('C2-cola-independiente',bm,'cola = BrowserMandoEnvio.encola(mensajes, por: mando, tras: cola,','cola = BrowserMandoEnvio.encola(mensajes, por: mando, tras: nil,'),\n('C3-devolver-sin-invalidar',bm,'''        devolviendo = true\n        generacionDeTeclado += 1\n        let cierre = cierraElGesto()''','''        devolviendo = true\n        let cierre = cierraElGesto()'''),\n('C4-retirar-sin-invalidar',bm,'''    public func retira() -> Task<Void, Never>? {\n        generacionDeTeclado += 1''','''    public func retira() -> Task<Void, Never>? {'''),\n('C5-no-avisa-transicion',co,'self?.sesiones[id]?.cambioElVolante()','_ = self?.sesiones[id]'),\n('C6-fin-sin-invalidar',co,'self?.sesiones.removeValue(forKey: id)?.cambioElVolante()','self?.sesiones.removeValue(forKey: id)?.olvidaElGesto()'),\n]\ntry:\n    for p in paths: (root/p).write_bytes(subprocess.check_output(['git','show','HEAD:'+p]))\n    run('base-411606f');restore()\n    run('control')\n    for name,p,a,b in mutations:\n        mutate(p,a,b)\n        try: run(name)\n        finally: restore()\n    run('final')\nfinally: restore()\n",
+  "extra_driver": "from pathlib import Path\nexec(Path('/tmp/round8-driver.py').read_text().split('\\ntry:\\n    for p in paths:')[0])\nrows=json.loads((evidence/'results.json').read_text())\nextra=[\n('C7-puntero-sin-predecesor',bm,'cola = BrowserMandoEnvio.encola(salida.mensajes, por: mando, tras: cola,','cola = BrowserMandoEnvio.encola(salida.mensajes, por: mando, tras: nil,'),\n('B4-boton-difiere-el-bloqueo',bm,'''        if accion == .devuelve, let sesion {\n            sesion.devuelve()\n            return\n        }''','''        if accion == .devuelve, let sesion {\n            Task { sesion.devuelve() }\n            return\n        }'''),\n]\ntry:\n    for name,p,a,b in extra:\n        mutate(p,a,b)\n        try: run(name)\n        finally: restore()\n    run('final-restaurado')\nfinally: restore()\n",
+  "macos_build": "TEST BUILD SUCCEEDED",
+  "ios_simulator_build": "TEST BUILD SUCCEEDED",
+  "final_direct": {
+    "passed": 1428,
+    "failed": 5,
+    "skipped": 21,
+    "total": 1454,
+    "time": "2026-11-10 13:43:43 EST"
+  }
+}

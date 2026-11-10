@@ -425,12 +425,25 @@ final class ClaveDeProveedorTests: XCTestCase {
         // regla lo cierra sin enumerar los sitios: el global solo puede aparecer detrás de un
         // `=`.
         var lineasConElGlobal = 0
-        // Sin comentarios: la prosa nombra el llavero para explicarlo, y la regla es sobre código.
-        let codigoDelModelo = modelo.split(separator: "\n", omittingEmptySubsequences: false)
-            .map { linea -> String in
-                guard let corte = linea.range(of: "//") else { return String(linea) }
-                return String(linea[linea.startIndex..<corte.lowerBound])
-            }
+        // SIN COMENTARIOS, y con **el troceado compartido** (`TroceadoDeFuente`), no con una copia
+        // local. Aquí vivía una de las dos últimas copias del corte ciego, y no era inocua: un
+        // informe de esta misma rama declaró «cero copias restantes» mientras esta línea seguía
+        // cortando en el primer `//` de la línea, mirara o no dentro de una cadena. Medido con la
+        // suite ENTERA:
+        //
+        //     let ayuda = "//"; _ = ClaveDeProveedor.leer(proveedor: "cerebras",
+        //                                                 almacen: LlaveroDelSistema.compartido)
+        //
+        // dejaba la suite en su verde exacto —la regla no veía la línea, porque el corte la dejaba
+        // en `let ayuda = "`— y la misma línea con `"x"` en vez de `"//"` ponía ESTA prueba roja.
+        // Es decir: la regla que protege las API keys de PAGO de producción era esquivable con una
+        // cadena por delante. Y su guarda de vacuidad (`>= 3`) no lo caza, por el mismo motivo que
+        // el doc-comment del troceado explica: cuenta que la regla haya mirado *algo*, no que no
+        // se le haya escondido *una* línea. Hay siete líneas legítimas, así que esconder la octava
+        // sobra para pasar.
+        let codigoDelModelo = TroceadoDeFuente.sinComentarios(modelo)
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map(String.init)
         for linea in codigoDelModelo where linea.contains("LlaveroDelSistema") {
             lineasConElGlobal += 1
             XCTAssertTrue(linea.contains("= LlaveroDelSistema.compartido"),

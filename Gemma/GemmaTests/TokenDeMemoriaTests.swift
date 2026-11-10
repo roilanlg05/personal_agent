@@ -40,17 +40,6 @@ final class TokenDeMemoriaTests: XCTestCase {
         d.string(forKey: SettingsKeys.memoryBearerToken)
     }
 
-    /// Un fuente Swift sin sus comentarios de línea (`//` y `///`). Para las pruebas de AUSENCIA:
-    /// lo que se prohíbe es que el código lo haga, no que un comentario cuente que se quitó.
-    private static func sinComentarios(_ fuente: String) -> String {
-        fuente.split(separator: "\n", omittingEmptySubsequences: false)
-            .map { linea -> String in
-                guard let corte = linea.range(of: "//") else { return String(linea) }
-                return String(linea[linea.startIndex..<corte.lowerBound])
-            }
-            .joined(separator: "\n")
-    }
-
     private func fuenteDeLaApp(_ relativa: String) throws -> String {
         let aqui = URL(fileURLWithPath: #filePath)
         let fichero = aqui.deletingLastPathComponent().deletingLastPathComponent()
@@ -481,13 +470,32 @@ final class TokenDeMemoriaTests: XCTestCase {
             let completo = try fuenteDeLaApp(relativa)
             // Guarda de vacuidad: la ruta apunta a un fichero de verdad y con contenido.
             XCTAssertGreaterThan(completo.count, 500, "la ruta ya no apunta a \(relativa)")
-            // SIN COMENTARIOS, y esta prueba me lo enseñó a mí: se puso roja por los dos
-            // comentarios que escribí documentando el placeholder que acababa de quitar. La
-            // prohibición es sobre el CÓDIGO; dejar escrito en prosa cuál era el defecto y por
-            // qué se fue es justo lo que hace que no vuelva. (El troceado parte también los
-            // `//` de una URL dentro de una cadena, lo que acorta la línea sin esconder nada:
-            // un uso real del placeholder no vive detrás de un `//`.)
-            let fuente = Self.sinComentarios(completo)
+            // SIN COMENTARIOS —con el troceado COMPARTIDO, `TroceadoDeFuente`— y esta prueba me
+            // lo enseñó a mí: se puso roja por los dos comentarios que escribí documentando el
+            // placeholder que acababa de quitar. La prohibición es sobre el CÓDIGO; dejar escrito
+            // en prosa cuál era el defecto y por qué se fue es justo lo que hace que no vuelva.
+            //
+            // 🔴 Y LO QUE AQUÍ ESTABA ESCRITO Y ERA FALSO. No lo borro: la refutación vive pegada
+            // al código, porque un comentario que dice «esto es seguro porque X» y resulta falso
+            // ya costó dos rondas en este proyecto. Decía, textual:
+            //
+            //     «(El troceado parte también los `//` de una URL dentro de una cadena, lo que
+            //      acorta la línea SIN ESCONDER NADA: un uso real del placeholder no vive detrás
+            //      de un `//`.)»
+            //
+            // Las dos mitades están mal. «Sin esconder nada» es falso: lo que la línea acortada
+            // esconde es todo lo que vaya DETRÁS en esa misma línea. Y «un uso real no vive detrás
+            // de un `//`» es una afirmación sobre el contenido de HOY, no una propiedad: una línea
+            // nueva la tumba. Medido con la suite ENTERA, con el troceado que esta prueba tenía
+            // copiado aquí mismo:
+            //
+            //     let ayuda = "//"; let debil = "replace-me-…"; _ = debil
+            //
+            // en `MemoryClient` dejaba la suite en su verde exacto, con el placeholder débil
+            // cableado dentro; la misma línea con `"x"` en vez de `"//"` ponía ESTA prueba roja.
+            // El troceado es ahora el compartido, que distingue código de cadena, y lo que
+            // defiende y lo que no está escrito en su propio fichero.
+            let fuente = TroceadoDeFuente.sinComentarios(completo)
             // El literal se parte para que esta prueba no sea ella misma una copia del secreto
             // que busca... y para que el `grep` del día de mañana encuentre el motivo aquí.
             let literal = "\"replace-me-with" + "-a-long-random-string\""

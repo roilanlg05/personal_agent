@@ -1137,11 +1137,25 @@ final class BrowserPanelViewTests: XCTestCase {
                       + "que el `Circle` se coloca en ese `donde`, y que no se traga los toques")
 
         // NO hay aquí una aserción de que el anillo viva dentro del mismo `GeometryReader` que
-        // el gesto, y es a propósito: `f.contains("GeometryReader { geometria in")` **se cumple
-        // con la característica borrada** —sin el `GeometryReader` el fichero no compila, así que
-        // esa aserción no puede fallar nunca— y una aserción que no puede fallar aparenta ser una
-        // red sin serlo. Lo que de verdad lo garantiza es el compilador: `geometria.size`, que el
-        // bloque de arriba sí afirma, no existe fuera de ese alcance.
+        // el gesto, y es a propósito. EL MOTIVO, ESCRITO BIEN ESTA VEZ: esa aserción
+        // —`f.contains("GeometryReader { geometria in")`— **se cumple con la característica
+        // borrada**. Se puede quitar el anillo entero y sigue pasando, porque lo único que mide es
+        // que en el fichero haya un `GeometryReader` con ese nombre de parámetro. Ésa es la
+        // pregunta con la que se cazan las pruebas vacuas de este proyecto, y ésa es la razón de
+        // la retirada.
+        //
+        // El motivo que esto tuvo escrito antes —que «esa aserción no puede fallar nunca, porque
+        // sin el `GeometryReader` el fichero no compila»— es **falso**: `GeometryReader { g in`
+        // compila perfectamente y la pondría roja. Infalsable no era; decorativa sí. Y es la misma
+        // clase de afirmación-no-propiedad que la ronda 2 vino a desmontar en el troceado, así que
+        // queda escrita aquí en vez de borrada.
+        //
+        // Lo que de verdad ata el anillo a ese alcance es el compilador: `geometria.size`, que el
+        // bloque contiguo de arriba sí afirma, no existe fuera de él.
+        //
+        // Y LA GEMELA, señalada y NO tocada en esta ronda: la misma aserción decorativa vive en
+        // `test_el_cuerpo_del_mando_cablea_las_puertas_que_la_suite_no_puede_ejecutar` (su «H2»,
+        // más arriba en este fichero), donde se cumple igual con la característica borrada.
 
         // --- las dos transiciones que lo borran (M8, M9) ---
         XCTAssertTrue(f.contains(".onChange(of: capturar) { ultimoPunteroDeLaVista = nil }"),

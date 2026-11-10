@@ -116,7 +116,18 @@ public final class BrowserPanelCoordinator {
         PanelLog.note("panel \(PanelLog.corto(id)) abierto por \(toolName); navegadorAbierto heredado=\(browserLeftOpen)")
         consumers[id] = Task { @MainActor [weak self, weak state] in
             for await event in stream {
+                let antes = state?.quienConduce
                 state?.apply(event)
+                // 🔴 EL VOLANTE CAMBIÓ DE MANOS: LA SESIÓN SE ENTERA EN ESTE MISMO PASO (ronda 8).
+                // Es el punto más temprano y síncrono en que el cliente sabe que el volante ya no
+                // es del usuario —un `mando` del servidor o un `.closed`—, y aquí se invalidan
+                // las teclas pendientes de TODOS los lotes en vuelo. Hacerlo en el observador de
+                // la vista (`onChange(of: state.quienConduce)`) dejaba una ventana en la que una
+                // tecla de un pegado todavía salía, y si el usuario recuperaba el volante antes
+                // de que el pegado acabara, el resto se escribía en el campo enfocado entonces.
+                if state?.quienConduce != antes {
+                    self?.sesiones[id]?.cambioElVolante()
+                }
             }
             // Red de seguridad, no cortesía: el flujo tiene búfer `.bufferingNewest(64)` y un
             // consumidor lento puede perder un `.closed`. Que el flujo termine congela el panel
@@ -136,9 +147,10 @@ public final class BrowserPanelCoordinator {
             // siempre. Por ese socket ya no sale ninguna pulsación, así que el volante se suelta
             // aquí también y no solo en `retire`.
             self?.mandos[id] = nil
-            // Sin socket no sale nada, así que aquí no hay soltar que mandar: se olvida el gesto
-            // y se suelta la sesión, que es la otra referencia viva al cliente del relé.
-            self?.sesiones.removeValue(forKey: id)?.olvidaElGesto()
+            // Sin socket no sale nada, así que aquí no hay soltar que mandar: se olvida el gesto,
+            // se invalidan las teclas pendientes (`cambioElVolante`) y se suelta la sesión, que
+            // es la otra referencia viva al cliente del relé.
+            self?.sesiones.removeValue(forKey: id)?.cambioElVolante()
         }
         return id
     }

@@ -227,11 +227,33 @@ extension SecretoDelDispositivo {
     /// LAS DOS MITADES SON OBLIGATORIAS, Y LA SEGUNDA ES LA QUE SE OLVIDA. Si la migración mueve
     /// el token pero no borra el original, esto no arregla nada para el usuario que ya tiene el
     /// suyo guardado en claro: el fichero de preferencias sigue teniéndolo y ahora hay dos copias.
-    /// Por eso `defaults.removeObject` corre **siempre** que había algo escrito, incluso si no se
-    /// movió nada (porque estaba vacío, o porque el almacén ya tenía un token más nuevo).
     ///
-    /// Devuelve `true` solo si movió un token. Un `false` no distingue «no había nada» de «ya
-    /// estaba migrado», y no hace falta que lo distinga.
+    /// 🔴 PERO EL ORIGEN SOLO SE BORRA CUANDO YA NO ES LA ÚNICA COPIA (ronda 8, hallazgo de la
+    /// revisión adversarial de Codex). Antes `defaults.removeObject` corría **siempre**, también
+    /// cuando el llavero rechazaba la escritura: un rechazo borraba el único token que había, los
+    /// servicios se quedaban sin autenticación y el arranque siguiente ya no tenía nada que
+    /// reintentar. Ahora se borra en exactamente tres casos:
+    ///
+    ///   1. lo que había estaba en blanco (no hay token que perder);
+    ///   2. el almacén ya tenía un token (es más nuevo: al guardar se escribe primero el llavero);
+    ///   3. la escritura devolvió `true` **y** leerlo de vuelta da **el mismo** valor.
+    ///
+    /// En cualquier otro caso el origen **se queda** y la función devuelve `false`: el arranque
+    /// siguiente y la apertura de Ajustes, que vuelven a llamar aquí, lo reintentan. Es la misma
+    /// regla que ya cumple `ClaveDeProveedor.migrar`, y por el mismo motivo: un llavero que dice
+    /// «sí» al escribir y no devuelve nada al leer (medido en la Tarea 6 con el llavero de
+    /// ficheros de macOS) no puede convertirse en un token perdido.
+    ///
+    /// DOS HUECOS QUE ESTO NO CIERRA, declarados:
+    ///   - `leer` devuelve `nil` tanto si no hay elemento como si `SecItemCopyMatching` falla, y
+    ///     `escribir` **borra primero** el elemento existente. Un error de lectura confundido con
+    ///     ausencia puede llevar a escribir encima —y, si esa escritura falla, a dejar el llavero
+    ///     sin el token bueno—, aunque el origen ya no se borra en ese caso.
+    ///   - Un llavero que falla **siempre** deja el token en claro en `UserDefaults`
+    ///     indefinidamente. Conservar la copia permite reintentar; no garantiza autenticación.
+    ///
+    /// Devuelve `true` solo si movió un token. Un `false` no distingue «no había nada», «ya
+    /// estaba migrado» ni «no se pudo»; el último se distingue porque el origen sigue ahí.
     @discardableResult
     public static func migrar(almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido,
                               defaults: UserDefaults = .standard) -> Bool {
@@ -241,7 +263,13 @@ extension SecretoDelDispositivo {
         // El almacén manda si ya tiene algo: lo que hay en el llavero es más nuevo que lo que
         // quedó en el sitio viejo, porque al guardar se escribe primero el llavero.
         if !limpio.isEmpty, almacen.leer(cuenta: cuenta) == nil {
-            movido = almacen.escribir(limpio, cuenta: cuenta)
+            // Escribir y VERIFICAR leyendo de vuelta; si cualquiera de las dos falla, el origen
+            // se queda intacto para el reintento. No se borra nada antes de saber que hay otra
+            // copia buena.
+            guard almacen.escribir(limpio, cuenta: cuenta),
+                  almacen.leer(cuenta: cuenta) == limpio
+            else { return false }
+            movido = true
         }
         defaults.removeObject(forKey: claveVieja)
         return movido

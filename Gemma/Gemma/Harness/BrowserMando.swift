@@ -409,13 +409,28 @@ public enum BrowserMandoEnvio {
     /// ahí todo lo que el usuario tocara arrastraría. Por eso cada envío espera a `previa`.
     ///
     /// **EL REPARTO EN EL TIEMPO** es lo que impide que un pegado se coma su propia cola: ver
-    /// `BrowserMandoEntrada.intervaloEntreTeclas`, con los tres umbrales medidos. No se espera
-    /// antes del primer mensaje: un clic no se retrasa.
+    /// `BrowserMandoEntrada.intervaloEntreTeclas`, con los tres umbrales medidos. El reparto es
+    /// **entre los mensajes de un mismo lote** (solo con `indice > 0`), no entre lotes: no se
+    /// espera antes del primer mensaje de un lote.
     ///
-    /// **LA CANCELACIÓN** se comprueba después de cada espera, no solo al entrar, y es lo que
-    /// hace que la contraseña en vuelo no siga saliendo cuando el volante ya no es del usuario.
-    /// Sin reparto la ventana era de milisegundos; con reparto es de segundos, así que sin este
-    /// guarda el arreglo de arriba habría abierto un agujero nuevo.
+    /// ⚠️ PERO UN CLIC SÍ PUEDE RETRASARSE, y es un precio aceptado (ronda 8). Desde que el
+    /// teclado y el puntero comparten UNA cadena por sesión (`BrowserMandoSesion`), un clic
+    /// encolado detrás de un pegado largo sale cuando el pegado termina: 200 caracteres son
+    /// 400 mensajes y unos 6,8 s. Es lo que se quiere: el orden de los mensajes es el orden de
+    /// los gestos, y un clic que adelantara a las teclas pendientes movería el foco a otro campo
+    /// y el resto de la contraseña se escribiría ahí, quizá a la vista del stream.
+    ///
+    /// **LA INVALIDACIÓN, `vigente`**, se comprueba tras esperar a la cola anterior, tras cada
+    /// espera del reparto y **antes de cada `manda`**, y es lo que hace que la contraseña en
+    /// vuelo no siga saliendo cuando el volante ya no es del usuario. Es un cierre que pregunta a
+    /// quien encoló, y no `Task.cancel()`, por lo que midió la revisión adversarial de la ronda 8:
+    /// cada llamada crea una tarea propia que espera a la anterior, así que cancelar la última
+    /// **no cancela las anteriores**, y un pegado viejo seguía saliendo y podía escribir en el
+    /// campo enfocado tras recuperar el volante. Con `vigente` a `nil` el lote **no se invalida
+    /// nunca**: es lo que usan el puntero y el soltar defensivo, que se drenan siempre (cortarlos
+    /// pierde el `mouseMoved` y el soltar de un gesto terminado, y deja `pulsar` sin `soltar`:
+    /// medido en dos rondas, h3f). Lo que ya entró en `await mando.manda(...)` no se puede
+    /// retirar: un mensaje en ese punto sale o falla, la invalidación solo frena al siguiente.
     ///
     /// Con `mando` a `nil` o sin mensajes **no se crea cola nueva**: se devuelve la que había,
     /// para no romper la cadena de orden de lo que ya estuviera en vuelo.
@@ -431,11 +446,17 @@ public enum BrowserMandoEnvio {
     /// igual, y con el tope pasado lo que saliera sería una contraseña con un hueco en medio,
     /// que es peor que ninguna porque la página contesta «contraseña incorrecta».
     ///
+    /// LOS LOTES QUE VAN DETRÁS DE UNO FALLIDO NO SE TOCAN, y es una decisión: el primer `false`
+    /// corta **su** lote, no la cadena. Sin canal, cada lote de detrás falla en su primer mensaje
+    /// y vuelve a llamar a `alFallar` (que solo pone un booleano, así que repetirlo no dice
+    /// nada nuevo ni cuenta nada); con el tope pasado, el lote de detrás es otro y puede caber.
+    ///
     /// `alFallar` **no recibe nada**, a propósito: ni el mensaje, ni su índice, ni cuántos
     /// quedaban. Cualquiera de los tres diría algo de lo que el usuario escribió.
     public static func encola(_ mensajes: [String],
                               por mando: MandoDelNavegador?,
                               tras previa: Task<Void, Never>?,
+                              vigente: (@MainActor () -> Bool)? = nil,
                               espera: @escaping Espera = esperaReal,
                               alFallar: @escaping @MainActor () -> Void) -> Task<Void, Never>? {
         guard let mando, !mensajes.isEmpty else { return previa }
@@ -443,7 +464,9 @@ public enum BrowserMandoEnvio {
             await previa?.value
             for (indice, mensaje) in mensajes.enumerated() {
                 if indice > 0 { await espera(BrowserMandoEntrada.intervaloEntreTeclas) }
-                guard !Task.isCancelled else { return }
+                // En la primera vuelta esto es «tras esperar a la cola anterior»; en las demás,
+                // «tras la espera del reparto». Siempre, inmediatamente antes del `manda`.
+                guard !Task.isCancelled, vigente?() ?? true else { return }
                 guard await mando.manda(entrada: mensaje) else {
                     alFallar()
                     return
@@ -566,8 +589,56 @@ public final class BrowserMandoSesion {
     /// Cuándo se mandó la última muestra del gesto. `nil` entre gestos, y eso es lo que
     /// distingue la pulsación del movimiento.
     private var ultimoMuestreo: ContinuousClock.Instant?
-    /// La cadena de envíos del gesto, en orden: ver `BrowserMandoEnvio.encola`.
+    /// LA cadena de envíos de este panel, en orden: el gesto **y el teclado**, una sola. Ver
+    /// `BrowserMandoEnvio.encola`.
+    ///
+    /// POR QUÉ UNA Y NO DOS (ronda 8, revisión adversarial de Codex). El teclado tenía su propia
+    /// cola en `BrowserMandoBarra`, independiente de ésta: un pegado seguía saliendo durante
+    /// segundos por el reparto de 17 ms, y un clic en otro campo **adelantaba** a sus teclas
+    /// pendientes, así que el resto de la contraseña se escribía en el campo nuevo —que puede
+    /// enseñar el texto, y de ahí al stream y al agente—. Con una sola cadena, el orden de los
+    /// mensajes es el orden de los gestos, también entre clic y tecla.
     private var cola: Task<Void, Never>?
+
+    /// La generación del TECLADO. Cada lote de teclado la captura al encolarse y deja de mandar
+    /// en cuanto deja de coincidir (ver `vigente` en `BrowserMandoEnvio.encola`). Se incrementa,
+    /// **de forma síncrona**, en las tres transiciones tras las que una tecla pendiente ya no
+    /// debe salir: el volante cambia de manos (`cambioElVolante`), el usuario empieza a
+    /// devolverlo (`devuelve`) y el panel se retira (`retira`). En las dos últimas, **antes** de
+    /// encolar el soltar defensivo: si no, el soltar esperaría detrás de un pegado (200
+    /// caracteres son 6,8 s de reparto) y el plazo de 1 s vencería sin que saliera.
+    ///
+    /// SOLO EL TECLADO. Los mensajes del puntero y el soltar defensivo no se invalidan nunca:
+    /// se drenan (h3f, medido en dos rondas).
+    private var generacionDeTeclado = 0
+
+    /// El usuario pulsó «Devolverlo» y el servidor todavía no ha publicado el `mando` nuevo.
+    /// Mientras está puesto **ni el puntero ni el teclado emiten nada** (el soltar defensivo sí:
+    /// no pasa por aquí). Se pone en `devuelve()` antes de cualquier espera, y se quita cuando el
+    /// volante cambia de manos o cuando devolverlo no llegó a salir del aparato.
+    ///
+    /// POR QUÉ HACE FALTA (ronda 8, Codex). Entre pulsar el botón y que llegue el `mando` del
+    /// servidor, `capturar` sigue a `true`; el dedo que sigue apoyado dispara otro `onChanged`, y
+    /// como `cierraElGesto()` acaba de borrar el muestreo, se leía como un `.pulsa`: un
+    /// `mousePressed` nuevo que salía antes del `mando_devolver` y que nadie soltaría.
+    public private(set) var devolviendo = false
+
+    /// El contacto del gesto abierto, identificado por su `DragGesture.Value.startLocation`, que
+    /// solo cambia con un contacto NUEVO. `nil` sin gesto abierto o cuando la vista no lo dice.
+    private var contactoEnCurso: CGPoint?
+    /// El último contacto cuyo gesto se cerró **sin que el dedo se levantara** (al devolver el
+    /// volante o al perderlo). Sus `onChanged` y su `onEnded` se ignoran: el dedo sigue apoyado,
+    /// y sin esto, al recuperar el volante, su siguiente `onChanged` sería un `mousePressed`
+    /// que nadie garantiza soltar —el propio `onEnded` no está garantizado—.
+    ///
+    /// POR QUÉ NO BASTA LIMPIAR `devolviendo` CON LA CONCESIÓN NUEVA: la concesión no prueba que
+    /// el siguiente evento sea de un contacto nuevo. Se olvida al ver un contacto distinto o al
+    /// levantarse éste.
+    ///
+    /// HUECO DECLARADO: si el `onEnded` de ese contacto no llega nunca, el siguiente contacto que
+    /// empiece EXACTAMENTE en el mismo punto (posible con un ratón quieto en macOS) se ignora
+    /// hasta que se levante: un clic perdido, en la dirección segura.
+    private var contactoCerrado: CGPoint?
 
     /// Si algo de lo que el usuario mandó desde este panel **no salió del aparato**. Lo lee la
     /// barra para avisarle. Se apaga cuando el servidor le vuelve a conceder el volante.
@@ -585,11 +656,17 @@ public final class BrowserMandoSesion {
     /// cuyo punto no se puede mapear conserva la página VIEJA con CERO mensajes (para que el
     /// soltar tenga dónde levantar el botón), y una muestra que el muestreo descarta tampoco se
     /// manda: en los dos casos el anillo no se mueve.
+    ///
+    /// `contacto` es el `startLocation` del `DragGesture`, que identifica al dedo: ver
+    /// `contactoCerrado`. `nil` cuando quien llama no lo sabe (y entonces no se filtra por él).
     public func toca(punto: CGPoint,
                      vista: CGSize,
                      tamañoDeLaImagen: CGSize,
                      dimensionesDelCable: BrowserInputMapper.DimensionesDelCable?,
+                     contacto: CGPoint? = nil,
                      ahora: ContinuousClock.Instant = .now) -> Bool {
+        guard admite(contacto) else { return false }
+        contactoEnCurso = contacto
         // `onChanged` se dispara también con el primer contacto, así que la pulsación es el
         // evento que llega sin muestreo previo.
         let fase: BrowserMandoEntrada.Fase = ultimoMuestreo == nil ? .pulsa : .mueve
@@ -603,7 +680,15 @@ public final class BrowserMandoSesion {
     public func levanta(punto: CGPoint,
                         vista: CGSize,
                         tamañoDeLaImagen: CGSize,
-                        dimensionesDelCable: BrowserInputMapper.DimensionesDelCable?) {
+                        dimensionesDelCable: BrowserInputMapper.DimensionesDelCable?,
+                        contacto: CGPoint? = nil) {
+        let admitido = admite(contacto)
+        // Este dedo se ha levantado: si era el contacto cerrado, ya no hay nada que ignorar.
+        if contacto != nil, contacto == contactoCerrado { contactoCerrado = nil }
+        contactoEnCurso = nil
+        // Un contacto ignorado no manda su soltar: su gesto ya se cerró (con su soltar
+        // defensivo) o no llegó a abrirse, y un `mouseReleased` sin `mousePressed` es basura.
+        guard admitido else { return }
         _ = manda(fase: .suelta, punto: punto, vista: vista, tamañoDeLaImagen: tamañoDeLaImagen,
                   dimensionesDelCable: dimensionesDelCable, ahora: .now)
         ultimoMuestreo = nil
@@ -631,7 +716,12 @@ public final class BrowserMandoSesion {
     ///
     /// Y la sesión queda **cerrada**: sin mando, sin gesto y sin cola. Un `.onEnded` tardío no
     /// manda nada, y el cliente del relé deja de estar referenciado desde aquí.
+    ///
+    /// LAS TECLAS PENDIENTES SÍ SE CORTAN, y antes de encolar el soltar: la generación del
+    /// teclado sube aquí, así que un pegado en curso deja de mandar en su próxima comprobación
+    /// y el soltar no espera detrás de él (ver `generacionDeTeclado`).
     public func retira() -> Task<Void, Never>? {
+        generacionDeTeclado += 1
         let enVuelo = cierraElGesto()
         mando = nil
         cola = nil
@@ -651,6 +741,7 @@ public final class BrowserMandoSesion {
         }
         ultimaPagina = nil
         ultimoMuestreo = nil
+        cierraElContacto()
         return cola
     }
 
@@ -674,6 +765,88 @@ public final class BrowserMandoSesion {
     public func olvidaElGesto() {
         ultimaPagina = nil
         ultimoMuestreo = nil
+        cierraElContacto()
+    }
+
+    /// **EL VOLANTE CAMBIÓ DE MANOS**, sea cual sea el camino: un `mando` del servidor, un
+    /// `.closed`, o el fin del flujo. Lo llama el coordinador **en el mismo paso en que aplica el
+    /// evento** (`BrowserPanelCoordinator`, el bucle del consumidor), que es el momento más
+    /// temprano y síncrono en que este lado se entera; no un observador de la vista, que corre
+    /// después y deja una ventana en la que una tecla pendiente aún saldría.
+    ///
+    /// Invalida el teclado pendiente, termina la devolución (si la había: ya está resuelta) y
+    /// olvida el gesto sin mandar nada, como `olvidaElGesto`. Lo que sobrevive: los mensajes de
+    /// puntero ya encolados, que se drenan (si el canal ya no es del usuario, el relé los tira).
+    public func cambioElVolante() {
+        generacionDeTeclado += 1
+        devolviendo = false
+        olvidaElGesto()
+    }
+
+    /// **LO QUE EL USUARIO TECLEA**, encolado en LA cadena de la sesión, detrás de lo que haya
+    /// del gesto y delante de lo que venga después. Lleva la generación del teclado del momento
+    /// en que se encola: si el volante cambia de manos, el usuario empieza a devolverlo o el
+    /// panel se retira, las teclas que queden de este lote no salen.
+    ///
+    /// Mientras se devuelve el volante no se encola nada.
+    public func teclea(_ mensajes: [String]) {
+        guard !devolviendo else { return }
+        let generacion = generacionDeTeclado
+        cola = BrowserMandoEnvio.encola(mensajes, por: mando, tras: cola,
+                                        vigente: { [weak self] in self?.generacionDeTeclado == generacion },
+                                        alFallar: { [weak self] in self?.notaQueNoSalio() })
+    }
+
+    /// **EL USUARIO DEVUELVE EL VOLANTE.** Todo lo que no puede esperar ocurre aquí, de forma
+    /// síncrona y antes de crear ninguna tarea: se marca `devolviendo` (ni puntero ni teclado
+    /// emiten nada desde este instante), se invalidan las teclas pendientes y se cierra el gesto
+    /// abierto con su soltar defensivo, que así sale el primero detrás del puntero ya encolado y
+    /// no detrás de un pegado. Después, en la tarea, se espera acotado a que ese soltar salga
+    /// —tras el `mando` del servidor el relé ya no lo aceptaría— y se manda `mando_devolver`.
+    ///
+    /// SI DEVOLVERLO NO SALE DEL APARATO, la sesión sigue en `.yo` (el servidor no se ha
+    /// enterado), así que `devolviendo` se quita: si no, el usuario se quedaría conduciendo con
+    /// toda su entrada rechazada. El contacto cerrado sigue ignorándose hasta que se levante.
+    ///
+    /// Devuelve la tarea con lo que contestó el envío, para quien quiera esperarla.
+    @discardableResult
+    public func devuelve() -> Task<Bool, Never> {
+        devolviendo = true
+        generacionDeTeclado += 1
+        let cierre = cierraElGesto()
+        let mando = self.mando
+        return Task { @MainActor [weak self] in
+            if let cierre {
+                await BrowserMandoEnvio.espera(cierre, comoMucho: BrowserMandoEnvio.plazoParaLoQueQuedaEnVuelo)
+            }
+            var salio = false
+            if let mando { salio = await BrowserMandoEnvio.ejecuta(.devuelve, por: mando) }
+            if !salio { self?.devolviendo = false }
+            return salio
+        }
+    }
+
+    /// El gesto se cerró con el dedo todavía apoyado: ese contacto queda marcado para ignorarse.
+    private func cierraElContacto() {
+        if let contacto = contactoEnCurso { contactoCerrado = contacto }
+        contactoEnCurso = nil
+    }
+
+    /// Si este evento del dedo puede emitir: no mientras se devuelve el volante, ni si es del
+    /// contacto cerrado. Un contacto distinto prueba que el cerrado terminó (el `DragGesture`
+    /// sigue un solo contacto a la vez). Un contacto que EMPIEZA mientras se devuelve queda él
+    /// como el cerrado: es la misma situación, un dedo apoyado que el volante nuevo no debe
+    /// convertir en clic.
+    private func admite(_ contacto: CGPoint?) -> Bool {
+        if devolviendo {
+            if let contacto { contactoCerrado = contacto }
+            return false
+        }
+        if let contacto {
+            if contacto == contactoCerrado { return false }
+            contactoCerrado = nil
+        }
+        return true
     }
 
     /// Un envío no salió del aparato. Ver `BrowserMandoEnvio.encola`.
@@ -765,16 +938,22 @@ struct BrowserMandoGestos: View {
                             // EL ANILLO SE MUEVE SOLO SI DE ESTE PUNTO SALIÓ UN MENSAJE: ver
                             // `BrowserMandoSesion.toca`, que decide por `mensajes` y después de
                             // la puerta del muestreo.
+                            // `startLocation` identifica al dedo: solo cambia con un contacto
+                            // nuevo. Es lo que deja a la sesión ignorar el dedo que siguió
+                            // apoyado tras devolver o perder el volante (ver
+                            // `BrowserMandoSesion.contactoCerrado`).
                             if sesion?.toca(punto: valor.location, vista: geometria.size,
                                             tamañoDeLaImagen: tamañoDeLaImagen,
-                                            dimensionesDelCable: dimensionesDelCable) == true {
+                                            dimensionesDelCable: dimensionesDelCable,
+                                            contacto: valor.startLocation) == true {
                                 ultimoPunteroDeLaVista = valor.location
                             }
                         }
                         .onEnded { valor in
                             sesion?.levanta(punto: valor.location, vista: geometria.size,
                                             tamañoDeLaImagen: tamañoDeLaImagen,
-                                            dimensionesDelCable: dimensionesDelCable)
+                                            dimensionesDelCable: dimensionesDelCable,
+                                            contacto: valor.startLocation)
                         }
                 )
                 // EL ANILLO VA DENTRO DE ESTE `GeometryReader`, no fuera: el punto está guardado
@@ -845,7 +1024,6 @@ struct BrowserMandoBarra: View {
     /// `quienConduce` a propósito: pedirlo no lo concede.
     @State private var pidiendoDesde: ContinuousClock.Instant?
     @FocusState private var enfocado: Bool
-    @State private var cola: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -887,13 +1065,10 @@ struct BrowserMandoBarra: View {
         // vista, y no tras un plazo ni al acabar un gesto.
         .onChange(of: state.quienConduce) { _, _ in
             pidiendoDesde = nil
-            // LA CONTRASEÑA EN VUELO SE CORTA AQUÍ. La cola captura las pulsaciones **ya
-            // codificadas**, y con el reparto en el tiempo de `intervaloEntreTeclas` la ventana
-            // en que siguen saliendo pasa de milisegundos a segundos. Hoy el relé las tiraría
-            // por portador, pero hay un camino estrecho en el que el volante vuelve a ser suyo
-            // antes de que la cola acabe y la cola vieja escribe en la página con un retraso que
-            // nadie espera.
-            cola?.cancel()
+            // LA CONTRASEÑA EN VUELO NO SE CORTA AQUÍ, y es a propósito (ronda 8). Este observador
+            // corre DESPUÉS de que el coordinador aplique el evento, y entre los dos una tecla
+            // pendiente todavía saldría. Se corta antes, en el mismo paso en que se aplica:
+            // `BrowserMandoSesion.cambioElVolante()`, desde el bucle del consumidor.
             // Se borra lo escrito y se suelta el foco. El borrado NO manda `Backspace` a la
             // página: el guarda de abajo mira quién conduce, y aquí ya no es el usuario. Si los
             // mandara, el número de pulsaciones delataría la longitud de la contraseña.
@@ -908,9 +1083,9 @@ struct BrowserMandoBarra: View {
         }
         .onChange(of: tecleado) { anterior, nuevo in
             guard BrowserPanelView.capturaLosGestos(quienConduce: state.quienConduce) else { return }
-            cola = BrowserMandoEnvio.encola(BrowserMandoEntrada.mensajesDeTeclado(anterior: anterior, nuevo: nuevo),
-                                            por: mando, tras: cola,
-                                            alFallar: { sesion?.notaQueNoSalio() })
+            // UNA sola cadena con el puntero, y con la generación del teclado: ver
+            // `BrowserMandoSesion.teclea`. Un clic ya no puede adelantar a las teclas pendientes.
+            sesion?.teclea(BrowserMandoEntrada.mensajesDeTeclado(anterior: anterior, nuevo: nuevo))
         }
         // LA PETICIÓN SE CAE SOLA. Una toma rechazada no produce **ningún** mensaje (`Mando.toma`
         // devuelve `False` y el relé descarta ese booleano), y el tope de caudal del relé se
@@ -931,17 +1106,18 @@ struct BrowserMandoBarra: View {
     private func pulsa() {
         guard let mando, let accion = BrowserMandoEntrada.accionDelBoton(quienConduce: state.quienConduce)
         else { return }
-        // Solo la toma se queda «pidiendo». Devolverlo no: el servidor publica el `mando` con
-        // `"agente"` y ése es el que mueve el rótulo.
+        // DEVOLVERLO VA ENTERO POR LA SESIÓN, Y EMPIEZA AQUÍ MISMO, SIN TAREA DE POR MEDIO
+        // (ronda 8). `devuelve()` marca la devolución, corta las teclas pendientes y cierra el
+        // gesto abierto con su soltar (N2) **antes** de cualquier espera: si se hiciera dentro de
+        // una tarea, un `onChanged` del dedo que sigue apoyado podría colarse antes y abrir un
+        // `mousePressed` que nadie soltaría. Devolverlo no se queda «pidiendo»: el servidor
+        // publica el `mando` con `"agente"` y ése es el que mueve el rótulo.
+        if accion == .devuelve, let sesion {
+            sesion.devuelve()
+            return
+        }
         if accion == .toma { pidiendoDesde = ContinuousClock.Instant.now }
         Task {
-            // DEVOLVER A MITAD DE GESTO CIERRA EL GESTO ANTES (N2). Con un dedo sobre la imagen y
-            // otro en este botón, el `mando` del servidor llegaría con un `mousePressed` sin su
-            // `mouseReleased`, y tras él el relé ya no acepta el soltar: botón hundido. Se espera
-            // acotado, igual que al retirar el panel.
-            if accion == .devuelve, let cierre = sesion?.cierraElGesto() {
-                await BrowserMandoEnvio.espera(cierre, comoMucho: BrowserMandoEnvio.plazoParaLoQueQuedaEnVuelo)
-            }
             // EL BOOLEANO NO SE TIRA, y es información gratis. Significa «el mensaje salió del
             // aparato»; un `false` es que no hay conexión o que el mensaje pasa del tope del
             // relé, o sea algo que el aparato YA SABE. Tirarlo dejaba el botón en «pidiendo…» y

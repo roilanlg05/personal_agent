@@ -981,8 +981,10 @@ final class BrowserPanelViewTests: XCTestCase {
         // suite en su verde exacto con la característica fuera, y borrarlo de verdad la ponía
         // roja. Los dos recuentos exactos (`components(separatedBy:)`) también quedan sobre
         // código y no sobre prosa, que es lo que los hace recuentos.
-        let f = TroceadoDeFuente.sinComentarios(
-            try fuenteDeProduccion("Gemma/Harness/BrowserMando.swift"))
+        let crudo = try fuenteDeProduccion("Gemma/Harness/BrowserMando.swift")
+        XCTAssertFalse(crudo.contains("cola?.cancel()"), "cancelar pierde los extremos del gesto")
+        XCTAssertFalse(crudo.contains("@State private var cola:"), "la barra no debe tener otra cadena")
+        let f = TroceadoDeFuente.sinComentarios(crudo)
 
         // Guarda de vacuidad: que la ruta apunte al fichero de verdad. Todas las aserciones de
         // abajo son presencias de texto y pasarían con la ruta mal si el fichero no existiera…
@@ -1013,31 +1015,33 @@ final class BrowserPanelViewTests: XCTestCase {
         XCTAssertTrue(f.contains("            tecleado = \"\"\n            enfocado = false"),
                       "perder el volante ya no borra lo tecleado ni suelta el foco")
 
-        // Y la cola en vuelo se corta en ese mismo cambio.
-        XCTAssertTrue(f.contains("            cola?.cancel()"),
-                      "la contraseña en vuelo ya no se corta al perder el volante")
+        // Ronda 8: el teclado utiliza la cadena de la sesión, sin cola propia de la barra.
+        XCTAssertTrue(f.contains("sesion?.teclea(BrowserMandoEntrada.mensajesDeTeclado(anterior: anterior, nuevo: nuevo))"))
+        let coordinador = TroceadoDeFuente.codigoIncondicional(
+            try fuenteDeProduccion("Gemma/Harness/BrowserPanelCoordinator.swift"))
+        XCTAssertTrue(coordinador.contains("self?.sesiones[id]?.cambioElVolante()"))
 
         // H4 (ronda 6) — lo que no sale SE DICE, en las tres piezas que solo viven en el cuerpo:
         // el teclado de la barra apunta su fallo en la sesión, el aviso lee la sesión, y un
         // volante nuevo lo apaga. El resto del ciclo (que `encola` llame a `alFallar`, que la
         // sesión lo anote, que el aviso salga conduzca quien conduzca) se EJECUTA en
         // `BrowserMandoSesionTests`; esto es lo único que la suite no puede ejecutar.
-        XCTAssertTrue(f.contains("alFallar: { sesion?.notaQueNoSalio() })"),
-                      "el teclado de la barra vuelve a tirar el fallo del envío: la contraseña se pierde sin aviso")
+        XCTAssertTrue(f.contains("alFallar: { [weak self] in self?.notaQueNoSalio() })"),
+                      "la sesión debe anotar el fallo de entrada")
         XCTAssertTrue(f.contains("entradaPerdida: sesion?.entradaPerdida == true) {"),
                       "la barra ya no enseña el aviso de lo que no salió")
         XCTAssertTrue(f.contains("if state.quienConduce == .yo { sesion?.olvidaElFallo() }"),
                       "el aviso de lo que no salió ya no se apaga con el volante nuevo, o se apaga con cualquier cambio")
 
-        // N2 (ronda 7) — devolver el volante cierra antes el gesto abierto, con la espera
-        // acotada. Lo que hace `cierraElGesto` se ejecuta en `BrowserMandoSesionTests`; que el
-        // botón lo llame solo se ve aquí.
+        // El botón inicia la devolución sin suspender ni crear una tarea intermedia.
         XCTAssertTrue(f.contains("""
-                    if accion == .devuelve, let cierre = sesion?.cierraElGesto() {
-                        await BrowserMandoEnvio.espera(cierre, comoMucho: BrowserMandoEnvio.plazoParaLoQueQuedaEnVuelo)
-                    }
-        """.trimmingCharacters(in: .newlines)),
-                      "devolver el volante ya no cierra el gesto abierto: con otro dedo sobre la imagen, botón hundido")
+                if accion == .devuelve, let sesion {
+                    sesion.devuelve()
+                    return
+                }
+        """.trimmingCharacters(in: .newlines)))
+        // La identidad del contacto llega en ambos callbacks; SwiftUI no se ejecuta aquí.
+        XCTAssertEqual(f.components(separatedBy: "contacto: valor.startLocation").count - 1, 2)
 
         // MD — el borrado del campo NO manda `Backspace` a la página: el número de pulsaciones
         // delataría la longitud de la contraseña.
@@ -1135,7 +1139,8 @@ final class BrowserPanelViewTests: XCTestCase {
         XCTAssertTrue(f.contains("""
                                     if sesion?.toca(punto: valor.location, vista: geometria.size,
                                                     tamañoDeLaImagen: tamañoDeLaImagen,
-                                                    dimensionesDelCable: dimensionesDelCable) == true {
+                                                    dimensionesDelCable: dimensionesDelCable,
+                                                    contacto: valor.startLocation) == true {
                                         ultimoPunteroDeLaVista = valor.location
                                     }
         """.trimmingCharacters(in: .newlines)),
@@ -1362,6 +1367,21 @@ final class BrowserPanelViewTests: XCTestCase {
         "withCheckedContinuation", "CheckedContinuation", "resume", "continuacion",
         "ReanudaUnaSolaVez", "unaSola", "reanuda", "comoMucho", "plazo",
         "plazoParaLoQueQuedaEnVuelo", "tarea", "cierraElGesto", "cierre", "nonisolated",
+        // Ronda 8: revisados individualmente tras el rojo del troceado compartido.
+        "admite", // puerta síncrona del contacto; no registra entrada.
+        "admitido", // decisión de aceptar el fin de un contacto.
+        "cambioElVolante", // invalida teclado en el consumidor del flujo.
+        "cierraElContacto", // recuerda la identidad del contacto cerrado.
+        "contacto", // startLocation recibido del gesto; nunca se registra.
+        "contactoCerrado", // una identidad cerrada, no una trayectoria.
+        "contactoEnCurso", // una identidad activa, no una trayectoria.
+        "devolviendo", // bloqueo síncrono antes de crear la tarea.
+        "generacion", // generación capturada por un lote de teclado.
+        "generacionDeTeclado", // invalida todos los lotes viejos, solo de teclado.
+        "salio", // booleano del envío de devolver, sin contenido.
+        "startLocation", // identidad del contacto de SwiftUI.
+        "teclea", // entrada a la cadena única de la sesión.
+        "vigente", // consulta la generación antes de cada envío.
         // las palabras de la única cadena literal del fichero, la pista del campo de texto
         // («lo que escribas va a la página»). Son prosa, no identificadores, y entran porque el
         // troceado no distingue una cadena de un nombre. Son también la razón de que el corte

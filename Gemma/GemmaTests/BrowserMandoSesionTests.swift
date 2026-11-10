@@ -97,6 +97,19 @@ final class BrowserMandoSesionTests: XCTestCase {
                        "la frase completa: dice qué pasó y qué hacer, y nada de lo escrito")
     }
 
+    /// El primer fallo corta su lote; el lote posterior sigue intentando salir.
+    @MainActor func test_un_lote_fallido_no_cancela_el_lote_posterior() async {
+        let mando = MandoDeMentira(salida: false)
+        let fallos = Contador()
+        let primera = BrowserMandoEnvio.encola(["a", "b"], por: mando, tras: nil,
+                                              espera: { _ in }, alFallar: { fallos.suma() })
+        _ = BrowserMandoEnvio.encola(["c", "d"], por: mando, tras: primera,
+                                    espera: { _ in }, alFallar: { fallos.suma() })
+        let drenado = await esperaHastaPorReloj(.seconds(2)) { fallos.valor == 2 }
+        XCTAssertTrue(drenado)
+        XCTAssertEqual(mando.entradas, ["a", "c"])
+    }
+
     #if os(macOS)
 
     // MARK: H4 — el ciclo entero, sobre la sesión
@@ -338,6 +351,253 @@ final class BrowserMandoSesionTests: XCTestCase {
                                   dimensionesDelCable: cable, ahora: t0.advanced(by: i * 3)))
         let dos = await esperaHasta { mando.entradas.count == 2 }
         XCTAssertTrue(dos, "salieron \(mando.entradas.count) mensajes y tenían que ser dos")
+    }
+
+    // MARK: ronda 8 — una sola cadena, la generación del teclado y la devolución (Codex)
+
+    /// **UN CLIC ENCOLADO DETRÁS DE UN PEGADO SALE DETRÁS DEL PEGADO.** Con dos colas, el clic
+    /// adelantaba a las teclas pendientes (el reparto de 17 ms deja segundos de ventana): el foco
+    /// saltaba a otro campo y el resto de la contraseña se escribía ahí. El orden de los mensajes
+    /// es el orden de encolado, también entre teclado y puntero.
+    @MainActor func test_un_clic_detras_de_un_pegado_sale_detras_del_pegado() async {
+        let mando = MandoDeMentira()
+        let sesion = BrowserMandoSesion(mando: mando)
+        sesion.teclea(["k1", "k2", "k3"])
+        XCTAssertTrue(sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen, dimensionesDelCable: cable))
+        let cuatro = await esperaHastaPorReloj(.seconds(2)) { mando.entradas.count == 4 }
+        XCTAssertTrue(cuatro, "salieron \(mando.entradas.count) mensajes y tenían que ser cuatro")
+        XCTAssertEqual(mando.entradas, ["k1", "k2", "k3", pulsadoEnElCentro],
+                       "el clic adelantó a las teclas pendientes: el resto del pegado iría a otro campo")
+    }
+
+    /// **PERDER EL VOLANTE CORTA TODOS LOS LOTES DE TECLADO EN VUELO, NO SOLO EL ÚLTIMO, Y
+    /// RECUPERARLO NO LOS REVIVE.** El escenario exacto de la revisión: un pegado largo y otro
+    /// lote encadenado detrás; el servidor le da el volante al agente; el usuario lo recupera
+    /// antes de que el pegado hubiera acabado. Antes, cancelar la última tarea dejaba vivo el
+    /// pegado, que seguía escribiendo en el campo enfocado tras la recuperación.
+    ///
+    /// Por el camino de producción: el coordinador aplica los `mando` del flujo y es él quien
+    /// avisa a la sesión.
+    @MainActor func test_perder_el_volante_corta_todos_los_lotes_de_teclado_y_recuperarlo_no_los_revive() async throws {
+        let mando = MandoDeMentira()
+        let (flujo, rele) = AsyncStream<BrowserRelayEvent>.makeStream()
+        let c = BrowserPanelCoordinator(stream: { (flujo, mando) })
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        let estado = try XCTUnwrap(c.panels[id])
+        let sesion = try XCTUnwrap(c.sesion(de: id))
+        rele.yield(.mando(quien: .yo))
+        let mio = await esperaHastaPorReloj(.seconds(2)) { estado.quienConduce == .yo }
+        XCTAssertTrue(mio)
+
+        let pegado = (0..<60).map { "a\($0)" }
+        sesion.teclea(pegado)
+        sesion.teclea(["b0", "b1"])
+        let empezo = await esperaHastaPorReloj(.seconds(2)) { mando.entradas.count >= 3 }
+        XCTAssertTrue(empezo, "el pegado debe empezar antes de perder el mando")
+        rele.yield(.mando(quien: .agente))
+        let perdido = await esperaHastaPorReloj(.seconds(2)) { estado.quienConduce == .agente }
+        XCTAssertTrue(perdido)
+        let alPerderlo = mando.entradas.count
+        rele.yield(.mando(quien: .yo))
+        let otraVez = await esperaHastaPorReloj(.seconds(2)) { estado.quienConduce == .yo }
+        XCTAssertTrue(otraVez)
+        // La tecla nueva sirve de barrera: está detrás de TODOS los lotes viejos.
+        sesion.teclea(["nuevo"])
+        let drenado = await esperaHastaPorReloj(.seconds(3)) { mando.entradas.last == "nuevo" }
+        XCTAssertTrue(drenado)
+        XCTAssertLessThan(alPerderlo, pegado.count)
+        XCTAssertEqual(Array(mando.entradas.dropFirst(alPerderlo)), ["nuevo"])
+        XCTAssertFalse(mando.entradas.contains("b0"))
+        rele.finish()
+    }
+
+    /// **DEVOLVER CON UN PEGADO EN CURSO SUELTA EL BOTÓN ANTES DEL PLAZO** — lo que la revisión de
+    /// Codex vio del diseño de una sola cola: el soltar defensivo esperaría detrás del teclado, y
+    /// 400 mensajes con su reparto son 6,8 s contra un plazo de 1 s. Por eso devolver invalida
+    /// las teclas pendientes ANTES de encolar el soltar. Se fotografía lo que había salido en el
+    /// instante en que salió `mando_devolver`: el soltar tiene que estar.
+    @MainActor func test_devolver_con_un_pegado_en_curso_suelta_el_boton_antes_del_plazo() async {
+        let mando = MandoDeMentira()
+        let sesion = BrowserMandoSesion(mando: mando)
+        XCTAssertTrue(sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen, dimensionesDelCable: cable))
+        sesion.teclea((0..<400).map { "k\($0)" })
+        let empezo = await esperaHastaPorReloj(.seconds(2)) { mando.entradas.count >= 5 }
+        XCTAssertTrue(empezo, "el pegado no llegó a empezar: la prueba no mediría la espera")
+
+        let plazo = BrowserMandoEnvio.plazoParaLoQueQuedaEnVuelo
+        let reloj = ContinuousClock()
+        let t0 = reloj.now
+        sesion.devuelve()
+        XCTAssertTrue(sesion.devolviendo, "devolver tiene que marcarse en el acto, antes de cualquier espera")
+        let devuelto = await esperaHastaPorReloj(plazo + .seconds(2)) { mando.devoluciones == 1 }
+        let tardo = t0.duration(to: reloj.now)
+        let alDevolver = mando.entradas
+        XCTAssertTrue(devuelto, "el volante no se devolvió")
+        XCTAssertEqual(alDevolver.last, soltadoEnElCentro,
+                       "cuando salió `mando_devolver` el botón seguía hundido: el soltar esperaba detrás del pegado")
+        XCTAssertLessThan(tardo, plazo, "devolver tardó \(tardo): el soltar no salió por su pie, venció el plazo")
+        try? await Task.sleep(for: BrowserMandoEntrada.intervaloEntreTeclas * 10)
+        XCTAssertEqual(mando.entradas, alDevolver, "tras devolver siguieron saliendo teclas")
+    }
+
+    /// **RETIRAR EL PANEL CON UN PEGADO EN CURSO TAMBIÉN**: el soltar defensivo sale enseguida, no
+    /// tras los segundos del pegado (la generación sube en `retira()` antes de encolarlo).
+    @MainActor func test_retirar_con_un_pegado_en_curso_suelta_el_boton_antes_del_plazo() async {
+        let mando = MandoDeMentira()
+        let sesion = BrowserMandoSesion(mando: mando)
+        XCTAssertTrue(sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen, dimensionesDelCable: cable))
+        sesion.teclea((0..<400).map { "k\($0)" })
+        let empezo = await esperaHastaPorReloj(.seconds(2)) { mando.entradas.count >= 5 }
+        XCTAssertTrue(empezo)
+
+        let enVuelo = sesion.retira()
+        XCTAssertNotNil(enVuelo)
+        let suelto = await esperaHastaPorReloj(BrowserMandoEnvio.plazoParaLoQueQuedaEnVuelo) {
+            mando.entradas.last == self.soltadoEnElCentro
+        }
+        XCTAssertTrue(suelto, "al retirar con un pegado en curso, el soltar no salió dentro del plazo")
+    }
+
+    /// **MIENTRAS SE DEVUELVE, EL DEDO APOYADO NO ABRE OTRO GESTO, Y TAMPOCO TRAS RECUPERAR EL
+    /// VOLANTE.** La transición entera, por el coordinador: gesto abierto → «Devolverlo» → el
+    /// mismo dedo sigue moviéndose (antes: un `mousePressed` nuevo que nadie soltaría) → el
+    /// servidor da el volante al agente → el usuario lo recupera → el mismo dedo sigue apoyado y
+    /// se levanta (no manda nada) → un dedo NUEVO sí hace clic.
+    @MainActor func test_devolver_no_deja_que_el_dedo_apoyado_abra_otro_gesto() async throws {
+        let mando = MandoDeMentira()
+        let (flujo, rele) = AsyncStream<BrowserRelayEvent>.makeStream()
+        let c = BrowserPanelCoordinator(stream: { (flujo, mando) })
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        let estado = try XCTUnwrap(c.panels[id])
+        let sesion = try XCTUnwrap(c.sesion(de: id))
+        rele.yield(.mando(quien: .yo))
+        let mio = await esperaHastaPorReloj(.seconds(2)) { estado.quienConduce == .yo }
+        XCTAssertTrue(mio)
+
+        // El dedo empieza en el centro: ése es su `startLocation` durante todo el contacto.
+        XCTAssertTrue(sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen,
+                                  dimensionesDelCable: cable, contacto: centro))
+        let devolver = sesion.devuelve()
+        XCTAssertTrue(sesion.devolviendo)
+        XCTAssertFalse(sesion.toca(punto: cuarto, vista: imagen, tamañoDeLaImagen: imagen,
+                                   dimensionesDelCable: cable, contacto: centro),
+                       "mientras se devuelve, el dedo que sigue apoyado abrió otro gesto")
+        sesion.teclea(["x"])
+        let devuelto = await esperaHastaPorReloj(.seconds(2)) { mando.devoluciones == 1 }
+        XCTAssertTrue(devuelto)
+        _ = devolver
+        XCTAssertTrue(sesion.devolviendo, "devolverlo salió, pero el servidor no ha contestado: se sigue devolviendo")
+
+        rele.yield(.mando(quien: .agente))
+        let suyo = await esperaHastaPorReloj(.seconds(2)) { estado.quienConduce == .agente }
+        XCTAssertTrue(suyo)
+        XCTAssertFalse(sesion.devolviendo, "el `mando` del servidor resuelve la devolución")
+
+        rele.yield(.mando(quien: .yo))
+        let otraVez = await esperaHastaPorReloj(.seconds(2)) { estado.quienConduce == .yo }
+        XCTAssertTrue(otraVez)
+        XCTAssertFalse(sesion.toca(punto: cuarto, vista: imagen, tamañoDeLaImagen: imagen,
+                                   dimensionesDelCable: cable, contacto: centro),
+                       "con el volante nuevo, el MISMO dedo apoyado se leyó como un clic nuevo")
+        sesion.levanta(punto: cuarto, vista: imagen, tamañoDeLaImagen: imagen,
+                       dimensionesDelCable: cable, contacto: centro)
+        XCTAssertTrue(sesion.toca(punto: cuarto, vista: imagen, tamañoDeLaImagen: imagen,
+                                  dimensionesDelCable: cable, contacto: cuarto),
+                      "un dedo nuevo tiene que poder hacer clic: si no, el filtro se come el mando entero")
+
+        let tres = await esperaHastaPorReloj(.seconds(2)) { mando.entradas.count >= 3 }
+        XCTAssertTrue(tres)
+        try? await Task.sleep(for: .milliseconds(50))
+        XCTAssertEqual(mando.entradas,
+                       [pulsadoEnElCentro, soltadoEnElCentro,
+                        #"{"button":"left","clickCount":1,"eventType":"mousePressed","type":"input_mouse","x":320,"y":180}"#],
+                       "salió algo más que el gesto cerrado con su soltar y el clic del dedo nuevo")
+        rele.finish()
+    }
+
+    /// **SI DEVOLVERLO NO SALE DEL APARATO, LA SESIÓN VUELVE A ACEPTAR ENTRADA.** El servidor no
+    /// se ha enterado y el volante sigue siendo del usuario: dejar `devolviendo` puesto le dejaría
+    /// conduciendo con todo lo que toque y teclee rechazado.
+    @MainActor func test_si_devolver_no_sale_la_sesion_vuelve_a_aceptar_entrada() async {
+        let mando = MandoDeMentira(salida: false)
+        let sesion = BrowserMandoSesion(mando: mando)
+        let devolver = sesion.devuelve()
+        XCTAssertTrue(sesion.devolviendo)
+        let recuperado = await esperaHastaPorReloj(.seconds(2)) {
+            mando.devoluciones == 1 && !sesion.devolviendo
+        }
+        XCTAssertTrue(recuperado)
+        _ = devolver
+        XCTAssertEqual(mando.devoluciones, 1, "devolverlo se tiene que haber intentado")
+        XCTAssertFalse(sesion.devolviendo, "devolverlo no salió y la sesión se quedó rechazando la entrada")
+        XCTAssertTrue(sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen,
+                                  dimensionesDelCable: cable, contacto: cuarto))
+    }
+
+    /// Lo que no sale del TECLADO también se dice, ahora que el teclado encola en la sesión.
+    @MainActor func test_una_tecla_que_no_sale_queda_anotada_en_la_sesion() async {
+        let sesion = BrowserMandoSesion(mando: MandoDeMentira(salida: false))
+        XCTAssertFalse(sesion.entradaPerdida)
+        sesion.teclea(["k"])
+        let anotado = await esperaHasta { sesion.entradaPerdida }
+        XCTAssertTrue(anotado, "la tecla no salió y la sesión no lo anotó")
+    }
+
+    /// **EL FIN DEL FLUJO TAMBIÉN CORTA LAS TECLAS PENDIENTES.** Sin socket no sale nada, pero la
+    /// sesión se suelta con su mando dentro: si el pegado siguiera, intentaría mandar por un
+    /// canal muerto durante segundos.
+    @MainActor func test_el_fin_del_flujo_corta_las_teclas_pendientes() async throws {
+        let mando = MandoDeMentira()
+        let (flujo, rele) = AsyncStream<BrowserRelayEvent>.makeStream()
+        let c = BrowserPanelCoordinator(stream: { (flujo, mando) })
+        let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+        let sesion = try XCTUnwrap(c.sesion(de: id))
+        sesion.teclea((0..<60).map { "a\($0)" })
+        let empezo = await esperaHastaPorReloj(.seconds(2)) { mando.entradas.count >= 3 }
+        XCTAssertTrue(empezo)
+        rele.finish()
+        let suelta = await esperaHastaPorReloj(.seconds(2)) { c.sesion(de: id) == nil }
+        XCTAssertTrue(suelta)
+        try? await Task.sleep(for: .milliseconds(100))
+        let alAcabar = mando.entradas.count
+        try? await Task.sleep(for: BrowserMandoEntrada.intervaloEntreTeclas * 20)
+        XCTAssertEqual(mando.entradas.count, alAcabar, "tras terminar el flujo siguieron saliendo teclas")
+    }
+
+    /// El puntero ya entró en manda; las teclas siguen esperando. Se pierde y recupera
+    /// el volante antes de abrir la puerta: ninguna tecla de ninguno de los dos lotes sale.
+    @MainActor func test_lotes_pendientes_no_reviven_tras_perdida_y_concesion() async throws {
+        for perdida in [BrowserRelayEvent.mando(quien: .agente), .closed(reason: "corte")] {
+            let puerta = PrimeraEnLaPuerta()
+            let mando = MandoDeMentira(antesDeMandar: { await puerta.pasa() })
+            let (flujo, rele) = AsyncStream<BrowserRelayEvent>.makeStream()
+            let c = BrowserPanelCoordinator(stream: { (flujo, mando) })
+            let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
+            let estado = try XCTUnwrap(c.panels[id])
+            let sesion = try XCTUnwrap(c.sesion(de: id))
+            rele.yield(.mando(quien: .yo))
+            let concedido = await esperaHastaPorReloj(.seconds(2)) { estado.quienConduce == .yo }
+            XCTAssertTrue(concedido)
+            XCTAssertTrue(sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen,
+                                      dimensionesDelCable: cable))
+            let entro = await puerta.esperaQueAlguienEntre()
+            XCTAssertTrue(entro)
+            sesion.levanta(punto: centro, vista: imagen, tamañoDeLaImagen: imagen, dimensionesDelCable: cable)
+            sesion.teclea(["vieja1", "vieja2"])
+            sesion.teclea(["vieja3"])
+            rele.yield(perdida)
+            let perdido = await esperaHastaPorReloj(.seconds(2)) { estado.quienConduce != .yo }
+            XCTAssertTrue(perdido)
+            rele.yield(.mando(quien: .yo))
+            let recuperado = await esperaHastaPorReloj(.seconds(2)) { estado.quienConduce == .yo }
+            XCTAssertTrue(recuperado)
+            sesion.teclea(["nueva"])
+            puerta.abre()
+            let drenado = await esperaHastaPorReloj(.seconds(2)) { mando.entradas.last == "nueva" }
+            XCTAssertTrue(drenado)
+            XCTAssertEqual(mando.entradas, [pulsadoEnElCentro, soltadoEnElCentro, "nueva"])
+            rele.finish()
+        }
     }
 
     #endif

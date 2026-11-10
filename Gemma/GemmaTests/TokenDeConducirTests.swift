@@ -164,6 +164,49 @@ final class TokenDeConducirTests: XCTestCase {
         XCTAssertEqual(almacen.leer(cuenta: TokenDeConducir.cuenta), "tok-del-usuario")
     }
 
+    // MARK: la migración NO borra el único token (ronda 8, revisión adversarial de Codex)
+
+    /// **UN LLAVERO QUE RECHAZA LA ESCRITURA NO SE LLEVA EL TOKEN.** Antes la migración borraba
+    /// el sitio viejo siempre: un rechazo del llavero dejaba al usuario sin la única copia, y el
+    /// arranque siguiente sin nada que reintentar. Se mide la transición entera: había token en
+    /// claro → la migración falla y lo DICE → el origen sigue ahí → con el llavero sano, el
+    /// reintento lo mueve y solo entonces el origen se vacía.
+    func test_la_migracion_que_no_puede_escribir_conserva_el_origen_y_se_reintenta() {
+        let almacen = AlmacenEnMemoria()
+        almacen.rechazaEscrituras = true
+        let d = sitioViejo(con: "tok-del-usuario")
+        XCTAssertEqual(enClaro(d), "tok-del-usuario", "el punto de partida, afirmado")
+
+        XCTAssertFalse(TokenDeConducir.migrar(almacen: almacen, defaults: d), "un rechazo no es un movimiento")
+        XCTAssertEqual(enClaro(d), "tok-del-usuario",
+                       "el llavero rechazó la escritura y la migración borró la ÚNICA copia del token")
+
+        almacen.rechazaEscrituras = false
+        XCTAssertTrue(TokenDeConducir.migrar(almacen: almacen, defaults: d), "el reintento tiene que mover el token")
+        XCTAssertEqual(almacen.leer(cuenta: TokenDeConducir.cuenta), "tok-del-usuario")
+        XCTAssertNil(enClaro(d), "y con la copia nueva verificada, el origen se vacía")
+    }
+
+    /// **UN LLAVERO QUE DICE «SÍ» Y NO DEVUELVE LO ESCRITO TAMPOCO.** Es la forma medida en la
+    /// Tarea 6 (el llavero de ficheros de macOS): la escritura devuelve éxito y la lectura no
+    /// trae nada. Fiarse del `Bool` de la escritura borraría el origen con el token perdido.
+    func test_la_migracion_que_no_lee_de_vuelta_lo_escrito_conserva_el_origen() {
+        let almacen = AlmacenQueNoDevuelveLoQueEscribe()
+        let d = sitioViejo(con: "tok-del-usuario")
+        XCTAssertFalse(TokenDeConducir.migrar(almacen: almacen, defaults: d))
+        XCTAssertEqual(almacen.escrituras, 1, "la escritura se intentó: si no, esto no mide la verificación")
+        XCTAssertEqual(enClaro(d), "tok-del-usuario",
+                       "la escritura «salió bien» pero no se lee de vuelta, y el origen se borró igual")
+    }
+
+    func test_la_migracion_con_lectura_distinta_conserva_el_origen() {
+        let almacen = AlmacenConLecturaDistinta()
+        let d = sitioViejo(con: "token-original")
+        XCTAssertFalse(TokenDeConducir.migrar(almacen: almacen, defaults: d))
+        XCTAssertEqual(enClaro(d), "token-original")
+        XCTAssertEqual(almacen.escrituras, 1)
+    }
+
     // MARK: los DOS lectores de producción, que son los que de verdad importan
 
     /// El token que llega al cable es el del LLAVERO, no el que quedara en claro.
@@ -589,4 +632,12 @@ final class ProtocoloQueFalla: URLProtocol {
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() { client?.urlProtocol(self, didFailWithError: Self.error) }
     override func stopLoading() {}
+}
+
+/// Simula escritura aceptada seguida de lectura de otro valor, sin registrar el secreto.
+private final class AlmacenConLecturaDistinta: AlmacenDeSecretos, @unchecked Sendable {
+    var escrituras = 0
+    func leer(cuenta: String) -> String? { escrituras == 0 ? nil : "otro-token" }
+    func escribir(_ valor: String, cuenta: String) -> Bool { escrituras += 1; return true }
+    func borrar(cuenta: String) {}
 }

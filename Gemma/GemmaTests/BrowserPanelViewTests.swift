@@ -1136,11 +1136,12 @@ final class BrowserPanelViewTests: XCTestCase {
                       + "—con el tamaño de LA VISTA y las dimensiones DEL CABLE, no con otra cosa—, "
                       + "que el `Circle` se coloca en ese `donde`, y que no se traga los toques")
 
-        // Y que vive dentro del MISMO `GeometryReader` que el gesto también lo garantiza el
-        // compilador: `geometria.size` no existe fuera de ese alcance. Fuera, el punto guardado
-        // sería de otro espacio de coordenadas.
-        XCTAssertTrue(f.contains("GeometryReader { geometria in"),
-                      "el anillo y el gesto tienen que medir el mismo espacio de coordenadas")
+        // NO hay aquí una aserción de que el anillo viva dentro del mismo `GeometryReader` que
+        // el gesto, y es a propósito: `f.contains("GeometryReader { geometria in")` **se cumple
+        // con la característica borrada** —sin el `GeometryReader` el fichero no compila, así que
+        // esa aserción no puede fallar nunca— y una aserción que no puede fallar aparenta ser una
+        // red sin serlo. Lo que de verdad lo garantiza es el compilador: `geometria.size`, que el
+        // bloque de arriba sí afirma, no existe fuera de ese alcance.
 
         // --- las dos transiciones que lo borran (M8, M9) ---
         XCTAssertTrue(f.contains(".onChange(of: capturar) { ultimoPunteroDeLaVista = nil }"),
@@ -1275,16 +1276,74 @@ final class BrowserPanelViewTests: XCTestCase {
     /// el fuente de este proyecto: una aserción contra el fuente crudo se cumple con la
     /// característica escrita en un comentario, y eso ya se midió en esta rama.
     ///
-    /// Cortar por `//` hasta el fin de línea es seguro en los ficheros que esta pantalla mide
-    /// porque ninguna de sus cadenas literales contiene `//`, y si alguna llegara a contenerlo
-    /// el guarda de vacuidad 2 de la lista blanca lo caza.
+    /// **POR QUÉ NO VALE CORTAR EN EL PRIMER `//` DE LA LÍNEA, MEDIDO.** Es lo que hacía la
+    /// versión anterior, y un revisor fresco midió el agujero con la suite entera:
+    ///
+    ///     if "//".isEmpty { } else { ultimoPunteroDeLaVista = valor.location }   → VERDE
+    ///     if "x//y".isEmpty { } else { print("toque en \(valor.location)") }     → VERDE
+    ///     print("toque en \(valor.location)")               (control, a la vista) → ROJO
+    ///
+    /// El corte ciego se tragaba **todo lo que fuera detrás de una cadena que contuviera `//`**,
+    /// así que la línea entera se volvía invisible para **todas** las aserciones de texto de
+    /// esta pantalla — las del anillo y, lo grave, **la lista blanca que existe para que la
+    /// contraseña del usuario no se registre**. No hace falta mala fe para tropezar con eso: un
+    /// `let ayuda = "https://…"` con cualquier cosa detrás en la misma línea ya lo dispara.
+    ///
+    /// El argumento que tenía escrito —«ninguna cadena de este fichero contiene `//`»— era sobre
+    /// **el contenido de hoy**, no una propiedad, y la coletilla que le añadí —«y si alguna
+    /// llegara a contenerlo, el guarda de vacuidad 2 lo caza»— era **falsa**: ese guarda solo
+    /// detecta que el troceador entero se rompa (`count > 150`, `mensajesDeTeclado` ausente), no
+    /// que se le esconda **una** línea.
+    ///
+    /// Lo que hay ahora es un corte que distingue los dos estados, código y cadena, y que en la
+    /// duda **no corta**: dejar un comentario dentro solo produce ruido visible (una roja que se
+    /// mira), mientras que tragarse una línea de código produce silencio, que es el fallo que
+    /// esta pantalla no se puede permitir. **EL HUECO QUE QUEDA, DECLARADO Y NO ATRIBUIDO A
+    /// NADIE:** una línea que viva dentro de un literal multilínea (`"""`) se devuelve entera,
+    /// comentarios incluidos, así que su prosa entra en el conjunto de identificadores. Hoy
+    /// ninguno de los ficheros que esta pantalla mide tiene literales multilínea; el día que los
+    /// tenga, la lista blanca se pondrá roja con las palabras de esa prosa, que es el lado
+    /// ruidoso y no el silencioso.
     private static func fuenteSinComentarios(_ fuente: String) -> String {
-        fuente.split(separator: "\n", omittingEmptySubsequences: false)
+        var enMultilinea = false
+        return fuente.split(separator: "\n", omittingEmptySubsequences: false)
             .map { linea -> String in
-                guard let corte = linea.range(of: "//") else { return String(linea) }
-                return String(linea[linea.startIndex..<corte.lowerBound])
+                let texto = String(linea)
+                let triples = texto.components(separatedBy: "\"\"\"").count - 1
+                guard !enMultilinea, triples == 0 else {
+                    if triples % 2 == 1 { enMultilinea.toggle() }
+                    return texto
+                }
+                return Self.sinComentarioDeLinea(texto)
             }
             .joined(separator: "\n")
+    }
+
+    /// Corta `linea` en su primer `//` **que esté fuera de una cadena literal**, y la devuelve
+    /// entera si no hay ninguno.
+    ///
+    /// Las comillas se cuentan respetando el escape (`\"` no abre ni cierra nada), así que las
+    /// cadenas crudas (`#"…"#`) quedan protegidas igual: sus comillas son comillas de verdad.
+    private static func sinComentarioDeLinea(_ linea: String) -> String {
+        var resultado = ""
+        var enCadena = false
+        var escapando = false
+        var anterior: Character?
+        for caracter in linea {
+            if escapando {
+                escapando = false
+            } else if caracter == "\\", enCadena {
+                escapando = true
+            } else if caracter == "\"" {
+                enCadena.toggle()
+            } else if caracter == "/", anterior == "/", !enCadena {
+                resultado.removeLast()      // la primera barra ya estaba puesta
+                return resultado
+            }
+            resultado.append(caracter)
+            anterior = caracter
+        }
+        return resultado
     }
 
     /// Los identificadores de un fuente Swift, **sin los comentarios**.

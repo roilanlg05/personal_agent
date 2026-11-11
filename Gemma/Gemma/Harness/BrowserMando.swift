@@ -651,6 +651,13 @@ public final class BrowserMandoSesion {
     /// barra para avisarle. Se apaga cuando el servidor le vuelve a conceder el volante.
     public private(set) var entradaPerdida = false
 
+    /// Cuántas PULSACIONES han salido del aparato hacia la página (no movimientos ni soltados).
+    /// La barra lo observa para subir el teclado del teléfono: tocar un campo de la página solo
+    /// manda un clic al navegador remoto, y sin esto el teclado solo subía si el usuario
+    /// enfocaba a mano el campo local. Cuenta lo que SALIÓ (`!mensajes.isEmpty`), no lo que se
+    /// tocó: un toque que el mapa rechaza no levanta el teclado.
+    public private(set) var pulsacionesEnviadas = 0
+
     private let plazoDeDevolucion: Duration
     private let esperaDeDevolucion: BrowserMandoEnvio.Espera
 
@@ -684,8 +691,10 @@ public final class BrowserMandoSesion {
         // `onChanged` se dispara también con el primer contacto, así que la pulsación es el
         // evento que llega sin muestreo previo.
         let fase: BrowserMandoEntrada.Fase = ultimoMuestreo == nil ? .pulsa : .mueve
-        return !manda(fase: fase, punto: punto, vista: vista, tamañoDeLaImagen: tamañoDeLaImagen,
-                      dimensionesDelCable: dimensionesDelCable, ahora: ahora).isEmpty
+        let salio = !manda(fase: fase, punto: punto, vista: vista, tamañoDeLaImagen: tamañoDeLaImagen,
+                           dimensionesDelCable: dimensionesDelCable, ahora: ahora).isEmpty
+        if salio && fase == .pulsa { pulsacionesEnviadas += 1 }
+        return salio
     }
 
     /// El dedo se levanta: se manda el soltar (cayendo al último punto bueno si hace falta) y el
@@ -1111,6 +1120,18 @@ struct BrowserMandoBarra: View {
             // `.closed` que baja el rótulo llega justo después del fallo, y si el aviso se fuera
             // con él no lo leería nadie.
             if state.quienConduce == .yo { sesion?.olvidaElFallo() }
+        }
+        // EL TECLADO SUBE CON LA PULSACIÓN. El volante es suyo (el campo solo existe entonces) y
+        // acaba de tocar la página: lo que quiere es teclear en lo que tocó. Se enfoca el campo
+        // local, que es el único que puede levantar el teclado de iOS.
+        .onChange(of: sesion?.pulsacionesEnviadas) { _, _ in
+            // NO DURANTE LA DEVOLUCIÓN (revisión de Codex): mientras `devolviendo` la sesión ya
+            // descarta las teclas, pero `quienConduce` sigue en `.yo` hasta que el servidor
+            // contesta. Enfocar ahí dejaría caracteres en `tecleado` que nadie envió y que los
+            // siguientes deltas tampoco reenviarían.
+            guard BrowserPanelView.capturaLosGestos(quienConduce: state.quienConduce),
+                  sesion?.devolviendo != true else { return }
+            enfocado = true
         }
         .onChange(of: tecleado) { anterior, nuevo in
             guard BrowserPanelView.capturaLosGestos(quienConduce: state.quienConduce) else { return }

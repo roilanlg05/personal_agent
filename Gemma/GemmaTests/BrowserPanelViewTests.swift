@@ -922,6 +922,18 @@ final class BrowserPanelViewTests: XCTestCase {
                        """)
     }
 
+    /// **EL TECLADO NO SUBE DURANTE LA DEVOLUCIÓN.** El observador de `pulsacionesEnviadas`
+    /// enfoca el campo local; si lo hiciera con `devolviendo` activo, el campo recogería
+    /// caracteres que la sesión descarta. Es una PRESENCIA, así que va sobre el fuente troceado.
+    func test_el_observador_del_teclado_respeta_la_devolucion() throws {
+        let fuente = TroceadoDeFuente.sinComentarios(try fuenteDeProduccion("Gemma/Harness/BrowserMando.swift"))
+        let compacto = fuente.filter { !$0.isWhitespace }
+        XCTAssertTrue(compacto.contains("onChange(of:sesion?.pulsacionesEnviadas)"),
+                      "el observador que sube el teclado ya no existe")
+        XCTAssertTrue(compacto.contains("sesion?.devolviendo!=true"),
+                      "el observador del teclado ya no mira `devolviendo`")
+    }
+
     /// Y la entrada del usuario no se maneja en ningún otro sitio, porque la lista blanca de
     /// arriba solo vale si el fichero que vigila es **el único** camino. `BrowserPanelView` monta
     /// el mando y no toca ni una tecla ni un gesto.
@@ -1353,6 +1365,7 @@ final class BrowserPanelViewTests: XCTestCase {
         //     lleva `BrowserPanelState`; no persiste nada.
         "BrowserMandoSesion", "sesion", "toca", "levanta", "retira", "olvidaElGesto", "enVuelo",
         "alFallar", "notaQueNoSalio", "olvidaElFallo", "entradaPerdida", "en",
+        "pulsacionesEnviadas", // contador de pulsaciones que salieron; sin coordenada ni tecla, solo sube el teclado.
         "Observable", "class", "final", "init", "self", "weak", "set",
         // y H2: `seconds` es la unidad de la derivación `intervaloDeMuestreo = .seconds(1) / …`.
         "seconds",

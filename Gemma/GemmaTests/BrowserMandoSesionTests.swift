@@ -369,6 +369,32 @@ final class BrowserMandoSesionTests: XCTestCase {
         XCTAssertTrue(dos, "salieron \(mando.entradas.count) mensajes y tenían que ser dos")
     }
 
+    /// **EL TECLADO SUBE CON LA PULSACIÓN QUE SALIÓ, Y SOLO CON ELLA.** La barra enfoca su campo
+    /// cuando `pulsacionesEnviadas` cambia. Tiene que contar pulsaciones (no movimientos ni
+    /// soltados) y solo las que salieron: un toque fuera de la imagen no manda nada y no debe
+    /// levantar el teclado.
+    @MainActor func test_solo_una_pulsacion_enviada_cuenta_para_subir_el_teclado() async {
+        let mando = MandoDeMentira()
+        let sesion = BrowserMandoSesion(mando: mando)
+        let t0 = ContinuousClock.Instant.now
+        let i = BrowserMandoEntrada.intervaloDeMuestreo
+        XCTAssertEqual(sesion.pulsacionesEnviadas, 0)
+
+        _ = sesion.toca(punto: centro, vista: imagen, tamañoDeLaImagen: imagen,
+                        dimensionesDelCable: cable, ahora: t0)
+        XCTAssertEqual(sesion.pulsacionesEnviadas, 1, "una pulsación que sale cuenta")
+
+        _ = sesion.toca(punto: cuarto, vista: imagen, tamañoDeLaImagen: imagen,
+                        dimensionesDelCable: cable, ahora: t0.advanced(by: i * 3))
+        XCTAssertEqual(sesion.pulsacionesEnviadas, 1, "un movimiento no es una pulsación")
+
+        sesion.levanta(punto: cuarto, vista: imagen, tamañoDeLaImagen: imagen, dimensionesDelCable: cable)
+        let fuera = BrowserMandoSesion(mando: MandoDeMentira())
+        _ = fuera.toca(punto: self.fuera, vista: imagen, tamañoDeLaImagen: imagen,
+                       dimensionesDelCable: cable, ahora: t0)
+        XCTAssertEqual(fuera.pulsacionesEnviadas, 0, "una pulsación que no sale no levanta el teclado")
+    }
+
     // MARK: ronda 8 — una sola cadena, la generación del teclado y la devolución (Codex)
 
     /// **UN CLIC ENCOLADO DETRÁS DE UN PEGADO SALE DETRÁS DEL PEGADO.** Con dos colas, el clic

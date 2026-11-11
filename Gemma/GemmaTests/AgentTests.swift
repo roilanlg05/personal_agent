@@ -481,6 +481,20 @@ final class AgentTests: XCTestCase {
 
     /// El aviso del corte es una regla del navegador, así que vive en `BrowserRules` (su única
     /// fuente), dice CUÁNTAS acciones quedaron y no se lee como un fallo del modelo.
+    /// El agente se negó dos veces a registrar una cuenta propia (chat 2026-11-10): ninguna regla
+    /// lo prohibía, era juicio del modelo. La regla tiene que decir que es tarea legítima, que la
+    /// contraseña la pone el usuario y que no hay sermón.
+    func test_las_reglas_del_navegador_autorizan_crear_una_cuenta_propia() {
+        let t = BrowserRules.text
+        XCTAssertTrue(t.contains("Creating an account of your own"))
+        XCTAssertTrue(t.contains("The user types the password themselves"))
+        XCTAssertTrue(t.contains("Do not lecture about fake identities"))
+        // Revisión de Codex: la regla no puede mandar los códigos del usuario al chat.
+        XCTAssertTrue(t.contains("never ask for those codes in the chat"))
+        XCTAssertFalse(t.contains("gives you any verification code"),
+                       "la frase vieja pedía al usuario que le diera sus códigos al agente")
+    }
+
     func test_el_aviso_del_corte_cuenta_lo_que_quedo_y_no_culpa_al_modelo() {
         let una = BrowserRules.queueCutNote(tras: "browser_open", pendientes: ["browser_click"])
         XCTAssertTrue(una.contains("browser_click"), una)

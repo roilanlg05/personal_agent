@@ -44,4 +44,25 @@ final class ServerRuntimeHistoryTests: XCTestCase {
         XCTAssertEqual(msgs.map { $0["role"] }, ["system", "user", "assistant", "user"])
         XCTAssertEqual(msgs.map { $0["content"] }, ["SYS", "turn1 user", "turn1 reply", "turn2 user"])
     }
+
+    @MainActor
+    func test_local_history_reaches_claude_when_memory_rejects_request() async throws {
+        BodyCapture.lastBody = nil
+        var conversation = RecentConversation()
+        conversation.start(threadID: "episode")
+        conversation.append(.init(role: .user, content: "Pasé por el puente."), threadID: "episode")
+        conversation.append(.init(role: .assistant, content: "Entiendo."), threadID: "episode")
+        let memory = makeStubMemoryClient { _ in (401, Data()) }
+        let history = await conversation.history(threadID: "episode", client: memory)
+        let runtime = ServerRuntime(provider: ModelProvider(kind: .claude, apiKey: "test-key"), session: makeSession())
+
+        let stream = await runtime.generate(prompt: "¿Por dónde pasé?", tools: [], options: GenerationOptions(history: history))
+        for try await _ in stream {}
+
+        let body = try XCTUnwrap(BodyCapture.lastBody)
+        let obj = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let messages = try XCTUnwrap(obj["messages"] as? [[String: String]])
+        XCTAssertEqual(messages.map { $0["role"] }, ["user", "assistant", "user"])
+        XCTAssertEqual(messages.map { $0["content"] }, ["Pasé por el puente.", "Entiendo.", "¿Por dónde pasé?"])
+    }
 }

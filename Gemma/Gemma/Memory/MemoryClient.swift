@@ -35,7 +35,7 @@ final class MemoryClient {
         /// drill-down references. `recentTurns` always appears last.
         func injectionBlock() -> String {
             let all = recall + core.filter { c in !recall.contains(where: { $0.label == c.label && $0.kind == c.kind }) }
-            let selfNode = all.first { $0.kind == "self" }
+            // Legacy self nodes carry no proof that the user asserted the name.
             let merged = all.filter { $0.kind != "self" }
             let lines = merged.map { n -> String in
                 let base = "- [\(n.kind)] \(n.label): \(n.body.isEmpty ? n.label : n.body)"
@@ -51,11 +51,8 @@ final class MemoryClient {
                 return base + suffix
             }
             var out = ""
-            if let s = selfNode, !s.label.isEmpty {
-                out = "You are speaking with \(s.label) (the user)." + (s.body.isEmpty ? "" : " \(s.body)\(s.body.hasSuffix(".") ? "" : ".")")
-            }
             if !merged.isEmpty {
-                out += (out.isEmpty ? "" : "\n") + "What you remember about the user (use if relevant):\n" + lines.joined(separator: "\n")
+                out = "What you remember about the user (use if relevant):\n" + lines.joined(separator: "\n")
             }
             if !summaries.isEmpty {
                 let sl = summaries.map { s in

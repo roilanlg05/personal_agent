@@ -14,6 +14,7 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
     @ObservationIgnored var client: VoiceTurning?
     @ObservationIgnored var appendLine: (String) -> Void = { _ in }
     @ObservationIgnored var threadId: () -> String = { "voice" }
+    @ObservationIgnored var onActiveTurn: (String, String, String) -> Void = { _, _, _ in }
     @ObservationIgnored private var player: AVAudioPlayer?
     /// Called after playback finishes if the server detected a closure phrase.
     /// Wired by HarnessModel to disable the wake word listener.
@@ -73,7 +74,8 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
             return
         }
         do {
-            let reply = try await client.turn(wav: wav, threadId: threadId(),
+            let episodeID = threadId()
+            let reply = try await client.turn(wav: wav, threadId: episodeID,
                                               timezone: TimeZone.current.identifier,
                                               isPassive: isPassive)
             if reply.audio.isEmpty {
@@ -81,6 +83,7 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
                 return
             }
             if !isPassive {
+                onActiveTurn(episodeID, reply.sttText, reply.replyText)
                 appendLine("you: \(reply.sttText)")
                 appendLine("gemma: \(reply.replyText)")
             }

@@ -29,6 +29,8 @@ public final class HarnessModel {
     var hasProactive: Bool = false
 
     @ObservationIgnored private var currentTurnTask: Task<Void, Never>?
+    @ObservationIgnored private var activeTextTurnID: UUID?
+    @ObservationIgnored private var recentConversation = RecentConversation()
 
     @ObservationIgnored private var runtime: ModelRuntime & ToolCallingRuntime
     @ObservationIgnored private let settingsStore = SettingsStore()
@@ -41,7 +43,7 @@ public final class HarnessModel {
     @ObservationIgnored let voice = VoiceController(recorder: AudioRecorder())
     /// Always-listening "Hey Jarvis". Built lazily (loads ONNX models) so a load failure doesn't crash init.
     @ObservationIgnored private(set) var wake: WakeListener?
-    @ObservationIgnored private var lastTurnEndedAt: Double = UserDefaults.standard.double(forKey: "lastTurnEndedAt")
+    @ObservationIgnored private var lastConversationActivity: Double = UserDefaults.standard.double(forKey: "lastTurnEndedAt")
     private static let wakeGapSeconds: Double = 180   // first turn or a gap > this = a "wake"
 
     /// Build the per-turn "wake context" appended to the system prompt: what the agent was
@@ -149,6 +151,13 @@ public final class HarnessModel {
         #endif
         voice.appendLine = { [weak self] line in self?.agentLog.append(ChatLogEntry(role: "system", text: line)) }
         voice.threadId = { [weak self] in self?.currentThreadId ?? "voice" }
+        voice.onActiveTurn = { [weak self] episodeID, userText, assistantText in
+            guard let self, self.threadId == episodeID else { return }
+            self.recentConversation.start(threadID: episodeID)
+            self.recentConversation.append(ChatMessage(role: .user, content: userText), threadID: episodeID)
+            self.recentConversation.append(ChatMessage(role: .assistant, content: assistantText), threadID: episodeID)
+            self.noteConversationActivity(at: Date().timeIntervalSince1970)
+        }
         ensureVoice()
         if UserDefaults.standard.bool(forKey: "useWakeWord") {
             ensureWake()
@@ -393,13 +402,27 @@ public final class HarnessModel {
         agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
     }
 
+    private func noteConversationActivity(at time: Double) {
+        lastConversationActivity = time
+        UserDefaults.standard.set(time, forKey: "lastTurnEndedAt")
+    }
+
     public func runAgentTurn(_ prompt: String) async {
+        guard !Task.isCancelled else { return }
+        let textTurnID = UUID()
+        activeTextTurnID = textTurnID
         let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
         if !(self.runtime is LlamaCppRuntime && provider.kind == .onDevice) {
             self.runtime = RuntimeFactory.make(provider)
         }
         surfaceProactive()
-        agentRunning = true; defer { agentRunning = false }
+        agentRunning = true
+        defer {
+            if activeTextTurnID == textTurnID {
+                activeTextTurnID = nil
+                agentRunning = false
+            }
+        }
         agentLog.append(ChatLogEntry(role: "you", text: prompt))
         ensureMemory()
         let client = memory
@@ -419,18 +442,24 @@ public final class HarnessModel {
         registry.register(AddShiftTool())
         registry.register(DropShiftTool())
         let now = Date().timeIntervalSince1970
-        let isWake = (lastTurnEndedAt == 0) || (now - lastTurnEndedAt > Self.wakeGapSeconds)
+        let isWake = (lastConversationActivity == 0) || (now - lastConversationActivity > Self.wakeGapSeconds)
         _ = isWake // followUps / focus are service-driven now (no per-turn HTTP for them in M3a)
-        if ChatSession.shouldStartNewChat(lastActivity: lastTurnEndedAt, now: now) {
+        if ChatSession.shouldStartNewChat(lastActivity: lastConversationActivity, now: now) {
             threadId = UUID().uuidString   // new episode → new chat_id; server restarts seq at 1
             UserDefaults.standard.set(threadId, forKey: "activeThreadId")
             turnIndex = 0
         }
+        let episodeID = threadId
+        let transcriptIndex = turnIndex
+        turnIndex += 1
+        recentConversation.start(threadID: episodeID)
+        let priorConversation = recentConversation
+        recentConversation.append(ChatMessage(role: .user, content: prompt), threadID: episodeID)
         let wakeContext: String = {
-            guard lastTurnEndedAt > 0 else {
+            guard lastConversationActivity > 0 else {
                 return "Last interaction with user: none recorded (first interaction or new session)."
             }
-            let elapsedSec = now - lastTurnEndedAt
+            let elapsedSec = now - lastConversationActivity
             let timeDesc: String
             if elapsedSec < 120 {
                 timeDesc = "about 1-2 minutes ago (just now, ongoing conversation)"
@@ -446,19 +475,17 @@ public final class HarnessModel {
             }
             return "Last interaction with user: \(timeDesc)."
         }()
+        noteConversationActivity(at: now)
         // Build recallTail via HTTP. recall() returns .empty on transport failure (see
         // MemoryClient.recall), so an offline service degrades to "no recall" instead of crashing.
         var recallTail = ""
         if let client {
-            let bundle = (try? await client.recall(query: prompt, threadId: threadId)) ?? .empty
+            let bundle = (try? await client.recall(query: prompt, threadId: episodeID)) ?? .empty
             recallTail = bundle.injectionBlock()
         }
-        // Fetch the short-term conversation window over HTTP. Falls back to empty on failure.
-        let history: [ChatMessage] = await {
-            guard let client else { return [] }
-            let turns = (try? await client.conversationWindow(threadId: threadId)) ?? []
-            return turns.map { ChatMessage(role: $0.role == "assistant" ? .assistant : .user, content: $0.text) }
-        }()
+        guard !Task.isCancelled, activeTextTurnID == textTurnID else { return }
+        let history = await priorConversation.history(threadID: episodeID, client: client)
+        guard !Task.isCancelled, activeTextTurnID == textTurnID else { return }
         let agent = Agent(runtime: runtime, registry: registry, recallTail: recallTail, wakeContext: wakeContext)
         var answer = ""
         var finalAssistantText = ""
@@ -467,6 +494,7 @@ public final class HarnessModel {
 
         do {
             for try await event in agent.run(prompt: prompt, options: makeGenerationOptions(history: history)) {
+                guard !Task.isCancelled, activeTextTurnID == textTurnID else { break }
                 switch event {
                 case .thought(let th):
                     currentThought += th
@@ -478,7 +506,6 @@ public final class HarnessModel {
                     }
                 case .token(let t):
                     answer += t
-                    finalAssistantText = answer
                     let stripped = GemmaToolCallParser.strip(answer)
                     let trimmed = stripped.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmed.isEmpty && trimmed != "<|" && !trimmed.hasPrefix("<|") {
@@ -524,29 +551,30 @@ public final class HarnessModel {
                 }
             }
         } catch is CancellationError {
-            if let idx = activeGemmaIdx {
+            if activeTextTurnID == textTurnID, let idx = activeGemmaIdx {
                 let current = agentLog[idx].text.trimmingCharacters(in: .whitespacesAndNewlines)
                 if current.isEmpty && (agentLog[idx].thought?.isEmpty ?? true) {
                     agentLog.remove(at: idx)
                 }
             }
         } catch {
-            agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
+            if activeTextTurnID == textTurnID {
+                agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
+            }
         }
+        guard !Task.isCancelled, activeTextTurnID == textTurnID else { return }
+        recentConversation.append(ChatMessage(role: .assistant, content: finalAssistantText), threadID: episodeID)
+        noteConversationActivity(at: Date().timeIntervalSince1970)
         // Append both turns to the transcript over HTTP. Failures are silent (service-down
         // shouldn't crash a successful turn — the user can see Gemma's reply).
         if let client {
-            try? await client.appendTranscript(threadId: threadId, role: "user", text: prompt, turnIndex: turnIndex)
+            try? await client.appendTranscript(threadId: episodeID, role: "user", text: prompt, turnIndex: transcriptIndex)
             let cleanForTranscript = GemmaToolCallParser.strip(finalAssistantText)
             if !cleanForTranscript.isEmpty {
-                try? await client.appendTranscript(threadId: threadId, role: "assistant", text: cleanForTranscript, turnIndex: turnIndex)
+                try? await client.appendTranscript(threadId: episodeID, role: "assistant", text: cleanForTranscript, turnIndex: transcriptIndex)
             }
-            turnIndex += 1
             // Signal the service to arm its consolidation timers. Fire-and-forget.
-            try? await client.consolidationTurnEnd(threadId: threadId)
+            try? await client.consolidationTurnEnd(threadId: episodeID)
         }
-        let finishedNow = Date().timeIntervalSince1970
-        lastTurnEndedAt = finishedNow
-        UserDefaults.standard.set(finishedNow, forKey: "lastTurnEndedAt")
     }
 }

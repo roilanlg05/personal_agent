@@ -44,19 +44,14 @@ final class RecallInjectionTests: XCTestCase {
         XCTAssertEqual(MemoryClient.RecallBundle(core: [], recall: [], summaries: [], recentTurns: []).injectionBlock(), "")
     }
 
-    func test_self_node_renders_as_you_first() {
+    func test_legacy_self_node_cannot_supply_the_users_name() {
         let bundle = MemoryClient.RecallBundle(
-            core: [MemoryClient.RecallNode(kind: "self", label: "Roilan", body: "", extra: nil),
+            core: [MemoryClient.RecallNode(kind: "self", label: "Lucas", body: "The user is Lucas.", extra: nil),
                    MemoryClient.RecallNode(kind: "preference", label: "sushi", body: "le gusta", extra: nil)],
             recall: [], summaries: [], recentTurns: [])
         let block = bundle.injectionBlock()
-        XCTAssertTrue(block.contains("You are speaking with Roilan (the user)."), block)
-        XCTAssertFalse(block.contains("- [self]"), "self must not render as a generic fact line")
-        // self sentence comes before the remembered-facts section
-        let selfRange = block.range(of: "You are speaking with Roilan")
-        let factsRange = block.range(of: "What you remember about the user")
-        XCTAssertNotNil(selfRange); XCTAssertNotNil(factsRange)
-        if let s = selfRange, let f = factsRange { XCTAssertTrue(s.lowerBound < f.lowerBound) }
+        XCTAssertFalse(block.contains("Lucas"), block)
+        XCTAssertTrue(block.contains("sushi"), block)
     }
 
     func test_summaries_tier_renders_with_drilldown_refs() {

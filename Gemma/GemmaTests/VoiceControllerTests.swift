@@ -47,6 +47,22 @@ final class VoiceControllerTests: XCTestCase {
         XCTAssertEqual(c.state, .idle)
     }
 
+    func test_voice_context_reports_only_active_transcript_and_reply() async {
+        let (controller, _, _) = make()
+        var messages: [ChatMessage] = []
+        var episodeID: String?
+        controller.onActiveTurn = { id, userText, assistantText in
+            episodeID = id
+            messages.append(.init(role: .user, content: userText))
+            messages.append(.init(role: .assistant, content: assistantText))
+        }
+        await controller.send(Data([1]), isPassive: true)
+        XCTAssertTrue(messages.isEmpty)
+        await controller.send(Data([1]))
+        XCTAssertEqual(episodeID, "T")
+        XCTAssertEqual(messages, [.init(role: .user, content: "hola"), .init(role: .assistant, content: "qué tal")])
+    }
+
     func test_generic_error_appends_voice_line() async {
         let (c, t, lines) = make()
         t.error = VoiceError.http(status: 502, reply: "boom")

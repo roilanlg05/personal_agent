@@ -8,6 +8,9 @@ final class InvocadorConStdinFalso: AgentBrowserInvokingConStdin, @unchecked Sen
     /// Una salida por llamada, en orden; la última se repite.
     var salidas: [String]
     private(set) var argumentos: [[String]] = []
+    /// Se ejecuta al principio de cada llamada: permite fotografiar el estado de la bóveda en el
+    /// instante en que la herramienta habla con el navegador.
+    var alInvocar: (() -> Void)?
     private(set) var entradas: [Data?] = []
 
     init(salidas: [String]) { self.salidas = salidas }
@@ -19,6 +22,7 @@ final class InvocadorConStdinFalso: AgentBrowserInvokingConStdin, @unchecked Sen
 
     func invoke(arguments: [String], timeout: TimeInterval, stdin: Data?) async
         -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
+        alInvocar?()
         argumentos.append(arguments)
         entradas.append(stdin)
         let salida = salidas.count > 1 ? salidas.removeFirst() : (salidas.first ?? "")
@@ -65,12 +69,23 @@ final class BrowserFillSecretToolTests: XCTestCase {
         BrowserFillSecretTool(service: AgentBrowserService(invoker: inv, sessionName: "gemma"), vault: vault)
     }
 
-    /// El valor no puede aparecer en ninguna forma: ni literal ni escapado como JSON.
+    /// El contenido de `texto` tal como lo escribe un serializador JSON, sin las comillas de fuera.
+    private func escapa(_ texto: String) -> String {
+        String(String(decoding: try! JSONEncoder().encode(texto), as: UTF8.self).dropFirst().dropLast())
+    }
+
+    /// El valor no puede aparecer en ninguna forma recuperable: literal, escapado una vez (JSON) o
+    /// dos (JSON dentro de un mensaje JSON), ni siquiera un PREFIJO de cualquiera de ellas (un
+    /// recorte puede dejar media contraseña sin tachar). Seis caracteres bastan para que el prefijo
+    /// sea del valor y no de texto normal: todos contienen ya la comilla del valor.
     private func assertSinValor(_ texto: String, file: StaticString = #filePath, line: UInt = #line) {
-        XCTAssertFalse(texto.contains(valor), "valor literal en: \(texto)", file: file, line: line)
-        let escapado = String(String(decoding: try! JSONEncoder().encode(valor), as: UTF8.self).dropFirst().dropLast())
-        XCTAssertFalse(texto.contains(escapado), "valor escapado en: \(texto)", file: file, line: line)
-        XCTAssertFalse(texto.contains("pa\"ss") || texto.contains("wo\nrd"), "trozo del valor en: \(texto)", file: file, line: line)
+        let formas = [valor, escapa(valor), escapa(escapa(valor))]
+        for forma in formas {
+            XCTAssertFalse(texto.contains(forma), "forma del valor en: \(texto)", file: file, line: line)
+            XCTAssertFalse(texto.contains(String(forma.prefix(6))), "prefijo del valor (\(forma.prefix(6))) en: \(texto)",
+                           file: file, line: line)
+        }
+        XCTAssertFalse(texto.contains("wo\nrd"), "trozo del valor en: \(texto)", file: file, line: line)
     }
 
     // MARK: camino feliz
@@ -143,7 +158,10 @@ final class BrowserFillSecretToolTests: XCTestCase {
         let inv = InvocadorConStdinFalso(salidas: [url("https://accounts.google.com/"), batchOK])
         let out = await herramienta(inv, SecretVault(almacen: almacen)).run(argsJSON: args(secret: "vacio"))
         XCTAssertEqual(try parse(out)["status"] as? String, "error")
-        XCTAssertTrue(inv.argumentos.isEmpty)
+        // El valor solo se lee tras comprobar el origen, así que `get url` sí se pregunta; lo que
+        // no puede ocurrir es lanzar el `batch`.
+        XCTAssertTrue(inv.argumentos.allSatisfy { !$0.contains("batch") }, "\(inv.argumentos)")
+        XCTAssertTrue(inv.entradas.allSatisfy { $0 == nil })
     }
 
     func test_nombre_invalido_se_rechaza_sin_tocar_la_boveda() async throws {
@@ -212,6 +230,43 @@ final class BrowserFillSecretToolTests: XCTestCase {
         let out = await herramienta(inv, boveda()).run(argsJSON: args())
         XCTAssertEqual(try parse(out)["status"] as? String, "error", out)
         assertSinValor(out)
+    }
+
+    /// Salida ilegible que SÍ es JSON y ecoa el valor ya escapado: al meterla en el mensaje y
+    /// volver a serializarla, el valor llega escapado DOS veces, forma que el redactor no busca.
+    func test_una_salida_ilegible_en_json_que_ecoa_el_valor_no_lo_filtra() async throws {
+        let filas = String(decoding: try JSONSerialization.data(withJSONObject: [["eco": valor]]), as: UTF8.self)
+        let inv = InvocadorConStdinFalso(salidas: [url("https://accounts.google.com/"), filas])
+        let out = await herramienta(inv, boveda()).run(argsJSON: args())
+        XCTAssertEqual(try parse(out)["status"] as? String, "error", out)
+        assertSinValor(out)
+    }
+
+    /// Salida ilegible larga donde el recorte del mensaje cae DENTRO del valor: quedaría un prefijo
+    /// que el redactor (que busca el valor entero) no reconoce.
+    func test_una_salida_ilegible_recortada_a_mitad_del_valor_no_lo_filtra() async throws {
+        let cabeza = #"[{"pad":""#
+        let relleno = String(repeating: "x", count: 300 - 6 - cabeza.count - #"","v":""#.count)
+        let crudo = cabeza + relleno + #"","v":""# + escapa(valor) + #""}]"#
+        let inv = InvocadorConStdinFalso(salidas: [url("https://accounts.google.com/"), crudo])
+        let out = await herramienta(inv, boveda()).run(argsJSON: args())
+        XCTAssertEqual(try parse(out)["status"] as? String, "error", out)
+        assertSinValor(out)
+    }
+
+    /// El valor sale del Keychain SOLO en el instante de teclear: con la página en otro origen
+    /// la cuenta del secreto se lee una sola vez (la de `origen(de:)`), nunca para el valor.
+    func test_en_otro_origen_el_valor_no_se_lee_del_almacen() async throws {
+        let almacen = AlmacenQueCuenta()
+        let vault = boveda(almacen: almacen)
+        let inv = InvocadorConStdinFalso(salidas: [url("https://evil.com/"), batchOK])
+        var lecturasAlPreguntarLaURL: [String] = []
+        let inicio = almacen.cuentasLeidas.count
+        inv.alInvocar = { lecturasAlPreguntarLaURL = Array(almacen.cuentasLeidas[inicio...]) }
+        let out = await herramienta(inv, vault).run(argsJSON: args())
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertEqual(lecturasAlPreguntarLaURL.filter { $0 == "secreto.gmail_password" }.count, 1,
+                       "antes de comprobar el origen solo debe leerse el registro una vez (origen): \(lecturasAlPreguntarLaURL)")
     }
 
     // MARK: invocador sin entrada estándar (HTTP, dobles)

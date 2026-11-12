@@ -74,13 +74,6 @@ final class BrowserFillSecretTool: AgentTool, Sendable {
             return AgentBrowserToolOutput.invalidArguments(
                 "No existe ningún secreto llamado '\(nombre)'. Usa list_secrets o pídeselo al usuario con present_form.")
         }
-        // Solo se comprueba que haya valor; se vuelve a leer justo al teclear para no tenerlo en
-        // memoria durante la consulta de la URL.
-        guard vault.valor(de: nombre)?.isEmpty == false else {
-            return AgentBrowserToolOutput.invalidArguments(
-                "El secreto '\(nombre)' está vacío o no se puede leer. No se ha tecleado nada.")
-        }
-
         let host: String
         switch await PaginaActual.host(service: service, timeout: Self.timeout) {
         case .host(let h): host = h
@@ -95,6 +88,8 @@ final class BrowserFillSecretTool: AgentTool, Sendable {
                 + "un secreto solo se usa en su sitio (o un subdominio suyo).")
         }
 
+        // Primera y ÚNICA lectura del valor, ya comprobado el origen: el valor sale del Keychain
+        // solo en el instante de teclear (en `evil.com` nunca se llega a leer).
         // JSON hecho por el serializador, nunca concatenado: un valor con comillas, barras o
         // saltos de línea llega íntegro y no puede inyectar otra orden en el lote.
         guard let valor = vault.valor(de: nombre), !valor.isEmpty,
@@ -107,9 +102,28 @@ final class BrowserFillSecretTool: AgentTool, Sendable {
         // (medido en agent-browser 0.41.2). La redacción lo taparía igual; mejor que no salga.
         let outcome = await service.run(command: ["batch", "--omit-command"], sessioned: true,
                                         timeout: Self.timeout, stdin: entrada)
-        switch AgentBrowserToolOutput.resolve(outcome) {
-        case .failure(let json): return json
-        case .data: break
+        switch outcome {
+        case .ok:
+            break
+        case .malformed:
+            // NUNCA la salida cruda: `resolve` mete hasta 300 caracteres de ella en el mensaje. Si
+            // esa salida es JSON que ecoa el valor, el valor ya viene escapado y al serializar el
+            // mensaje queda escapado DOS veces, forma que el redactor no busca; y el recorte puede
+            // cortar dentro del valor y dejar un prefijo que tampoco reconoce. Texto fijo.
+            return AgentBrowserToolOutput.invalidArguments(
+                "El navegador devolvió una respuesta que no se pudo interpretar; no se sabe si el campo "
+                + "se rellenó. Haz un browser_snapshot para comprobarlo antes de reintentar.")
+        case .refused(let mensaje):
+            // El motivo del CLI sí se conserva (p. ej. «Element not found»), pero se redacta en su
+            // forma DECODIFICADA, antes de volver a serializarlo: así el redactor ve el valor
+            // literal y no una forma escapada que no reconocería.
+            return ToolJSONOutput.object([
+                "status": "refused",
+                "message": SecretRedactor.limpia(mensaje, vault: vault)
+            ])
+        case .unavailable:
+            // Motivos escritos por la app (binario ausente, plazo, sin entrada estándar): sin eco.
+            if case .failure(let json) = AgentBrowserToolOutput.resolve(outcome) { return json }
         }
         return ToolJSONOutput.object([
             "status": "success",

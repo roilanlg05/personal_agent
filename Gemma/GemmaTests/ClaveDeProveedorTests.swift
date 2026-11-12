@@ -457,7 +457,13 @@ final class ClaveDeProveedorTests: XCTestCase {
         let codigoDelModelo = TroceadoDeFuente.sinComentarios(modelo)
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map(String.init)
-        for linea in codigoDelModelo where linea.contains("LlaveroDelSistema") {
+        // Única exención: la COMPROBACIÓN DE TIPO `almacen is LlaveroDelSistema` con la que
+        // `HarnessModel` decide qué bóveda de formularios crea. No usa el llavero global de las
+        // API keys: solo mira de qué clase es el almacén inyectado, y la bóveda abre su propio
+        // servicio (`lambert-dev-group.Gemma.boveda`), nunca el de las API keys. Se exime por la
+        // frase exacta y no por "is": cualquier otra mención del tipo sigue sujeta a la regla.
+        for linea in codigoDelModelo
+        where linea.contains("LlaveroDelSistema") && !linea.contains("almacen is LlaveroDelSistema") {
             lineasConElGlobal += 1
             XCTAssertTrue(linea.contains("= LlaveroDelSistema.compartido"),
                           """

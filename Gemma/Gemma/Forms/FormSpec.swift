@@ -24,7 +24,7 @@ struct FormField: Codable, Equatable, Sendable {
     var placeholder: String?
     var help: String?
 
-    init(id: String, label: String, kind: Kind, required: Bool = false,
+    init(id: String, label: String, kind: Kind, required: Bool = true,
          options: [Option]? = nil, secretName: String? = nil,
          placeholder: String? = nil, help: String? = nil) {
         self.id = id; self.label = label; self.kind = kind; self.required = required
@@ -32,14 +32,14 @@ struct FormField: Codable, Equatable, Sendable {
         self.placeholder = placeholder; self.help = help
     }
 
-    /// `required` es opcional en el JSON del modelo: un modelo que lo omite no debe tumbar el
-    /// formulario entero, y «no obligatorio» es el valor menos hostil para el usuario.
+    /// `required` es opcional en el JSON del modelo y por defecto es `true` (así lo fija el spec):
+    /// si el modelo lo omite en una contraseña, el campo no puede quedar opcional por descuido.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
         label = try c.decode(String.self, forKey: .label)
         kind = try c.decode(Kind.self, forKey: .kind)
-        required = try c.decodeIfPresent(Bool.self, forKey: .required) ?? false
+        required = try c.decodeIfPresent(Bool.self, forKey: .required) ?? true
         options = try c.decodeIfPresent([Option].self, forKey: .options)
         secretName = try c.decodeIfPresent(String.self, forKey: .secretName)
         placeholder = try c.decodeIfPresent(String.self, forKey: .placeholder)

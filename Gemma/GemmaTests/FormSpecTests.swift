@@ -85,4 +85,10 @@ final class FormSpecTests: XCTestCase {
         XCTAssertEqual(obj?["status"] as? String, "submitted")
         XCTAssertEqual((obj?["values"] as? [String: String])?["pass"], "[secreto guardado: gmail_password]")
     }
+
+    func test_required_ausente_es_true_y_presente_en_false_es_false() throws {
+        let spec = try parse(#"[{"id":"a","label":"A","kind":"secret","secret_name":"x"},{"id":"b","label":"B","kind":"text","required":false}]"#)
+        XCTAssertTrue(spec.fields[0].required)
+        XCTAssertFalse(spec.fields[1].required)
+    }
 }

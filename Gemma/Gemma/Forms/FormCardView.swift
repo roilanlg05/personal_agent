@@ -12,6 +12,9 @@ import SwiftUI
 /// NINGÚN valor se repite en otro sitio: ni `accessibilityValue`, ni logs, ni `Text` de resumen.
 struct FormCardView: View {
     let spec: FormSpec
+    /// «Se guardará para: <host>» si el formulario pide secretos: el sitio al que quedará atado lo
+    /// que teclee el usuario. Lo calcula la app (no el modelo) y se pinta bajo el título.
+    var aviso: String? = nil
     /// `true` cuando el formulario ya está resuelto (enviado o cancelado/caducado).
     let enviado: Bool
     /// Distingue «Cancelado» de «Enviado» en el estado resuelto.
@@ -23,7 +26,7 @@ struct FormCardView: View {
         if enviado {
             resuelta
         } else {
-            FormCardAbierta(spec: spec, onEnviar: onEnviar, onCancelar: onCancelar)
+            FormCardAbierta(spec: spec, aviso: aviso, onEnviar: onEnviar, onCancelar: onCancelar)
         }
     }
 
@@ -48,6 +51,7 @@ struct FormCardView: View {
 /// mientras el formulario está abierto.
 private struct FormCardAbierta: View {
     let spec: FormSpec
+    let aviso: String?
     let onEnviar: ([String: String]) -> Void
     let onCancelar: () -> Void
 
@@ -56,8 +60,10 @@ private struct FormCardAbierta: View {
     /// campos que el usuario todavía no ha tocado.
     @State private var intentado = false
 
-    init(spec: FormSpec, onEnviar: @escaping ([String: String]) -> Void, onCancelar: @escaping () -> Void) {
+    init(spec: FormSpec, aviso: String?, onEnviar: @escaping ([String: String]) -> Void,
+         onCancelar: @escaping () -> Void) {
         self.spec = spec
+        self.aviso = aviso
         self.onEnviar = onEnviar
         self.onCancelar = onCancelar
         _draft = State(initialValue: FormDraft(spec: spec))
@@ -66,6 +72,9 @@ private struct FormCardAbierta: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(spec.title).font(.headline)
+            // Bajo el título y antes de cualquier campo: el usuario tiene que ver a qué sitio va su
+            // contraseña ANTES de teclearla, no descubrirlo después.
+            if let aviso { Text(aviso).font(.callout.weight(.semibold)).foregroundStyle(.orange) }
             if let d = spec.description, !d.isEmpty {
                 Text(d).font(.callout).foregroundStyle(.secondary)
             }

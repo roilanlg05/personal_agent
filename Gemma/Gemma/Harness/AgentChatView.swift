@@ -355,6 +355,7 @@ struct AgentChatView: View {
                                    mando: entry.panelID.flatMap { model.browserPanels.mando(de: $0) },
                                    sesion: entry.panelID.flatMap { model.browserPanels.sesion(de: $0) },
                                    formulario: entry.role == "form" ? model.especificacionDeFormulario(entry) : nil,
+                                   avisoFormulario: entry.role == "form" ? model.avisoDeFormulario(entry) : nil,
                                    onEnviarFormulario: { model.enviaFormulario(entry, valores: $0) },
                                    onCancelarFormulario: { model.cancelaFormulario(entry) })
                             .id(entry.id)
@@ -586,6 +587,8 @@ struct ChatLogRow: View {
     /// Solo filas `form`: el formulario a dibujar y a quién avisar. Opcionales con valor por
     /// omisión para no tocar otros sitios que construyan la fila.
     var formulario: FormSpec? = nil
+    /// «Se guardará para: <host>» cuando el formulario pide secretos (ver `FormCardView.aviso`).
+    var avisoFormulario: String? = nil
     var onEnviarFormulario: (([String: String]) -> Void)? = nil
     var onCancelarFormulario: (() -> Void)? = nil
 
@@ -609,6 +612,7 @@ struct ChatLogRow: View {
             case "form":
                 if let formulario {
                     FormCardView(spec: formulario,
+                                 aviso: avisoFormulario,
                                  enviado: entry.formEstado != "pendiente",
                                  cancelado: entry.formEstado == "cancelado",
                                  onEnviar: { onEnviarFormulario?($0) },

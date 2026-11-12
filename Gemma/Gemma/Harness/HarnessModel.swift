@@ -842,6 +842,13 @@ public final class HarnessModel {
         return FormSpec(title: entry.text, description: nil, submitLabel: nil, fields: [])
     }
 
+    /// «Se guardará para: <host>» mientras la tarjeta de esta fila está abierta y pide secretos;
+    /// `nil` en otro caso. Ver `FormBroker.PendingForm.avisoDeAtadura`.
+    func avisoDeFormulario(_ entry: ChatLogEntry) -> String? {
+        guard entry.formEstado == "pendiente", let p = formularios.pendiente, p.id == entry.formID else { return nil }
+        return p.avisoDeAtadura
+    }
+
     func enviaFormulario(_ entry: ChatLogEntry, valores: [String: String]) {
         guard let id = entry.formID, let i = agentLog.firstIndex(where: { $0.id == entry.id }),
               agentLog[i].formEstado == "pendiente" else { return }

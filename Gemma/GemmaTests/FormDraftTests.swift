@@ -161,6 +161,41 @@ final class FormChatWiringTests: XCTestCase {
         XCTAssertEqual(m.agentLog.first { $0.role == "form" }?.formEstado, "cancelado")
     }
 
+    // MARK: revisión final — I1: el sitio de atadura llega a la tarjeta
+
+    func test_la_tarjeta_abierta_recibe_el_aviso_del_sitio_al_que_queda_atado_el_secreto() async {
+        let m = modelo()
+        let t = Task { try? await m.formularios.presenta(spec, origen: "accounts.google.com") }
+        await esperaPendiente(m)
+        let fila = m.agentLog.first { $0.role == "form" }!
+        XCTAssertEqual(m.avisoDeFormulario(fila), "Se guardará para: accounts.google.com")
+        m.cierraFormularioAbierto(); _ = await t.value
+        // Resuelta: ya no hay nada que avisar (ni campos que rellenar).
+        XCTAssertNil(m.avisoDeFormulario(m.agentLog.first { $0.role == "form" }!))
+    }
+
+    /// SwiftUI no se puede inspeccionar desde XCTest sin dependencias: se ata sobre el fuente
+    /// (presencia sobre el troceado incondicional, para que un `/* */` o un `#if` no la dejen
+    /// en el texto con la característica borrada) que la vista PINTA el aviso y que el chat se lo pasa.
+    func test_la_vista_pinta_el_aviso_de_atadura_y_el_chat_se_lo_pasa() throws {
+        let raiz = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        func codigo(_ ruta: String) throws -> String {
+            let crudo = try String(contentsOf: raiz.appendingPathComponent(ruta), encoding: .utf8)
+            return TroceadoDeFuente.codigoIncondicional(crudo).split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        }
+        let tarjeta = try codigo("Gemma/Forms/FormCardView.swift")
+        let abierta = try XCTUnwrap(tarjeta.range(of: "private struct FormCardAbierta"), "ya no existe FormCardAbierta")
+        let cuerpoAbierta = String(tarjeta[abierta.lowerBound...])
+        XCTAssertTrue(cuerpoAbierta.contains("if let aviso { Text(aviso)"),
+                      "la tarjeta abierta ya no pinta el sitio al que queda atado el secreto")
+        XCTAssertTrue(tarjeta.contains("FormCardAbierta(spec: spec, aviso: aviso,"),
+                      "FormCardView ya no le pasa el aviso a la tarjeta abierta")
+        let chat = try codigo("Gemma/Harness/AgentChatView.swift")
+        XCTAssertTrue(chat.contains("avisoFormulario: entry.role == \"form\" ? model.avisoDeFormulario(entry) : nil"),
+                      "el chat ya no le pasa a la fila el aviso de atadura")
+        XCTAssertTrue(chat.contains("aviso: avisoFormulario,"), "la fila ya no le pasa el aviso a FormCardView")
+    }
+
     /// Ata el hallazgo de la Task 3: sin bóveda en el Agent de producción el redactor es código muerto.
     func test_el_agent_de_produccion_recibe_la_boveda() {
         let m = modelo()

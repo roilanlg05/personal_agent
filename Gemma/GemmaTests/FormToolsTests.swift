@@ -325,6 +325,35 @@ final class FormToolsTests: XCTestCase {
         XCTAssertEqual(m.vault.valor(de: "gmail_password"), "x1")
     }
 
+    // MARK: revisión final — I1: la tarjeta dice a qué sitio queda atado el secreto
+
+    /// Una página inyectada puede pedir «google_pw» con el título «Contraseña de Google» estando en
+    /// evil.com. El título y las etiquetas los escribe el modelo; el host NO: es el de la página
+    /// abierta, y es lo único que le permite al usuario ver dónde va a quedar su contraseña.
+    func test_el_formulario_pendiente_con_secreto_porta_el_host_y_su_aviso() async throws {
+        let m = monta()   // página abierta: accounts.google.com
+        reloj.esperaDeVerdad = true
+        let t = Task { await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]")) }
+        for _ in 0..<500 where m.broker.pendiente == nil { await Task.yield() }
+        let p = try XCTUnwrap(m.broker.pendiente)
+        XCTAssertEqual(p.origen, "accounts.google.com")
+        XCTAssertEqual(p.avisoDeAtadura, "Se guardará para: accounts.google.com")
+        m.broker.cancelaTodo()
+        _ = await t.value
+    }
+
+    func test_un_formulario_sin_secretos_no_lleva_aviso_de_atadura() async throws {
+        let m = monta()
+        reloj.esperaDeVerdad = true
+        let t = Task { await m.tool.run(argsJSON: args(fields: #"[{"id":"n","label":"N","kind":"text"}]"#)) }
+        for _ in 0..<500 where m.broker.pendiente == nil { await Task.yield() }
+        let p = try XCTUnwrap(m.broker.pendiente)
+        XCTAssertNil(p.origen)
+        XCTAssertNil(p.avisoDeAtadura)
+        m.broker.cancelaTodo()
+        _ = await t.value
+    }
+
     // MARK: list_secrets / forget_secret
 
     func test_list_secrets_no_contiene_valores() async throws {

@@ -21,6 +21,21 @@ final class FormBroker {
     struct PendingForm: Identifiable, Equatable {
         let id: String
         let spec: FormSpec
+        /// Host de la página a la que quedarán atados los secretos del formulario (`nil` si no
+        /// tiene campos `secret`). Lo pone la app, nunca el modelo.
+        var origen: String? = nil
+
+        /// Lo que la tarjeta enseña bajo el título cuando el formulario pide secretos. El título y
+        /// las etiquetas los escribe el modelo y una página inyectada puede hacerse pasar por
+        /// «Contraseña de Google» estando en evil.com; el host es la única pista que el usuario
+        /// tiene de DÓNDE va a quedar su contraseña. Sin campos `secret`, nada que avisar.
+        var avisoDeAtadura: String? {
+            guard spec.fields.contains(where: { $0.kind == .secret }) else { return nil }
+            guard let origen, !origen.isEmpty else {
+                return "Atención: no se sabe a qué sitio quedará atado este secreto."
+            }
+            return "Se guardará para: \(origen)"
+        }
     }
 
     /// Lo que la vista observa para mostrar la hoja. `nil` = nada abierto.
@@ -43,12 +58,13 @@ final class FormBroker {
     // (macOS 26); ver ToolRegistry.swift.
     nonisolated deinit {}
 
-    func presenta(_ spec: FormSpec) async throws -> FormResponse {
+    /// `origen`: el host al que quedarán atados los secretos, para que la tarjeta lo enseñe.
+    func presenta(_ spec: FormSpec, origen: String? = nil) async throws -> FormResponse {
         guard pendiente == nil else { throw FormBrokerError.yaHayUnoAbierto }
         // Id nuevo por presentación: un envío tardío del formulario anterior no puede resolver
         // el siguiente.
         let id = UUID().uuidString
-        pendiente = PendingForm(id: id, spec: spec)
+        pendiente = PendingForm(id: id, spec: spec, origen: origen)
 
         // Si el turno que llamó se cancela, el formulario no puede quedarse abierto sin dueño ni
         // la llamada colgada: se resuelve como cancelado. `onCancel` corre en un hilo cualquiera,

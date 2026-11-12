@@ -130,6 +130,14 @@ public final class SecretVault: Sendable {
         registro(de: name)?.origen
     }
 
+    /// ¿Se puede leer el índice? `true` si no existe (bóveda vacía) o se leyó bien; `false` si existe
+    /// y está corrupto o no se pudo leer. Con `false` la bóveda no puede enumerar sus secretos: el
+    /// redactor falla cerrado y quien guarda o teclea secretos debe negarse.
+    public var indiceLegible: Bool {
+        cerrojo.lock(); defer { cerrojo.unlock() }
+        return leerIndice() != nil
+    }
+
     /// Los secretos guardados, sin valores, en el orden en que se guardaron.
     public func lista() -> [SecretoGuardado] {
         cerrojo.lock(); defer { cerrojo.unlock() }

@@ -51,8 +51,13 @@ final class Agent {
     private let registry: ToolRegistry
     private let recallTail: String
     private let wakeContext: String
+    /// Bóveda de secretos cuyos valores se tachan de todo resultado de herramienta antes de que
+    /// llegue al modelo. `nil` = sin redacción (comportamiento anterior).
+    var bóveda: SecretVault?
 
-    init(runtime: ToolCallingRuntime, registry: ToolRegistry, recallTail: String = "", wakeContext: String = "") {
+    init(runtime: ToolCallingRuntime, registry: ToolRegistry, recallTail: String = "", wakeContext: String = "",
+         bóveda: SecretVault? = nil) {
+        self.bóveda = bóveda
         self.runtime = runtime
         self.registry = registry
         self.recallTail = recallTail
@@ -1309,7 +1314,10 @@ final class Agent {
                             if mutationToolNames.contains(tc.name), let previous = executedMutations[key] {
                                 result = "\(Self.duplicadoIgnorado): Esta acción ya fue completada exitosamente en este turno. Resultado previo: \(previous). No llames a esta herramienta otra vez; responde directamente al usuario."
                             } else if let tool = registry.tool(named: tc.name) {
-                                result = await tool.run(argsJSON: tc.args)
+                                let bruto = await tool.run(argsJSON: tc.args)
+                                // Se limpia ANTES de apuntarlo en `executedMutations`, del historial y de todo
+                                // lo demás: un secreto que una página refleja no debe llegar al prompt.
+                                result = bóveda.map { SecretRedactor.limpia(bruto, vault: $0) } ?? bruto
                                 if mutationToolNames.contains(tc.name) {
                                     executedMutations[key] = result
                                     anyMutationExecuted = true

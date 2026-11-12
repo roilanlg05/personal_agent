@@ -89,6 +89,18 @@ final class SecretVaultTests: XCTestCase {
         XCTAssertTrue(b.guarda(name: "a_1", value: "v", etiqueta: "E", origen: "x.com"))
     }
 
+    func test_indiceLegible_es_true_sin_indice_y_con_indice_bueno() {
+        let b = SecretVault(almacen: AlmacenEnMemoria())
+        XCTAssertTrue(b.indiceLegible, "bóveda vacía: no hay índice y eso es legítimo")
+        b.guarda(name: "a", value: "uno", etiqueta: "A", origen: "x.com")
+        XCTAssertTrue(b.indiceLegible)
+    }
+
+    func test_indiceLegible_es_false_con_el_indice_corrupto() {
+        let b = SecretVault(almacen: AlmacenEnMemoria(["indice": "{{no es json"]))
+        XCTAssertFalse(b.indiceLegible)
+    }
+
     func test_indice_corrupto_sin_secretos_no_rompe_y_guarda_se_niega() {
         let almacen = AlmacenEnMemoria(["indice": "{{no es json"])
         let b = SecretVault(almacen: almacen)

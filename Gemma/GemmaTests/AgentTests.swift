@@ -1563,6 +1563,38 @@ final class AgentTests: XCTestCase {
         XCTAssertTrue(deLaRondaDelAviso.contains("browser_click"))
     }
 
+    // MARK: - El redactor engancha en el bucle
+
+    /// El valor de un secreto que una herramienta devuelve (p. ej. una página que lo refleja) no
+    /// puede llegar al siguiente prompt del modelo. Se afirma por los dos lados: el valor no está y
+    /// el marcador sí, para que una herramienta que no devolviera nada no pasara en vacío.
+    func test_el_resultado_de_una_herramienta_llega_al_modelo_sin_el_valor_del_secreto() async throws {
+        let bóveda = SecretVault(almacen: AlmacenEnMemoria())
+        XCTAssertTrue(bóveda.guarda(name: "gmail_pass", value: "hunter2-XYZ", etiqueta: "Gmail", origen: "a.test"))
+        let registro = registroDeNavegadorFalsoConSnapshot()
+        FakeBrowserSnapshot.resultado = #"{"status":"success","snapshot":"- textbox [ref=e1] value=hunter2-XYZ"}"#
+        defer { FakeBrowserSnapshot.resultado =
+            #"{"status":"success","url":"https://a.test/","snapshot":"- link \"Más\" [ref=e3]","element_count":1}"# }
+        let runtime = ScriptedRuntime([[("browser_snapshot", "{}")], []])
+        for try await _ in Agent(runtime: runtime, registry: registro, bóveda: bóveda)
+            .run(prompt: "mira la página", options: GenerationOptions()) {}
+        XCTAssertEqual(FakeBrowserSnapshot.calls, 1)
+        XCTAssertFalse(runtime.prompts[1].contains("hunter2-XYZ"), "el valor llegó al modelo: \(runtime.prompts[1].suffix(300))")
+        XCTAssertTrue(runtime.prompts[1].contains("[secreto: gmail_pass]"), "falta el marcador: \(runtime.prompts[1].suffix(300))")
+    }
+
+    /// Sin bóveda (el valor por omisión) el resultado pasa tal cual: el redactor es opt-in.
+    func test_sin_boveda_el_resultado_no_se_toca() async throws {
+        let registro = registroDeNavegadorFalsoConSnapshot()
+        FakeBrowserSnapshot.resultado = #"{"status":"success","snapshot":"value=hunter2-XYZ"}"#
+        defer { FakeBrowserSnapshot.resultado =
+            #"{"status":"success","url":"https://a.test/","snapshot":"- link \"Más\" [ref=e3]","element_count":1}"# }
+        let runtime = ScriptedRuntime([[("browser_snapshot", "{}")], []])
+        for try await _ in Agent(runtime: runtime, registry: registro)
+            .run(prompt: "mira la página", options: GenerationOptions()) {}
+        XCTAssertTrue(runtime.prompts[1].contains("hunter2-XYZ"))
+    }
+
     // MARK: - Que el usuario lea lo que la pagina dice, no lo que el modelo cuenta
 
     /// EL CASO REAL QUE ESTO EVITA: el `press` fallo y el modelo conto que habia puesto el

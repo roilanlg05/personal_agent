@@ -167,6 +167,34 @@ final class BrowserRelayClientTests: XCTestCase {
         XCTAssertEqual(socket.loQueSalio, [BrowserRelayClient.ackPayload(seq: 7)])
     }
 
+    /// COMPORTAMIENTO, no forma: se le dan al visor todos los tipos de mensaje que puede recibir
+    /// (frames, los otros cinco, basura, JSON desconocido y un mensaje viejo del volante) y se
+    /// exige que TODO lo que sale por el socket sea un acuse, uno por frame y con su `seq`. Si
+    /// alguien añade cualquier envío —por la vía que sea que pase por el socket— esto se pone rojo.
+    func test_todo_lo_que_el_visor_envia_es_un_acuse() async {
+        let socket = SocketDeMentira()
+        let (_, _, lector) = await montaElCliente(socket)
+        defer { lector.cancel() }
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0]).base64EncodedString()
+        let mensajes = [
+            #"{"type":"narration","text":"hola"}"#,
+            #"{"type":"frame","seq":1,"jpeg":"\#(jpeg)","captured_at":1}"#,
+            #"{"type":"host","host":"example.com"}"#,
+            #"{"type":"state","live":true,"collapsed":false}"#,
+            #"{"type":"frame","seq":2,"jpeg":"\#(jpeg)","captured_at":2,"viewport_width":1280,"viewport_height":720}"#,
+            #"{"type":"summary","text":"fin"}"#,
+            "esto no es json",
+            #"{"type":"algo_desconocido"}"#,
+            #"{"type":"frame","seq":3,"jpeg":"\#(jpeg)","captured_at":3}"#,
+        ]
+        for m in mensajes { socket.llega(m) }
+        _ = await esperaQue { socket.loQueSalio.count >= 3 }
+        // Margen para que un envío espurio, si lo hubiera, llegara a salir.
+        try? await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(socket.loQueSalio, [1, 2, 3].map { BrowserRelayClient.ackPayload(seq: $0) },
+                       "el visor envió algo que no es el acuse de un frame")
+    }
+
     // MARK: retirar el panel libera el cliente del relé
 
     /// Desde que el volante no existe, el cliente del relé no tiene dueño: `makeRelayStream` solo

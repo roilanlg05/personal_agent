@@ -54,13 +54,6 @@ public final class BrowserPanelState {
     /// rechaza por sesión equivocada (ver `browser/app.py`), que es su forma de decir «he
     /// hablado yo». Solo `apply` lo sube y `freeze()` no lo resucita.
     public private(set) var hasReceivedMessage: Bool = false
-    /// Quién tiene el volante del navegador remoto, para que la vista pueda decirlo y decidir si
-    /// captura los gestos del usuario. Arranca en `.agente`: el volante es del agente hasta que
-    /// el servidor diga otra cosa, y **nada local lo mueve**. En particular, pulsar el botón de
-    /// «toma el volante» no lo mueve: solo lo mueve el mensaje `mando` del relé, ya resuelto por
-    /// `BrowserRelayClient` (que es quien sabe si la petición fue mía), más el corte de conexión
-    /// de aquí abajo.
-    public private(set) var quienConduce: QuienConduce = .agente
     /// Plegado: porque el relé lo dijo (reversible) o porque se congeló (irreversible).
     public var isCollapsed: Bool { relayCollapsed || isFrozen }
     private var relayCollapsed: Bool = false
@@ -119,20 +112,6 @@ public final class BrowserPanelState {
             guard !isFrozen else { return }
             isLive = false
             closedReason = reason
-            // EL VOLANTE SE VA CON LA CONEXIÓN, y no se espera a que el servidor lo diga. El
-            // portador del mando es el SOCKET (el relé identifica al portador por él, y cuando
-            // muere `Mando.se_fue` devuelve el volante al agente), así que la conexión siguiente
-            // nunca lo tiene. Seguir pintando «es tu turno» tras un corte es mentirle al usuario
-            // mientras teclea: sus pulsaciones irían a un socket nuevo que no es el portador y el
-            // relé las descartaría en silencio. Esto corre ANTES de la reconexión, que es la
-            // dirección segura: `.closed` llega en el momento del corte y la reconexión viene
-            // después, con su espera de retroceso.
-            quienConduce = .agente
-        case .mando(let quien):
-            // Ya viene resuelto: `.yo` solo puede haberlo puesto el cliente que mandó la
-            // petición. Aquí no se interpreta nada, se guarda.
-            guard !isFrozen else { return }
-            quienConduce = quien
         case .frame(_, let data, let capturedAt, let viewport):
             // Plegado o congelado: un frame tardío reabriría el secreto en reposo.
             guard !isCollapsed else { return }
@@ -158,9 +137,5 @@ public final class BrowserPanelState {
         isLive = false
         jpeg = nil
         dimensionesDelCable = nil
-        // Un panel congelado es historial: su flujo está cortado, así que por ahí ya no sale
-        // ninguna pulsación. Decir «conduces tú» en un panel muerto invitaría al usuario a
-        // teclear su contraseña en una ventana que no manda nada a ninguna parte.
-        quienConduce = .agente
     }
 }

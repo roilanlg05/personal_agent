@@ -111,7 +111,6 @@ final class AgentBrowserLiveTests: XCTestCase {
             case .state(let live, let collapsed): timeline.append("\(t) state(live=\(live),collapsed=\(collapsed))")
             case .summary(let text): timeline.append("\(t) summary(\(text))")
             case .closed(let reason): sawClose = true; timeline.append("\(t) closed(\(reason))")
-            case .mando(let quien): timeline.append("\(t) mando(\(quien))")
             }
         }
         func note(_ text: String) { timeline.append(String(format: "%.1fs ", Date().timeIntervalSince(start)) + "-- " + text) }

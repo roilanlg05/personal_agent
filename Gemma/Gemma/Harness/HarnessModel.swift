@@ -600,7 +600,8 @@ public final class HarnessModel {
         // inválida no debe caer al navegador local a espaldas del usuario: ver `InvalidBrowserURLInvoker`.
         if raw.isEmpty {
             #if os(macOS)
-            return ProcessAgentBrowserInvoker()
+            // El agente solo llama a `browser_open`/`browser_close`; la app abre y cierra el Chrome real.
+            return ProcessAgentBrowserInvoker(navegadorReal: ChromeRealDeLaMac())
             #else
             // iOS no tiene navegador local: el campo vacío manda a Ajustes, no a instalar nada.
             return UnconfiguredBrowserInvoker()

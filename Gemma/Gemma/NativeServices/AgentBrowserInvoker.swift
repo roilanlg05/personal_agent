@@ -79,6 +79,9 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
     private let isExecutable: @Sendable (String) -> Bool
     private let shellLookup: @Sendable () async -> String?
     private let resolution = ResolutionMemo()
+    /// El navegador real que la app abre antes del `open` y cierra tras el `close`. `nil`: el
+    /// comportamiento de siempre (el Chrome de pruebas de `agent-browser`).
+    private let navegadorReal: (any NavegadorReal)?
 
     /// Los cierres inyectables existen para controlar el descubrimiento en pruebas;
     /// en producción se usan los valores por defecto.
@@ -93,7 +96,9 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
                 },
                 shellLookup: @escaping @Sendable () async -> String? = {
                     await ProcessAgentBrowserInvoker.defaultShellLookup()
-                }) {
+                },
+                navegadorReal: (any NavegadorReal)? = nil) {
+        self.navegadorReal = navegadorReal
         self.explicitPath = binaryPath
         self.environment = environment
         self.isExecutable = isExecutable
@@ -107,9 +112,23 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
             if let explicitPath { searched.insert(explicitPath, at: 0) }
             return .failure(.binaryNotFound(searchedPaths: searched))
         }
+        let subcomando = ChromeRealDeLaMac.subcomando(de: arguments)
+        var entorno = Self.childEnvironment(from: environment)
+        if let navegadorReal {
+            // Antes del `open` el navegador tiene que estar abierto; el resto de comandos lo
+            // encuentran ya abierto (o fallan con el error normal de `agent-browser`).
+            if subcomando == "open", case .failure(let fallo) = await navegadorReal.asegura() {
+                return .failure(fallo)
+            }
+            entorno["AGENT_BROWSER_CDP"] = String(navegadorReal.puertoCDP)
+        }
         let result = await Self.run(executable: binary, arguments: arguments,
-                                    environment: Self.childEnvironment(from: environment),
+                                    environment: entorno,
                                     timeout: timeout)
+        if let navegadorReal, subcomando == "close",
+           case .success(let corrida) = result, corrida.exitCode == 0 {
+            await navegadorReal.cierra()
+        }
         // Si la ruta recordada ya no se puede lanzar (desinstalaron el binario con la app
         // abierta), se olvida: así la llamada siguiente vuelve a buscar y puede volver a
         // reportar `binaryNotFound`, que es el estado accionable, en vez de `launchFailed`.

@@ -1247,8 +1247,14 @@ final class Agent {
                             case .toolCallStarted(let n, let a):
                                 pendingToolCalls.append((n, a))
                                 continuation.yield(.toolCallStarted(name: n, args: a))
-                            case .toolCallFinished(let n, let r):
+                            case .toolCallFinished(let n, let crudo):
                                 runtimeFinishedAnyTool = true
+                                // SEGUNDA RUTA resultado -> modelo/usuario (la primera es `tool.run`
+                                // más abajo): se redacta ANTES de reenviarlo a la UI y de apuntarlo
+                                // en `ultimaDelNavegador`, que alimenta la línea de estado. Hoy
+                                // ningún runtime de producción emite este evento, pero el día que
+                                // uno ejecute sus herramientas la fuga volvería en silencio.
+                                let r = bóveda.map { SecretRedactor.limpia(crudo, vault: $0) } ?? crudo
                                 // EL PRIMERO DE LOS DOS SITIOS DONDE SE APUNTA LA ULTIMA ACCION
                                 // DE NAVEGADOR. Este es el runtime que ejecuta las herramientas
                                 // por su cuenta; el otro es el bucle de acciones, que las

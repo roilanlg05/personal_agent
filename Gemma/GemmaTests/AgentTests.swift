@@ -1583,6 +1583,44 @@ final class AgentTests: XCTestCase {
         XCTAssertTrue(runtime.prompts[1].contains("[secreto: gmail_pass]"), "falta el marcador: \(runtime.prompts[1].suffix(300))")
     }
 
+    /// Runtime que ejecuta sus propias herramientas y emite `.toolCallFinished` con un resultado
+    /// que lleva el secreto. Hoy ninguno de producción lo hace; esta prueba cierra la ruta antes
+    /// de que alguno lo haga.
+    final class RuntimeQueTerminaHerramientas: ToolCallingRuntime {
+        let resultado: String
+        init(resultado: String) { self.resultado = resultado }
+        func generate(prompt: String, tools: [AgentTool], options: GenerationOptions) async -> AsyncThrowingStream<GenerationEvent, Error> {
+            let r = resultado
+            return AsyncThrowingStream { c in
+                c.yield(.toolCallStarted(name: "browser_click", args: "{}"))
+                c.yield(.toolCallFinished(name: "browser_click", result: r))
+                c.yield(.completed(GenerationResult(text: "hecho", metrics: .init(tokensGenerated: 0, elapsedSeconds: 0, timeToFirstTokenSeconds: 0, peakResidentMemoryBytes: 0, draftAcceptanceRate: nil))))
+                c.finish()
+            }
+        }
+    }
+
+    /// La otra ruta resultado -> usuario: lo que el runtime reporta por `.toolCallFinished` se
+    /// reenvía a la UI y alimenta la línea de estado. Ninguno de los dos puede llevar el valor.
+    /// Se afirma también que el marcador SÍ llega, para no pasar en vacío.
+    func test_toolCallFinished_del_runtime_sale_a_la_UI_sin_el_valor_del_secreto() async throws {
+        let bóveda = SecretVault(almacen: AlmacenEnMemoria())
+        XCTAssertTrue(bóveda.guarda(name: "gmail_pass", value: "hunter2-XYZ", etiqueta: "Gmail", origen: "a.test"))
+        let runtime = RuntimeQueTerminaHerramientas(resultado: #"{"status":"error","message":"no encuentro hunter2-XYZ"}"#)
+        var reenviados: [String] = []
+        var textos: [String] = []
+        for try await e in Agent(runtime: runtime, registry: ToolRegistry(), bóveda: bóveda)
+            .run(prompt: "x", options: GenerationOptions()) {
+            if case .toolCallFinished(_, let r) = e { reenviados.append(r) }
+            if case .token(let t) = e { textos.append(t) }
+            if case .completed(let r) = e { textos.append(r.text); if let a = r.appNotice { textos.append(a) } }
+        }
+        XCTAssertEqual(reenviados.count, 1)
+        XCTAssertFalse(reenviados[0].contains("hunter2-XYZ"), "la UI recibió el valor: \(reenviados[0])")
+        XCTAssertTrue(reenviados[0].contains("[secreto: gmail_pass]"), reenviados[0])
+        XCTAssertFalse(textos.joined().contains("hunter2-XYZ"), "el valor salió por la línea de estado: \(textos)")
+    }
+
     /// Sin bóveda (el valor por omisión) el resultado pasa tal cual: el redactor es opt-in.
     func test_sin_boveda_el_resultado_no_se_toca() async throws {
         let registro = registroDeNavegadorFalsoConSnapshot()

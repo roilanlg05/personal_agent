@@ -32,7 +32,14 @@ struct ToolSyntaxStreamGate {
 
     /// Inicios de llamada que se reconocen en cualquier punto del mensaje. Se necesita un
     /// carácter más para confirmarlos (`<functions` no es `<function`).
-    private static let openers = ["<function", "<parameter", "<execute_tool", "<tool_call", "<|tool_call", "<|tool"]
+    ///
+    /// `<function_calls` e `<invoke` son la sintaxis de invocación que un modelo Claude escribe
+    /// como TEXTO cuando su llamada no sale como bloque `tool_use` (chat del 2026-11-11,
+    /// assistant seq 20). `<function_calls` necesita su propia entrada: `<function` seguido de
+    /// `_` se descarta a propósito (lo decide otro opener) y, sin esta, nadie lo decidía y la
+    /// sintaxis entera llegaba a pantalla. Van al final para no adelantarse a `<function`.
+    private static let openers = ["<function", "<parameter", "<execute_tool", "<tool_call", "<|tool_call", "<|tool",
+                                  "<function_calls", "<invoke"]
     /// Solo cuentan al principio del mensaje: `call:` aparece en prosa legítima y `{` es JSON
     /// normal en medio de un texto.
     private static let startOnly = ["call:"]

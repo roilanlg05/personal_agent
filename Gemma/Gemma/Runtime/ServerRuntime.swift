@@ -291,7 +291,13 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                     // Si la compuerta descartó algo que resultó no ser una llamada ejecutable
                     // (sin cerrar, o tokens de control sueltos), el usuario aún debe ver la
                     // parte limpia que no llegó a emitirse.
-                    if gate.phase == .suppressing && toolNames.isEmpty && !cleanText.isEmpty {
+                    //   Salvo cuando lo descartado era sintaxis de INVOCACION (`<function_calls>`,
+                    // `<invoke …>`): `strip` no la reconoce entera y deja restos como
+                    // ` name="browser_wait">` en `cleanText`, y esta via los sacaba a pantalla
+                    // (chat del 2026-11-11, seq 20). Ese resto no es prosa; el bucle del agente lo
+                    // trata como llamada rota (`BrokenToolCallDetector`).
+                    let eraInvocacion = BrokenToolCallDetector.marcasDeInvocacion.contains { visible.contains($0) }
+                    if gate.phase == .suppressing && toolNames.isEmpty && !cleanText.isEmpty && !eraInvocacion {
                         emitVisible(gate.remainder(ofCleanText: cleanText))
                     }
 

@@ -90,8 +90,8 @@ struct SettingsView: View {
     /// aparecer (lo que además dispara la migración del sitio viejo) y se guarda en cada cambio.
     @State private var memoryBearerToken: String = ""
     @AppStorage(SettingsKeys.browserBaseURL) private var browserBaseURL: String = ""
-    /// NO es `@AppStorage`, y ésa es la Tarea 6. Este token conduce un Chrome con la sesión de
-    /// Google del usuario dentro, así que vive en el llavero (`TokenDeConducir`) y no en
+    /// NO es `@AppStorage`, y ésa es la Tarea 6. Este token autoriza al agente a conducir el
+    /// navegador y al panel a verlo, así que vive en el llavero (`TokenDeConducir`) y no en
     /// `UserDefaults`. El campo de abajo ya se pintaba como secreto; antes de esto el almacén
     /// mentía. Se carga al aparecer (lo que además dispara la migración del sitio viejo) y se
     /// guarda en cada cambio.

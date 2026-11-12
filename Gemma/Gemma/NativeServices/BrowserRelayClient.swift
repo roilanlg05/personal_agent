@@ -11,8 +11,8 @@ import FoundationNetworking
 /// Lo que el relé del i3 puede decirle al visor. Seis casos, ninguno con sitio
 /// para parámetros de acciones: ni programando mal se podría transportar un secreto.
 public nonisolated enum BrowserRelayEvent: Equatable, Sendable {
-    /// Un fotograma JPEG. El relé viejo mandaba además `viewport_width`/`viewport_height`; se
-    /// ignoran al decodificar (ya nada necesita situar un toque).
+    /// Un fotograma JPEG. El relé viejo mandaba además las dimensiones de la página del
+    /// i3; se ignoran al decodificar (ya nada necesita situar un toque).
     case frame(seq: Int, jpeg: Data, capturedAt: Date)
     case narration(String)
     case host(String)

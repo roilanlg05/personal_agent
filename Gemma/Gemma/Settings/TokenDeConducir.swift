@@ -281,9 +281,9 @@ extension SecretoDelDispositivo {
 /// POR QUÉ EXISTE ESTE FICHERO. Hasta ahora este token servía para **mirar** una pantalla, y vivía
 /// en `UserDefaults` vía `@AppStorage`, en claro, mientras el campo de Ajustes se pintaba como
 /// secreto (`esSecreto: true`). O sea: la interfaz decía la verdad y el almacén mentía, que es
-/// peor que no decir nada, porque el usuario cree que está a salvo. Y con el mando compartido ese
-/// token pasa a servir para **conducir** un Chrome real —teclas y clics— que en cuanto el usuario
-/// inicie sesión una vez tendrá su sesión de Google dentro.
+/// peor que no decir nada, porque el usuario cree que está a salvo. Y es el token con el que el agente
+/// conduce el navegador (`HTTPAgentBrowserInvoker`) y con el que el visor del panel abre el stream
+/// (`BrowserRelayClient`).
 ///
 /// LO QUE ESTE FICHERO NO HACE, y es a propósito:
 ///

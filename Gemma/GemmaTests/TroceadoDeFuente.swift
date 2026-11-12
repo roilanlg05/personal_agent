@@ -70,6 +70,7 @@ import Foundation
 ///     FormDraftTests                    FormCardView, AgentChatView      troceado
 ///     BrowserFillSecretToolTests        BrowserFillSecretTool            troceado
 ///     InfoPlistPrivacyKeysTests         AppInfo.plist                    n/a: no es fuente Swift
+///     ElMandoNoExisteTests              todo Gemma/Gemma                 ausencias crudas, a propósito
 ///
 /// # Y POR QUÉ ALGUNAS ASERCIONES SE QUEDAN SOBRE EL FUENTE CRUDO, A PROPÓSITO
 ///

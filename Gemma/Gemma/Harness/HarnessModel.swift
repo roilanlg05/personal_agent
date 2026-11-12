@@ -558,7 +558,7 @@ public final class HarnessModel {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
               url.host != nil else { return nil }
-        // Del LLAVERO, no de `UserDefaults`: este token conduce el Chrome del i3, y lo que vive
+        // Del LLAVERO, no de `UserDefaults`: este token autoriza el visor y al agente, y lo que vive
         // en `UserDefaults` se respalda, se sincroniza y se lee sin desbloquear nada. La
         // migración del sitio viejo NO se hace aquí (ver `TokenDeConducir.leer`): leer no escribe.
         let token = TokenDeConducir.leer(almacen: almacen)

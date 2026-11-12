@@ -13,8 +13,7 @@ enum FormBrokerError: Error, Equatable {
 /// envía, el usuario cancela, o vence el plazo. Las tres compiten por la misma
 /// `CheckedContinuation`; reanudarla dos veces es un fallo fatal, así que todo el estado vive
 /// en el hilo principal y quien resuelve primero la toma (`continuacion = nil`) y las demás
-/// vías encuentran el hueco vacío y no hacen nada. Mismo patrón que `ReanudaUnaSolaVez` en
-/// `BrowserMando.swift`.
+/// vías encuentran el hueco vacío y no hacen nada.
 @MainActor
 @Observable
 final class FormBroker {

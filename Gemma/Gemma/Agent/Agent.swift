@@ -897,6 +897,17 @@ final class Agent {
     /// verdad se pierde es el VALOR que el modelo teclo en un campo, y eso lo recupera por dos
     /// vias mejores: su propia prosa de esa ronda (que ahora viaja, ver `modelProseNote`) y el
     /// snapshot siguiente, que ensena el campo ya relleno.
+    /// Nota para el reintento cuando la ronda acabó en una llamada ROTA (ver
+    /// `BrokenToolCallDetector`): la llamada salió como texto y no como llamada de herramienta.
+    /// Corta y en inglés, como el resto de notas del bucle. El texto roto NO la acompaña: volver
+    /// a enseñarle al modelo su propia sintaxis rota es justo lo que le enseña a repetirla (ver
+    /// `toolResultNote`, «LOS ARGUMENTOS DE LA LLAMADA NO ESTAN AQUI»).
+    nonisolated static let notaDeLlamadaRota = "[Your last tool call did not arrive as a tool call: it came out as plain text, so nothing was executed. If you still need a tool, call it again now as a real tool call (do not write the call as text). If you do not need one, answer the user in plain prose.]"
+
+    /// Lo que ve el usuario cuando la llamada llegó rota también en el reintento. Honesto y en
+    /// español: el turno se para, pero nunca en silencio.
+    nonisolated static let avisoDeLlamadaRota = "La llamada a la herramienta no llegó bien dos veces, así que paro aquí. Si quieres, pídemelo de nuevo."
+
     nonisolated static func toolResultNote(toolName: String, result: String) -> String {
         let outcome = "[You called the tool `\(toolName)`; it returned: \(result)."
         guard browserToolNames.contains(toolName) else {
@@ -1237,6 +1248,10 @@ final class Agent {
                     }
 
                     var iteration = 0
+                    // Si este turno ya gasto su UNICO reintento por llamada rota. Ver
+                    // `BrokenToolCallDetector` y la rama de abajo.
+                    var reintentoPorLlamadaRotaHecho = false
+                    let nombresDeHerramientas = Set(tools.map { type(of: $0).name })
                     loop: while iteration < maxIterations {
                         let stream = await runtime.generate(prompt: currentPrompt, tools: activeTools, options: opts)
                         var pendingToolCalls: [(name: String, args: String)] = []
@@ -1282,6 +1297,34 @@ final class Agent {
                         }
 
                         let isFinal = pendingToolCalls.isEmpty || runtimeFinishedAnyTool
+                        // UNA LLAMADA ROTA NO ES UNA RESPUESTA FINAL (chat del 2026-11-11, seq 20).
+                        // El modelo quiso llamar una herramienta pero la llamada llego como texto
+                        // (` name="browser_wait">`): sin esta rama el turno se paraba ahi y ese
+                        // resto se guardaba como lo que dijo el asistente. Se reintenta UNA vez
+                        // por turno con una nota; el texto roto ni se entrega (`.completed`) ni
+                        // vuelve al prompt. Si el reintento tambien llega roto, el turno acaba
+                        // con un aviso honesto, nunca en silencio. El reintento no gasta ronda:
+                        // la ronda rota no ejecuto nada, y gastarla podria dejar al turno sin la
+                        // ronda que necesita para la llamada buena.
+                        if isFinal, !runtimeFinishedAnyTool, let texto = completed?.text,
+                           BrokenToolCallDetector.esLlamadaRota(texto, herramientas: nombresDeHerramientas) {
+                            if !reintentoPorLlamadaRotaHecho {
+                                reintentoPorLlamadaRotaHecho = true
+                                currentPrompt = Self.promptVivo(base: basePrompt,
+                                                                guiaRescatada: guiaRescatada,
+                                                                rondas: historial) + "\n\n" + Self.notaDeLlamadaRota
+                                continue loop
+                            }
+                            continuation.yield(.token(Self.avisoDeLlamadaRota))
+                            continuation.yield(.completed(GenerationResult(
+                                text: Self.avisoDeLlamadaRota,
+                                metrics: completed?.metrics ?? RuntimeMetrics(tokensGenerated: 0,
+                                                                             elapsedSeconds: 0,
+                                                                             timeToFirstTokenSeconds: 0,
+                                                                             peakResidentMemoryBytes: 0,
+                                                                             draftAcceptanceRate: nil))))
+                            break loop
+                        }
                         if isFinal {
                             if let completed { entregaLaRespuesta(completed) }
                             break loop

@@ -4,7 +4,7 @@ import XCTest
 final class BrowserPanelCoordinatorTests: XCTestCase {
     /// Fábrica falsa: cada llamada da un flujo nuevo que la prueba controla.
     @MainActor private static func coordinator() -> BrowserPanelCoordinator {
-        BrowserPanelCoordinator(stream: { (AsyncStream { _ in }, MandoDeMentira()) })
+        BrowserPanelCoordinator(stream: { AsyncStream { _ in } })
     }
 
     @MainActor func test_una_herramienta_que_no_es_de_navegador_no_abre_panel() {
@@ -71,7 +71,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
     @MainActor func test_los_eventos_del_flujo_llegan_al_panel() async throws {
         var cont: AsyncStream<BrowserRelayEvent>.Continuation!
         let stream = AsyncStream<BrowserRelayEvent> { cont = $0 }
-        let c = BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) })
+        let c = BrowserPanelCoordinator(stream: { stream })
         let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
         cont.yield(.state(live: true, collapsed: false))
         cont.yield(.narration("haciendo clic"))
@@ -83,7 +83,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
     @MainActor func test_un_closed_no_congela_el_panel_y_el_siguiente_state_lo_revive() async throws {
         var cont: AsyncStream<BrowserRelayEvent>.Continuation!
         let stream = AsyncStream<BrowserRelayEvent> { cont = $0 }
-        let c = BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) })
+        let c = BrowserPanelCoordinator(stream: { stream })
         let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
         cont.yield(.state(live: true, collapsed: false))
         try await Self.waitUntil { c.panels[id]!.isLive }
@@ -98,7 +98,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
     @MainActor func test_al_terminar_el_flujo_el_panel_se_congela() async throws {
         var cont: AsyncStream<BrowserRelayEvent>.Continuation!
         let stream = AsyncStream<BrowserRelayEvent> { cont = $0 }
-        let c = BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) })
+        let c = BrowserPanelCoordinator(stream: { stream })
         let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
         cont.yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now, viewport: nil))
         try await Self.waitUntil { c.panels[id]!.jpeg != nil }
@@ -115,7 +115,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         let stream = AsyncStream<BrowserRelayEvent> { cont in
             cont.onTermination = { _ in flag.terminated = true }
         }
-        let c = BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) })
+        let c = BrowserPanelCoordinator(stream: { stream })
         _ = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
         try await Task.sleep(for: .milliseconds(50))
         XCTAssertFalse(flag.terminated, "mientras el turno sigue, el flujo sigue abierto")
@@ -147,7 +147,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         final class Flags: @unchecked Sendable { var terminated: [Bool] = [] }
         var conts: [AsyncStream<BrowserRelayEvent>.Continuation] = []
         let flags = Flags()
-        lazy var coordinator = BrowserPanelCoordinator(stream: { [self] in (openStreamForTest(), MandoDeMentira()) })
+        lazy var coordinator = BrowserPanelCoordinator(stream: { [self] in openStreamForTest() })
         func openStreamForTest() -> AsyncStream<BrowserRelayEvent> {
             let n = conts.count
             flags.terminated.append(false)
@@ -245,7 +245,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
 
     @MainActor func test_el_tope_de_inactividad_retira_el_panel_vivo() async throws {
         let rig = Rig()
-        let c = BrowserPanelCoordinator(stream: { [rig] in (rig.openStreamForTest(), MandoDeMentira()) }, liveIdleLimit: .milliseconds(60))
+        let c = BrowserPanelCoordinator(stream: { [rig] in rig.openStreamForTest() }, liveIdleLimit: .milliseconds(60))
         let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
         Self.toolOK(c)
         c.endTurn()
@@ -258,7 +258,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
     /// El tope mide inactividad: mientras el usuario sigue hablando, el panel no muere.
     @MainActor func test_la_actividad_del_usuario_reinicia_el_tope_de_inactividad() async throws {
         let rig = Rig()
-        let c = BrowserPanelCoordinator(stream: { [rig] in (rig.openStreamForTest(), MandoDeMentira()) }, liveIdleLimit: .milliseconds(200))
+        let c = BrowserPanelCoordinator(stream: { [rig] in rig.openStreamForTest() }, liveIdleLimit: .milliseconds(200))
         let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
         Self.toolOK(c)
         c.endTurn()
@@ -272,7 +272,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
 
     @MainActor func test_el_tope_de_inactividad_no_retira_a_un_panel_ya_relevado() async throws {
         let rig = Rig()
-        let c = BrowserPanelCoordinator(stream: { [rig] in (rig.openStreamForTest(), MandoDeMentira()) }, liveIdleLimit: .milliseconds(150))
+        let c = BrowserPanelCoordinator(stream: { [rig] in rig.openStreamForTest() }, liveIdleLimit: .milliseconds(150))
         _ = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
         Self.toolOK(c)
         c.endTurn()                                   // arma el reloj 1
@@ -396,4 +396,25 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         }
         XCTFail("condición no cumplida a tiempo")
     }
+
+    // MARK: sin flujo y puerta de la configuración
+
+    // Puerta de plataforma: el test host de iOS aborta al instanciar `BrowserPanelState` /
+    // `BrowserPanelCoordinator` (preexistente), así que estas dos solo corren en macOS.
+    #if os(macOS)
+    /// Sin flujo no hay panel. Es el caso del relé sin configurar, con el que arranca la app.
+    @MainActor func test_sin_flujo_no_hay_panel() {
+        let c = BrowserPanelCoordinator(stream: { nil })
+        XCTAssertNil(c.openIfNeeded(toolName: "browser_open"))
+    }
+
+    /// La **puerta de la configuración**: sin URL no hay visor, con URL sí. El flujo NO se
+    /// consume: abrirlo levantaría el socket contra una dirección de prueba.
+    @MainActor func test_makeRelayStream_solo_devuelve_visor_con_la_url_configurada() {
+        let defaults = UserDefaults(suiteName: "quitar-el-mando-\(UUID().uuidString)")!
+        XCTAssertNil(HarnessModel.makeRelayStream(defaults: defaults, almacen: AlmacenEnMemoria()), "sin URL no hay visor")
+        defaults.set("http://192.0.2.1:8083", forKey: SettingsKeys.browserBaseURL)
+        XCTAssertNotNil(HarnessModel.makeRelayStream(defaults: defaults, almacen: AlmacenEnMemoria()), "con URL válida sí hay visor")
+    }
+    #endif
 }

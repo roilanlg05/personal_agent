@@ -16,7 +16,7 @@ final class BrowserPanelHarnessWiringTests: XCTestCase {
         let (stream, cont) = AsyncStream<BrowserRelayEvent>.makeStream()
         // `almacen:` para no leer la entrada de producción del llavero: `init` → `ensureVoice()`
         // → el token del servicio de memoria.
-        let model = HarnessModel(browserPanels: BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) }, liveIdleLimit: idle),
+        let model = HarnessModel(browserPanels: BrowserPanelCoordinator(stream: { stream }, liveIdleLimit: idle),
                                  almacen: AlmacenEnMemoria())
         return (model, cont)
     }

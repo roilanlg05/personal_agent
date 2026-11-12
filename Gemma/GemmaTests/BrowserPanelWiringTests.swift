@@ -12,7 +12,7 @@ final class BrowserPanelWiringTests: XCTestCase {
     /// La continuación se devuelve para que la prueba mantenga el flujo abierto.
     static func makeModel() -> (HarnessModel, AsyncStream<BrowserRelayEvent>.Continuation) {
         let (stream, continuation) = AsyncStream<BrowserRelayEvent>.makeStream()
-        let coordinator = BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) })
+        let coordinator = BrowserPanelCoordinator(stream: { stream })
         // `almacen:` NO es opcional de facto: `HarnessModel.init` llama a `ensureVoice()`, que
         // lee el token del servicio de memoria. Sin esto esta prueba leería la entrada de
         // PRODUCCIÓN del llavero, donde vive el token real del usuario.

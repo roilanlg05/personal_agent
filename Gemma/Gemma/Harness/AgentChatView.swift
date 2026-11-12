@@ -349,11 +349,6 @@ struct AgentChatView: View {
                     ForEach($model.agentLog) { $entry in
                         ChatLogRow(entry: $entry,
                                    panel: entry.panelID.flatMap { model.browserPanels.panels[$0] },
-                                   // El volante del panel de ESTA fila. Un panel retirado ya no
-                                   // tiene, así que las filas del historial salen con el botón
-                                   // apagado, que es la verdad: por ese socket ya no sale nada.
-                                   mando: entry.panelID.flatMap { model.browserPanels.mando(de: $0) },
-                                   sesion: entry.panelID.flatMap { model.browserPanels.sesion(de: $0) },
                                    formulario: entry.role == "form" ? model.especificacionDeFormulario(entry) : nil,
                                    avisoFormulario: entry.role == "form" ? model.avisoDeFormulario(entry) : nil,
                                    onEnviarFormulario: { model.enviaFormulario(entry, valores: $0) },
@@ -580,10 +575,6 @@ struct ChatLogRow: View {
     @Binding var entry: ChatLogEntry
     /// Estado del panel de navegador de esta fila; `nil` si no es una fila de panel o ya no existe.
     let panel: BrowserPanelState?
-    /// El volante de ese panel; `nil` si ya se retiró o si no hay relé configurado.
-    let mando: MandoDelNavegador?
-    /// El gesto en curso y lo que no salió de ese panel; `nil` en los mismos casos que `mando`.
-    let sesion: BrowserMandoSesion?
     /// Solo filas `form`: el formulario a dibujar y a quién avisar. Opcionales con valor por
     /// omisión para no tocar otros sitios que construyan la fila.
     var formulario: FormSpec? = nil
@@ -620,7 +611,7 @@ struct ChatLogRow: View {
                 }
 
             case "browserPanel":
-                if let panel { BrowserPanelView(state: panel, mando: mando, sesion: sesion) }
+                if let panel { BrowserPanelView(state: panel) }
 
             case "system":
                 HStack {

@@ -268,7 +268,7 @@ final class TokenDeConducirTests: XCTestCase {
         }
         let flujo = try XCTUnwrap(visor, "con URL válida tiene que haber visor")
         await fulfillment(of: [abrio], timeout: 10)
-        // No se para el cliente a mano: `mando` es `any MandoDelNavegador` y no expone `stop`.
+        // No se para el cliente a mano: `makeRelayStream` solo devuelve el flujo.
         // Al salir de la prueba se suelta el visor, su `AsyncStream` muere y su `onTermination`
         // cancela el bucle y cierra el socket. El socket de mentira se cae sin esperar nada, así
         // que los reintentos que queden son instantáneos y acotados (`shouldGiveUp`).

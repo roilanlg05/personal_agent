@@ -545,12 +545,6 @@ public final class HarnessModel {
     /// dependencias de plataforma: sirve igual en macOS y en iOS). `BrowserRelayClient` es un actor y su `events()`
     /// es `async`, así que se puentea: un `Task` reenvía los eventos y, al terminar el flujo
     /// (cierre del panel), se cancela y se llama a `stop()` para no dejar el socket abierto.
-    /// Devuelve **también el cliente**, y ésa es la pieza que faltaba: la entrada del usuario
-    /// tiene que salir por el MISMO socket por el que llegan los fotogramas (el relé identifica
-    /// al portador del mando por su socket), y antes la única referencia viva al cliente era la
-    /// de la clausura de `onTermination`, así que nadie podía pedir el volante. El cliente sigue
-    /// soltándose exactamente igual en `onTermination`: lo que cambia es que ahora alguien más
-    /// —el coordinador, y por él el panel— lo tiene mientras el panel vive.
     ///
     /// `abreElSocket` se reenvía tal cual a `BrowserRelayClient`, que ya tenía ese costurón: con
     /// `nil` (producción) abre el socket de verdad. Pasarlo por aquí es lo que hace OBSERVABLE
@@ -559,7 +553,7 @@ public final class HarnessModel {
     static func makeRelayStream(defaults: UserDefaults = .standard,
                                 almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido,
                                 abreElSocket: (@Sendable (URL, String) -> SocketDelVisor)? = nil)
-        -> BrowserPanelCoordinator.VisorDelRele? {
+        -> AsyncStream<BrowserRelayEvent>? {
         let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
@@ -585,7 +579,7 @@ public final class HarnessModel {
             forwarder.cancel()
             Task { await client.stop() }
         }
-        return (flujo: stream, mando: client)
+        return stream
     }
 
     /// Registra en `registry` las nueve herramientas de navegador (`read_webpage` y `browser_*`).

@@ -6,13 +6,6 @@ import ImageIO
 /// Todo lo que muestra sale del estado; la vista no deduce «vivo» de que lleguen frames.
 struct BrowserPanelView: View {
     let state: BrowserPanelState
-    /// El volante de ESTE panel, o `nil` si no hay relé configurado. Lo entrega el coordinador,
-    /// que es el único sitio que empareja un panel con su flujo. Sin valor por omisión a
-    /// propósito: un `nil` implícito dejaría un botón muerto sin que nada se pusiera rojo.
-    let mando: MandoDelNavegador?
-    /// El gesto en curso y lo que no salió, de ESTE panel. Lo entrega el coordinador al lado del
-    /// mando, y sin valor por omisión por la misma razón: ver `BrowserMandoSesion`.
-    let sesion: BrowserMandoSesion?
     @State private var image: CGImage?
 
     var body: some View {
@@ -65,25 +58,6 @@ struct BrowserPanelView: View {
                     Image(decorative: image, scale: 1)
                         .resizable()
                         .scaledToFit()
-                        // EL GESTO VA ENGANCHADO A LA IMAGEN, NO AL CONTENEDOR. Con
-                        // `.scaledToFit()` la vista de la `Image` mide ya el rectángulo
-                        // dibujado, así que este `overlay` cubre exactamente la página y un
-                        // toque sobre la banda NO LLEGA aquí. El contenedor, en cambio, tiene
-                        // altura fija y anchura del panel: su proporción no coincide nunca con
-                        // la del JPEG, y su relleno podría desplazar el origen en silencio —el
-                        // único fallo de esta familia que el mapa no puede detectar.
-                        //
-                        // El tamaño de la imagen se lee del `CGImage` DECODIFICADO y nunca de
-                        // una constante: el día que los topes del servidor cambien, una
-                        // constante seguiría compilando y el usuario empezaría a pulsar botones
-                        // que no quería sin que nada se pusiera rojo.
-                        .overlay {
-                            BrowserMandoGestos(
-                                capturar: Self.capturaLosGestos(quienConduce: state.quienConduce),
-                                tamañoDeLaImagen: CGSize(width: image.width, height: image.height),
-                                dimensionesDelCable: state.dimensionesDelCable,
-                                sesion: sesion)
-                        }
                 } else {
                     // NUNCA un rectángulo mudo. Sin imagen, el relleno era
                     // `Color.secondary.opacity(0.1)` a secas: en modo claro se lee como un hueco
@@ -129,7 +103,6 @@ struct BrowserPanelView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 220)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            BrowserMandoBarra(state: state, mando: mando, sePuedeApuntar: sePuedeApuntar, sesion: sesion)
             HStack(spacing: 6) {
                 Spacer()
                 // Presentación y nada más (spec §8(2)): si está vivo lo dice el i3.
@@ -152,122 +125,6 @@ struct BrowserPanelView: View {
         .padding(8)
         .background(Color.secondary.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-
-    /// Si con el fotograma que hay AHORA MISMO se puede situar un toque en la página.
-    ///
-    /// Se le pasa al mapa el tamaño de la imagen como tamaño de la vista a propósito: en ese caso
-    /// la escala de dibujo es 1 y no hay bandas, así que lo único que puede devolver `nil` son
-    /// las dimensiones del cable o el guarda de proporción — que son exactamente las dos causas
-    /// que el aviso tiene que contarle al usuario. El tamaño real de la vista lo mide el gesto,
-    /// dentro de su `GeometryReader`, y no hace falta aquí: un punto sobre la banda no llega al
-    /// reconocedor porque el gesto va enganchado a la imagen.
-    ///
-    /// Sin imagen devuelve `true`: no hay nada que apuntar todavía, y el hueco ya se explica solo
-    /// con `textoSinImagen`. Un aviso de «no se puede situar un toque» sobre un panel que aún no
-    /// ha pintado el primer fotograma culparía al cable de algo que no ha pasado.
-    private var sePuedeApuntar: Bool {
-        guard let image else { return true }
-        let tamaño = CGSize(width: image.width, height: image.height)
-        return BrowserMandoEntrada.sePuedeApuntar(tamañoDeLaVista: tamaño,
-                                                  tamañoDeLaImagen: tamaño,
-                                                  dimensionesDelCable: state.dimensionesDelCable)
-    }
-
-    // MARK: el mando — lo que se puede probar sin pintar
-
-    /// Lo que dice el botón del volante.
-    ///
-    /// LOS TRES CASOS, Y POR QUÉ EL TERCERO NO ES EL PRIMERO. Con el agente al volante está
-    /// libre y pedirlo funciona. Con otro visor lo tiene un humano en otro aparato y el servidor
-    /// rechazaría la toma **en silencio** —`Mando.toma` devuelve `False` y el manejador del visor
-    /// descarta ese booleano (`relay.py:965`), no hay respuesta de error—, así que ofrecer
-    /// «tomar el volante» sería prometer algo que no va a pasar y el usuario no recibiría
-    /// ninguna explicación. Lo honesto es decir quién lo tiene.
-    static func textoDelBoton(quienConduce: QuienConduce) -> String {
-        switch quienConduce {
-        case .agente: return "Tomar el volante"
-        case .yo: return "Devolverlo"
-        case .otroVisor: return "Lo tiene otro visor"
-        }
-    }
-
-    /// Lo que dice el botón mientras la petición está en vuelo. No es un valor de
-    /// `quienConduce`: pedir el volante no lo concede, y pintar «es tu turno» antes de que el
-    /// servidor lo confirme es la mentira que el usuario pagaría escribiendo su contraseña
-    /// contra una página que no la recibe.
-    static let textoDelBotonPidiendo = "Pidiendo el volante…"
-
-    /// Si pulsar el botón puede hacer algo. Con otro visor al volante, no: el servidor lo
-    /// rechazaría en silencio. (`Mando.toma` devuelve `False` **también si el que pide ya lo
-    /// tiene**, así que un segundo toque nunca re-confirma nada; por eso el caso `.yo` sí actúa,
-    /// pero devolviendo.)
-    static func elBotonActua(quienConduce: QuienConduce) -> Bool {
-        quienConduce != .otroVisor
-    }
-
-    /// El rótulo de quién conduce.
-    ///
-    /// EL CASO `.otroVisor` NO ES COSMÉTICO. Mientras conduce un humano, el fotograma va **solo a
-    /// su socket** (`relay.py:1033`); el estado, el resumen, la narración y el `mando` siguen
-    /// yendo a todos los visores, precisamente para que uno que no conduce lo SEPA. Sin esta
-    /// frase el usuario ve una imagen parada y sin explicación, que es el fallo de la foto
-    /// congelada que ya se arregló una vez.
-    static func rotuloDeQuienConduce(quienConduce: QuienConduce) -> String {
-        switch quienConduce {
-        case .agente: return "Conduce el agente."
-        case .yo: return "Conduces tú: lo que toques y escribas va a la página."
-        case .otroVisor: return "Conduce otro visor: la imagen no se actualiza aquí."
-        }
-    }
-
-    /// El aviso de cuando el panel se ve bien y aun así ningún toque se puede mandar, o `nil` si
-    /// no hay nada que avisar.
-    ///
-    /// POR QUÉ HACE FALTA: existe un camino en el que el fotograma llega, se pinta perfecto, y el
-    /// mapa se calla —sin dimensiones del cable, o con una imagen que no es el viewport escalado—
-    /// y entonces el usuario toca y no pasa nada. «Toco y no pasa nada» es indistinguible de
-    /// media docena de fallos distintos y lo mandaría a buscar el problema en la red cuando está
-    /// en el cable. **No se le deja mudo.**
-    ///
-    /// Solo sale cuando el volante es SUYO: decírselo mientras conduce el agente sería ruido
-    /// sobre algo que no podría hacer de todas formas. Y dice que **escribir sí funciona**,
-    /// porque es verdad y porque es lo que vino a hacer: el teclado no necesita coordenadas.
-    ///
-    /// **Y EL AVISO DE LO QUE NO SALIÓ VA PRIMERO, Y SALE CONDUZCA QUIEN CONDUZCA.** Un envío que
-    /// falla (`BrowserMandoEnvio.encola`, `alFallar`) es un socket caído o un mensaje que pasa
-    /// del tope del relé, y el `.closed` que pone el rótulo en «conduce el agente» llega **justo
-    /// después**: si este aviso exigiera `.yo`, desaparecería en el mismo instante en que tiene
-    /// algo que decir. No dice **nada** de lo que se escribió —ni el texto, ni cuánto—: no lo
-    /// recibe.
-    static func avisoDeApuntado(quienConduce: QuienConduce, sePuedeApuntar: Bool, entradaPerdida: Bool) -> String? {
-        if entradaPerdida { return textoDeEntradaPerdida }
-        guard quienConduce == .yo, !sePuedeApuntar else { return nil }
-        return "Tienes el volante y puedes escribir, pero este fotograma no se puede situar: ningún toque se mandará."
-    }
-
-    /// Lo que se le dice al usuario cuando algo de lo que mandó no salió del aparato. Dice qué
-    /// pasó y qué hacer, y nada de lo que escribió.
-    static let textoDeEntradaPerdida =
-        "Hay un problema con la entrada o el volante. Comprueba la página, vuelve a tomar el volante y repite lo que falte."
-
-    /// Si la vista captura los gestos y las teclas del usuario.
-    ///
-    /// **SOLO CUANDO EL VOLANTE ES SUYO, y es la frase textual del usuario la que lo manda:**
-    /// quiere seguir escribiendo en el chat con el navegador a la vista. Un teclado que se trague
-    /// todas las teclas del teléfono mientras el panel existe le quita eso.
-    ///
-    /// Y ES LO QUE IMPIDE EL GESTO INÚTIL. El relé compara el portador por su socket y descarta
-    /// la entrada ajena **en silencio** (`_reenvia_entrada`), así que sin esta puerta el usuario
-    /// tocaría sin efecto y **sin que nada se lo diga**. La interfaz tiene que impedir el gesto,
-    /// no confiar en que el servidor lo tire.
-    ///
-    /// Como es una función de `quienConduce` y de nada más, se apaga **en el mismo cambio de
-    /// estado** en que el volante deja de ser suyo: no hay plazo que esperar ni gesto que
-    /// terminar. Importa porque el plazo del mando mide **inactividad** y pensar no es actividad,
-    /// así que el volante se le puede caer a mitad de una contraseña.
-    static func capturaLosGestos(quienConduce: QuienConduce) -> Bool {
-        quienConduce == .yo
     }
 
     /// Qué decir en el hueco de la imagen. Puro y estático para poder probarlo sin montar la

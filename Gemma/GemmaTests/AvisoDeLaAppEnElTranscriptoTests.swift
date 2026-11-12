@@ -19,7 +19,7 @@ final class AvisoDeLaAppEnElTranscriptoTests: XCTestCase {
         let (stream, cont) = AsyncStream<BrowserRelayEvent>.makeStream()
         // `almacen:` para no leer la entrada de producción del llavero: `init` → `ensureVoice()`
         // → el token del servicio de memoria.
-        return (HarnessModel(browserPanels: BrowserPanelCoordinator(stream: { (stream, MandoDeMentira()) }),
+        return (HarnessModel(browserPanels: BrowserPanelCoordinator(stream: { stream }),
                              almacen: AlmacenEnMemoria()), cont)
     }
 

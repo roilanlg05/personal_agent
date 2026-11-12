@@ -13,36 +13,10 @@ import Foundation
 /// el puente real con `BrowserRelayClient` vive fuera de aquí.
 @MainActor
 public final class BrowserPanelCoordinator {
-    /// Un visor del relé: el flujo de eventos y **el volante que sale por el mismo socket**.
-    ///
-    /// POR QUÉ VIAJAN JUNTOS. El relé identifica al portador del mando por su socket, así que la
-    /// entrada del usuario tiene que salir por el MISMO socket por el que llegan los fotogramas.
-    /// Antes `makeRelayStream` devolvía solo el flujo y construía el cliente dentro: la única
-    /// referencia viva que quedaba era la de su `onTermination`, de modo que **nadie podía pedir
-    /// el volante**. Emparejarlos aquí es lo que lo arregla, y este coordinador es el único sitio
-    /// que conoce los dos, porque ya empareja panel con flujo.
-    public typealias VisorDelRele = (flujo: AsyncStream<BrowserRelayEvent>, mando: MandoDelNavegador)
-    public typealias StreamFactory = @MainActor () -> VisorDelRele?
+    public typealias StreamFactory = @MainActor () -> AsyncStream<BrowserRelayEvent>?
 
     /// Todos los paneles, también los congelados: siguen en el historial del chat.
     public private(set) var panels: [String: BrowserPanelState] = [:]
-    /// El volante de cada panel VIVO.
-    ///
-    /// SE SUELTA AL RETIRAR EL PANEL, y eso no es limpieza: es el ciclo de vida del socket. Los
-    /// paneles se quedan en `panels` para siempre (son el historial del chat), así que guardar
-    /// aquí el cliente del relé sin soltarlo mantendría vivo un visor por cada panel que el
-    /// usuario haya visto, y el visor cuesta del orden de 10 Mbit/s contra el servidor casero
-    /// mientras dure. Un panel retirado no puede conducir de todas formas: `freeze()` devuelve el
-    /// volante al agente.
-    private var mandos: [String: MandoDelNavegador] = [:]
-    /// Lo que cada panel VIVO lleva en curso con el volante: el gesto abierto y su cola.
-    ///
-    /// VIVE AQUÍ, AL LADO DEL MANDO, Y NO EN LA VISTA, porque este coordinador es el único que
-    /// cierra el socket (`retire`), y cerrar el socket con un `mousePressed` sin su
-    /// `mouseReleased` deja el botón del ratón **hundido** en el navegador del i3: desde ahí todo
-    /// lo que toquen el usuario o el agente arrastra. Ver `BrowserMandoSesion.retira()`. Se
-    /// suelta en los mismos sitios que `mandos`.
-    private var sesiones: [String: BrowserMandoSesion] = [:]
     /// El panel del turno en curso; `nil` entre turnos.
     public private(set) var activeID: String?
 
@@ -92,11 +66,10 @@ public final class BrowserPanelCoordinator {
             PanelLog.note("openIfNeeded(\(toolName)): ya hay panel activo \(PanelLog.corto(activeID)), no se abre otro")
             return nil
         }
-        guard let visor = makeStream() else {
+        guard let stream = makeStream() else {
             PanelLog.note("openIfNeeded(\(toolName)): sin flujo (relé no configurado), no hay panel")
             return nil
         }
-        let stream = visor.flujo
         // El panel de este turno hereda lo que se sabía: si había uno vivo, el navegador estaba
         // abierto, y así sigue hasta que un `browser_close` EXITOSO diga lo contrario. Empezar
         // en «cerrado» congelaría la ventana de un video que sigue sonando cuando el primer
@@ -110,8 +83,6 @@ public final class BrowserPanelCoordinator {
         let id = UUID().uuidString
         let state = BrowserPanelState()
         panels[id] = state
-        mandos[id] = visor.mando
-        sesiones[id] = BrowserMandoSesion(mando: visor.mando)
         activeID = id
         PanelLog.note("panel \(PanelLog.corto(id)) abierto por \(toolName); navegadorAbierto heredado=\(browserLeftOpen)")
         consumers[id] = Task { @MainActor [weak self, weak state] in
@@ -132,40 +103,14 @@ public final class BrowserPanelCoordinator {
             }
             // El id es único por panel, así que esta entrada es la de esta tarea.
             self?.consumers[id] = nil
-            // El flujo terminó: el cliente se rindió tras sus reintentos o el relé cerró para
-            // siempre. Por ese socket ya no sale ninguna pulsación, así que el volante se suelta
-            // aquí también y no solo en `retire`.
-            self?.mandos[id] = nil
-            // Sin socket no sale nada, así que aquí no hay soltar que mandar: se olvida el gesto,
-            // se invalidan las teclas pendientes (`cambioElVolante`) y se suelta la sesión, que
-            // es la otra referencia viva al cliente del relé.
-            self?.sesiones.removeValue(forKey: id)?.cambioElVolante()
         }
         return id
     }
 
-    /// Aplica un evento y avisa a la sesión en el mismo paso de MainActor.
-    /// El consumidor usa este paso también: no se difiere el aviso a otra tarea.
+    /// Aplica un evento al estado del panel `id`, si ese panel existe.
     func aplica(_ event: BrowserRelayEvent, al id: String) {
         guard let state = panels[id] else { return }
-        let antes = state.quienConduce
         state.apply(event)
-        if state.quienConduce != antes {
-            sesiones[id]?.cambioElVolante()
-        }
-    }
-
-    /// El volante del panel `id`, o `nil` si ese panel no existe, ya se retiró, o se abrió sin
-    /// relé configurado. Es lo que la vista usa para pedir el volante y mandar lo que el usuario
-    /// teclea.
-    public func mando(de id: String) -> MandoDelNavegador? {
-        mandos[id]
-    }
-
-    /// El gesto en curso y lo que no salió del panel `id`, con el mismo ciclo de vida que
-    /// `mando(de:)`: `nil` si el panel no existe, ya se retiró o se abrió sin relé.
-    public func sesion(de id: String) -> BrowserMandoSesion? {
-        sesiones[id]
     }
 
     /// Resultado de una herramienta de navegador: aquí se decide si el navegador quedó abierto.
@@ -255,29 +200,10 @@ public final class BrowserPanelCoordinator {
 
     private func retire(_ id: String) {
         panels[id]?.freeze()
-        let consumidor = consumers.removeValue(forKey: id)
-        // El panel se queda en `panels` (es historial) pero su volante NO: cancelar el consumidor
-        // termina el flujo, y el `onTermination` del flujo cierra el socket. Si el cliente
-        // siguiera referenciado desde aquí, se quedaría vivo uno por panel visto.
-        mandos[id] = nil
-        // 🔴 EL GESTO ABIERTO SE CIERRA ANTES QUE EL SOCKET, y el orden es la propiedad. El relé
-        // solo acepta entrada del portador del volante y el portador ES este socket: un soltar
-        // que saliera después de cerrarlo no llegaría, y el Chrome del i3 —con la sesión de
-        // Google del usuario dentro— se quedaría con el botón del ratón pulsado. Así que se
-        // encola el soltar (detrás de lo que ya esté en vuelo) y **solo cuando ha salido** se
-        // cancela el consumidor. Sin nada en vuelo, se cancela en el acto, como siempre.
-        //
-        // `freeze()` ya puso el rótulo en «conduce el agente» unas líneas más arriba, y no pasa
-        // nada: eso es estado local de la vista. El servidor sigue viendo al usuario como
-        // portador hasta que el socket se cierre, que es justo lo que deja salir el soltar.
-        guard let enVuelo = sesiones.removeValue(forKey: id)?.retira() else {
-            consumidor?.cancel()
-            return
-        }
-        Task { @MainActor in
-            await BrowserMandoEnvio.espera(enVuelo, comoMucho: BrowserMandoEnvio.plazoParaLoQueQuedaEnVuelo)
-            consumidor?.cancel()
-        }
+        // El panel se queda en `panels` (es historial) pero su consumidor no: cancelarlo termina
+        // el flujo, y el `onTermination` del flujo cierra el socket. Si siguiera referenciado
+        // desde aquí, se quedaría vivo un visor por panel visto.
+        consumers.removeValue(forKey: id)?.cancel()
     }
 
     private nonisolated static let closeToolName = "browser_close"

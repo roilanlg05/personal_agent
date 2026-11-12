@@ -38,11 +38,14 @@ final class PresentFormTool: AgentTool, Sendable {
     private let broker: FormBroker
     private let vault: SecretVault
     private let service: AgentBrowserService?
+    /// El turno del agente en el que se registró la herramienta (ver `FormBroker.turnoVigente`).
+    private let turno: UUID?
 
-    init(broker: FormBroker, vault: SecretVault, service: AgentBrowserService?) {
+    init(broker: FormBroker, vault: SecretVault, service: AgentBrowserService?, turno: UUID? = nil) {
         self.broker = broker
         self.vault = vault
         self.service = service
+        self.turno = turno
     }
 
     func run(argsJSON: String) async -> String {
@@ -109,7 +112,7 @@ final class PresentFormTool: AgentTool, Sendable {
 
         let respuesta: FormResponse
         do {
-            respuesta = try await broker.presenta(spec, origen: origen)
+            respuesta = try await broker.presenta(spec, origen: origen, turno: turno)
         } catch FormBrokerError.yaHayUnoAbierto {
             return AgentBrowserToolOutput.invalidArguments(
                 "Ya hay un formulario abierto esperando al usuario. Espera a que lo conteste o lo cancele.")

@@ -124,6 +124,58 @@ final class FormBrokerTests: XCTestCase {
         XCTAssertNil(broker.pendiente, "un turno cancelado no debe dejar el formulario colgado")
     }
 
+    // MARK: revisión final — I3: cada turno cierra solo SU formulario
+
+    /// El fin tardío de un turno viejo (cancelado, que acaba después de que empezara el nuevo) no
+    /// puede cerrar el formulario que pidió el turno nuevo.
+    func test_cerrar_por_turno_no_cierra_el_formulario_de_otro_turno() async throws {
+        let broker = FormBroker()
+        let viejo = UUID(), nuevo = UUID()
+        broker.turnoVigente = nuevo
+        let t = Task { try await broker.presenta(spec(), turno: nuevo) }
+        let p = try await esperaPendiente(broker)
+        broker.cancela(turno: viejo)
+        XCTAssertEqual(broker.pendiente, p, "el turno viejo cerró el formulario del turno nuevo")
+        broker.cancela(turno: nuevo)
+        let r = try await t.value
+        XCTAssertEqual(r.status, .cancelled)
+        XCTAssertNil(broker.pendiente)
+    }
+
+    /// Un turno que ya no es el vigente no puede ocupar el hueco: si lo hiciera, el turno nuevo
+    /// recibiría `yaHayUnoAbierto` por un formulario que ya nadie espera.
+    func test_un_turno_que_no_es_el_vigente_no_abre_formulario() async throws {
+        // Plazo instantáneo: si el formulario se abriera, la prueba sale roja con `timeout` en vez
+        // de colgarse diez minutos.
+        let broker = FormBroker(dormir: { _ in })
+        let viejo = UUID(), nuevo = UUID()
+        broker.turnoVigente = nuevo
+        let r = try await broker.presenta(spec(), turno: viejo)
+        XCTAssertEqual(r.status, .cancelled)
+        XCTAssertNil(broker.pendiente)
+        // Sin turno vigente (se acaba de detener o de mandar otro mensaje) tampoco.
+        broker.turnoVigente = nil
+        let r2 = try await broker.presenta(spec(), turno: viejo)
+        XCTAssertEqual(r2.status, .cancelled)
+        XCTAssertNil(broker.pendiente)
+    }
+
+    /// Un llamador ya cancelado no llega a ocupar el hueco ni un instante: el segundo `presenta`,
+    /// que corre justo detrás en el hilo principal, encuentra el hueco libre.
+    func test_un_llamador_ya_cancelado_no_ocupa_el_hueco() async throws {
+        let broker = FormBroker()
+        let cancelado = Task { try await broker.presenta(spec("viejo")) }
+        cancelado.cancel()
+        let vigente = Task { try await broker.presenta(spec("nuevo")) }
+        let r1 = try await cancelado.value
+        XCTAssertEqual(r1.status, .cancelled)
+        let p = try await esperaPendiente(broker)
+        XCTAssertEqual(p.spec.title, "nuevo")
+        broker.envia(id: p.id, valores: ["a": "x"])
+        let r2 = try await vigente.value
+        XCTAssertEqual(r2.status, .submitted, "el turno nuevo no debe recibir yaHayUnoAbierto")
+    }
+
     func test_carrera_entre_envio_y_plazo_resuelve_una_sola_vez() async throws {
         // Muchas rondas: el plazo (instantáneo) y el envío compiten por la misma
         // continuación. Si se reanudara dos veces, CheckedContinuation abortaría el proceso.

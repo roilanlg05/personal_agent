@@ -196,6 +196,47 @@ final class FormChatWiringTests: XCTestCase {
         XCTAssertTrue(chat.contains("aviso: avisoFormulario,"), "la fila ya no le pasa el aviso a FormCardView")
     }
 
+    // MARK: revisión final — I3: el cierre al acabar un turno solo toca SU formulario
+
+    func test_el_fin_tardio_de_un_turno_viejo_no_cierra_el_formulario_del_turno_nuevo() async {
+        let m = modelo()
+        let viejo = UUID(), nuevo = UUID()
+        m.formularios.turnoVigente = nuevo
+        let t = Task { try? await m.formularios.presenta(spec, turno: nuevo) }
+        await esperaPendiente(m)
+        m.cierraFormularioAbierto(delTurno: viejo)
+        XCTAssertNotNil(m.formularios.pendiente, "el fin del turno viejo cerró el formulario del nuevo")
+        XCTAssertEqual(m.agentLog.first { $0.role == "form" }?.formEstado, "pendiente")
+        m.cierraFormularioAbierto(delTurno: nuevo)
+        let r = await t.value
+        XCTAssertEqual(r?.status, .cancelled)
+        XCTAssertEqual(m.agentLog.first { $0.role == "form" }?.formEstado, "cancelado")
+    }
+
+    /// Mandar otro mensaje deja sin turno vigente hasta que arranca el nuevo: el turno abandonado
+    /// ya no puede abrir un formulario que ocupe el hueco del siguiente.
+    func test_tras_mandar_otro_mensaje_el_turno_abandonado_no_puede_abrir_formulario() async {
+        let m = modelo()
+        m.turnRunnerOverride = { _ in }
+        let viejo = UUID()
+        m.formularios.turnoVigente = viejo
+        m.startAgentTurn("otra cosa")
+        let t = Task { try? await m.formularios.presenta(spec, turno: viejo) }
+        for _ in 0..<50 where m.formularios.pendiente == nil { await Task.yield() }
+        // Si llegara a abrirse, se cierra para que la prueba salga roja en vez de colgarse.
+        XCTAssertNil(m.formularios.pendiente, "el turno abandonado abrió un formulario")
+        m.formularios.cancelaTodo()
+        let r = await t.value
+        XCTAssertEqual(r?.status, .cancelled)
+    }
+
+    func test_detener_deja_sin_turno_vigente() async {
+        let m = modelo()
+        m.formularios.turnoVigente = UUID()
+        m.cancelAgentTurn()
+        XCTAssertNil(m.formularios.turnoVigente)
+    }
+
     /// Ata el hallazgo de la Task 3: sin bóveda en el Agent de producción el redactor es código muerto.
     func test_el_agent_de_produccion_recibe_la_boveda() {
         let m = modelo()

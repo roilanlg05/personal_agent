@@ -131,18 +131,47 @@ final class AgentBrowserRegistrationTests: XCTestCase {
     /// y `browserToolRegistry` (que sí las pasa) no lo delata.
     func test_run_agent_turn_registra_las_herramientas_de_formularios() throws {
         let cuerpo = try cuerpoDeRunAgentTurn()
-        XCTAssertTrue(cuerpo.contains("formBroker: formularios, boveda: boveda)"),
+        XCTAssertTrue(cuerpo.contains("formBroker: formularios, boveda: boveda,"),
                       "runAgentTurn no pasa formBroker/boveda a registerBrowserTools: present_form, list_secrets, forget_secret y browser_fill_secret no se registrarían")
     }
 
     /// Un formulario abierto al acabar el turno no tiene a nadie esperando: debe cerrarse DESPUÉS
     /// de consumir los eventos (antes cancelaría el formulario que el turno acaba de pedir).
+    /// Y solo el formulario de ESTE turno (I3 de la revisión final): un turno viejo cancelado que
+    /// acaba tarde cerraba con `cierraFormularioAbierto()` el formulario del turno nuevo.
     func test_run_agent_turn_cierra_el_formulario_abierto_al_acabar_el_turno() throws {
         let cuerpo = try cuerpoDeRunAgentTurn()
         let consumo = try XCTUnwrap(cuerpo.range(of: "await consumeAgentEvents("), "falta consumeAgentEvents")
-        let cierre = try XCTUnwrap(cuerpo.range(of: "cierraFormularioAbierto()", range: consumo.upperBound..<cuerpo.endIndex),
-                                   "runAgentTurn no llama a cierraFormularioAbierto() tras consumeAgentEvents")
+        let cierre = try XCTUnwrap(cuerpo.range(of: "cierraFormularioAbierto(delTurno: turno)", range: consumo.upperBound..<cuerpo.endIndex),
+                                   "runAgentTurn no cierra SU formulario (cierraFormularioAbierto(delTurno: turno)) tras consumeAgentEvents")
         XCTAssertLessThan(consumo.lowerBound, cierre.lowerBound)
+    }
+
+    /// El turno se identifica, se declara vigente ANTES de registrar herramientas, y present_form
+    /// recibe ese mismo id: sin esto el cierre por dueño no tiene dueño con que comparar.
+    func test_run_agent_turn_declara_su_turno_y_se_lo_pasa_a_present_form() throws {
+        let cuerpo = try cuerpoDeRunAgentTurn()
+        let vigente = try XCTUnwrap(cuerpo.range(of: "formularios.turnoVigente = turno"),
+                                    "runAgentTurn no se declara turno vigente del broker")
+        let registro = try XCTUnwrap(cuerpo.range(of: "formBroker: formularios, boveda: boveda, turno: turno)"),
+                                     "runAgentTurn no pasa su turno a registerBrowserTools")
+        XCTAssertLessThan(vigente.lowerBound, registro.lowerBound)
+    }
+
+    /// Ausencia sobre el fuente CRUDO del cuerpo de runAgentTurn: ni siquiera comentado debe volver
+    /// el cierre sin dueño, que es exactamente el defecto I3.
+    func test_run_agent_turn_no_cierra_formularios_ajenos() throws {
+        let fuente = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Gemma/Harness/HarnessModel.swift")
+        let crudo = try String(contentsOf: fuente, encoding: .utf8)
+        let desde = try XCTUnwrap(crudo.range(of: "func runAgentTurn(_ prompt: String) async {"))
+        let resto = crudo[desde.upperBound...]
+        let hasta = resto.range(of: #"\n    (public |private |static |nonisolated |@MainActor )*func "#, options: .regularExpression)?.lowerBound
+            ?? resto.endIndex
+        let cuerpoCrudo = resto[..<hasta]
+        XCTAssertFalse(cuerpoCrudo.contains("cierraFormularioAbierto()"),
+                       "runAgentTurn vuelve a cerrar cualquier formulario abierto, también el del turno nuevo")
+        XCTAssertFalse(cuerpoCrudo.contains("cancelaTodo()"))
     }
 
     func test_system_prompt_teaches_reading_pages_and_the_interactive_loop() throws {

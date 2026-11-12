@@ -24,6 +24,9 @@ final class FormBroker {
         /// Host de la página a la que quedarán atados los secretos del formulario (`nil` si no
         /// tiene campos `secret`). Lo pone la app, nunca el modelo.
         var origen: String? = nil
+        /// El turno del agente que lo pidió (`nil` fuera de un turno, p. ej. en pruebas). Sirve
+        /// para que el fin de un turno cierre solo SU formulario: ver `cancela(turno:)`.
+        var turno: UUID? = nil
 
         /// Lo que la tarjeta enseña bajo el título cuando el formulario pide secretos. El título y
         /// las etiquetas los escribe el modelo y una página inyectada puede hacerse pasar por
@@ -40,6 +43,12 @@ final class FormBroker {
 
     /// Lo que la vista observa para mostrar la hoja. `nil` = nada abierto.
     private(set) var pendiente: PendingForm?
+
+    /// El turno del agente en curso, o `nil` entre turnos (tras detener o mientras arranca el
+    /// siguiente). Lo fija `HarnessModel`. Un `presenta` con un `turno` distinto no abre nada: es
+    /// un turno abandonado que siguió corriendo, y si ocupara el hueco el turno nuevo recibiría
+    /// `yaHayUnoAbierto` por un formulario que ya nadie espera.
+    @ObservationIgnored var turnoVigente: UUID?
 
     @ObservationIgnored private var continuacion: CheckedContinuation<FormResponse, Never>?
     @ObservationIgnored private var tareaDelPlazo: Task<Void, Never>?
@@ -59,12 +68,17 @@ final class FormBroker {
     nonisolated deinit {}
 
     /// `origen`: el host al que quedarán atados los secretos, para que la tarjeta lo enseñe.
-    func presenta(_ spec: FormSpec, origen: String? = nil) async throws -> FormResponse {
+    /// `turno`: el turno del agente que lo pide; con uno que ya no es el vigente no se abre nada.
+    func presenta(_ spec: FormSpec, origen: String? = nil, turno: UUID? = nil) async throws -> FormResponse {
+        // Un llamador ya cancelado, o un turno que ya no es el vigente, no llega a ocupar el hueco
+        // ni un instante: se contesta «cancelado» sin mostrar nada.
+        if Task.isCancelled { return FormResponse(status: .cancelled, values: [:]) }
+        if let turno, turno != turnoVigente { return FormResponse(status: .cancelled, values: [:]) }
         guard pendiente == nil else { throw FormBrokerError.yaHayUnoAbierto }
         // Id nuevo por presentación: un envío tardío del formulario anterior no puede resolver
         // el siguiente.
         let id = UUID().uuidString
-        pendiente = PendingForm(id: id, spec: spec, origen: origen)
+        pendiente = PendingForm(id: id, spec: spec, origen: origen, turno: turno)
 
         // Si el turno que llamó se cancela, el formulario no puede quedarse abierto sin dueño ni
         // la llamada colgada: se resuelve como cancelado. `onCancel` corre en un hilo cualquiera,
@@ -96,7 +110,15 @@ final class FormBroker {
         resuelve(id: id, FormResponse(status: .cancelled, values: [:]))
     }
 
-    /// Para fin de turno o reinicio: lo que esté abierto se cierra como cancelado.
+    /// Fin de UN turno: cierra el formulario abierto solo si lo pidió ese turno. Un turno viejo
+    /// cancelado que acaba tarde no puede cerrar el formulario que ya pidió el turno nuevo.
+    func cancela(turno: UUID) {
+        guard let p = pendiente, p.turno == turno else { return }
+        resuelve(id: p.id, FormResponse(status: .cancelled, values: [:]))
+    }
+
+    /// Detener o mandar otro mensaje: lo que esté abierto se cierra como cancelado, sea de quien sea
+    /// (el turno vigente es el que se abandona).
     func cancelaTodo() {
         guard let id = pendiente?.id else { return }
         resuelve(id: id, FormResponse(status: .cancelled, values: [:]))

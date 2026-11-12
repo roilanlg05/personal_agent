@@ -521,6 +521,9 @@ public final class HarnessModel {
         // hable de otra cosa no debe cortarle el video. Por eso aquí NO va `retireLivePanel()`.
         browserPanels.endTurn(survive: false, porque: "el usuario mandó otro mensaje")
         cierraFormularioAbierto()
+        // Hasta que el turno nuevo se declare, ninguno es vigente: el abandonado ya no puede abrir
+        // un formulario que ocupe el hueco del siguiente.
+        formularios.turnoVigente = nil
         currentTurnTask = Task { @MainActor [weak self] in
             guard let self else { return }
             if let runner = self.turnRunnerOverride { await runner(prompt) } else { await self.runAgentTurn(prompt) }
@@ -533,6 +536,7 @@ public final class HarnessModel {
         // Detener es una orden explícita: congela aunque el navegador siga abierto.
         browserPanels.endTurn(survive: false, porque: "el usuario pulsó detener")
         cierraFormularioAbierto()
+        formularios.turnoVigente = nil
         agentRunning = false
         agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
     }
@@ -601,7 +605,8 @@ public final class HarnessModel {
     /// abierta por él) y sin bóveda o sin dónde mostrar la tarjeta ninguna tiene sentido.
     static func registerBrowserTools(into registry: ToolRegistry, userAskedToClose: Bool = false,
                                      almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido,
-                                     formBroker: FormBroker? = nil, boveda: SecretVault? = nil) {
+                                     formBroker: FormBroker? = nil, boveda: SecretVault? = nil,
+                                     turno: UUID? = nil) {
         let service = AgentBrowserService(invoker: browserInvoker(almacen: almacen))
         registry.register(ReadWebpageTool(service: service))
         registry.register(BrowserOpenTool(service: service))
@@ -613,7 +618,7 @@ public final class HarnessModel {
         registry.register(BrowserGetTool(service: service))
         registry.register(BrowserCloseTool(service: service, userAskedToClose: userAskedToClose))
         if let formBroker, let boveda {
-            registry.register(PresentFormTool(broker: formBroker, vault: boveda, service: service))
+            registry.register(PresentFormTool(broker: formBroker, vault: boveda, service: service, turno: turno))
             registry.register(ListSecretsTool(vault: boveda))
             registry.register(ForgetSecretTool(vault: boveda))
             registry.register(BrowserFillSecretTool(service: service, vault: boveda))
@@ -827,9 +832,18 @@ public final class HarnessModel {
         }
     }
 
-    /// Fin de turno / detener / mensaje nuevo: lo que esté abierto se cierra como cancelado.
+    /// Detener / mensaje nuevo: lo que esté abierto se cierra como cancelado (es del turno que se
+    /// abandona).
     func cierraFormularioAbierto() {
         formularios.cancelaTodo()
+        sincronizaFormularios()
+    }
+
+    /// Fin de UN turno: solo se cierra el formulario que pidió ese turno. Un turno viejo cancelado
+    /// que termina tarde no debe cerrar el del turno nuevo.
+    func cierraFormularioAbierto(delTurno turno: UUID) {
+        formularios.cancela(turno: turno)
+        if formularios.turnoVigente == turno { formularios.turnoVigente = nil }
         sincronizaFormularios()
     }
 
@@ -871,6 +885,10 @@ public final class HarnessModel {
             self.runtime = RuntimeFactory.make(provider)
         }
         surfaceProactive()
+        // Identidad de este turno: el broker solo deja abrir formularios al turno vigente, y el
+        // cierre del final solo toca el formulario que pidió este turno.
+        let turno = UUID()
+        formularios.turnoVigente = turno
         agentRunning = true; defer { agentRunning = false }
         agentLog.append(ChatLogEntry(role: "you", text: prompt))
         ensureMemory()
@@ -911,7 +929,7 @@ public final class HarnessModel {
         registry.register(WebSearchTool())
         Self.registerBrowserTools(into: registry,
                                   userAskedToClose: BrowserCloseIntent.userAskedToClose(prompt),
-                                  formBroker: formularios, boveda: boveda)
+                                  formBroker: formularios, boveda: boveda, turno: turno)
         registry.register(GetWeatherTool())
         registry.register(GetForecastTool())
         registry.register(CreateAlarmTool())
@@ -985,7 +1003,9 @@ public final class HarnessModel {
         let agent = construyeAgent(registry: registry, recallTail: recallTail, wakeContext: wakeContext)
         let finalAssistantText = await consumeAgentEvents(agent.run(prompt: prompt, options: makeGenerationOptions(history: history)))
         // Un formulario que siguiera abierto al acabar el turno ya no tiene a nadie esperándolo.
-        cierraFormularioAbierto()
+        // Solo el de ESTE turno: si este turno fue abandonado y acaba tarde, el formulario abierto
+        // puede ser ya del turno nuevo.
+        cierraFormularioAbierto(delTurno: turno)
         // Append both turns to the transcript over HTTP. Failures are silent (service-down
         // shouldn't crash a successful turn — the user can see Gemma's reply).
         if let client {

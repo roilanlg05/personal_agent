@@ -75,6 +75,16 @@ final class PresentFormTool: AgentTool, Sendable {
                 return AgentBrowserToolOutput.invalidArguments(
                     "Dos campos 'secret' usan el mismo secret_name '\(repetido)': se pisarían en la bóveda. Usa nombres distintos.")
             }
+            // Un secreto que luego no se puede teclear no se pide: con el navegador del i3 (HTTP) o
+            // en iOS `browser_fill_secret` se niega siempre, porque el valor solo viaja por la
+            // entrada estándar del `agent-browser` local. Se rechaza ANTES de presentar y antes de
+            // consultar la página: no se guarda ni se pregunta nada.
+            if let service, !service.aceptaEntradaEstandar {
+                return AgentBrowserToolOutput.invalidArguments(
+                    "Aquí no se pueden usar campos 'secret': un secreto solo se puede teclear con el navegador local "
+                    + "de la Mac (no con el navegador remoto ni en el iPhone). No se ha presentado ni guardado nada. "
+                    + "No pidas la contraseña por el chat: dile al usuario que la introduzca él en la página.")
+            }
             // Fallar cerrado: con el índice ilegible `guarda` se negaría después de haberle
             // pedido la contraseña al usuario.
             guard vault.indiceLegible else { return AgentBrowserToolOutput.invalidArguments(bovedaIlegible) }

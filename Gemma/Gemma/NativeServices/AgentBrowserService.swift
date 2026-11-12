@@ -38,6 +38,13 @@ public struct AgentBrowserService: Sendable {
     }
     #endif
 
+    /// ¿Sabe este servicio pasar ENTRADA ESTÁNDAR al CLI? Solo el `agent-browser` local de la Mac
+    /// (`ProcessAgentBrowserInvoker`) sabe; el HTTP del i3 y el invocador sin configurar de iOS no.
+    /// `browser_fill_secret` lo necesita (el valor del secreto viaja por ahí, nunca en argumentos),
+    /// así que `present_form` lo consulta ANTES de pedirle un secreto al usuario: sin él, ese
+    /// secreto no se podría teclear nunca.
+    public var aceptaEntradaEstandar: Bool { invoker is AgentBrowserInvokingConStdin }
+
     /// `AGENT_BROWSER_SESSION` si está definida y no vacía; si no, `defaultSessionName`.
     public static func environmentSessionName() -> String {
         if let value = ProcessInfo.processInfo.environment[sessionVariable], !value.isEmpty {

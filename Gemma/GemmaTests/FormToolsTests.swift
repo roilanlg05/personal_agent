@@ -9,6 +9,26 @@ final class RelojDePrueba: @unchecked Sendable {
     var esperaDeVerdad = false
 }
 
+/// El doble de siempre, pero declarando que SÍ sabe pasar entrada estándar, como el
+/// `ProcessAgentBrowserInvoker` local de la Mac. `present_form` solo acepta campos `secret` con un
+/// invocador así (sin él `browser_fill_secret` nunca podría teclearlos), de modo que las pruebas
+/// de formularios con secretos lo usan por defecto y las de rechazo usan el `MockAgentBrowserInvoker`
+/// pelado, que es como el HTTP del i3: no acepta entrada estándar.
+final class EnvoltorioConStdin: AgentBrowserInvokingConStdin, @unchecked Sendable {
+    let base: MockAgentBrowserInvoker
+    init(_ base: MockAgentBrowserInvoker) { self.base = base }
+
+    func invoke(arguments: [String], timeout: TimeInterval) async
+        -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
+        await base.invoke(arguments: arguments, timeout: timeout)
+    }
+
+    func invoke(arguments: [String], timeout: TimeInterval, stdin: Data?) async
+        -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
+        await base.invoke(arguments: arguments, timeout: timeout)
+    }
+}
+
 @MainActor
 final class FormToolsTests: XCTestCase {
     private let urlGoogle = #"{"success":true,"data":{"url":"https://Accounts.Google.com:8443/signin/v2?continue=x#frag"},"error":null}"#
@@ -24,12 +44,14 @@ final class FormToolsTests: XCTestCase {
         let mock: MockAgentBrowserInvoker
     }
 
-    private func monta(stdout: String? = nil, conServicio: Bool = true, almacen: AlmacenEnMemoria = AlmacenEnMemoria()) -> Montaje {
+    private func monta(stdout: String? = nil, conServicio: Bool = true, conStdin: Bool = true,
+                       almacen: AlmacenEnMemoria = AlmacenEnMemoria()) -> Montaje {
         let mock = MockAgentBrowserInvoker.succeeding(stdout: stdout ?? urlGoogle)
+        let invocador: any AgentBrowserInvoking = conStdin ? EnvoltorioConStdin(mock) : mock
         let vault = SecretVault(almacen: almacen)
         let reloj = self.reloj
         let broker = FormBroker(dormir: { _ in if reloj.esperaDeVerdad { try await Task.sleep(for: .seconds(3600)) } })
-        let service = conServicio ? AgentBrowserService(invoker: mock, sessionName: "gemma") : nil
+        let service = conServicio ? AgentBrowserService(invoker: invocador, sessionName: "gemma") : nil
         return Montaje(tool: PresentFormTool(broker: broker, vault: vault, service: service),
                        broker: broker, vault: vault, almacen: almacen, mock: mock)
     }
@@ -244,6 +266,63 @@ final class FormToolsTests: XCTestCase {
         XCTAssertEqual(m.vault.lista().first { $0.name == "uno" }?.etiqueta, "Etiqueta vieja")
         XCTAssertNil(m.vault.valor(de: "dos"))
         XCTAssertFalse(out.contains("valor-viejo") || out.contains("valor-nuevo"))
+    }
+
+    // MARK: revisión final — I2: secretos que luego no se podrían teclear
+
+    /// Con un invocador sin entrada estándar (el HTTP del i3, el de iOS sin configurar) un secreto
+    /// guardado no se podría teclear nunca: `browser_fill_secret` se negaría siempre. Pedirle la
+    /// contraseña al usuario en esas condiciones es la peor experiencia, así que se rechaza ANTES
+    /// de presentar y sin preguntar siquiera por la página.
+    func test_con_un_invocador_sin_stdin_un_formulario_con_secreto_se_rechaza_antes_de_presentar() async throws {
+        let m = monta(conStdin: false)
+        let out = await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("navegador local de la Mac"), out)
+        XCTAssertNil(m.broker.pendiente, "no se debe presentar nada")
+        XCTAssertTrue(m.vault.lista().isEmpty)
+        XCTAssertTrue(m.mock.receivedArguments.isEmpty, "ni siquiera se consulta la página")
+    }
+
+    func test_con_el_invocador_de_ios_sin_configurar_un_formulario_con_secreto_se_rechaza() async throws {
+        let broker = FormBroker(dormir: { _ in })
+        let vault = SecretVault(almacen: AlmacenEnMemoria())
+        let tool = PresentFormTool(broker: broker, vault: vault,
+                                   service: AgentBrowserService(invoker: UnconfiguredBrowserInvoker(), sessionName: "gemma"))
+        let out = await tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("navegador local de la Mac"), out)
+        XCTAssertNil(broker.pendiente)
+    }
+
+    func test_con_el_invocador_http_un_formulario_con_secreto_se_rechaza() async throws {
+        let broker = FormBroker(dormir: { _ in })
+        let vault = SecretVault(almacen: AlmacenEnMemoria())
+        let http = HTTPAgentBrowserInvoker(baseURL: URL(string: "http://127.0.0.1:1")!, bearerToken: "t")
+        let tool = PresentFormTool(broker: broker, vault: vault,
+                                   service: AgentBrowserService(invoker: http, sessionName: "gemma"))
+        let out = await tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("navegador local de la Mac"), out)
+        XCTAssertNil(broker.pendiente)
+    }
+
+    /// El rechazo es solo para secretos: un formulario normal sigue funcionando en iOS y con el i3.
+    func test_con_un_invocador_sin_stdin_un_formulario_sin_secretos_sigue_funcionando() async throws {
+        let m = monta(conStdin: false)
+        let out = try await ejecuta(m, fields: #"[{"id":"n","label":"N","kind":"text"}]"#, enviar: ["n": "x"])
+        XCTAssertEqual(try parse(out)["status"] as? String, "submitted")
+    }
+
+    /// Y con el invocador con stdin (la Mac local) el secreto se pide y se guarda.
+    func test_con_un_invocador_con_stdin_un_formulario_con_secreto_se_presenta() async throws {
+        let m = monta(conStdin: true)
+        let out = try await ejecuta(m, fields: "[\(campoSecreto)]", enviar: ["pw": "x1"])
+        XCTAssertEqual(try parse(out)["status"] as? String, "submitted")
+        XCTAssertEqual(m.vault.valor(de: "gmail_password"), "x1")
     }
 
     // MARK: list_secrets / forget_secret

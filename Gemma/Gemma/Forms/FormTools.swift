@@ -82,6 +82,19 @@ final class PresentFormTool: AgentTool, Sendable {
             case .failure(let json): return json
             case .host(let h): origen = h
             }
+            // Atadura al origen: reemplazar un secreto que ya existe para OTRO sitio movería su
+            // atadura en silencio (una página inyectada pediría «gmail_password» estando en
+            // evil.com y la contraseña quedaría atada a evil.com). Se rechaza ANTES de presentar;
+            // la decisión de borrar el viejo es explícita (forget_secret).
+            if let host = origen {
+                for nombre in nombres {
+                    if let previo = vault.origen(de: nombre), previo != host {
+                        return AgentBrowserToolOutput.invalidArguments(
+                            "Ya existe un secreto '\(nombre)' atado a otro sitio (\(previo)); esta página es \(host). "
+                            + "No se ha presentado nada. Usa otro secret_name o, si el usuario lo quiere, borra el viejo con forget_secret.")
+                    }
+                }
+            }
         }
 
         let respuesta: FormResponse
@@ -101,12 +114,18 @@ final class PresentFormTool: AgentTool, Sendable {
     /// Guarda cada secreto y sustituye su valor por el literal. Ningún mensaje de error de aquí
     /// incluye valores: solo nombres de secreto.
     ///
-    /// Todo o nada: si uno falla se borran los que ya se guardaron en ESTA llamada, para no
-    /// dejar al modelo (y al usuario) con un formulario a medias cuyo estado no puede deducir.
-    /// (Si un secreto con ese nombre ya existía, su valor viejo ya se perdió al sobrescribirlo:
-    /// es el comportamiento de `guarda` y no se puede deshacer desde aquí.)
+    /// Todo o nada: si uno falla se deshacen los que ya se guardaron en ESTA llamada (los nuevos
+    /// se borran; los que ya existían recuperan su valor, etiqueta y origen anteriores).
     private func guarda(secretos: [FormField], origen: String?, en respuesta: FormResponse) -> String {
         var valores = respuesta.values
+        // Estado previo de cada nombre, capturado ANTES de escribir nada: el deshacer restaura lo
+        // que había (valor, etiqueta y origen) y solo borra lo que era nuevo.
+        let previos: [String: (valor: String, etiqueta: String, origen: String)] = Dictionary(
+            uniqueKeysWithValues: secretos.compactMap { campo -> (String, (String, String, String))? in
+                guard let n = campo.secretName, let v = vault.valor(de: n), let o = vault.origen(de: n),
+                      let e = vault.lista().first(where: { $0.name == n })?.etiqueta else { return nil }
+                return (n, (v, e, o))
+            })
         var guardados: [String] = []
         for campo in secretos {
             guard let nombre = campo.secretName, let origen else { continue }
@@ -118,7 +137,13 @@ final class PresentFormTool: AgentTool, Sendable {
                 continue
             }
             if !vault.guarda(name: nombre, value: valor, etiqueta: campo.label, origen: origen) {
-                guardados.forEach { vault.borra(name: $0) }
+                for n in guardados {
+                    if let p = previos[n] {
+                        vault.guarda(name: n, value: p.valor, etiqueta: p.etiqueta, origen: p.origen)
+                    } else {
+                        vault.borra(name: n)
+                    }
+                }
                 return AgentBrowserToolOutput.invalidArguments(
                     "No se pudo guardar el secreto '\(nombre)' (valor vacío o bóveda no disponible). "
                     + "No se ha guardado ninguno de los secretos de este formulario.")

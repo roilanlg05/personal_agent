@@ -2,10 +2,19 @@ import Foundation
 import XCTest
 @testable import Gemma
 
+/// Red de seguridad: por defecto el plazo del broker vence al instante, así que una herramienta
+/// que presenta un formulario que NO debía presentarse devuelve `timeout` y la prueba falla en
+/// ROJO en vez de colgarse 10 minutos. Las pruebas que simulan a un usuario lo apagan.
+final class RelojDePrueba: @unchecked Sendable {
+    var esperaDeVerdad = false
+}
+
 @MainActor
 final class FormToolsTests: XCTestCase {
     private let urlGoogle = #"{"success":true,"data":{"url":"https://Accounts.Google.com:8443/signin/v2?continue=x#frag"},"error":null}"#
     private let sinPagina = #"{"success":false,"data":null,"error":"No page open"}"#
+
+    private let reloj = RelojDePrueba()
 
     private struct Montaje {
         let tool: PresentFormTool
@@ -18,7 +27,8 @@ final class FormToolsTests: XCTestCase {
     private func monta(stdout: String? = nil, conServicio: Bool = true, almacen: AlmacenEnMemoria = AlmacenEnMemoria()) -> Montaje {
         let mock = MockAgentBrowserInvoker.succeeding(stdout: stdout ?? urlGoogle)
         let vault = SecretVault(almacen: almacen)
-        let broker = FormBroker(dormir: { _ in try await Task.sleep(for: .seconds(3600)) })
+        let reloj = self.reloj
+        let broker = FormBroker(dormir: { _ in if reloj.esperaDeVerdad { try await Task.sleep(for: .seconds(3600)) } })
         let service = conServicio ? AgentBrowserService(invoker: mock, sessionName: "gemma") : nil
         return Montaje(tool: PresentFormTool(broker: broker, vault: vault, service: service),
                        broker: broker, vault: vault, almacen: almacen, mock: mock)
@@ -37,6 +47,7 @@ final class FormToolsTests: XCTestCase {
 
     /// Lanza la herramienta, espera a que el formulario esté abierto y lo envía (o cancela).
     private func ejecuta(_ m: Montaje, fields: String, enviar: [String: String]?) async throws -> String {
+        reloj.esperaDeVerdad = true
         let t = Task { await m.tool.run(argsJSON: args(fields: fields)) }
         var id: String?
         for _ in 0..<500 {
@@ -141,6 +152,7 @@ final class FormToolsTests: XCTestCase {
 
     func test_present_form_con_otro_formulario_abierto_devuelve_error() async throws {
         let m = monta()
+        reloj.esperaDeVerdad = true
         let primero = Task { await m.tool.run(argsJSON: args(fields: #"[{"id":"n","label":"N","kind":"text"}]"#)) }
         for _ in 0..<500 where m.broker.pendiente == nil { await Task.yield() }
         let out = await m.tool.run(argsJSON: args(fields: #"[{"id":"n","label":"N","kind":"text"}]"#))
@@ -152,6 +164,7 @@ final class FormToolsTests: XCTestCase {
     func test_si_la_boveda_rechaza_guardar_el_resultado_es_error_y_no_dice_guardado() async throws {
         let almacen = AlmacenEnMemoria()
         let m = monta(almacen: almacen)
+        reloj.esperaDeVerdad = true
         let t = Task { await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]")) }
         for _ in 0..<500 where m.broker.pendiente == nil { await Task.yield() }
         almacen.rechazaEscrituras = true
@@ -195,6 +208,42 @@ final class FormToolsTests: XCTestCase {
         let m = monta(almacen: AlmacenEnMemoria(["indice": "{basura"]))
         let out = try await ejecuta(m, fields: #"[{"id":"n","label":"N","kind":"text"}]"#, enviar: ["n": "x"])
         XCTAssertEqual(try parse(out)["status"] as? String, "submitted")
+    }
+
+    // MARK: ronda de arreglo 1
+
+    func test_un_secret_name_existente_con_otro_origen_se_rechaza_antes_de_presentar() async throws {
+        let m = monta()   // la página actual es accounts.google.com
+        m.vault.guarda(name: "gmail_password", value: "original", etiqueta: "Gmail", origen: "evil.com")
+        let out = await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("forget_secret"), out)
+        XCTAssertNil(m.broker.pendiente)
+        XCTAssertEqual(m.vault.origen(de: "gmail_password"), "evil.com")
+        XCTAssertEqual(m.vault.valor(de: "gmail_password"), "original")
+    }
+
+    func test_un_secret_name_existente_con_el_mismo_origen_se_reemplaza() async throws {
+        let m = monta()
+        m.vault.guarda(name: "gmail_password", value: "vieja", etiqueta: "Gmail", origen: "accounts.google.com")
+        let out = try await ejecuta(m, fields: "[\(campoSecreto)]", enviar: ["pw": "nueva"])
+        XCTAssertEqual(try parse(out)["status"] as? String, "submitted")
+        XCTAssertEqual(m.vault.valor(de: "gmail_password"), "nueva")
+        XCTAssertEqual(m.vault.origen(de: "gmail_password"), "accounts.google.com")
+    }
+
+    func test_el_deshacer_restaura_un_secreto_preexistente_con_valor_etiqueta_y_origen() async throws {
+        let m = monta()
+        m.vault.guarda(name: "uno", value: "valor-viejo", etiqueta: "Etiqueta vieja", origen: "accounts.google.com")
+        let dos = #"[{"id":"a","label":"A","kind":"secret","secret_name":"uno"},{"id":"b","label":"B","kind":"secret","secret_name":"dos"}]"#
+        let out = try await ejecuta(m, fields: dos, enviar: ["a": "valor-nuevo", "b": ""])
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertEqual(m.vault.valor(de: "uno"), "valor-viejo")
+        XCTAssertEqual(m.vault.origen(de: "uno"), "accounts.google.com")
+        XCTAssertEqual(m.vault.lista().first { $0.name == "uno" }?.etiqueta, "Etiqueta vieja")
+        XCTAssertNil(m.vault.valor(de: "dos"))
+        XCTAssertFalse(out.contains("valor-viejo") || out.contains("valor-nuevo"))
     }
 
     // MARK: list_secrets / forget_secret

@@ -105,7 +105,7 @@ final class AgentBrowserLiveTests: XCTestCase {
             default: break
             }
             switch event {
-            case .frame(let seq, _, _, _): count += 1; if sawClose { framesAfterClose += 1 }; timeline.append("\(t) frame#\(seq)")
+            case .frame(let seq, _, _): count += 1; if sawClose { framesAfterClose += 1 }; timeline.append("\(t) frame#\(seq)")
             case .narration(let text): timeline.append("\(t) narration(\(text))")
             case .host(let host): timeline.append("\(t) host(\(host))")
             case .state(let live, let collapsed): timeline.append("\(t) state(live=\(live),collapsed=\(collapsed))")

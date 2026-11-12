@@ -3,21 +3,19 @@ import Foundation
 /// **EL TROCEADO DEL FUENTE PARA LAS PRUEBAS QUE LEEN EL FUENTE.** Una sola implementación, y
 /// ésa es la característica, no una comodidad.
 ///
-/// POR QUÉ VIVE AQUÍ Y NO EN CADA PANTALLA. **Cinco** redes de seguridad de este proyecto leen el
-/// fuente y miden sobre el texto troceado:
+/// POR QUÉ VIVE AQUÍ Y NO EN CADA PANTALLA. **Tres** redes de seguridad de este proyecto leen el
+/// fuente (eran cinco: las del mando y la del mapa del toque murieron con el mando, y sus
+/// medidas de abajo se conservan como historia de por qué existe el troceado) y miden sobre el texto troceado:
 ///
-///  1. la lista blanca del mando (`BrowserPanelViewTests`), por la que pasa **la contraseña del
-///     usuario** y la coordenada de su dedo;
-///  2. la lista blanca del mapa del toque (`BrowserInputMapperTests`);
-///  3. la lista blanca del llavero y el token (`TokenDeConducirTests`), por la que pasa **el token
+///  1. la lista blanca del llavero y el token (`TokenDeConducirTests`), por la que pasa **el token
 ///     que conduce un Chrome con la sesión de Google del usuario dentro**;
-///  4. la lista blanca de las claves de pago (`ClaveDeProveedorTests`) **y**, en el mismo fichero,
+///  2. la lista blanca de las claves de pago (`ClaveDeProveedorTests`) **y**, en el mismo fichero,
 ///     la regla que impide que el llavero **global** —donde viven las API keys de pago de
 ///     PRODUCCIÓN— se use como argumento;
-///  5. el trinquete del placeholder débil del token de memoria (`TokenDeMemoriaTests`), que impide
+///  3. el trinquete del placeholder débil del token de memoria (`TokenDeMemoriaTests`), que impide
 ///     que vuelva a cablearse en el binario la credencial conocida del `.env` del i3.
 ///
-/// Las cinco sostienen la misma propiedad: que por esos ficheros no pase nada que registre,
+/// Las tres sostienen la misma propiedad: que por esos ficheros no pase nada que registre,
 /// persista, notifique o acumule un secreto del usuario. **Tenían cinco copias del mismo troceado,
 /// carácter por carácter**, y eso es exactamente cómo se arregla un agujero y siguen vivos los
 /// otros cuatro: el 2026-11-09 se midió que el corte ciego dejaba pasar una fuga, se arregló
@@ -28,8 +26,6 @@ import Foundation
 /// LO QUE SE MIDIÓ, porque es el motivo de que esto no sea un refactor cosmético. Con el corte
 /// ciego, estas mutaciones dejaban la suite **entera** en su verde exacto:
 ///
-///     // en `BrowserInputMapper.paginaDesde`, que ve DÓNDE toca el usuario
-///     let width = "x//y"; print("toque en \(punto)")                      → VERDE
 ///     // en `TokenDeConducir.guardar`, que ve el TOKEN del navegador
 ///     let texto = "dev//dev"; print("token \(valor)")                      → VERDE
 ///     // en `ClaveDeProveedor.guardar`, que ve las CLAVES DE PAGO del usuario
@@ -59,12 +55,10 @@ import Foundation
 ///
 /// # EL CENSO, ENUMERADO (2026-11-10), QUE ES LO QUE CIERRA EL CONJUNTO
 ///
-/// Nueve ficheros de prueba localizan ficheros del proyecto con `#filePath`. **Ocho** leen fuente
-/// Swift, y los ocho pasan por aquí:
+/// Siete ficheros de prueba localizan ficheros del proyecto con `#filePath` (sin contar este).
+/// **Seis** leen fuente Swift, y los seis pasan por aquí:
 ///
 ///     fichero de prueba                 qué lee                      cómo mide
-///     BrowserPanelViewTests             BrowserMando, BrowserPanelView   troceado (4 usos)
-///     BrowserInputMapperTests           BrowserInputMapper               troceado
 ///     TokenDeConducirTests              TokenDeConducir, TokenDeMemoria,
 ///                                       SettingsView, GemmaApp           troceado + 1 ausencia cruda
 ///     ClaveDeProveedorTests             ClaveDeProveedor, LlaveroViejo…,
@@ -72,9 +66,9 @@ import Foundation
 ///                                       GemmaApp                         troceado + 3 ausencias crudas
 ///     TokenDeMemoriaTests               SettingsView, HarnessModel,
 ///                                       GemmaApp                         troceado + 3 ausencias crudas
-///     BrowserRelayClientTests           BrowserRelayClient               troceado (era copia a mano)
-///     BrowserInputEventsTests           BrowserInputEvents               troceado + ausencias crudas
 ///     AgentBrowserRegistrationTests     HarnessModel                     troceado
+///     FormDraftTests                    FormCardView, AgentChatView      troceado
+///     BrowserFillSecretToolTests        BrowserFillSecretTool            troceado
 ///     InfoPlistPrivacyKeysTests         AppInfo.plist                    n/a: no es fuente Swift
 ///
 /// # Y POR QUÉ ALGUNAS ASERCIONES SE QUEDAN SOBRE EL FUENTE CRUDO, A PROPÓSITO

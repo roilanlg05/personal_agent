@@ -59,7 +59,7 @@ final class BrowserPanelWiringTests: XCTestCase {
     /// La decodificación del JPEG no puede ocurrir en el hilo principal.
     func test_la_vista_decodifica_fuera_del_hilo_principal() async {
         let state = BrowserPanelState()
-        state.apply(.frame(seq: 1, jpeg: Self.realJPEG(), capturedAt: .now, viewport: nil))
+        state.apply(.frame(seq: 1, jpeg: Self.realJPEG(), capturedAt: .now))
         let image = await BrowserPanelView.decodeOffMain(state.jpeg!)
         XCTAssertNotNil(image)
         XCTAssertEqual(image?.width, 64)
@@ -73,7 +73,7 @@ final class BrowserPanelWiringTests: XCTestCase {
     /// §6.2(g): plegar suelta el JPEG, y el id del task debe cambiar para que la vista suelte la imagen.
     func test_plegar_cambia_el_id_del_task_para_soltar_la_imagen() {
         let state = BrowserPanelState()
-        state.apply(.frame(seq: 1, jpeg: Self.realJPEG(), capturedAt: Date(timeIntervalSince1970: 100), viewport: nil))
+        state.apply(.frame(seq: 1, jpeg: Self.realJPEG(), capturedAt: Date(timeIntervalSince1970: 100)))
         let vivo = BrowserPanelView.frameID(jpeg: state.jpeg, lastFrameAt: state.lastFrameAt)
         XCTAssertNotNil(vivo)
 
@@ -88,7 +88,7 @@ final class BrowserPanelWiringTests: XCTestCase {
         XCTAssertNil(BrowserPanelView.frameID(jpeg: state.jpeg, lastFrameAt: state.lastFrameAt))
 
         // Un frame nuevo vuelve a dar un id distinto del anterior: la vista repinta.
-        state.apply(.frame(seq: 2, jpeg: Self.realJPEG(), capturedAt: Date(timeIntervalSince1970: 101), viewport: nil))
+        state.apply(.frame(seq: 2, jpeg: Self.realJPEG(), capturedAt: Date(timeIntervalSince1970: 101)))
         let nuevo = BrowserPanelView.frameID(jpeg: state.jpeg, lastFrameAt: state.lastFrameAt)
         XCTAssertNotNil(nuevo)
         XCTAssertNotEqual(nuevo, vivo)

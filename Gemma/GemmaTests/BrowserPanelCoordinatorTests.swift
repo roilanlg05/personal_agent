@@ -100,7 +100,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         let stream = AsyncStream<BrowserRelayEvent> { cont = $0 }
         let c = BrowserPanelCoordinator(stream: { stream })
         let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
-        cont.yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now, viewport: nil))
+        cont.yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
         try await Self.waitUntil { c.panels[id]!.jpeg != nil }
         cont.finish()
         try await Self.waitUntil { c.panels[id]!.isCollapsed }
@@ -172,14 +172,14 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         XCTAssertFalse(rig.flags.terminated[0], "el visor no se va: el video sigue a la vista")
         XCTAssertTrue(c.panels[id]!.isLive)
         // Y sigue recibiendo: no es una foto congelada que se dice en vivo.
-        rig.conts[0].yield(.frame(seq: 7, jpeg: Data([0x07]), capturedAt: .now, viewport: nil))
+        rig.conts[0].yield(.frame(seq: 7, jpeg: Data([0x07]), capturedAt: .now))
         try await Self.waitUntil { c.panels[id]!.jpeg == Data([0x07]) }
     }
 
     @MainActor func test_turno_que_termina_con_browser_close_congela_como_antes() async throws {
         let rig = Rig(); let c = rig.coordinator
         let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
-        rig.conts[0].yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now, viewport: nil))
+        rig.conts[0].yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
         try await Self.waitUntil { c.panels[id]!.jpeg != nil }
         Self.toolOK(c)                                // el navegador está abierto de verdad
         _ = c.openIfNeeded(toolName: "browser_close")
@@ -319,12 +319,12 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
         // La cancelación del flujo viejo no basta para este aserto: se prueba que el ESTADO del
         // panel congelado rechaza eventos (`freeze()`), llegándole por la vía directa.
         c.panels[old]!.apply(.state(live: true, collapsed: false))
-        c.panels[old]!.apply(.frame(seq: 9, jpeg: Data([0x09]), capturedAt: .now, viewport: nil))
+        c.panels[old]!.apply(.frame(seq: 9, jpeg: Data([0x09]), capturedAt: .now))
         XCTAssertNil(c.panels[old]!.jpeg, "un panel pasado congelado no vuelve a recibir imagen")
         XCTAssertFalse(c.panels[old]!.isLive)
         XCTAssertTrue(c.panels[old]!.isCollapsed)
         // El vivo sí sigue recibiendo, por su propio flujo (el índice 1).
-        rig.conts[1].yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now, viewport: nil))
+        rig.conts[1].yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
         try await Self.waitUntil { c.panels[live]!.jpeg != nil }
     }
 
@@ -360,7 +360,7 @@ final class BrowserPanelCoordinatorTests: XCTestCase {
     @MainActor func test_si_el_flujo_del_panel_vivo_termina_el_panel_se_congela() async throws {
         let rig = Rig(); let c = rig.coordinator
         let id = try XCTUnwrap(c.openIfNeeded(toolName: "browser_open"))
-        rig.conts[0].yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now, viewport: nil))
+        rig.conts[0].yield(.frame(seq: 1, jpeg: Data([0x01]), capturedAt: .now))
         try await Self.waitUntil { c.panels[id]!.jpeg != nil }
         Self.toolOK(c)
         c.endTurn()

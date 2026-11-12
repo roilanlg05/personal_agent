@@ -52,13 +52,31 @@ public struct AgentBrowserService: Sendable {
     /// stdout que no es un objeto JSON con la clave `success` -> `.malformed`;
     /// `success == false` -> `.refused`; solo entonces `.ok`.
     /// El código de salida NO cuenta: el CLI sale con 0 aunque la orden falle.
-    public func run(command: [String], sessioned: Bool, timeout: TimeInterval) async
-        -> AgentBrowserOutcome {
+    ///
+    /// `stdin`: datos para la entrada estándar del CLI (hoy solo `browser_fill_secret`, que manda
+    /// por ahí el valor del secreto para que no aparezca en los argumentos del proceso). Si el
+    /// invocador no sabe pasar entrada estándar (el HTTP del i3, los dobles de prueba) NO se
+    /// ejecuta nada: ejecutar sin la entrada teclearía un campo vacío y el CLI diría «éxito».
+    ///
+    /// `batch --json` no responde con el envelope sino con una LISTA de filas
+    /// `{success, error, result, index}` (medido en 0.41.2); se normaliza aquí al mismo contrato:
+    /// éxito solo si TODAS las filas lo son, y el primer error de fila como motivo del rechazo.
+    public func run(command: [String], sessioned: Bool, timeout: TimeInterval,
+                    stdin: Data? = nil) async -> AgentBrowserOutcome {
         var arguments = command + ["--json"]
         if sessioned { arguments = ["--session", sessionName] + arguments }
 
         let invocation: AgentBrowserInvocation
-        switch await invoker.invoke(arguments: arguments, timeout: timeout) {
+        let resultado: Result<AgentBrowserInvocation, AgentBrowserInvocationFailure>
+        if let stdin {
+            guard let conStdin = invoker as? AgentBrowserInvokingConStdin else {
+                return .unavailable(reason: Self.sinEntradaEstandar, isMissingBinary: false)
+            }
+            resultado = await conStdin.invoke(arguments: arguments, timeout: timeout, stdin: stdin)
+        } else {
+            resultado = await invoker.invoke(arguments: arguments, timeout: timeout)
+        }
+        switch resultado {
         case .failure(let failure):
             return Self.unavailable(for: failure)
         case .success(let value):
@@ -67,7 +85,15 @@ public struct AgentBrowserService: Sendable {
 
         let raw = invocation.standardOutput
         guard let bytes = raw.data(using: .utf8),
-              let envelope = (try? JSONSerialization.jsonObject(with: bytes)) as? [String: Any],
+              let parsed = try? JSONSerialization.jsonObject(with: bytes) else {
+            return .malformed(rawOutput: raw)
+        }
+        // Solo `batch` responde con una lista; para cualquier otra orden una lista sigue siendo
+        // una salida ilegible, como hasta ahora.
+        if command.first == "batch", let filas = parsed as? [Any] {
+            return Self.lote(filas, raw: raw)
+        }
+        guard let envelope = parsed as? [String: Any],
               let success = envelope["success"] as? Bool else {
             return .malformed(rawOutput: raw)
         }
@@ -80,6 +106,34 @@ public struct AgentBrowserService: Sendable {
         var data = envelope["data"] as? [String: Any] ?? [:]
         data.removeValue(forKey: "lifecycle")
         guard let encoded = try? JSONSerialization.data(withJSONObject: data) else {
+            return .malformed(rawOutput: raw)
+        }
+        return .ok(data: encoded)
+    }
+
+    /// Motivo cuando se pide entrada estándar a un invocador que no la soporta.
+    public static let sinEntradaEstandar =
+        "browser_fill_secret solo está disponible con el navegador local de la Mac por ahora"
+
+    /// Interpreta la salida de `batch --json`: una lista de filas `{success, error, result}`.
+    /// Una lista vacía o una fila sin `success` booleano es ilegible: no se puede afirmar que
+    /// la orden ocurrió. El `data` del éxito es `{"results": [...]}` sin `lifecycle`.
+    private static func lote(_ filas: [Any], raw: String) -> AgentBrowserOutcome {
+        guard !filas.isEmpty else { return .malformed(rawOutput: raw) }
+        var resultados: [Any] = []
+        for elemento in filas {
+            guard let fila = elemento as? [String: Any], let success = fila["success"] as? Bool else {
+                return .malformed(rawOutput: raw)
+            }
+            guard success else {
+                let message = (fila["error"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+                return .refused(message: message ?? "El navegador rechazó la orden sin dar motivo.")
+            }
+            var result = fila["result"] as? [String: Any] ?? [:]
+            result.removeValue(forKey: "lifecycle")
+            resultados.append(result)
+        }
+        guard let encoded = try? JSONSerialization.data(withJSONObject: ["results": resultados]) else {
             return .malformed(rawOutput: raw)
         }
         return .ok(data: encoded)

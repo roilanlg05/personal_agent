@@ -176,6 +176,42 @@ final class AgentBrowserInvokerTests: XCTestCase {
         }
         XCTAssertEqual(shellLookups.read { $0 }, 1, "el respaldo por shell se repitió")
     }
+
+    // MARK: entrada estándar
+
+    /// El valor de un secreto viaja por la entrada estándar: el hijo lo lee y NO aparece en sus
+    /// argumentos (que cualquier proceso del usuario puede ver con `ps`).
+    func test_el_invocador_pasa_la_entrada_estandar_al_hijo_y_no_la_pone_en_los_argumentos() async throws {
+        let invoker = ProcessAgentBrowserInvoker(binaryPath: "/bin/sh")
+        let secreto = "SECRETO-de-juguete \"ñ😀\""
+        let result = await invoker.invoke(
+            arguments: ["-c", "printf 'ARGS:%s\\n' \"$*\"; printf 'STDIN:'; cat", "sh", "uno", "dos"],
+            timeout: 10, stdin: Data(secreto.utf8))
+        let run = try XCTUnwrap(try? result.get(), "got: \(result)")
+        XCTAssertEqual(run.exitCode, 0)
+        XCTAssertTrue(run.standardOutput.contains("STDIN:\(secreto)"), run.standardOutput)
+        let lineaArgs = try XCTUnwrap(run.standardOutput.split(separator: "\n").first { $0.hasPrefix("ARGS:") })
+        XCTAssertEqual(lineaArgs, "ARGS:uno dos")
+    }
+
+    /// Un hijo que sale sin leer su entrada: escribir en la tubería daría SIGPIPE, que por
+    /// defecto MATA A LA APP. Debe volver normal, con la salida del hijo.
+    func test_un_hijo_que_no_lee_la_entrada_no_tumba_al_proceso() async throws {
+        let invoker = ProcessAgentBrowserInvoker(binaryPath: "/bin/sh")
+        let grande = Data(repeating: 65, count: 2_000_000)
+        let result = await invoker.invoke(arguments: ["-c", "echo salgo; exit 0"], timeout: 10, stdin: grande)
+        let run = try XCTUnwrap(try? result.get(), "got: \(result)")
+        XCTAssertEqual(run.standardOutput.trimmingCharacters(in: .whitespacesAndNewlines), "salgo")
+    }
+
+    /// Un hijo que nunca lee ni sale: la escritura bloqueada no debe saltarse el plazo.
+    func test_un_hijo_que_nunca_lee_la_entrada_respeta_el_plazo() async {
+        let invoker = ProcessAgentBrowserInvoker(binaryPath: "/bin/sh")
+        let start = ContinuousClock.now
+        let result = await invoker.invoke(arguments: ["-c", "sleep 30"], timeout: 0.5,
+                                          stdin: Data(repeating: 65, count: 2_000_000))
+        guard case .failure(.timedOut) = result else { return XCTFail("got: \(result)") }
+        XCTAssertLessThan(ContinuousClock.now - start, .seconds(2))
+    }
 }
 #endif
-

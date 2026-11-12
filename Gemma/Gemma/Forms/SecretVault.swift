@@ -63,7 +63,9 @@ public final class SecretVault: Sendable {
         let origen: String
     }
 
-    private static func esNombreValido(_ name: String) -> Bool {
+    /// Interno (no privado) para que `browser_fill_secret` valide el nombre con la MISMA regla
+    /// antes de tocar la bóveda.
+    static func esNombreValido(_ name: String) -> Bool {
         // `NSRegularExpression` con `^…$` deja pasar un salto de línea final ("a\n"), así que se
         // comprueba el rango entero en vez de buscar una coincidencia suelta.
         let rango = NSRange(name.startIndex..., in: name)

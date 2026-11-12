@@ -159,27 +159,17 @@ final class PresentFormTool: AgentTool, Sendable {
         case failure(String)
     }
 
-    /// El host limpio (minúsculas, sin esquema, puerto, ruta ni query) de la página abierta.
-    /// `SecretVault.guarda` no valida el origen que recibe, así que la limpieza es de aquí.
+    /// El host de la página abierta, o el error que se le devuelve al modelo.
     private func hostDeLaPaginaActual() async -> Pagina {
         let sinPagina = "abre primero la página donde se usará el secreto (con browser_open) y vuelve a pedir el formulario."
         guard let service else { return .failure(AgentBrowserToolOutput.invalidArguments(sinPagina)) }
-        let outcome = await service.run(command: ["get", "url"], sessioned: true, timeout: Self.timeout)
-        let datos: Data
-        switch AgentBrowserToolOutput.resolve(outcome) {
-        case .failure: return .failure(AgentBrowserToolOutput.invalidArguments(sinPagina))
-        case .data(let ok): datos = ok
-        }
-        guard let url = AgentBrowserService.fields(datos)["url"] as? String,
-              let host = URL(string: url)?.host?.lowercased(), !host.isEmpty,
-              // Misma normalización estricta que la comparación de origen: un host que ella
-              // no acepta nunca podría coincidir después, así que se rechaza ya.
-              SecretVault.origenPermite(guardado: host, paginaActual: host)
-        else {
+        switch await PaginaActual.host(service: service, timeout: Self.timeout) {
+        case .host(let h): return .host(h)
+        case .sinPagina: return .failure(AgentBrowserToolOutput.invalidArguments(sinPagina))
+        case .urlNoValida:
             return .failure(AgentBrowserToolOutput.invalidArguments(
                 "No se pudo determinar el sitio de la página abierta (\"about:blank\" o URL no válida). \(sinPagina)"))
         }
-        return .host(host)
     }
 
     private static func explica(_ e: FormSpecError) -> String {
@@ -241,5 +231,33 @@ final class ForgetSecretTool: AgentTool, Sendable {
         }
         vault.borra(name: name)
         return ToolJSONOutput.object(["status": "success", "message": "Secreto '\(name)' olvidado."])
+    }
+}
+
+/// El host de la página abierta en el navegador del agente. Lo comparten `present_form` (para
+/// atar un secreto nuevo a su sitio) y `browser_fill_secret` (para comprobar esa atadura antes
+/// de teclear): si cada uno lo calculara a su manera, un secreto guardado con una normalización
+/// podría no coincidir nunca —o coincidir de más— con la otra.
+enum PaginaActual {
+    enum Resultado: Equatable {
+        /// Host limpio: minúsculas, sin esquema, puerto, ruta ni query.
+        case host(String)
+        /// `get url` falló (no hay página, navegador caído, plazo vencido).
+        case sinPagina
+        /// Hay respuesta pero no es una URL con un host válido (`about:blank`, `data:`…).
+        case urlNoValida
+    }
+
+    /// `SecretVault.guarda` no valida el origen que recibe, así que la limpieza es de aquí.
+    static func host(service: AgentBrowserService, timeout: TimeInterval) async -> Resultado {
+        let outcome = await service.run(command: ["get", "url"], sessioned: true, timeout: timeout)
+        guard case .data(let datos) = AgentBrowserToolOutput.resolve(outcome) else { return .sinPagina }
+        guard let url = AgentBrowserService.fields(datos)["url"] as? String,
+              let host = URL(string: url)?.host?.lowercased(), !host.isEmpty,
+              // Misma normalización estricta que la comparación de origen: un host que ella
+              // no acepta nunca podría coincidir después, así que se rechaza ya.
+              SecretVault.origenPermite(guardado: host, paginaActual: host)
+        else { return .urlNoValida }
+        return .host(host)
     }
 }

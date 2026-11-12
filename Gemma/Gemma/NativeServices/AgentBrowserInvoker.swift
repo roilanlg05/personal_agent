@@ -30,6 +30,22 @@ public protocol AgentBrowserInvoking: Sendable {
         -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure>
 }
 
+/// Invocador que además sabe pasar datos por la ENTRADA ESTÁNDAR del CLI.
+///
+/// Existe para `browser_fill_secret`: el valor de un secreto no puede ir en los argumentos del
+/// proceso, que cualquier otro proceso del usuario lee con `ps` y que acaban en logs de
+/// diagnóstico. Por la entrada estándar solo lo ve el hijo.
+///
+/// POR QUÉ UN PROTOCOLO HERMANO Y NO UN REQUISITO NUEVO EN `AgentBrowserInvoking`: añadir el
+/// requisito obligaría a todos los dobles de prueba y al invocador HTTP a implementarlo, y una
+/// implementación por defecto que ignorase `stdin` sería peor todavía: teclearía un campo vacío
+/// y diría «éxito». Así, quien no sabe pasar entrada estándar simplemente no se declara capaz, y
+/// `AgentBrowserService` devuelve un fallo claro en vez de una acción a medias.
+public protocol AgentBrowserInvokingConStdin: AgentBrowserInvoking {
+    func invoke(arguments: [String], timeout: TimeInterval, stdin: Data?) async
+        -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure>
+}
+
 #if os(macOS)
 
 // MARK: - Descubrimiento del binario
@@ -73,7 +89,7 @@ public enum AgentBrowserBinary {
 // MARK: - Invocador real
 
 /// Ejecuta `agent-browser` como proceso hijo.
-public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
+public final class ProcessAgentBrowserInvoker: AgentBrowserInvokingConStdin, Sendable {
     private let explicitPath: String?
     private let environment: [String: String]
     private let isExecutable: @Sendable (String) -> Bool
@@ -107,6 +123,14 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
 
     public func invoke(arguments: [String], timeout: TimeInterval) async
         -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
+        await invoke(arguments: arguments, timeout: timeout, stdin: nil)
+    }
+
+    /// Igual que `invoke(arguments:timeout:)`, escribiendo `stdin` en la entrada estándar del hijo
+    /// y cerrándola después (el CLI lee hasta EOF). Con `stdin == nil` el hijo hereda la entrada
+    /// del padre, como siempre.
+    public func invoke(arguments: [String], timeout: TimeInterval, stdin: Data?) async
+        -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
         guard let binary = await locateBinary() else {
             var searched = AgentBrowserBinary.searchedPaths(environment: environment)
             if let explicitPath { searched.insert(explicitPath, at: 0) }
@@ -124,7 +148,7 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
         }
         let result = await Self.run(executable: binary, arguments: arguments,
                                     environment: entorno,
-                                    timeout: timeout)
+                                    timeout: timeout, stdin: stdin)
         if let navegadorReal, subcomando == "close",
            case .success(let corrida) = result, corrida.exitCode == 0 {
             await navegadorReal.cierra()
@@ -250,6 +274,37 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
         var text: String { lock.lock(); defer { lock.unlock() }; return String(decoding: data, as: UTF8.self) }
     }
 
+    /// Escribe `datos` en la entrada del hijo desde un hilo aparte y cierra la tubería.
+    ///
+    /// En un hilo aparte porque `write` BLOQUEA cuando el hijo no lee y el búfer de la tubería
+    /// (16-64 KiB) se llena; bloquear aquí saltaría el plazo de la llamada. El hilo nunca queda
+    /// colgado para siempre: `Process` ya cerró en el padre el extremo de lectura, así que cuando
+    /// el hijo sale o el plazo lo mata, la escritura pendiente devuelve EPIPE (no SIGPIPE, ver
+    /// `F_SETNOSIGPIPE` en `run`) y el hilo termina.
+    ///
+    /// Se usa `write(2)` directamente y no `FileHandle.write(_:)`: la variante antigua lanza una
+    /// excepción de Objective-C ante EPIPE, que Swift no puede capturar y tumbaría la app.
+    private static func escribeYCierra(_ datos: Data, en handle: FileHandle) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let fd = handle.fileDescriptor
+            datos.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) in
+                guard var puntero = buffer.baseAddress else { return }
+                var restantes = buffer.count
+                while restantes > 0 {
+                    let n = Darwin.write(fd, puntero, restantes)
+                    if n < 0 {
+                        if errno == EINTR { continue }
+                        return  // EPIPE u otro: el hijo ya no lee; el resultado lo decide su salida.
+                    }
+                    restantes -= n
+                    puntero += n
+                }
+            }
+            // Cerrar es lo que le da EOF al hijo: `agent-browser batch` lee hasta EOF.
+            try? handle.close()
+        }
+    }
+
     /// Tiempo que se espera, tras salir el hijo, a que lleguen los últimos bytes.
     private static let drainGrace: TimeInterval = 0.5
     /// Tiempo que se da al hijo para morir con SIGTERM antes de enviarle SIGKILL.
@@ -269,12 +324,22 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
     ///   muerte del hijo (un `withTaskGroup` esperaría a un hijo que ignore SIGTERM). Se
     ///   envía SIGTERM y, si sigue vivo tras `killGrace`, SIGKILL.
     private static func run(executable: String, arguments: [String],
-                            environment: [String: String], timeout: TimeInterval) async
+                            environment: [String: String], timeout: TimeInterval,
+                            stdin: Data? = nil) async
         -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
         process.environment = environment
+        let inPipe: Pipe? = stdin == nil ? nil : Pipe()
+        if let inPipe {
+            process.standardInput = inPipe
+            // SIN ESTO, UN HIJO QUE SALE SIN LEER MATA A LA APP: escribir en una tubería sin
+            // lector envía SIGPIPE, cuya acción por defecto es terminar el proceso. Con
+            // F_SETNOSIGPIPE la escritura devuelve EPIPE y el hilo escritor simplemente acaba.
+            // Se fija ANTES de lanzar para que no haya ninguna ventana sin protección.
+            _ = fcntl(inPipe.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
+        }
         let outPipe = Pipe()
         let errPipe = Pipe()
         process.standardOutput = outPipe
@@ -290,7 +355,13 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvoking, Sendable {
         } catch {
             outPipe.fileHandleForReading.readabilityHandler = nil
             errPipe.fileHandleForReading.readabilityHandler = nil
+            // El mensaje de error es el de `Process` (ruta y errno): `stdin` nunca se interpola.
+            try? inPipe?.fileHandleForWriting.close()
             return .failure(.launchFailed(error.localizedDescription))
+        }
+
+        if let inPipe, let stdin {
+            Self.escribeYCierra(stdin, en: inPipe.fileHandleForWriting)
         }
 
         let outcome: Outcome = await withCheckedContinuation { continuation in

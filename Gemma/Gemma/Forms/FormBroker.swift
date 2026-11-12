@@ -1,0 +1,99 @@
+import Foundation
+import Observation
+
+enum FormBrokerError: Error, Equatable {
+    /// Ya hay un formulario abierto: la UI solo sabe mostrar uno, y reemplazarlo en silencio
+    /// dejaría colgada la llamada de herramienta del primero.
+    case yaHayUnoAbierto
+}
+
+/// Intermediario entre la herramienta que pide un formulario y la vista que lo muestra.
+///
+/// `presenta` suspende la llamada de herramienta hasta que ocurre UNA de tres cosas: el usuario
+/// envía, el usuario cancela, o vence el plazo. Las tres compiten por la misma
+/// `CheckedContinuation`; reanudarla dos veces es un fallo fatal, así que todo el estado vive
+/// en el hilo principal y quien resuelve primero la toma (`continuacion = nil`) y las demás
+/// vías encuentran el hueco vacío y no hacen nada. Mismo patrón que `ReanudaUnaSolaVez` en
+/// `BrowserMando.swift`.
+@MainActor
+@Observable
+final class FormBroker {
+    struct PendingForm: Identifiable, Equatable {
+        let id: String
+        let spec: FormSpec
+    }
+
+    /// Lo que la vista observa para mostrar la hoja. `nil` = nada abierto.
+    private(set) var pendiente: PendingForm?
+
+    @ObservationIgnored private var continuacion: CheckedContinuation<FormResponse, Never>?
+    @ObservationIgnored private var tareaDelPlazo: Task<Void, Never>?
+    @ObservationIgnored private let plazo: Duration
+    @ObservationIgnored private let dormir: @Sendable (Duration) async throws -> Void
+
+    /// `dormir` es inyectable para que las pruebas no esperen diez minutos de verdad.
+    init(plazo: Duration = .seconds(600),
+         dormir: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }) {
+        self.plazo = plazo
+        self.dormir = dormir
+    }
+
+    // Se permite el desmontaje fuera del hilo principal: el deinit no toca estado aislado.
+    // Sin esto, un deinit aislado a MainActor hace doble liberación bajo XCTMemoryChecker
+    // (macOS 26); ver ToolRegistry.swift.
+    nonisolated deinit {}
+
+    func presenta(_ spec: FormSpec) async throws -> FormResponse {
+        guard pendiente == nil else { throw FormBrokerError.yaHayUnoAbierto }
+        // Id nuevo por presentación: un envío tardío del formulario anterior no puede resolver
+        // el siguiente.
+        let id = UUID().uuidString
+        pendiente = PendingForm(id: id, spec: spec)
+
+        // Si el turno que llamó se cancela, el formulario no puede quedarse abierto sin dueño ni
+        // la llamada colgada: se resuelve como cancelado. `onCancel` corre en un hilo cualquiera,
+        // por eso salta al principal; ahí `resuelve` ya filtra por id, así que si llega tarde (o
+        // ya resolvió otra vía) no hace nada. Si la tarea ya venía cancelada, el salto se encola
+        // detrás del cuerpo síncrono de la continuación, que ya habrá guardado la suya.
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { (c: CheckedContinuation<FormResponse, Never>) in
+                continuacion = c
+                let plazo = self.plazo, dormir = self.dormir
+                tareaDelPlazo = Task { @MainActor [weak self] in
+                    // Si `dormir` lanza es porque resolvieron antes y cancelaron esta tarea.
+                    do { try await dormir(plazo) } catch { return }
+                    self?.resuelve(id: id, FormResponse(status: .timeout, values: [:]))
+                }
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.resuelve(id: id, FormResponse(status: .cancelled, values: [:]))
+            }
+        }
+    }
+
+    func envia(id: String, valores: [String: String]) {
+        resuelve(id: id, FormResponse(status: .submitted, values: valores))
+    }
+
+    func cancela(id: String) {
+        resuelve(id: id, FormResponse(status: .cancelled, values: [:]))
+    }
+
+    /// Para fin de turno o reinicio: lo que esté abierto se cierra como cancelado.
+    func cancelaTodo() {
+        guard let id = pendiente?.id else { return }
+        resuelve(id: id, FormResponse(status: .cancelled, values: [:]))
+    }
+
+    /// Único punto por el que se reanuda. Ignora ids que no son el pendiente (envíos tardíos,
+    /// dobles pulsaciones) y se lleva la continuación antes de reanudar.
+    private func resuelve(id: String, _ respuesta: FormResponse) {
+        guard pendiente?.id == id, let c = continuacion else { return }
+        continuacion = nil
+        pendiente = nil
+        tareaDelPlazo?.cancel()
+        tareaDelPlazo = nil
+        c.resume(returning: respuesta)
+    }
+}

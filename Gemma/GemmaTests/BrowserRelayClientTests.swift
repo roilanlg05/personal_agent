@@ -168,7 +168,7 @@ final class BrowserRelayClientTests: XCTestCase {
     }
 
     /// COMPORTAMIENTO, no forma: se le dan al visor todos los tipos de mensaje que puede recibir
-    /// (frames, los otros cinco, basura, JSON desconocido y un mensaje viejo del volante) y se
+    /// (frames, los otros cinco, basura, JSON desconocido y un mensaje viejo del mando) y se
     /// exige que TODO lo que sale por el socket sea un acuse, uno por frame y con su `seq`. Si
     /// alguien añade cualquier envío —por la vía que sea que pase por el socket— esto se pone rojo.
     func test_todo_lo_que_el_visor_envia_es_un_acuse() async {
@@ -185,6 +185,7 @@ final class BrowserRelayClientTests: XCTestCase {
             #"{"type":"summary","text":"fin"}"#,
             "esto no es json",
             #"{"type":"algo_desconocido"}"#,
+            #"{"type":"mando","quien":"humano"}"#,
             #"{"type":"frame","seq":3,"jpeg":"\#(jpeg)","captured_at":3}"#,
         ]
         for m in mensajes { socket.llega(m) }

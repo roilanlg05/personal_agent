@@ -58,7 +58,7 @@ final class ElMandoNoExisteTests: XCTestCase {
     /// un servidor VIEJO que sigue mandando `viewport_*` o mensajes del volante no rompe el visor.
     /// Es la única excepción, y es por fichero y por término, no por carpeta.
     private static let excepcionesEnPruebas: [String: Set<String>] = [
-        "BrowserRelayClientTests.swift": ["viewport_width", "viewport_height", "volante", "Volante"],
+        "BrowserRelayClientTests.swift": ["viewport_width", "viewport_height", "volante"],
     ]
 
     func test_ningun_fuente_de_la_app_nombra_el_mando() throws {
@@ -147,6 +147,12 @@ final class ElMandoNoExisteTests: XCTestCase {
         let plano = codigo.split(whereSeparator: \.isWhitespace).joined(separator: " ")
 
         func cuenta(_ aguja: String) -> Int { plano.components(separatedBy: aguja).count - 1 }
+        /// Palabra completa: `URLSession` no debe casar con `URLSessionWebSocketTask`.
+        func cuentaPalabra(_ palabra: String) -> Int {
+            let patron = "\\b" + NSRegularExpression.escapedPattern(for: palabra) + "\\b"
+            guard let re = try? NSRegularExpression(pattern: patron) else { return -1 }
+            return re.numberOfMatches(in: plano, range: NSRange(plano.startIndex..., in: plano))
+        }
 
         // La declaración del protocolo es `func envia(`; lo que se cuenta son las LLAMADAS.
         let llamadas = cuenta("envia(") - cuenta("func envia(")
@@ -156,8 +162,9 @@ final class ElMandoNoExisteTests: XCTestCase {
         for prohibido in ["send(", "sendPing", "dataTask", "uploadTask", ".upload(", ".data(for", ".bytes("] {
             XCTAssertEqual(cuenta(prohibido), 0, "BrowserRelayClient contiene «\(prohibido)» fuera de la implementación del protocolo")
         }
-        for unico in ["URLSession", "URLRequest", "webSocketTask("] {
-            XCTAssertEqual(cuenta(unico), 1, "«\(unico)» debería aparecer una sola vez (abrir el socket); un envío por red lo añadiría")
+        for unico in ["URLSession", "URLRequest"] {
+            XCTAssertEqual(cuentaPalabra(unico), 1, "«\(unico)» debería aparecer una sola vez (abrir el socket); un envío por red lo añadiría")
         }
+        XCTAssertEqual(cuenta("webSocketTask("), 1, "«webSocketTask(» debería aparecer una sola vez (abrir el socket)")
     }
 }

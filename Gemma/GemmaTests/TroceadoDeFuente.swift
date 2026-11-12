@@ -55,8 +55,8 @@ import Foundation
 ///
 /// # EL CENSO, ENUMERADO (2026-11-10), QUE ES LO QUE CIERRA EL CONJUNTO
 ///
-/// Siete ficheros de prueba localizan ficheros del proyecto con `#filePath` (sin contar este).
-/// **Seis** leen fuente Swift, y los seis pasan por aquí:
+/// Ocho ficheros de prueba localizan ficheros del proyecto con `#filePath` (sin contar este).
+/// **Siete** leen fuente Swift, y los siete pasan por aquí:
 ///
 ///     fichero de prueba                 qué lee                      cómo mide
 ///     TokenDeConducirTests              TokenDeConducir, TokenDeMemoria,

@@ -52,9 +52,9 @@ final class AgentSystemPromptTests: XCTestCase {
         // usuario colgado. Se afirman por intención y no por la frase literal: la
         // redacción cambió en 2026-11-08 y la versión vieja afirmaba palabras,
         // así que se puso roja por un cambio que conservaba las dos intenciones.
-        XCTAssertTrue(line.contains("must not type is a password"),
-                      "falta la prohibición de teclear una contraseña: \(line)")
-        XCTAssertTrue(line.contains("ask them to do that step"),
+        XCTAssertTrue(line.contains("Never ask for a secret in the chat"),
+                      "falta la prohibición de pedir un secreto por el chat: \(line)")
+        XCTAssertTrue(line.contains("`present_form`") && line.contains("`browser_fill_secret`"),
                       "la cláusula debe decir qué hacer en su lugar: \(line)")
     }
 

@@ -111,8 +111,10 @@ public final class BrowserFillTool: AgentTool, Sendable {
     hubiera. Usa la referencia '@eN' de browser_snapshot (o un selector CSS). Con text \
     vacío ('') vacía el campo. PROHIBIDO usarla para contraseñas, tokens, claves o \
     códigos de verificación: el texto viaja como argumento de un proceso y es visible en \
-    la lista de procesos del sistema. Si una tarea exige autenticarse, pide al usuario \
-    que lo haga o que te indique cómo proceder; nunca inventes credenciales. No envía el \
+    la lista de procesos del sistema. Nunca teclees una contraseña, un token o un dato secreto con browser_fill: \
+    pide el secreto con present_form (campo secret) y teclea con browser_fill_secret, que no \
+    deja el valor en ningún proceso ni en el chat; antes mira list_secrets. Nunca \
+    inventes credenciales. No envía el \
     formulario: para eso usa browser_click o browser_press con Enter. El navegador no \
     puede recibir como texto o selector valores idénticos a sus propias opciones (por \
     ejemplo '--json'): en ese caso devuelve 'error'. Estados: 'success' (el campo se \

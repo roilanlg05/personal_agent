@@ -487,12 +487,36 @@ final class AgentTests: XCTestCase {
     func test_las_reglas_del_navegador_autorizan_crear_una_cuenta_propia() {
         let t = BrowserRules.text
         XCTAssertTrue(t.contains("Creating an account of your own"))
-        XCTAssertTrue(t.contains("The user types the password themselves"))
+        // Ya no es cierto: el mando se elimina y la contraseña la pone el usuario por un
+        // formulario (`present_form` + `browser_fill_secret`), no tecleándola en la página.
+        XCTAssertTrue(t.contains("ask the user for the password with `present_form`"))
         XCTAssertTrue(t.contains("Do not lecture about fake identities"))
         // Revisión de Codex: la regla no puede mandar los códigos del usuario al chat.
         XCTAssertTrue(t.contains("never ask for those codes in the chat"))
         XCTAssertFalse(t.contains("gives you any verification code"),
                        "la frase vieja pedía al usuario que le diera sus códigos al agente")
+    }
+
+    /// Los secretos del usuario van por formulario: `present_form` (campo `secret`) y luego
+    /// `browser_fill_secret`; antes `list_secrets` para no repetir. Ninguna frase del mando.
+    func test_las_reglas_mandan_los_secretos_por_formulario() {
+        let t = BrowserRules.text
+        XCTAssertTrue(t.contains("present_form"))
+        XCTAssertTrue(t.contains("browser_fill_secret"))
+        XCTAssertTrue(t.contains("list_secrets"))
+        XCTAssertTrue(t.contains("never in the chat") || t.contains("Never ask for a secret in the chat"))
+        for vieja in ["with the wheel", "ask them to do that step", "types the password themselves"] {
+            XCTAssertFalse(t.contains(vieja), "frase del mando que ya no vale: \(vieja)")
+        }
+    }
+
+    /// `browser_fill` pone el texto en los argumentos del proceso: la descripción tiene que
+    /// remitir a la vía de los secretos, no a "pide al usuario que lo haga".
+    func test_browser_fill_remite_a_browser_fill_secret_para_secretos() {
+        let d = BrowserFillTool.description
+        XCTAssertTrue(d.contains("browser_fill_secret"), d)
+        XCTAssertTrue(d.contains("present_form"), d)
+        XCTAssertFalse(d.contains("pide al usuario que lo haga"), d)
     }
 
     func test_el_aviso_del_corte_cuenta_lo_que_quedo_y_no_culpa_al_modelo() {

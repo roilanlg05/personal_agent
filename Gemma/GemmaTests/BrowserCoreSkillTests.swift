@@ -175,7 +175,7 @@ final class BrowserCoreSkillTests: XCTestCase {
         for try await _ in Agent(runtime: rt, registry: registroDelGuion([])).run(prompt: "abre gmail", options: GenerationOptions()) {}
         XCTAssertTrue(rt.firstSystemPrompt.contains(BrowserRules.text),
                       "las reglas del navegador tienen que viajar en el prompt del sistema de la PRIMERA llamada")
-        XCTAssertTrue(rt.firstSystemPrompt.contains("What you must not type is a password"),
+        XCTAssertTrue(rt.firstSystemPrompt.contains("Never ask for a secret in the chat"),
                       "la prohibición de teclear una contraseña llega antes de poder teclearla")
     }
 
@@ -460,7 +460,7 @@ final class BrowserCoreSkillTests: XCTestCase {
         XCTAssertTrue(p.contains("refused"), "se borró que el `refused` es correcto")
         XCTAssertTrue(p.contains("`browser_snapshot`"), "se borró el bucle de conducción")
         XCTAssertTrue(p.contains("An email address is NOT a secret"), "se borró la regla del correo")
-        XCTAssertTrue(p.contains("What you must not type is a password"), "se borró la regla de la contraseña")
+        XCTAssertTrue(p.contains("Never ask for a secret in the chat"), "se borró la regla de la contraseña")
     }
 
     // MARK: - Resolución 12: la guía documenta un CLI más grande que nuestro agente

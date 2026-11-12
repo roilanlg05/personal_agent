@@ -282,6 +282,27 @@ final class BrowserFillSecretToolTests: XCTestCase {
         for a in mock.receivedArguments.flatMap({ $0 }) { assertSinValor(a) }
     }
 
+    /// Minor (b) de la revisión final: la rama `.unavailable` solo devolvía error SI `resolve` daba
+    /// `.failure`; si no, caía al «success» del final. Hoy `resolve` siempre da `.failure` para
+    /// `.unavailable`, así que es inalcanzable por doble: se ata sobre el fuente (sin comentarios)
+    /// que el «success» solo vive en la rama `.ok` y que `.unavailable` termina en un `return`
+    /// incondicional de error.
+    func test_ninguna_rama_que_no_sea_ok_cae_al_success() throws {
+        let fuente = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Gemma/Forms/BrowserFillSecretTool.swift")
+        let codigo = TroceadoDeFuente.codigoIncondicional(try String(contentsOf: fuente, encoding: .utf8))
+            .split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        let ok = try XCTUnwrap(codigo.range(of: "case .ok: return ToolJSONOutput.object([ \"status\": \"success\","),
+                               "el success ya no está dentro de la rama .ok")
+        XCTAssertEqual(codigo.components(separatedBy: "\"status\": \"success\"").count, 2,
+                       "hay un success fuera de la rama .ok")
+        let unavailable = try XCTUnwrap(codigo.range(of: "case .unavailable:", range: ok.upperBound..<codigo.endIndex))
+        let resto = codigo[unavailable.upperBound...]
+        let fin = try XCTUnwrap(resto.range(of: "} } }"), "no se encuentra el final del switch")
+        XCTAssertTrue(resto[..<fin.lowerBound].contains("return AgentBrowserToolOutput.invalidArguments("),
+                      "la rama .unavailable no termina en un error explícito")
+    }
+
     func test_el_invocador_http_no_acepta_stdin() {
         let http: any AgentBrowserInvoking = HTTPAgentBrowserInvoker(baseURL: URL(string: "http://127.0.0.1:1")!, bearerToken: "t")
         XCTAssertNil(http as? AgentBrowserInvokingConStdin)

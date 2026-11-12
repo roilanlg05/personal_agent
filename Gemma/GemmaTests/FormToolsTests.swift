@@ -9,6 +9,24 @@ final class RelojDePrueba: @unchecked Sendable {
     var esperaDeVerdad = false
 }
 
+/// Almacén que acepta las primeras `escrituras` escrituras y rechaza todas las demás, como un
+/// llavero que se bloquea a mitad de una operación. Sirve para que FALLE el deshacer.
+final class AlmacenQueFallaTras: AlmacenDeSecretos, @unchecked Sendable {
+    private let base: AlmacenEnMemoria
+    private var restantes: Int
+    init(escrituras: Int, inicial: [String: String]) {
+        base = AlmacenEnMemoria(inicial)
+        restantes = escrituras
+    }
+    func leer(cuenta: String) -> String? { base.leer(cuenta: cuenta) }
+    func borrar(cuenta: String) { base.borrar(cuenta: cuenta) }
+    @discardableResult func escribir(_ valor: String, cuenta: String) -> Bool {
+        guard restantes > 0 else { return false }
+        restantes -= 1
+        return base.escribir(valor, cuenta: cuenta)
+    }
+}
+
 /// El doble de siempre, pero declarando que SÍ sabe pasar entrada estándar, como el
 /// `ProcessAgentBrowserInvoker` local de la Mac. `present_form` solo acepta campos `secret` con un
 /// invocador así (sin él `browser_fill_secret` nunca podría teclearlos), de modo que las pruebas
@@ -352,6 +370,72 @@ final class FormToolsTests: XCTestCase {
         XCTAssertNil(p.avisoDeAtadura)
         m.broker.cancelaTodo()
         _ = await t.value
+    }
+
+    // MARK: revisión final — minors que fallaban abiertos
+
+    /// (a) Sin origen (o un campo `secret` sin nombre) no hay dónde guardar: antes el bucle hacía
+    /// `continue` y el valor CRUDO se quedaba en `values` camino del modelo. Inalcanzable por
+    /// `run` (el origen se exige antes de presentar y `FormSpec.parse` exige el nombre), así que
+    /// se prueba sobre `guarda` directamente.
+    func test_guardar_sin_origen_es_error_sin_valores() throws {
+        let m = monta()
+        let campo = FormField(id: "pw", label: "Contraseña", kind: .secret, secretName: "gmail_password")
+        let out = m.tool.guarda(secretos: [campo], origen: nil,
+                                en: FormResponse(status: .submitted, values: ["pw": "valor-crudo", "n": "Ana"]))
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertFalse(out.contains("valor-crudo"), out)
+        XCTAssertNil(try parse(out)["values"])
+        XCTAssertTrue(m.vault.lista().isEmpty)
+    }
+
+    func test_un_campo_secret_sin_nombre_es_error_sin_valores_y_deshace_lo_guardado() throws {
+        let m = monta()
+        let bueno = FormField(id: "a", label: "A", kind: .secret, secretName: "uno")
+        let sinNombre = FormField(id: "b", label: "B", kind: .secret)
+        let out = m.tool.guarda(secretos: [bueno, sinNombre], origen: "accounts.google.com",
+                                en: FormResponse(status: .submitted, values: ["a": "valor-a", "b": "valor-b"]))
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertFalse(out.contains("valor-a") || out.contains("valor-b"), out)
+        XCTAssertNil(m.vault.valor(de: "uno"), "lo guardado antes del campo roto se deshace")
+    }
+
+    /// (c) Un secreto previo fuera del índice (su registro existe pero `lista()` no lo trae, así
+    /// que no hay etiqueta) contaba como «nuevo» y el deshacer lo BORRABA. Se restaura con lo que haya.
+    func test_el_deshacer_restaura_un_secreto_previo_aunque_le_falte_la_etiqueta() async throws {
+        let almacen = AlmacenEnMemoria(["secreto.uno": #"{"value":"valor-viejo","etiqueta":"Vieja","origen":"accounts.google.com"}"#])
+        let m = monta(almacen: almacen)
+        let dos = #"[{"id":"a","label":"A","kind":"secret","secret_name":"uno"},{"id":"b","label":"B","kind":"secret","secret_name":"dos"}]"#
+        let out = try await ejecuta(m, fields: dos, enviar: ["a": "valor-nuevo", "b": ""])
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertEqual(m.vault.valor(de: "uno"), "valor-viejo", "el secreto previo se borró en vez de restaurarse")
+        XCTAssertEqual(m.vault.origen(de: "uno"), "accounts.google.com")
+    }
+
+    /// (c) Si restaurar falla, el mensaje no puede decir «No se ha guardado ninguno»: el secreto
+    /// previo se ha quedado con el valor nuevo, y el modelo y el usuario tienen que saberlo.
+    func test_si_restaurar_falla_el_mensaje_no_miente() async throws {
+        let almacen = AlmacenQueFallaTras(escrituras: 1, inicial: [
+            "indice": #"["uno"]"#,
+            "secreto.uno": #"{"value":"valor-viejo","etiqueta":"Vieja","origen":"accounts.google.com"}"#])
+        let mock = MockAgentBrowserInvoker.succeeding(stdout: urlGoogle)
+        let vault = SecretVault(almacen: almacen)
+        reloj.esperaDeVerdad = true
+        let reloj = self.reloj
+        let broker = FormBroker(dormir: { _ in if reloj.esperaDeVerdad { try await Task.sleep(for: .seconds(3600)) } })
+        let tool = PresentFormTool(broker: broker, vault: vault,
+                                   service: AgentBrowserService(invoker: EnvoltorioConStdin(mock), sessionName: "gemma"))
+        let dos = #"[{"id":"a","label":"A","kind":"secret","secret_name":"uno"},{"id":"b","label":"B","kind":"secret","secret_name":"dos"}]"#
+        let t = Task { await tool.run(argsJSON: args(fields: dos)) }
+        for _ in 0..<500 where broker.pendiente == nil { await Task.yield() }
+        broker.envia(id: try XCTUnwrap(broker.pendiente).id, valores: ["a": "valor-nuevo", "b": "valor-b"])
+        let out = await t.value
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        let msg = j["message"] as? String ?? ""
+        XCTAssertFalse(msg.contains("No se ha guardado ninguno"), msg)
+        XCTAssertTrue(msg.contains("uno"), msg)
+        XCTAssertFalse(out.contains("valor-nuevo") || out.contains("valor-viejo") || out.contains("valor-b"), out)
     }
 
     // MARK: list_secrets / forget_secret

@@ -129,19 +129,61 @@ final class PresentFormTool: AgentTool, Sendable {
     ///
     /// Todo o nada: si uno falla se deshacen los que ya se guardaron en ESTA llamada (los nuevos
     /// se borran; los que ya existían recuperan su valor, etiqueta y origen anteriores).
-    private func guarda(secretos: [FormField], origen: String?, en respuesta: FormResponse) -> String {
+    ///
+    /// Interna (no privada) para poder probar las ramas que `run` no alcanza por construcción
+    /// (sin origen, campo `secret` sin nombre): esas ramas fallan CERRADO, sin devolver valores.
+    func guarda(secretos: [FormField], origen: String?, en respuesta: FormResponse) -> String {
+        // Sin campos secret no hay nada que guardar ni que atar: la respuesta va tal cual.
+        if secretos.isEmpty { return FormResponse(status: .submitted, values: respuesta.values).json }
+        // Sin origen no hay a qué atar nada. Antes se hacía `continue` y el valor crudo se quedaba
+        // en `values` camino del modelo: ahora es un error que no lleva ningún valor.
+        guard let origen else {
+            return AgentBrowserToolOutput.invalidArguments(
+                "No se sabe a qué sitio atar los secretos; no se ha guardado ninguno. Abre la página y vuelve a pedir el formulario.")
+        }
         var valores = respuesta.values
         // Estado previo de cada nombre, capturado ANTES de escribir nada: el deshacer restaura lo
-        // que había (valor, etiqueta y origen) y solo borra lo que era nuevo.
+        // que había y solo borra lo que era nuevo. Valor y origen salen del MISMO registro (si hay
+        // uno, hay el otro); la etiqueta sale del índice y puede faltar (un registro fuera del
+        // índice): se restaura con lo que haya, usando la etiqueta del campo, en vez de borrarlo.
         let previos: [String: (valor: String, etiqueta: String, origen: String)] = Dictionary(
             uniqueKeysWithValues: secretos.compactMap { campo -> (String, (String, String, String))? in
-                guard let n = campo.secretName, let v = vault.valor(de: n), let o = vault.origen(de: n),
-                      let e = vault.lista().first(where: { $0.name == n })?.etiqueta else { return nil }
+                guard let n = campo.secretName, let v = vault.valor(de: n), let o = vault.origen(de: n) else { return nil }
+                let e = vault.lista().first(where: { $0.name == n })?.etiqueta ?? campo.label
                 return (n, (v, e, o))
             })
         var guardados: [String] = []
+        /// Deshace lo guardado en esta llamada y devuelve los nombres que NO se pudieron restaurar.
+        func deshaz() -> [String] {
+            var sinRestaurar: [String] = []
+            for n in guardados {
+                if let p = previos[n] {
+                    if !vault.guarda(name: n, value: p.valor, etiqueta: p.etiqueta, origen: p.origen) {
+                        sinRestaurar.append(n)
+                    }
+                } else {
+                    vault.borra(name: n)
+                }
+            }
+            return sinRestaurar
+        }
+        /// El error de un guardado fallido. Nunca lleva valores, solo nombres; y no promete «no se
+        /// ha guardado ninguno» si algún secreto previo se quedó con el valor nuevo.
+        func fallo(_ motivo: String) -> String {
+            let sinRestaurar = deshaz()
+            guard sinRestaurar.isEmpty else {
+                let lista = sinRestaurar.map { "'\($0)'" }.joined(separator: ", ")
+                return AgentBrowserToolOutput.invalidArguments(
+                    motivo + " Además NO se pudo restaurar el valor anterior de \(lista): puede haber quedado "
+                    + "con el valor recién tecleado. Revísalo con list_secrets y avisa al usuario.")
+            }
+            return AgentBrowserToolOutput.invalidArguments(
+                motivo + " No se ha guardado ninguno de los secretos de este formulario.")
+        }
         for campo in secretos {
-            guard let nombre = campo.secretName, let origen else { continue }
+            guard let nombre = campo.secretName else {
+                return fallo("El campo secret '\(campo.id)' no tiene secret_name.")
+            }
             let valor = respuesta.values[campo.id] ?? ""
             if valor.isEmpty && !campo.required {
                 // Opcional y vacío: no hay nada que guardar (la bóveda rechaza vacíos). Se dice
@@ -150,16 +192,7 @@ final class PresentFormTool: AgentTool, Sendable {
                 continue
             }
             if !vault.guarda(name: nombre, value: valor, etiqueta: campo.label, origen: origen) {
-                for n in guardados {
-                    if let p = previos[n] {
-                        vault.guarda(name: n, value: p.valor, etiqueta: p.etiqueta, origen: p.origen)
-                    } else {
-                        vault.borra(name: n)
-                    }
-                }
-                return AgentBrowserToolOutput.invalidArguments(
-                    "No se pudo guardar el secreto '\(nombre)' (valor vacío o bóveda no disponible). "
-                    + "No se ha guardado ninguno de los secretos de este formulario.")
+                return fallo("No se pudo guardar el secreto '\(nombre)' (valor vacío o bóveda no disponible).")
             }
             guardados.append(nombre)
             valores[campo.id] = FormResponse.textoDeSecretoGuardado(nombre)

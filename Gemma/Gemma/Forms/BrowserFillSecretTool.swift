@@ -102,9 +102,14 @@ final class BrowserFillSecretTool: AgentTool, Sendable {
         // (medido en agent-browser 0.41.2). La redacción lo taparía igual; mejor que no salga.
         let outcome = await service.run(command: ["batch", "--omit-command"], sessioned: true,
                                         timeout: Self.timeout, stdin: entrada)
+        // Cada rama devuelve por sí misma: el «success» vive SOLO en `.ok`, así que ninguna otra
+        // rama puede caer a él por descuido (fallo abierto).
         switch outcome {
         case .ok:
-            break
+            return ToolJSONOutput.object([
+                "status": "success",
+                "message": "Campo '\(selector)' rellenado con el secreto '\(nombre)'."
+            ])
         case .malformed:
             // NUNCA la salida cruda: `resolve` mete hasta 300 caracteres de ella en el mensaje. Si
             // esa salida es JSON que ecoa el valor, el valor ya viene escapado y al serializar el
@@ -124,10 +129,8 @@ final class BrowserFillSecretTool: AgentTool, Sendable {
         case .unavailable:
             // Motivos escritos por la app (binario ausente, plazo, sin entrada estándar): sin eco.
             if case .failure(let json) = AgentBrowserToolOutput.resolve(outcome) { return json }
+            return AgentBrowserToolOutput.invalidArguments(
+                "El navegador no está disponible; no se ha tecleado nada.")
         }
-        return ToolJSONOutput.object([
-            "status": "success",
-            "message": "Campo '\(selector)' rellenado con el secreto '\(nombre)'."
-        ])
     }
 }

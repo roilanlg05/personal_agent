@@ -26,9 +26,14 @@ public struct SecretoGuardado: Codable, Equatable, Sendable {
 /// sabe listar. Por eso hay dos clases de cuenta:
 ///   - `secreto.<name>`: JSON `{value, etiqueta, origen}` de UN secreto;
 ///   - `indice`: JSON con la lista de nombres, para poder enumerar.
-/// El índice es solo un atajo para listar: si se corrompe, se trata como vacío y se reconstruye con
-/// el siguiente `guarda`, y una entrada del índice cuyo secreto no se pueda decodificar se omite.
-/// Nunca se lanza ni se devuelve basura.
+/// El índice es la ÚNICA forma de enumerar secretos, y por eso no se puede tratar un índice ilegible
+/// como «vacío»: con este protocolo no se pueden escanear cuentas para reconstruirlo, así que
+/// reescribirlo con solo el nombre nuevo dejaría los demás secretos en el Keychain pero fuera de
+/// `lista()` (sin poder borrarlos) y, peor, fuera de `valoresActuales()`, de modo que el redactor
+/// dejaría de enmascararlos y la contraseña podría filtrarse a logs o transcript. Se distingue
+/// «no hay índice» (vacío legítimo) de «hay algo ilegible» (corrupción o fallo transitorio de
+/// lectura, p. ej. Keychain bloqueado): en el segundo caso `guarda` se NIEGA y no toca nada.
+/// Una entrada del índice cuyo secreto no se pueda decodificar se omite.
 ///
 /// ATADURA AL ORIGEN. Cada secreto lleva el host de la página para la que se guardó. Sin esto, un
 /// modelo engañado por una página maliciosa podría pedir «teclea gmail_pass» en `evil.com`. La
@@ -82,13 +87,15 @@ public final class SecretVault: Sendable {
     public func guarda(name: String, value: String, etiqueta: String, origen: String) -> Bool {
         guard Self.esNombreValido(name), !value.isEmpty else { return false }
         cerrojo.lock(); defer { cerrojo.unlock() }
+        // Con el índice ilegible no se escribe NADA, ni siquiera el secreto: quedaría fuera del índice.
+        guard leerIndice() != nil else { return false }
 
         guard let datos = try? JSONEncoder().encode(Registro(value: value, etiqueta: etiqueta, origen: origen)),
               let json = String(data: datos, encoding: .utf8),
               almacen.escribir(json, cuenta: Self.cuenta(name))
         else { return false }
 
-        var nombres = leerIndice()
+        guard var nombres = leerIndice() else { return false }
         if !nombres.contains(name) {
             nombres.append(name)
             guard escribirIndice(nombres) else {
@@ -106,8 +113,8 @@ public final class SecretVault: Sendable {
         guard Self.esNombreValido(name) else { return }
         cerrojo.lock(); defer { cerrojo.unlock() }
         almacen.borrar(cuenta: Self.cuenta(name))
-        let nombres = leerIndice()
-        if nombres.contains(name) { _ = escribirIndice(nombres.filter { $0 != name }) }
+        // Índice ilegible: el valor ya se borró y el índice no se toca (no se puede reescribir sin perder nombres).
+        if let nombres = leerIndice(), nombres.contains(name) { _ = escribirIndice(nombres.filter { $0 != name }) }
     }
 
     // MARK: lectura
@@ -126,7 +133,7 @@ public final class SecretVault: Sendable {
     /// Los secretos guardados, sin valores, en el orden en que se guardaron.
     public func lista() -> [SecretoGuardado] {
         cerrojo.lock(); defer { cerrojo.unlock() }
-        return leerIndice().compactMap { name in
+        return (leerIndice() ?? []).compactMap { name in
             registro(de: name).map { SecretoGuardado(name: name, etiqueta: $0.etiqueta, origen: $0.origen) }
         }
     }
@@ -134,7 +141,7 @@ public final class SecretVault: Sendable {
     /// Todos los valores no vacíos, para el redactor que los tacha de transcripts y logs.
     public func valoresActuales() -> [String] {
         cerrojo.lock(); defer { cerrojo.unlock() }
-        return leerIndice().compactMap { registro(de: $0)?.value }.filter { !$0.isEmpty }
+        return (leerIndice() ?? []).compactMap { registro(de: $0)?.value }.filter { !$0.isEmpty }
     }
 
     // MARK: origen
@@ -163,8 +170,17 @@ public final class SecretVault: Sendable {
         if let i = h.lastIndex(of: ":"), h[h.index(after: i)...].allSatisfy(\.isNumber) {
             h = String(h[..<i])
         }
-        while h.hasSuffix(".") { h.removeLast() }
-        return h.isEmpty ? nil : h
+        // Un solo punto final (host absoluto); más de uno dejaría una etiqueta vacía y se rechaza abajo.
+        if h.hasSuffix(".") { h.removeLast() }
+        // Juego de caracteres: ESTA es la defensa contra «evil.com/.google.com», «evil.com#.google.com»
+        // o «evil.com\n.google.com», que terminan en «.google.com» sin ser un subdominio. Cada etiqueta
+        // debe ser [a-z0-9-]+ (punycode «xn--» incluido) y no vacía. Si el llamador pasara una URL en
+        // vez de un host, esto la rechaza en lugar de interpretarla.
+        let etiquetas = h.split(separator: ".", omittingEmptySubsequences: false)
+        let valido = !etiquetas.isEmpty && etiquetas.allSatisfy { e in
+            !e.isEmpty && e.unicodeScalars.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "-" }
+        }
+        return valido ? h : nil
     }
 
     // MARK: internos
@@ -177,11 +193,10 @@ public final class SecretVault: Sendable {
         return r
     }
 
-    private func leerIndice() -> [String] {
-        guard let json = almacen.leer(cuenta: Self.cuentaDelIndice),
-              let nombres = try? JSONDecoder().decode([String].self, from: Data(json.utf8))
-        else { return [] }
-        return nombres
+    /// `[]` si no hay índice todavía; `nil` si existe pero no se puede leer como lista de nombres.
+    private func leerIndice() -> [String]? {
+        guard let json = almacen.leer(cuenta: Self.cuentaDelIndice) else { return [] }
+        return try? JSONDecoder().decode([String].self, from: Data(json.utf8))
     }
 
     private func escribirIndice(_ nombres: [String]) -> Bool {

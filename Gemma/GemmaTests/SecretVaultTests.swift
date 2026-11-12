@@ -89,12 +89,56 @@ final class SecretVaultTests: XCTestCase {
         XCTAssertTrue(b.guarda(name: "a_1", value: "v", etiqueta: "E", origen: "x.com"))
     }
 
-    func test_indice_corrupto_no_rompe_y_se_recupera() {
+    func test_indice_corrupto_sin_secretos_no_rompe_y_guarda_se_niega() {
         let almacen = AlmacenEnMemoria(["indice": "{{no es json"])
         let b = SecretVault(almacen: almacen)
         XCTAssertTrue(b.lista().isEmpty)
-        XCTAssertTrue(b.guarda(name: "a", value: "uno", etiqueta: "A", origen: "x.com"))
-        XCTAssertEqual(b.lista().map(\.name), ["a"])
+        XCTAssertFalse(b.guarda(name: "a", value: "uno", etiqueta: "A", origen: "x.com"))
+    }
+
+    func test_indice_corrupto_con_secretos_ya_guardados_no_se_pisa() {
+        let almacen = AlmacenEnMemoria()
+        let b = SecretVault(almacen: almacen)
+        b.guarda(name: "viejo", value: "CLAVE-VIEJA", etiqueta: "V", origen: "x.com")
+        XCTAssertEqual(b.valoresActuales(), ["CLAVE-VIEJA"])
+        almacen.escribir("{{corrupto", cuenta: "indice")
+
+        XCTAssertFalse(b.guarda(name: "nuevo", value: "otra", etiqueta: "N", origen: "x.com"))
+        // No se reescribió el índice con solo el nombre nuevo, y el secreto viejo sigue intacto.
+        XCTAssertEqual(almacen.leer(cuenta: "indice"), "{{corrupto")
+        XCTAssertNil(almacen.leer(cuenta: "secreto.nuevo"))
+        XCTAssertEqual(b.valor(de: "viejo"), "CLAVE-VIEJA")
+        // Arreglado el índice a mano, el secreto vuelve a verse en lista y en el redactor.
+        almacen.escribir(#"["viejo"]"#, cuenta: "indice")
+        XCTAssertEqual(b.valoresActuales(), ["CLAVE-VIEJA"])
+        XCTAssertTrue(b.guarda(name: "nuevo", value: "otra", etiqueta: "N", origen: "x.com"))
+        XCTAssertEqual(b.lista().map(\.name), ["viejo", "nuevo"])
+    }
+
+    func test_borra_con_indice_corrupto_borra_el_valor_y_no_toca_el_indice() {
+        let almacen = AlmacenEnMemoria()
+        let b = SecretVault(almacen: almacen)
+        b.guarda(name: "a", value: "uno", etiqueta: "A", origen: "x.com")
+        almacen.escribir("{{corrupto", cuenta: "indice")
+        b.borra(name: "a")
+        XCTAssertNil(b.valor(de: "a"))
+        XCTAssertEqual(almacen.leer(cuenta: "indice"), "{{corrupto")
+    }
+
+    func test_origenPermite_rechaza_hosts_con_caracteres_que_no_son_de_host() {
+        let g = "google.com"
+        for malo in ["evil.com/.google.com", "evil.com#.google.com", "evil.com?.google.com",
+                     "evil.com\\.google.com", "evil.com\n.google.com", "evil.com .google.com",
+                     "user@evil.com.google.com", "a..google.com", ".google.com", "ev\u{0131}l.google.com",
+                     "evil.com:google.com"] {
+            XCTAssertFalse(SecretVault.origenPermite(guardado: g, paginaActual: malo), malo)
+        }
+        // El mismo juego de caracteres se exige al origen guardado.
+        XCTAssertFalse(SecretVault.origenPermite(guardado: "google.com/x", paginaActual: "google.com/x"))
+        XCTAssertFalse(SecretVault.origenPermite(guardado: "a b", paginaActual: "a b"))
+        // Punycode y guiones siguen valiendo.
+        XCTAssertTrue(SecretVault.origenPermite(guardado: "xn--bcher-kva.example", paginaActual: "www.xn--bcher-kva.example"))
+        XCTAssertTrue(SecretVault.origenPermite(guardado: "my-site.com", paginaActual: "a-b.my-site.com"))
     }
 
     func test_entrada_corrupta_se_omite_de_lista_y_valores() {

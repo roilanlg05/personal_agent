@@ -22,6 +22,9 @@ public enum AgentBrowserInvocationFailure: Error, Sendable, Equatable {
     case timedOut(seconds: TimeInterval)
     /// El sistema no pudo lanzar el proceso.
     case launchFailed(String)
+    /// `agent-browser` cerró la sesión pero el Chrome real sigue abierto. Lleva el mensaje en
+    /// español que debe ver el modelo, para que no le diga al usuario que se cerró.
+    case closeFailed(String)
 }
 
 /// Lanza el CLI y devuelve su salida cruda. Punto de sustitución para las pruebas.
@@ -151,7 +154,10 @@ public final class ProcessAgentBrowserInvoker: AgentBrowserInvokingConStdin, Sen
                                     timeout: timeout, stdin: stdin)
         if let navegadorReal, subcomando == "close",
            case .success(let corrida) = result, corrida.exitCode == 0 {
-            await navegadorReal.cierra()
+            if !(await navegadorReal.cierra()) {
+                return .failure(.closeFailed(
+                    "No pude cerrar Chrome: sigue abierto en el puerto \(navegadorReal.puertoCDP)."))
+            }
         }
         // Si la ruta recordada ya no se puede lanzar (desinstalaron el binario con la app
         // abierta), se olvida: así la llamada siguiente vuelve a buscar y puede volver a

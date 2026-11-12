@@ -163,6 +163,8 @@ public struct AgentBrowserService: Sendable {
         case .launchFailed(let detail):
             return .unavailable(reason: "No se pudo lanzar el navegador: \(detail)",
                                 isMissingBinary: false)
+        case .closeFailed(let detail):
+            return .unavailable(reason: detail, isMissingBinary: false)
         }
     }
 }

@@ -176,7 +176,9 @@ final class BrowserCoreSkillTests: XCTestCase {
         XCTAssertTrue(rt.firstSystemPrompt.contains(BrowserRules.text),
                       "las reglas del navegador tienen que viajar en el prompt del sistema de la PRIMERA llamada")
         XCTAssertTrue(rt.firstSystemPrompt.contains("Never ask for a secret in the chat"),
-                      "la prohibición de teclear una contraseña llega antes de poder teclearla")
+                      "la prohibición de pedir un secreto por el chat llega antes de poder hacerlo")
+        XCTAssertTrue(rt.firstSystemPrompt.contains("If the user pastes one anyway, do not type it with `browser_fill`"),
+                      "la prohibición de teclear con browser_fill un secreto pegado llega antes de poder teclearlo")
     }
 
     /// Captura el prompt del sistema de la primera llamada y no pide herramientas.
@@ -461,6 +463,7 @@ final class BrowserCoreSkillTests: XCTestCase {
         XCTAssertTrue(p.contains("`browser_snapshot`"), "se borró el bucle de conducción")
         XCTAssertTrue(p.contains("An email address is NOT a secret"), "se borró la regla del correo")
         XCTAssertTrue(p.contains("Never ask for a secret in the chat"), "se borró la regla de la contraseña")
+        XCTAssertTrue(p.contains("If the user pastes one anyway, do not type it with `browser_fill`"), "se borró la prohibición de teclear con browser_fill un secreto pegado")
     }
 
     // MARK: - Resolución 12: la guía documenta un CLI más grande que nuestro agente

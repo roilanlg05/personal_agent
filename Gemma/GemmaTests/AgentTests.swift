@@ -504,7 +504,8 @@ final class AgentTests: XCTestCase {
         XCTAssertTrue(t.contains("present_form"))
         XCTAssertTrue(t.contains("browser_fill_secret"))
         XCTAssertTrue(t.contains("list_secrets"))
-        XCTAssertTrue(t.contains("never in the chat") || t.contains("Never ask for a secret in the chat"))
+        XCTAssertTrue(t.contains("Never ask for a secret in the chat"))
+        XCTAssertTrue(t.contains("If the user pastes one anyway, do not type it with `browser_fill`"), "falta la prohibicion de teclear con browser_fill un secreto pegado")
         for vieja in ["with the wheel", "ask them to do that step", "types the password themselves"] {
             XCTAssertFalse(t.contains(vieja), "frase del mando que ya no vale: \(vieja)")
         }

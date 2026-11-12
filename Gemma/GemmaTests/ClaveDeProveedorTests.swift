@@ -462,8 +462,11 @@ final class ClaveDeProveedorTests: XCTestCase {
         // API keys: solo mira de qué clase es el almacén inyectado, y la bóveda abre su propio
         // servicio (`lambert-dev-group.Gemma.boveda`), nunca el de las API keys. Se exime por la
         // frase exacta y no por "is": cualquier otra mención del tipo sigue sujeta a la regla.
-        for linea in codigoDelModelo
-        where linea.contains("LlaveroDelSistema") && !linea.contains("almacen is LlaveroDelSistema") {
+        // La frase se QUITA de la línea y lo que queda se juzga con la regla de siempre: así una
+        // línea que lleve la comprobación de tipo Y además un uso del global no se libra.
+        for original in codigoDelModelo where original.contains("LlaveroDelSistema") {
+            let linea = original.replacingOccurrences(of: "almacen is LlaveroDelSistema", with: "")
+            guard linea.contains("LlaveroDelSistema") else { continue }
             lineasConElGlobal += 1
             XCTAssertTrue(linea.contains("= LlaveroDelSistema.compartido"),
                           """

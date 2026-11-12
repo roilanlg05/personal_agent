@@ -1,5 +1,7 @@
 # El protocolo de entrada del demonio, medido
 
+> **RETIRADO el 2026-11-12** por `docs/superpowers/plans/2026-11-12-quitar-el-mando.md`. El usuario: «elimina ese control manual de raíz, solo necesito streaming del navegador abierto en mi mac hacia la app, sin controlarlo». Se conserva como historia; nada de lo que describe sobre la entrada del usuario existe ya en el código. Lo rescatado del servidor está en `feat/chrome-de-verdad` (3f814b5) y lo demás en la etiqueta `archivo/mando-subsistema-a` del repo gemma-memory.
+
 Fecha: 2026-11-09. Tarea 1 del subsistema B del mando compartido.
 
 ## Por qué hay que medirlo y no deducirlo

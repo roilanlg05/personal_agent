@@ -1,5 +1,7 @@
 # El mando compartido, subsistema A — Plan de implementación
 
+> **RETIRADO el 2026-11-12** por `docs/superpowers/plans/2026-11-12-quitar-el-mando.md`. El usuario: «elimina ese control manual de raíz, solo necesito streaming del navegador abierto en mi mac hacia la app, sin controlarlo». Se conserva como historia; nada de lo que describe sobre la entrada del usuario existe ya en el código. Lo rescatado del servidor está en `feat/chrome-de-verdad` (3f814b5) y lo demás en la etiqueta `archivo/mando-subsistema-a` del repo gemma-memory.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Que el servicio del navegador del i3 sepa quién conduce —el agente o el

@@ -1,5 +1,7 @@
 # El mando compartido, subsistema B: las interfaces — Plan de implementación
 
+> **RETIRADO el 2026-11-12** por `docs/superpowers/plans/2026-11-12-quitar-el-mando.md`. El usuario: «elimina ese control manual de raíz, solo necesito streaming del navegador abierto en mi mac hacia la app, sin controlarlo». Se conserva como historia; nada de lo que describe sobre la entrada del usuario existe ya en el código. Lo rescatado del servidor está en `feat/chrome-de-verdad` (3f814b5) y lo demás en la etiqueta `archivo/mando-subsistema-a` del repo gemma-memory.
+
 > **Para agentes:** SUB-SKILL OBLIGATORIA: usa superpowers:subagent-driven-development
 > (elegida por el usuario) para implementar este plan tarea a tarea. Los pasos usan
 > casillas (`- [ ]`) para seguir el avance.

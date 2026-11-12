@@ -353,7 +353,10 @@ struct AgentChatView: View {
                                    // tiene, así que las filas del historial salen con el botón
                                    // apagado, que es la verdad: por ese socket ya no sale nada.
                                    mando: entry.panelID.flatMap { model.browserPanels.mando(de: $0) },
-                                   sesion: entry.panelID.flatMap { model.browserPanels.sesion(de: $0) })
+                                   sesion: entry.panelID.flatMap { model.browserPanels.sesion(de: $0) },
+                                   formulario: entry.role == "form" ? model.especificacionDeFormulario(entry) : nil,
+                                   onEnviarFormulario: { model.enviaFormulario(entry, valores: $0) },
+                                   onCancelarFormulario: { model.cancelaFormulario(entry) })
                             .id(entry.id)
                     }
                     Color.clear.frame(height: 75)
@@ -580,6 +583,11 @@ struct ChatLogRow: View {
     let mando: MandoDelNavegador?
     /// El gesto en curso y lo que no salió de ese panel; `nil` en los mismos casos que `mando`.
     let sesion: BrowserMandoSesion?
+    /// Solo filas `form`: el formulario a dibujar y a quién avisar. Opcionales con valor por
+    /// omisión para no tocar otros sitios que construyan la fila.
+    var formulario: FormSpec? = nil
+    var onEnviarFormulario: (([String: String]) -> Void)? = nil
+    var onCancelarFormulario: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -597,6 +605,15 @@ struct ChatLogRow: View {
 
             case "tool":
                 ToolLogRow(entry: $entry)
+
+            case "form":
+                if let formulario {
+                    FormCardView(spec: formulario,
+                                 enviado: entry.formEstado != "pendiente",
+                                 cancelado: entry.formEstado == "cancelado",
+                                 onEnviar: { onEnviarFormulario?($0) },
+                                 onCancelar: { onCancelarFormulario?() })
+                }
 
             case "browserPanel":
                 if let panel { BrowserPanelView(state: panel, mando: mando, sesion: sesion) }

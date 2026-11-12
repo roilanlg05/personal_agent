@@ -102,7 +102,7 @@ final class BrowserCrossPlatformTests: XCTestCase {
     /// nombra nada.
     func test_las_herramientas_de_navegador_se_registran_en_cualquier_plataforma() {
         XCTAssertEqual(HarnessModel.browserToolRegistry(almacen: AlmacenEnMemoria()).tools.count,
-                       Agent.browserToolNames.count + 1)
+                       Agent.browserToolNames.count + 1 + 3)  // read_webpage + present_form/list_secrets/forget_secret
     }
 
     #if os(iOS)

@@ -166,7 +166,7 @@ final class Agent {
 
     private func systemPrompt() -> String { Self.systemPromptText }
 
-    /// Las ocho herramientas que conducen una página en el navegador del agente.
+    /// Las nueve herramientas que conducen una página en el navegador del agente.
     ///
     /// A diferencia del resto del registro, un turno que las usa necesita VARIAS rondas
     /// (`browser_open` → `browser_snapshot` → actuar → `browser_snapshot`), así que tanto la
@@ -175,7 +175,14 @@ final class Agent {
     /// cierre normal.
     nonisolated static let browserToolNames: Set<String> = [
         "browser_open", "browser_snapshot", "browser_click", "browser_fill",
-        "browser_press", "browser_wait", "browser_get", "browser_close"
+        "browser_press", "browser_wait", "browser_get", "browser_close",
+        // Teclea un secreto de la bóveda: es el análogo de `browser_fill`, así que actúa sobre la
+        // página y NO está en `browserToolNamesThatResetThePage` (escribir en un campo no recarga
+        // el documento ni invalida las `@eN`, igual que `browser_fill`) ni en
+        // `browserToolNamesThatDoNotTouchThePage` (si falla, la línea de estado debe poder avisar).
+        // `present_form`, `list_secrets` y `forget_secret` NO son del navegador: no tocan la página
+        // y quedan fuera, así que `toolInventoryNote` no las cuenta.
+        "browser_fill_secret"
     ]
 
     /// Las herramientas de navegador que LEEN la pagina sin tocarla.

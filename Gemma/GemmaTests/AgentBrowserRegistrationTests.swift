@@ -22,7 +22,13 @@ final class AgentBrowserRegistrationTests: XCTestCase {
     /// no nombra nada. Derivado, la herramienta nueva entra sola en cuanto se añada a
     /// `browserToolNames`, y si alguien la registra SIN añadirla ahí el fallo dice exactamente
     /// qué nombre sobra o falta.
-    private var esperadas: Set<String> { Agent.browserToolNames.union(["read_webpage"]) }
+    ///
+    /// Con broker y bóveda (producción, y `browserToolRegistry`) se suman las tres herramientas de
+    /// formularios que NO conducen la página (`browser_fill_secret` sí, y ya está en
+    /// `browserToolNames`).
+    private let deFormularios: Set<String> = ["present_form", "list_secrets", "forget_secret"]
+    private var sinFormularios: Set<String> { Agent.browserToolNames.subtracting(["browser_fill_secret"]).union(["read_webpage"]) }
+    private var esperadas: Set<String> { Agent.browserToolNames.union(["read_webpage"]).union(deFormularios) }
 
     private func nombresRegistrados(_ registry: ToolRegistry) -> Set<String> {
         Set(registry.tools.map { type(of: $0).name })
@@ -39,7 +45,9 @@ final class AgentBrowserRegistrationTests: XCTestCase {
         // La distinción que no hay que borrar: `read_webpage` está registrada y NO es del
         // navegador. Si algún día lo fuera, esta línea es la que lo dice en voz alta.
         XCTAssertFalse(Agent.browserToolNames.contains("read_webpage"))
-        XCTAssertEqual(esperadas.count, Agent.browserToolNames.count + 1)
+        XCTAssertEqual(esperadas.count, Agent.browserToolNames.count + 1 + deFormularios.count)
+        XCTAssertTrue(Agent.browserToolNames.contains("browser_fill_secret"))
+        for f in deFormularios { XCTAssertFalse(Agent.browserToolNames.contains(f), f) }
     }
 
     func test_every_browser_tool_has_a_valid_function_spec() {
@@ -55,8 +63,9 @@ final class AgentBrowserRegistrationTests: XCTestCase {
         let registry = ToolRegistry()
         registry.register(WebSearchTool())
         HarnessModel.registerBrowserTools(into: registry, almacen: AlmacenEnMemoria())
-        XCTAssertEqual(nombresRegistrados(registry), esperadas.union(["web_search"]))
-        XCTAssertEqual(registry.tools.count, esperadas.count + 1)
+        // Sin broker ni bóveda no se registra NINGUNA de las cuatro de formularios/secretos.
+        XCTAssertEqual(nombresRegistrados(registry), sinFormularios.union(["web_search"]))
+        XCTAssertEqual(registry.tools.count, sinFormularios.count + 1)
         XCTAssertNotNil(registry.tool(named: "web_search"))
     }
 

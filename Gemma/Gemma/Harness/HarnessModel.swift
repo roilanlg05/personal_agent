@@ -6,7 +6,7 @@ import UIKit
 
 public struct ChatLogEntry: Identifiable, Sendable, Equatable {
     public let id: String
-    public var role: String // "you", "gemma", "tool", "system", "error", "browserPanel"
+    public var role: String // "you", "gemma", "tool", "system", "error", "browserPanel", "form"
     public var text: String
     public var thought: String?
     public var isThoughtExpanded: Bool = false
@@ -17,8 +17,14 @@ public struct ChatLogEntry: Identifiable, Sendable, Equatable {
     public var toolName: String?
     public var toolDetail: String?
     public var isToolExpanded: Bool = false
+    /// Solo para `role == "form"`: id del formulario en `FormBroker` (`PendingForm.id`). El título
+    /// del formulario va en `text`. La fila NUNCA lleva valores: ni los tecleados ni los enviados.
+    public var formID: String?
+    /// Solo para `role == "form"`: `"pendiente"`, `"enviado"` o `"cancelado"` (incluye plazo vencido
+    /// y fin de turno). Es lo único que la tarjeta recuerda del desenlace.
+    public var formEstado: String?
 
-    public init(id: String = UUID().uuidString, role: String, text: String, thought: String? = nil, isThoughtExpanded: Bool = false, panelID: String? = nil, toolName: String? = nil, toolDetail: String? = nil, isToolExpanded: Bool = false) {
+    public init(id: String = UUID().uuidString, role: String, text: String, thought: String? = nil, isThoughtExpanded: Bool = false, panelID: String? = nil, toolName: String? = nil, toolDetail: String? = nil, isToolExpanded: Bool = false, formID: String? = nil, formEstado: String? = nil) {
         self.id = id
         self.role = role
         self.text = text
@@ -28,6 +34,8 @@ public struct ChatLogEntry: Identifiable, Sendable, Equatable {
         self.toolName = toolName
         self.toolDetail = toolDetail
         self.isToolExpanded = isToolExpanded
+        self.formID = formID
+        self.formEstado = formEstado
     }
 }
 
@@ -59,6 +67,13 @@ public final class HarnessModel {
     /// llavero desde el binario de pruebas puede además abrir un diálogo y colgar la corrida de
     /// todos. Esas tres pruebas pasan un `AlmacenEnMemoria`.
     @ObservationIgnored let almacenDeSecretos: any AlmacenDeSecretos
+    /// Intermediario de los formularios que pide el agente (`present_form`). Uno por modelo: la
+    /// tarjeta del chat observa su `pendiente`.
+    @ObservationIgnored let formularios = FormBroker()
+    /// Bóveda de secretos del usuario. Con el llavero real usa SU servicio propio
+    /// (`SecretVault.servicioDelLlavero`, distinto del de los tokens); con un almacén inyectado
+    /// (las pruebas) usa ese mismo almacén, de modo que una prueba NUNCA toca el Keychain real.
+    @ObservationIgnored let boveda: SecretVault
     /// In-app voice: records mic audio, sends it to the i3 voice service, plays the reply.
     @ObservationIgnored let voice = VoiceController(recorder: AudioRecorder())
     /// Always-listening "Hey Jarvis". Built lazily (loads ONNX models) so a load failure doesn't crash init.
@@ -165,8 +180,10 @@ public final class HarnessModel {
     }
 
     public init(browserPanels: BrowserPanelCoordinator? = nil,
-                almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido) {
+                almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido,
+                boveda: SecretVault? = nil) {
         self.almacenDeSecretos = almacen
+        self.boveda = boveda ?? (almacen is LlaveroDelSistema ? SecretVault() : SecretVault(almacen: almacen))
         self.browserPanels = browserPanels ?? BrowserPanelCoordinator(stream: { Self.makeRelayStream() })
         var cfg = ServerConfig.default
         cfg.wiredLimitBytes = Self.wiredLimitBytes(
@@ -175,6 +192,7 @@ public final class HarnessModel {
         self.settings = settingsStore.load()
         Self.migrateMemoryBaseURLIfNeeded()
         self.runtime = RuntimeFactory.make(Self.chatProvider(keyLookup: Self.clavesDelAlmacen(almacen)))
+        observaFormularios()
         #if os(macOS)
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { [weak self] _ in
@@ -502,6 +520,7 @@ public final class HarnessModel {
         // el panel vivo de un turno anterior (con `activeID == nil` es un no-op): que el usuario
         // hable de otra cosa no debe cortarle el video. Por eso aquí NO va `retireLivePanel()`.
         browserPanels.endTurn(survive: false, porque: "el usuario mandó otro mensaje")
+        cierraFormularioAbierto()
         currentTurnTask = Task { @MainActor [weak self] in
             guard let self else { return }
             if let runner = self.turnRunnerOverride { await runner(prompt) } else { await self.runAgentTurn(prompt) }
@@ -513,6 +532,7 @@ public final class HarnessModel {
         currentTurnTask = nil
         // Detener es una orden explícita: congela aunque el navegador siga abierto.
         browserPanels.endTurn(survive: false, porque: "el usuario pulsó detener")
+        cierraFormularioAbierto()
         agentRunning = false
         agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
     }
@@ -574,8 +594,14 @@ public final class HarnessModel {
     /// `almacen` existe para que una PRUEBA no tenga que leer el token real del usuario del
     /// llavero: este método es la única ruta hasta `browserInvoker`, y cinco pruebas lo alcanzan
     /// por `browserToolRegistry()`.
+    ///
+    /// `formBroker` y `boveda` son opcionales y las cuatro herramientas de formularios/secretos
+    /// (`present_form`, `list_secrets`, `forget_secret`, `browser_fill_secret`) solo se registran si
+    /// llegan AMBOS: comparten el `AgentBrowserService` de abajo (la atadura al origen lee la página
+    /// abierta por él) y sin bóveda o sin dónde mostrar la tarjeta ninguna tiene sentido.
     static func registerBrowserTools(into registry: ToolRegistry, userAskedToClose: Bool = false,
-                                     almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido) {
+                                     almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido,
+                                     formBroker: FormBroker? = nil, boveda: SecretVault? = nil) {
         let service = AgentBrowserService(invoker: browserInvoker(almacen: almacen))
         registry.register(ReadWebpageTool(service: service))
         registry.register(BrowserOpenTool(service: service))
@@ -586,6 +612,12 @@ public final class HarnessModel {
         registry.register(BrowserWaitTool(service: service))
         registry.register(BrowserGetTool(service: service))
         registry.register(BrowserCloseTool(service: service, userAskedToClose: userAskedToClose))
+        if let formBroker, let boveda {
+            registry.register(PresentFormTool(broker: formBroker, vault: boveda, service: service))
+            registry.register(ListSecretsTool(vault: boveda))
+            registry.register(ForgetSecretTool(vault: boveda))
+            registry.register(BrowserFillSecretTool(service: service, vault: boveda))
+        }
     }
 
     /// Con `browserBaseURL` configurada el navegador es el del i3 (HTTP); sin ella, en macOS el
@@ -622,10 +654,14 @@ public final class HarnessModel {
     }
 
     /// Registro con solo las herramientas de navegador, para poder probarlas sin arrancar un turno.
+    ///
+    /// Incluye las herramientas de formularios con un broker y una bóveda sobre el MISMO `almacen`
+    /// inyectado, igual que producción: así el registro de prueba es el de verdad y no toca el Keychain.
     static func browserToolRegistry(almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido)
         -> ToolRegistry {
         let registry = ToolRegistry()
-        registerBrowserTools(into: registry, almacen: almacen)
+        registerBrowserTools(into: registry, almacen: almacen,
+                             formBroker: FormBroker(), boveda: SecretVault(almacen: almacen))
         return registry
     }
 
@@ -751,6 +787,77 @@ public final class HarnessModel {
         browserPanels.retireLivePanel(porque: "más de 30 min en silencio: conversación nueva")
     }
 
+    /// El `Agent` de producción. Separado de `runAgentTurn` para poder PROBAR que recibe la bóveda:
+    /// sin ella el redactor (`SecretRedactor`) es código muerto y un secreto podría llegar al
+    /// registro, al transcript o al modelo en el resultado de una herramienta.
+    func construyeAgent(registry: ToolRegistry, recallTail: String, wakeContext: String) -> Agent {
+        Agent(runtime: runtime, registry: registry, recallTail: recallTail, wakeContext: wakeContext,
+              bóveda: boveda)
+    }
+
+    // MARK: - Formularios
+
+    /// Observa `formularios.pendiente`: cada vez que cambia, sincroniza el chat. `onChange` salta
+    /// ANTES del cambio y una sola vez, así que se salta al siguiente ciclo del hilo principal para
+    /// leer el valor nuevo y se vuelve a armar.
+    private func observaFormularios() {
+        withObservationTracking {
+            _ = self.formularios.pendiente
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.sincronizaFormularios()
+                self?.observaFormularios()
+            }
+        }
+    }
+
+    /// Pone el chat al día con el broker: una sola tarjeta por formulario (se identifica por su id),
+    /// y toda tarjeta que seguía «pendiente» sin ser ya el formulario abierto pasa a «cancelado»
+    /// (plazo vencido, fin de turno o cancelación del llamador; enviar y cancelar desde la tarjeta
+    /// ya la marcan ellos mismos antes de resolver).
+    func sincronizaFormularios() {
+        let abierto = formularios.pendiente
+        for i in agentLog.indices where agentLog[i].role == "form"
+            && agentLog[i].formEstado == "pendiente" && agentLog[i].formID != abierto?.id {
+            agentLog[i].formEstado = "cancelado"
+        }
+        if let abierto, !agentLog.contains(where: { $0.formID == abierto.id }) {
+            agentLog.append(ChatLogEntry(role: "form", text: abierto.spec.title,
+                                         formID: abierto.id, formEstado: "pendiente"))
+        }
+    }
+
+    /// Fin de turno / detener / mensaje nuevo: lo que esté abierto se cierra como cancelado.
+    func cierraFormularioAbierto() {
+        formularios.cancelaTodo()
+        sincronizaFormularios()
+    }
+
+    /// Lo que la tarjeta de esta fila necesita para dibujarse. Abierta: el formulario real. Ya
+    /// resuelta: solo el título, sin campos y por tanto sin posibilidad de mostrar valores.
+    func especificacionDeFormulario(_ entry: ChatLogEntry) -> FormSpec {
+        if entry.formEstado == "pendiente", let p = formularios.pendiente, p.id == entry.formID {
+            return p.spec
+        }
+        return FormSpec(title: entry.text, description: nil, submitLabel: nil, fields: [])
+    }
+
+    func enviaFormulario(_ entry: ChatLogEntry, valores: [String: String]) {
+        guard let id = entry.formID, let i = agentLog.firstIndex(where: { $0.id == entry.id }),
+              agentLog[i].formEstado == "pendiente" else { return }
+        // Primero la tarjeta, luego el broker: al resolver, el observador no debe ver una tarjeta
+        // «pendiente» huérfana y marcarla como cancelada.
+        agentLog[i].formEstado = "enviado"
+        formularios.envia(id: id, valores: valores)
+    }
+
+    func cancelaFormulario(_ entry: ChatLogEntry) {
+        guard let id = entry.formID, let i = agentLog.firstIndex(where: { $0.id == entry.id }),
+              agentLog[i].formEstado == "pendiente" else { return }
+        agentLog[i].formEstado = "cancelado"
+        formularios.cancela(id: id)
+    }
+
     public func runAgentTurn(_ prompt: String) async {
         let provider = Self.chatProvider(keyLookup: Self.clavesDelAlmacen(almacenDeSecretos))
         if !(self.runtime is LlamaCppRuntime && provider.kind == .onDevice) {
@@ -796,7 +903,8 @@ public final class HarnessModel {
         registry.register(OpenAppTool())
         registry.register(WebSearchTool())
         Self.registerBrowserTools(into: registry,
-                                  userAskedToClose: BrowserCloseIntent.userAskedToClose(prompt))
+                                  userAskedToClose: BrowserCloseIntent.userAskedToClose(prompt),
+                                  formBroker: formularios, boveda: boveda)
         registry.register(GetWeatherTool())
         registry.register(GetForecastTool())
         registry.register(CreateAlarmTool())
@@ -867,8 +975,10 @@ public final class HarnessModel {
             let turns = (try? await client.conversationWindow(threadId: threadId)) ?? []
             return turns.map { ChatMessage(role: $0.role == "assistant" ? .assistant : .user, content: $0.text) }
         }()
-        let agent = Agent(runtime: runtime, registry: registry, recallTail: recallTail, wakeContext: wakeContext)
+        let agent = construyeAgent(registry: registry, recallTail: recallTail, wakeContext: wakeContext)
         let finalAssistantText = await consumeAgentEvents(agent.run(prompt: prompt, options: makeGenerationOptions(history: history)))
+        // Un formulario que siguiera abierto al acabar el turno ya no tiene a nadie esperándolo.
+        cierraFormularioAbierto()
         // Append both turns to the transcript over HTTP. Failures are silent (service-down
         // shouldn't crash a successful turn — the user can see Gemma's reply).
         if let client {

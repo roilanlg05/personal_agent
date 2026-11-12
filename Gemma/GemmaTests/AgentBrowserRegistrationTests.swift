@@ -104,6 +104,47 @@ final class AgentBrowserRegistrationTests: XCTestCase {
                       "el permiso para cerrar el navegador debe salir del mensaje del usuario de este turno")
     }
 
+    /// El cuerpo de `runAgentTurn` como código INCONDICIONAL y sin comentarios, con los blancos
+    /// colapsados. Construir un turno real exige runtime y servicio de memoria, así que el cableado
+    /// de producción de los formularios se ata sobre el fuente (presencia sobre el troceado, para
+    /// que un `/* */` o un `#if` no la dejen en el texto con la característica borrada).
+    private func cuerpoDeRunAgentTurn() throws -> String {
+        let fuente = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Gemma/Harness/HarnessModel.swift")
+        let codigo = TroceadoDeFuente.codigoIncondicional(try String(contentsOf: fuente, encoding: .utf8))
+        let desde = try XCTUnwrap(codigo.range(of: "func runAgentTurn(_ prompt: String) async {"),
+                                  "ya no existe runAgentTurn")
+        let cuerpo = String(codigo[desde.lowerBound...])
+        return cuerpo.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
+    /// Sin la bóveda en el `Agent` de producción el redactor es código muerto (hallazgo de la Task 3).
+    func test_run_agent_turn_construye_el_agent_con_la_boveda() throws {
+        let cuerpo = try cuerpoDeRunAgentTurn()
+        XCTAssertTrue(cuerpo.contains("let agent = construyeAgent("),
+                      "runAgentTurn ya no construye el Agent con construyeAgent: puede haber vuelto a `Agent(...)` sin bóveda")
+        XCTAssertFalse(cuerpo.contains("= Agent("), "runAgentTurn construye un Agent a mano, sin pasar por construyeAgent")
+        // Que el helper pase la bóveda de verdad lo cubre FormChatWiringTests (comportamiento).
+    }
+
+    /// Sin estos argumentos las cuatro herramientas de formularios/secretos no existen en producción
+    /// y `browserToolRegistry` (que sí las pasa) no lo delata.
+    func test_run_agent_turn_registra_las_herramientas_de_formularios() throws {
+        let cuerpo = try cuerpoDeRunAgentTurn()
+        XCTAssertTrue(cuerpo.contains("formBroker: formularios, boveda: boveda)"),
+                      "runAgentTurn no pasa formBroker/boveda a registerBrowserTools: present_form, list_secrets, forget_secret y browser_fill_secret no se registrarían")
+    }
+
+    /// Un formulario abierto al acabar el turno no tiene a nadie esperando: debe cerrarse DESPUÉS
+    /// de consumir los eventos (antes cancelaría el formulario que el turno acaba de pedir).
+    func test_run_agent_turn_cierra_el_formulario_abierto_al_acabar_el_turno() throws {
+        let cuerpo = try cuerpoDeRunAgentTurn()
+        let consumo = try XCTUnwrap(cuerpo.range(of: "await consumeAgentEvents("), "falta consumeAgentEvents")
+        let cierre = try XCTUnwrap(cuerpo.range(of: "cierraFormularioAbierto()", range: consumo.upperBound..<cuerpo.endIndex),
+                                   "runAgentTurn no llama a cierraFormularioAbierto() tras consumeAgentEvents")
+        XCTAssertLessThan(consumo.lowerBound, cierre.lowerBound)
+    }
+
     func test_system_prompt_teaches_reading_pages_and_the_interactive_loop() throws {
         let prompt = Agent.systemPromptText
         for phrase in ["`read_webpage(url)` reads the WHOLE page",

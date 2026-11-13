@@ -67,6 +67,17 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
 
     /// Pending stop requested by server's termination phrase detection.
     @ObservationIgnored private var pendingStop = false
+    @ObservationIgnored private var replyGeneration = UUID()
+
+    func invalidatePendingReply() {
+        replyGeneration = UUID()
+        pendingStop = false
+        if state == .playing {
+            player?.stop()
+            player = nil
+            state = .idle
+        }
+    }
 
     func send(_ wav: Data, isPassive: Bool = false) async {
         guard let client else {
@@ -76,10 +87,12 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
         }
         do {
             let episodeID = isPassive ? threadId() : (beginActiveEpisode?() ?? threadId())
+            let generation = replyGeneration
             let reply = try await client.turn(wav: wav, threadId: episodeID,
                                               timezone: TimeZone.current.identifier,
                                               isPassive: isPassive)
-            guard isPassive || beginActiveEpisode == nil || threadId() == episodeID else {
+            guard generation == replyGeneration,
+                  isPassive || beginActiveEpisode == nil || threadId() == episodeID else {
                 state = .idle
                 return
             }

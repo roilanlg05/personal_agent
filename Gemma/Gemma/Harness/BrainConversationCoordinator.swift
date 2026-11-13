@@ -97,7 +97,11 @@ struct BrainConversationCoordinator {
                 reportOutcome = { status in
                     let outcome = BrainOutcome(id: UUID().uuidString, description: "", status: status,
                         recordedAt: Date().timeIntervalSince1970, evidenceIDs: receipt.completion.evidenceIDs)
-                    if !(await Self.record(outcome, turnID: receipt.turnID, client: client)) {
+                    // An already executed effect owns its receipt independently of UI cancellation.
+                    let recorded = await Task { @MainActor in
+                        await Self.record(outcome, turnID: receipt.turnID, client: client)
+                    }.value
+                    if !recorded {
                         audit.pending = true
                     }
                 }
@@ -140,7 +144,8 @@ struct BrainConversationCoordinator {
     }
 
     func prepare(prompt: String, options: GenerationOptions, priorConversation: RecentConversation,
-                 wakeContext: String, registry: ToolRegistry? = nil) async throws -> PreparedTurn {
+                 wakeContext: String, registry: ToolRegistry? = nil,
+                 invalidateLocalHistory: @escaping () -> Void = {}) async throws -> PreparedTurn {
         try Task.checkCancellation()
         let registry = registry ?? ToolRegistry()
         let local = priorConversation.localHistory(threadID: threadID)
@@ -159,7 +164,10 @@ struct BrainConversationCoordinator {
         let fixed = NativeGenerationBudget(contextTokens: contextTokens, outputTokens: 0,
                                            system: prioritySystem, tools: mainTools)
         let localBytes = local.suffix(2).reduce(0) { $0 + $1.content.utf8.count + 32 }
+        let projectCue = prompt.range(of: #"\b(project|proyecto|retomar|sigamos|continuemos|resume|continue)\b"#,
+                                      options: [.regularExpression, .caseInsensitive]) != nil
         let contextReserve = if client == nil { max(320, localBytes) }
+            else if compact && projectCue { max(2400, localBytes) }
             else if contextTokens <= 8192 && priority.isEmpty { max(1536, localBytes) }
             else { max(640, localBytes) }
         let availableOutput = contextTokens - fixed.systemTokens - fixed.toolTokens - basePrompt.utf8.count - contextReserve
@@ -251,7 +259,8 @@ struct BrainConversationCoordinator {
                             barePrompt: basePrompt, options: requestOptions,
                             registry: frozenRegistry, toolScope: .init(client: toolClient, threadID: threadID,
                                 authorizedOriginalIDs: authorizedOriginalIDs, revision: revision, authorizedForgetID: authorizedForgetID,
-                                legacyForgetTarget: authorizedOriginalIDs == nil ? forgetTarget : nil),
+                                legacyForgetTarget: authorizedOriginalIDs == nil ? forgetTarget : nil,
+                                erasure: .init(invalidate: invalidateLocalHistory)),
                             audit: ToolAudit())
     }
 

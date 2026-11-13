@@ -1,4 +1,4 @@
-import CryptoKit
+import BrainContract
 import Foundation
 
 /// Drill-down (CAPA 1): given a summary's refs (chat_id + message range), return the verbatim
@@ -8,16 +8,37 @@ struct LoadMessagesTool: AgentTool {
     static let name = "load_messages"
     static let description = """
     Read exact messages in the active conversation when its authorized sources permit it. \
-    Pass its chat_id and only the message range you need.
+    Pass a delivered evidence_id, or the chat and range on a legacy service.
     """
     static let parameters: [AgentToolParam] = [
-        AgentToolParam(name: "chat_id", type: .string, description: "The chat id shown with the summary, e.g. \"g7y\".", required: true),
-        AgentToolParam(name: "from", type: .integer, description: "First message number (seq) of the range.", required: true),
+        AgentToolParam(name: "evidence_id", type: .string, description: "Exact source ID delivered in this turn.", required: false),
+        AgentToolParam(name: "chat_id", type: .string, description: "Legacy chat ID.", required: false),
+        AgentToolParam(name: "from", type: .integer, description: "First message number in a legacy range.", required: false),
         AgentToolParam(name: "to", type: .integer, description: "Last message number (seq); omit for a single message.", required: false),
     ]
 
     func run(argsJSON: String) async -> String {
         let obj = (try? JSONSerialization.jsonObject(with: Data(argsJSON.utf8))) as? [String: Any] ?? [:]
+        let scope = MemoryToolbox.turnScope
+        if let scope, scope.authorizedOriginalIDs != nil {
+            guard scope.isTyped, let id = obj["evidence_id"] as? String,
+                  scope.authorizedOriginalIDs?.contains(id) == true, let client = scope.client else {
+                return "No authorized originals in the requested range."
+            }
+            do {
+                let budget = try BrainContextBudget(contextTokens: 4096, outputTokens: 512)
+                let request = try BrainContextRequest(clientOperationID: UUID().uuidString, threadID: scope.threadID,
+                    query: "", budget: budget, quoteEvidenceIDs: [id], detailEvidenceIDs: [])
+                let context = try await client.brainContext(request, cueOnly: true)
+                guard context.sourceUses?[id]?.contains(.renderedQuote) == true,
+                      context.sourceReferences.contains(where: { $0.id == id && $0.threadID == scope.threadID }),
+                      context.renderedContext.contains("[original quote source=\(id)]\n"),
+                      context.renderedContext.utf8.count <= 1800 else {
+                    return "The complete original was not delivered."
+                }
+                return context.renderedContext
+            } catch { return "The complete original was not available." }
+        }
         let chatId = ((obj["chat_id"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         func sequence(_ key: String) -> Int? {
             (obj[key] as? Int) ?? (obj[key] as? Double).flatMap(Int.init(exactly:))
@@ -27,8 +48,7 @@ struct LoadMessagesTool: AgentTool {
               obj["to"] == nil || sequence("to") != nil else { return "need valid chat_id and message sequence" }
         let to = sequence("to") ?? from
         guard to >= from else { return "need a nondecreasing message range" }
-        let scope = MemoryToolbox.turnScope
-        if let scope, chatId != scope.threadID || scope.authorizedOriginalIDs?.isEmpty == true {
+        if let scope, chatId != scope.threadID {
             return "No authorized originals in the requested range."
         }
         let cappedTo = min(to, from + 79)
@@ -38,13 +58,7 @@ struct LoadMessagesTool: AgentTool {
             do {
                 let result = try await mem.loadMessages(chatId: chatId, from: from, to: cappedTo)
                 let rows = result.messages.filter { row in
-                    guard (from...cappedTo).contains(row.seq), ["assistant", "user"].contains(row.role) else { return false }
-                    guard let authorized = scope?.authorizedOriginalIDs else { return true }
-                    // Match the immutable transcript reference from BrainContract against the actual
-                    // row, so a reused sequence or changed text cannot reveal an ungranted source.
-                    let fingerprint = SHA256.hash(data: Data("\(chatId)\u{1}\(row.seq)\u{1}\(row.text)".utf8))
-                    let id = "transcript:" + fingerprint.map { String(format: "%02x", $0) }.joined()
-                    return authorized.contains(id)
+                    (from...cappedTo).contains(row.seq) && ["assistant", "user"].contains(row.role)
                 }
                 guard !rows.isEmpty else { return "No authorized originals in the requested range." }
                 var lines = [String]()

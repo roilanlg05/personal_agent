@@ -13,8 +13,10 @@ final class VoiceControllerTests: XCTestCase {
     final class FakeTurning: VoiceTurning, @unchecked Sendable {
         var reply = VoiceReply(audio: Data([0x52, 0x49, 0x46, 0x46]), sttText: "hola", replyText: "qué tal", shouldStop: false)  // non-empty audio so text appends; play() fails safely to idle
         var error: Error?
+        var beforeReply: (@Sendable () async -> Void)?
         func turn(wav: Data, threadId: String, timezone: String, isPassive: Bool) async throws -> VoiceReply {
             if let error { throw error }
+            await beforeReply?()
             return reply
         }
     }
@@ -69,6 +71,19 @@ final class VoiceControllerTests: XCTestCase {
         await c.send(Data([1]))
         XCTAssertTrue(lines().contains { $0.hasPrefix("voice:") })
         XCTAssertEqual(c.state, .idle)
+    }
+
+    func test_invalidation_discards_in_flight_voice_reply() async {
+        let (controller, client, lines) = make()
+        client.beforeReply = { await controller.invalidatePendingReply() }
+        var delivered = false
+        controller.onActiveTurn = { _, _, _ in delivered = true }
+
+        await controller.send(Data([1]))
+
+        XCTAssertFalse(delivered)
+        XCTAssertTrue(lines().isEmpty)
+        XCTAssertEqual(controller.state, .idle)
     }
 
     func test_permission_denied_notice() async {

@@ -498,7 +498,14 @@ public final class HarnessModel {
             let limit = provider.kind.isLocalMLX ? min(settings.contextLength, provider.kind.nativeContextTokens) : provider.kind.nativeContextTokens
             let options = makeGenerationOptions(contextTokens: limit)
             prepared = try await coordinator.prepare(prompt: prompt, options: options,
-                priorConversation: priorConversation, wakeContext: wakeContext, registry: registry)
+                priorConversation: priorConversation, wakeContext: wakeContext, registry: registry,
+                invalidateLocalHistory: { [weak self] in
+                    guard let self, self.currentThreadId == episodeID else { return }
+                    self.recentConversation = RecentConversation()
+                    self.recentConversation.start(threadID: episodeID)
+                    self.voice.invalidatePendingReply()
+                    if self.activeTextTurnID != textTurnID { self.currentTurnTask?.cancel() }
+                })
         } catch is CancellationError {
             return
         } catch {

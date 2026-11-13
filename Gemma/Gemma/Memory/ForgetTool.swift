@@ -31,6 +31,7 @@ struct ForgetTool: AgentTool {
                 guard receipt.state == .committed, receipt.clientOperationID == request.clientOperationID,
                       receipt.scope == request.scope, receipt.revision > revision,
                       receipt.forgottenEvidenceIDs.contains(id) else { return "Erasure was not confirmed." }
+                await scope.erasure.confirm()
                 return "Forgot the authorized source."
             } catch { return "Erasure was not confirmed." }
         }
@@ -58,8 +59,10 @@ struct ForgetTool: AgentTool {
                 if !matchingNodes.isEmpty {
                     var total = 0
                     for node in matchingNodes {
-                        _ = try await mem.forget(label: nil, id: node.id)
-                        total += 1
+                        if try await mem.forget(label: nil, id: node.id) > 0 {
+                            await MemoryToolbox.turnScope?.erasure.confirm()
+                            total += 1
+                        }
                     }
                     return "Forgot \(total) item(s) matching '\(query)'."
                 }

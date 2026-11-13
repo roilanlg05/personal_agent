@@ -58,11 +58,13 @@ final class BrainConversationCoordinatorTests: XCTestCase {
         static let description = "Increment the synthetic execution counter."
         private(set) var executions = 0
         private let result: String
+        var onExecuted: (() -> Void)?
 
         init(result: String = "Executed.") { self.result = result }
 
         func run(argsJSON: String) async -> String {
             executions += 1
+            onExecuted?()
             return result
         }
     }
@@ -529,6 +531,36 @@ final class BrainConversationCoordinatorTests: XCTestCase {
         XCTAssertEqual(persistence, .pending)
     }
 
+    func testCompletedToolPersistsOutcomeAfterGenerationCancellation() async throws {
+        let journal = HTTPJournal()
+        let client = makeStubMemoryClient { request in
+            let (record, _) = journal.record(request)
+            if record.path == "/v1/brain/outcomes" {
+                return (200, Self.response(record.body["outcome"] as? [String: Any] ?? [:]))
+            }
+            return (200, Self.admission(operation: record.body["clientOperationID"] as? String ?? ""))
+        }
+        let tool = CountingTool(result: "Synthetic private result")
+        tool.onExecuted = { withUnsafeCurrentTask { $0?.cancel() } }
+        let registry = ToolRegistry()
+        registry.register(tool)
+        let runtime = ToolThenFailureRuntime(name: CountingTool.name, arguments: #"{"raw":"private argument"}"#)
+        let coordinator = BrainConversationCoordinator(client: client, threadID: "tool-cancellation", transcriptIndex: 0)
+        let prepared = try await coordinator.prepare(prompt: "Ejecuta la acción.", options: .init(maxTokens: 512),
+            priorConversation: RecentConversation(), wakeContext: "", registry: registry)
+        for try await _ in prepared.run(runtime: runtime) {}
+
+        XCTAssertEqual(tool.executions, 1)
+        XCTAssertEqual(runtime.prompts.count, 1)
+        let reports = journal.requests.filter { $0.path == "/v1/brain/outcomes" }
+        XCTAssertEqual(reports.count, 1)
+        XCTAssertEqual(reports.first?.body["turnID"] as? String, "admitted-turn")
+        let outcome = try XCTUnwrap(reports.first?.body["outcome"] as? [String: Any])
+        XCTAssertEqual(outcome["description"] as? String, "")
+        XCTAssertEqual(outcome["evidenceIDs"] as? [String], ["current-input"])
+        XCTAssertNil(outcome["observation"])
+    }
+
     func testCorrectedDictationUsesOnlyFreshFinalContextBeforeFirstGeneration() async throws {
         let journal = HTTPJournal()
         let client = makeStubMemoryClient { request in
@@ -727,6 +759,40 @@ final class BrainConversationCoordinatorTests: XCTestCase {
         XCTAssertEqual(journal.requests.compactMap { $0.body["threadID"] as? String }, [freshID, restoredID])
     }
 
+    func testNativeProjectRecallGetsServerBudgetAndFirstGenerationContext() async throws {
+        let journal = HTTPJournal()
+        let client = makeStubMemoryClient { request in
+            let (record, _) = journal.record(request)
+            let budget = record.body["budget"] as? [String: Int] ?? [:]
+            let window = budget["contextTokens", default: 0]
+            let output = budget["outputTokens", default: 0]
+            let system = budget["systemTokens", default: 0]
+            let tools = budget["toolTokens", default: 0]
+            var bundle: [String: Any] = ["renderedContext": "[recalled project reported checkpoint sources=prior-close]\nFalta validar la importación.\n[previous exchange opening orientation]\nEmpezamos Aurora.\n[previous exchange closing orientation]\nTerminamos revisando el plano.",
+                "recentMessageUnits": [], "sourceReferences": [
+                    Self.source(id: "prior-open", kind: "userMessage", speaker: "self:user"),
+                    Self.source(id: "prior-close", kind: "userMessage", speaker: "self:user")],
+                "sourceUses": ["prior-open": ["startupOrientation"], "prior-close": ["recalledSupport", "startupOrientation"]],
+                "revision": 7, "policyRevision": 3, "truncations": []]
+            bundle["accounting"] = ["estimatedInputTokens": 0, "reservedOutputTokens": output,
+                "reservedSystemTokens": system, "reservedToolTokens": tools, "totalWindowTokens": window]
+            let wireBytes = Self.response(bundle).count + 64 + 100
+            if wireBytes > window - output - system - tools { bundle["renderedContext"] = "" }
+            return (200, Self.admission(operation: record.body["clientOperationID"] as? String ?? "", context: bundle))
+        }
+        let coordinator = BrainConversationCoordinator(client: client, threadID: "new-connection", transcriptIndex: 0)
+        let prepared = try await coordinator.prepare(prompt: "Sigamos con el proyecto Aurora.",
+            options: .init(maxTokens: 2048, contextTokens: 4096), priorConversation: RecentConversation(),
+            wakeContext: "", registry: .native(memoryAvailable: true))
+        let runtime = RecordingRuntime()
+        for try await _ in prepared.run(runtime: runtime) {}
+        let first = try XCTUnwrap(runtime.requests.first)
+        XCTAssertTrue(first.prompt.contains("Falta validar la importación."))
+        XCTAssertTrue(first.prompt.contains("Empezamos Aurora."))
+        XCTAssertTrue(first.prompt.contains("Terminamos revisando el plano."))
+        XCTAssertTrue(first.options.history.isEmpty)
+    }
+
     func testProductionRegistrySelectsRelevantShiftAndCalendarToolsAt4096() async throws {
         let client = makeStubMemoryClient { request in
             let (record, _) = HTTPJournal().record(request)
@@ -836,6 +902,87 @@ final class BrainConversationCoordinatorTests: XCTestCase {
         XCTAssertEqual((writes.first?.body["scope"] as? [String: Any])?["id"] as? String, firstID)
         XCTAssertEqual(writes.first?.body["expectedRevision"] as? Int, 7)
         XCTAssertEqual(outputs, ["No memory was erased. Select the exact authorized source to forget.", "Erasure was not confirmed."])
+    }
+
+    func testConfirmedErasureClearsFollowUpContextAndLocalFallback() async throws {
+        let id = "transcript:" + String(repeating: "a", count: 64)
+        let erasedText = "The synthetic forgotten sentence."
+        let journal = HTTPJournal()
+        let client = makeStubMemoryClient { request in
+            let (record, index) = journal.record(request)
+            switch record.path {
+            case "/v1/brain/forget":
+                return (200, Self.response(["clientOperationID": record.body["clientOperationID"] as? String ?? "",
+                    "scope": record.body["scope"] as? [String: Any] ?? [:], "state": "committed", "revision": 8,
+                    "forgottenEvidenceIDs": [id], "forgottenClaimIDs": []]))
+            case "/v1/brain/outcomes":
+                return (200, Self.response(record.body["outcome"] as? [String: Any] ?? [:]))
+            default:
+                guard index == 1 else { return (503, Data()) }
+                let context: [String: Any] = ["renderedContext": "An earlier gist: \(erasedText)",
+                    "recentMessageUnits": [Self.unit(id: id, speaker: "self:user", text: erasedText)],
+                    "sourceReferences": [Self.source(id: id, kind: "userMessage", speaker: "self:user")],
+                    "sourceUses": [id: ["recentWhole"]], "revision": 7, "policyRevision": 3]
+                return (200, Self.admission(operation: record.body["clientOperationID"] as? String ?? "", context: context))
+            }
+        }
+        let thread = "new-connection"
+        var recent = RecentConversation()
+        recent.start(threadID: thread)
+        recent.append(.init(role: .user, content: erasedText), threadID: thread)
+        let registry = ToolRegistry()
+        registry.register(ForgetTool(), requiresMemory: true)
+        let coordinator = BrainConversationCoordinator(client: client, threadID: thread, transcriptIndex: 0)
+        let prepared = try await coordinator.prepare(prompt: "Olvida \(id).", options: .init(maxTokens: 512),
+            priorConversation: recent, wakeContext: "", registry: registry,
+            invalidateLocalHistory: { recent = RecentConversation() })
+        let runtime = ToolThenFailureRuntime(name: "forget", arguments: #"{"evidence_id":"\#(id)"}"#)
+        for try await _ in prepared.run(runtime: runtime) {}
+        XCTAssertTrue(runtime.histories.first?.contains(where: { $0.content == erasedText }) == true)
+        XCTAssertEqual(runtime.histories.dropFirst().first, [])
+        let followUp = try XCTUnwrap(runtime.prompts.dropFirst().first)
+        XCTAssertFalse(followUp.contains(erasedText))
+        XCTAssertTrue(followUp.contains("Forgot the authorized source."))
+
+        let next = BrainConversationCoordinator(client: client, threadID: thread, transcriptIndex: 1)
+        let nextTurn = try await next.prepare(prompt: "Hola.", options: .init(maxTokens: 512),
+                                              priorConversation: recent, wakeContext: "")
+        let recording = RecordingRuntime()
+        for try await _ in nextTurn.run(runtime: recording) {}
+        XCTAssertEqual(nextTurn.persistence, .pending)
+        XCTAssertEqual(recording.requests.first?.options.history, [])
+    }
+
+    func testTypedOriginalLookupUsesDeliveredIDAndRequiresCompleteQuote() async throws {
+        let journal = HTTPJournal()
+        let id = "previous-reply"
+        let client = makeStubMemoryClient { request in
+            let (record, _) = journal.record(request)
+            switch record.path {
+            case "/v1/brain/context":
+                var context = Self.bundle(prompt: "")
+                context["renderedContext"] = "[original quote source=\(id)]\nLa maqueta está lista."
+                context["sourceUses"] = [id: ["renderedQuote"]]
+                return (200, Self.response(context))
+            case "/v1/brain/outcomes":
+                return (200, Self.response(record.body["outcome"] as? [String: Any] ?? [:]))
+            default:
+                return (200, Self.admission(operation: record.body["clientOperationID"] as? String ?? "",
+                                            context: Self.bundle(prompt: "")))
+            }
+        }
+        let coordinator = BrainConversationCoordinator(client: client, threadID: "new-connection", transcriptIndex: 0)
+        let registry = ToolRegistry()
+        registry.register(LoadMessagesTool(), requiresMemory: true)
+        let turn = try await coordinator.prepare(prompt: "Cita el mensaje completo.", options: .init(maxTokens: 512),
+            priorConversation: RecentConversation(), wakeContext: "", registry: registry)
+        let runtime = ToolThenFailureRuntime(name: "load_messages", arguments: #"{"evidence_id":"\#(id)"}"#)
+        for try await _ in turn.run(runtime: runtime) {}
+        let request = try XCTUnwrap(journal.requests.first { $0.path == "/v1/brain/context" })
+        XCTAssertEqual(request.body["quoteEvidenceIDs"] as? [String], [id])
+        XCTAssertEqual(request.body["threadID"] as? String, "new-connection")
+        XCTAssertTrue(runtime.prompts.dropFirst().first?.contains("[original quote source=\(id)]\nLa maqueta está lista.") == true)
+        XCTAssertFalse(journal.requests.contains { $0.path == "/v1/transcript/range" })
     }
 
     func testTypedReflectionReportsUnconfirmedWithoutUsingLegacyRoute() async throws {

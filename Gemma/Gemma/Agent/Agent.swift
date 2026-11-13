@@ -163,7 +163,7 @@ final class Agent {
             """ : BrainConversationPolicy.canonical.instructions
         ]
         if names.contains(LoadMessagesTool.name) {
-            sections.append("Use gist first. Call load_messages only for a specific authorized range when a summary lacks exact detail.")
+            sections.append("Use gist first. Call load_messages with a delivered evidence_id for exact text.")
         }
         if !names.isDisjoint(with: [ListAvailableShiftsTool.name, AddShiftTool.name, DropShiftTool.name]) {
             sections.append("Amazon A to Z: query dates in local ISO format. Before accepting or dropping, ask once for explicit confirmation of the specific shift. After confirmation execute once. Report the verified result or uncertainty.")
@@ -186,7 +186,7 @@ final class Agent {
     /// Tool effects are complete before this step. Keep the user's full input and mark any
     /// shortened result so it cannot be cited as a whole original.
     private static func toolFollowUp(base: String, bare: String, results: [String],
-                                     budget: NativeGenerationBudget) -> String? {
+                                     budget: NativeGenerationBudget, allowExcerpt: Bool) -> String? {
         let guidance = "\n\nUse the actual tool results below to reply naturally. Do not repeat a completed action."
         for prefix in [base, bare] {
             let complete = prefix + guidance + "\n" + results.joined(separator: "\n")
@@ -196,7 +196,7 @@ final class Agent {
         let notice = "\n[Tool results abbreviated.]"
         let space = budget.contextTokens - budget.outputTokens - budget.systemTokens - budget.toolTokens
             - prefix.utf8.count - notice.utf8.count
-        guard space >= 96, let result = results.last else { return nil }
+        guard allowExcerpt, space >= 96, let result = results.last else { return nil }
         var bytes = result.utf8.prefix(space)
         while String(bytes: bytes, encoding: .utf8) == nil { bytes = bytes.dropLast() }
         return prefix + String(decoding: bytes, as: UTF8.self) + notice
@@ -237,7 +237,13 @@ final class Agent {
                         var runtimeFinishedAnyTool = false
                         var completed: GenerationResult?
                         for try await event in stream {
-                            if Task.isCancelled { throw CancellationError() }
+                            if Task.isCancelled {
+                                if case .toolCallFinished(let name, _) = event,
+                                   activeTools.contains(where: { type(of: $0).name == name }) {
+                                    await reportOutcome?(.unknown)
+                                }
+                                throw CancellationError()
+                            }
                             switch event {
                             case .token(let t):
                                 continuation.yield(.token(t))
@@ -264,6 +270,7 @@ final class Agent {
                         }
 
                         var anyMutationExecuted = false
+                        var lastToolWasOriginal = false
                         for tc in pendingToolCalls {
                             try Task.checkCancellation()
                             let key = tc.name + "\u{001F}" + tc.args
@@ -287,7 +294,12 @@ final class Agent {
                             }
                             continuation.yield(.toolCallFinished(name: tc.name, result: result))
                             if let reportedStatus { await reportOutcome?(reportedStatus) }
+                            lastToolWasOriginal = tc.name == LoadMessagesTool.name
                             toolResults.append("[You called the tool \(tc.name); it returned: \(result)]")
+                            if memoryScope?.erasure.committed == true {
+                                toolResults = ["[You called the tool \(tc.name); it returned: \(result)]"]
+                                break
+                            }
                         }
 
                         // If a state-changing mutation tool ran, disable tools for subsequent rounds
@@ -295,11 +307,15 @@ final class Agent {
                         if anyMutationExecuted || iteration >= maxIterations - 2 {
                             activeTools = []
                         }
+                        let erased = memoryScope?.erasure.committed == true
+                        if erased { opts.history = [] }
                         if let limit = opts.contextTokens {
                             let budget = NativeGenerationBudget(contextTokens: limit, outputTokens: opts.maxTokens,
                                 system: opts.systemPrompt ?? "", tools: activeTools)
-                            guard let next = Self.toolFollowUp(base: followUpPrompt ?? initialPrompt,
-                                bare: barePrompt ?? initialPrompt, results: toolResults, budget: budget) else {
+                            let safeBase = erased ? (barePrompt ?? prompt) : (followUpPrompt ?? initialPrompt)
+                            guard let next = Self.toolFollowUp(base: safeBase,
+                                bare: barePrompt ?? initialPrompt, results: toolResults, budget: budget,
+                                allowExcerpt: !lastToolWasOriginal) else {
                                 continuation.yield(.failed("El resultado ya se mostró. No cabe completo para resumirlo."))
                                 break loop
                             }

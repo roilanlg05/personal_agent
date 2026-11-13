@@ -7,6 +7,18 @@ import Foundation
 @MainActor
 final class MemoryToolbox {
     struct TurnScope {
+        @MainActor final class Erasure {
+            private(set) var committed = false
+            let invalidate: () -> Void
+
+            init(invalidate: @escaping () -> Void) { self.invalidate = invalidate }
+
+            func confirm() {
+                committed = true
+                invalidate()
+            }
+        }
+
         let client: MemoryClient?
         let threadID: String
         /// Nil for a verified legacy server, where stable original IDs do not exist.
@@ -14,6 +26,7 @@ final class MemoryToolbox {
         let revision: Int64?
         let authorizedForgetID: String?
         let legacyForgetTarget: String?
+        let erasure: Erasure
 
         var isTyped: Bool { revision != nil }
 

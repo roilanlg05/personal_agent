@@ -2,6 +2,7 @@ import Foundation
 
 public final class LlamaCppRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable {
     public nonisolated let identifier: String = "llamacpp-metal"
+    nonisolated static let nativeContextTokens = 8192
 
     private var context: LlamaContext?
     private var lastMetrics: RuntimeMetrics?
@@ -80,7 +81,7 @@ public final class LlamaCppRuntime: ModelRuntime, ToolCallingRuntime, @unchecked
             guard let modelURL = Self.defaultModelURL() else {
                 throw RuntimeError.loadFailed("No se encontró ningún archivo .gguf en la carpeta Documents de la app ni en Descargas.")
             }
-            try await load(options: ModelLoadOptions(modelPath: modelURL, contextLength: 8192, backend: .gpu))
+            try await load(options: ModelLoadOptions(modelPath: modelURL, contextLength: Self.nativeContextTokens, backend: .gpu))
         }
     }
 
@@ -275,7 +276,9 @@ public final class LlamaCppRuntime: ModelRuntime, ToolCallingRuntime, @unchecked
                     let finalUserMessage = isShortGreeting ? "\(userMessage) (Responde de inmediato con calidez y brevedad, sin pensar)" : userMessage
                     fullPrompt += "\(turnStart)user\n\(finalUserMessage)\(turnEnd)\n\(turnStart)model\n"
 
-                    try await ctx.completionInit(prompt: fullPrompt, temperature: Float(options.temperature))
+                    let effectiveMaxTokens = max(options.maxTokens, 1)
+                    try await ctx.completionInit(prompt: fullPrompt, temperature: Float(options.temperature),
+                                                 contextLimit: options.contextTokens, outputReservation: effectiveMaxTokens)
 
                     var isPotentiallyToolCall: Bool? = nil
                     var inThoughtChannel = false
@@ -322,11 +325,11 @@ public final class LlamaCppRuntime: ModelRuntime, ToolCallingRuntime, @unchecked
                         "[/thought]"
                     ]
 
-                    let effectiveMaxTokens = max(options.maxTokens, 2048)
-
-                    while tokenCount < effectiveMaxTokens {
+                    var sampledTokens = 0
+                    while sampledTokens < effectiveMaxTokens {
                         if Task.isCancelled { break }
                         let (piece, isDone) = try await ctx.completionNextToken()
+                        sampledTokens += 1
                         if firstTokenTime == nil && !piece.isEmpty {
                             firstTokenTime = DispatchTime.now().uptimeNanoseconds
                         }

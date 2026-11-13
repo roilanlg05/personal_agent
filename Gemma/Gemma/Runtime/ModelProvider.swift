@@ -30,6 +30,15 @@ struct ModelProvider: Equatable, Sendable {
         /// inverse. This single switch drives both quirks.
         var isLocalMLX: Bool { self == .local || self == .onDevice }
 
+        /// A conservative request limit for configurable models, not a claim about their maximum.
+        var nativeContextTokens: Int {
+            switch self {
+            case .local: 4096
+            case .onDevice: LlamaCppRuntime.nativeContextTokens
+            case .gemini, .cerebras, .groq, .claude: 16_384
+            }
+        }
+
         /// Endpoint directory that CONTAINS `chat/completions` (the runtime appends `chat/completions`).
         /// Each ends at the version segment — Gemini's is `/v1beta/openai` (NOT `/v1`).
         var defaultBaseURL: URL {

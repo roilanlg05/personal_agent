@@ -184,7 +184,8 @@ public actor LlamaContext {
         self.sampling = chain
     }
 
-    public func completionInit(prompt: String, temperature: Float = 0.2) throws {
+    public func completionInit(prompt: String, temperature: Float = 0.2,
+                               contextLimit: Int? = nil, outputReservation: Int = 512) throws {
         guard let context else { throw LlamaError.couldNotInitializeContext }
         setTemperature(temperature)
         llama_memory_clear(llama_get_memory(context), true)
@@ -195,7 +196,13 @@ public actor LlamaContext {
         temporaryInvalidCChars.removeAll()
 
         let nCtx = Int(llama_n_ctx(context))
-        let maxPromptTokens = max(512, nCtx - 512)
+        let maxPromptTokens: Int
+        if let contextLimit {
+            maxPromptTokens = min(nCtx, contextLimit) - outputReservation
+            guard maxPromptTokens >= tokensList.count else { throw LlamaError.contextLimitExceeded }
+        } else {
+            maxPromptTokens = max(512, nCtx - 512)
+        }
         if tokensList.count > maxPromptTokens {
             // Sliding window: preserve system/instruction header and keep latest user tail
             let keepHeader = min(500, tokensList.count / 3)

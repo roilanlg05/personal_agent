@@ -19,6 +19,9 @@ struct SaveMemoryTool: AgentTool {
     ]
 
     func run(argsJSON: String) async -> String {
+        if MemoryToolbox.turnScope?.isTyped == true {
+            return "This turn uses source-grounded memory admission. No additional memory write was made."
+        }
         let obj = (try? JSONSerialization.jsonObject(with: Data(argsJSON.utf8))) as? [String: Any] ?? [:]
         let rawEntity = ((obj["entity"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let detail = (obj["detail"] as? String).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }

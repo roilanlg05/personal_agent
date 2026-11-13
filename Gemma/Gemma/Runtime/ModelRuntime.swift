@@ -86,6 +86,8 @@ public struct ModelLoadOptions: Sendable {
 
 public struct GenerationOptions: Sendable {
     public var maxTokens: Int
+    /// Explicit total window for this request, including its output reservation.
+    public var contextTokens: Int?
     public var temperature: Double
     public var topP: Double
     public var topK: Int
@@ -101,6 +103,7 @@ public struct GenerationOptions: Sendable {
 
     public init(
         maxTokens: Int = 4000,
+        contextTokens: Int? = nil,
         temperature: Double = 1.0,
         topP: Double = 0.95,
         topK: Int = 64,
@@ -109,6 +112,7 @@ public struct GenerationOptions: Sendable {
         history: [ChatMessage] = []
     ) {
         self.maxTokens = maxTokens
+        self.contextTokens = contextTokens
         self.temperature = temperature
         self.topP = topP
         self.topK = topK

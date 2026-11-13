@@ -1,4 +1,5 @@
 import Foundation
+import BrainContract
 
 /// HTTP client to the Memory Service (Docker). Reads `baseURL` + bearer token from Settings.
 /// Provides graceful degradation: recall returns empty bundle on 5xx/timeout instead of throwing
@@ -30,10 +31,40 @@ final class MemoryClient {
         let core: [RecallNode]; let recall: [RecallNode]; let summaries: [RecallSummary]; let recentTurns: [RecentTurn]
         static let empty = RecallBundle(core: [], recall: [], summaries: [], recentTurns: [])
 
+        /// The legacy route omits canonical source grants. Keep only active-thread gists and
+        /// facts whose metadata does not identify another subject, owner or conversation.
+        func scopedToNativeThread(_ threadID: String) -> Self {
+            func permitted(_ node: RecallNode) -> Bool {
+                guard ["fact", "preference", "person", "place"].contains(node.kind) else { return false }
+                guard let raw = node.extra, !raw.isEmpty else { return true }
+                guard let attributes = (try? JSONSerialization.jsonObject(with: Data(raw.utf8))) as? [String: Any] else {
+                    return false
+                }
+                func values(_ keys: [String]) -> Set<String>? {
+                    var result = Set<String>()
+                    for key in keys where attributes[key] != nil {
+                        guard let value = attributes[key] as? String, !value.isEmpty else { return nil }
+                        result.insert(value)
+                    }
+                    return result
+                }
+                guard let scope = values(["scope", "accessScope", "access_scope"]),
+                      let threads = values(["threadID", "threadId", "thread_id", "chatId", "chat_id"]),
+                      let owners = values(["ownerID", "ownerId", "owner"]),
+                      let subjects = values(["subjectID", "subjectId", "subject"]),
+                      scope.count <= 1 else { return false }
+                return scope.allSatisfy { $0 == "user" || ($0 == "thread" && threads == [threadID]) }
+                    && threads.allSatisfy { $0 == threadID } && owners.allSatisfy { $0 == "user" }
+                    && subjects.allSatisfy { $0 == BrainIdentity.userID }
+            }
+            return .init(core: core.filter(permitted), recall: recall.filter(permitted),
+                         summaries: summaries.filter { $0.chatId == threadID }, recentTurns: [])
+        }
+
         /// Render this bundle as a compact injection block (empty string if all lists are empty).
         /// Episodic summaries are rendered after the fact nodes so the model sees them as
         /// drill-down references. `recentTurns` always appears last.
-        func injectionBlock() -> String {
+        func injectionBlock(includingRawOtherThreads: Bool = true) -> String {
             let all = recall + core.filter { c in !recall.contains(where: { $0.label == c.label && $0.kind == c.kind }) }
             // Legacy self nodes carry no proof that the user asserted the name.
             let merged = all.filter { $0.kind != "self" }
@@ -56,12 +87,16 @@ final class MemoryClient {
             }
             if !summaries.isEmpty {
                 let sl = summaries.map { s in
+                    if !includingRawOtherThreads { return "- \(s.text)" }
                     let r = s.messageRange.count >= 2 ? "\(s.messageRange[0])-\(s.messageRange[1])" : "\(s.messageRange.first ?? 0)"
                     return "- [chat \(s.chatId) · msgs \(r)] \(s.text)"
                 }.joined(separator: "\n")
-                out += (out.isEmpty ? "" : "\n\n") + "Episodic summaries (load the underlying messages only if a summary doesn't answer):\n" + sl
+                let title = includingRawOtherThreads
+                    ? "Episodic summaries (load the underlying messages only if a summary doesn't answer):\n"
+                    : "Episodic summaries (gist only):\n"
+                out += (out.isEmpty ? "" : "\n\n") + title + sl
             }
-            if !recentTurns.isEmpty {
+            if includingRawOtherThreads, !recentTurns.isEmpty {
                 let rt = recentTurns.map { "- \($0.role): \($0.text)" }.joined(separator: "\n")
                 out += (out.isEmpty ? "" : "\n\n") + "Recent conversation (other chats):\n" + rt
             }
@@ -155,6 +190,45 @@ final class MemoryClient {
         struct W: Decodable { let turns: [WindowTurn] }
         let w: W = try await get("/v1/conversation/window?threadId=\(escape(threadId))&maxTurns=\(maxTurns)&maxChars=\(maxChars)")
         return w.turns
+    }
+
+    // MARK: brain turn lifecycle
+    func beginTurn(_ request: BrainTurnRequest) async throws -> BrainTurnResult {
+        try await post("/v1/brain/turns/begin", request)
+    }
+
+    func brainContext(_ request: BrainContextRequest, cueOnly: Bool = false) async throws -> BrainContextBundle {
+        let path = cueOnly ? "/v1/brain/context?mode=cue" : "/v1/brain/context"
+        return try await post(path, request)
+    }
+
+    func prefetchBrainContext(_ request: BrainContextRequest) async throws -> BrainContextBundle {
+        try await post("/v1/brain/context?mode=prefetch", request)
+    }
+
+    func recordAssistant(_ request: BrainTurnCompletionRequest) async throws -> BrainTurnResult {
+        try await post("/v1/brain/turns/complete", request)
+    }
+
+    func recordOutcome(_ request: BrainReportedOutcomeRequest) async throws -> BrainOutcome {
+        try await post("/v1/brain/outcomes", request)
+    }
+
+    func tasteProfile(domain: String, threadID: String, situation: String?) async throws -> BrainTasteProfile {
+        var components = URLComponents()
+        components.path = "/v1/brain/tastes/profile"
+        components.queryItems = [URLQueryItem(name: "domain", value: domain), URLQueryItem(name: "threadID", value: threadID)]
+        if let situation { components.queryItems?.append(URLQueryItem(name: "situation", value: situation)) }
+        guard let path = components.string else { throw ClientError.invalidResponse }
+        return try await get(path)
+    }
+
+    func forgetEvidence(_ request: BrainForgetRequest) async throws -> BrainForgetReceipt {
+        try await post("/v1/brain/forget", request)
+    }
+
+    func startBrainReflection() async throws -> BrainConsolidationJob {
+        try await post("/v1/brain/consolidate", BrainConsolidationRequest(kind: .reflection, timezone: TimeZone.current.identifier))
     }
 
     // MARK: memory

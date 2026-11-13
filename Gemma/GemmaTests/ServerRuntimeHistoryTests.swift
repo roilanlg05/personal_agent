@@ -45,6 +45,18 @@ final class ServerRuntimeHistoryTests: XCTestCase {
         XCTAssertEqual(msgs.map { $0["content"] }, ["SYS", "turn1 user", "turn1 reply", "turn2 user"])
     }
 
+    func test_http_provider_honors_requested_output_reservation() async throws {
+        BodyCapture.lastBody = nil
+        let runtime = ServerRuntime(session: makeSession())
+        let stream = await runtime.generate(prompt: "Responde en una frase.", tools: [],
+                                            options: GenerationOptions(maxTokens: 512))
+        for try await _ in stream {}
+
+        let body = try XCTUnwrap(BodyCapture.lastBody)
+        let request = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(request["max_tokens"] as? Int, 512)
+    }
+
     @MainActor
     func test_local_history_reaches_claude_when_memory_rejects_request() async throws {
         BodyCapture.lastBody = nil

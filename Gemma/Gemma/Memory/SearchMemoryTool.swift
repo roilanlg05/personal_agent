@@ -17,16 +17,20 @@ struct SearchMemoryTool: AgentTool {
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: query) }
         let result: String = await {
             guard let mem = await MemoryToolbox.shared.memory else { return "memory unavailable" }
+            if let scope = MemoryToolbox.turnScope, scope.isTyped { return await scope.lookup(query) }
             do {
-                let bundle = try await mem.recall(query: query)
+                let scope = MemoryToolbox.turnScope
+                let fetched = try await mem.recall(query: query, threadId: scope?.threadID)
+                let bundle = scope.map { fetched.scopedToNativeThread($0.threadID) } ?? fetched
                 var sections: [String] = []
 
                 if !bundle.summaries.isEmpty {
                     let sumLines = bundle.summaries.map { s in
+                        if scope != nil { return "• \(s.text)" }
                         let r = s.messageRange.count >= 2 ? "\(s.messageRange[0])-\(s.messageRange[1])" : "\(s.messageRange.first ?? 0)"
                         return "• [Chat: \(s.chatId) | Turnos: \(r)]: \(s.text)"
                     }
-                    sections.append("RESÚMENES ENCONTRADOS (si necesitas el diálogo exacto, llama a load_messages(chat_id, from, to) para ese rango):\n" + sumLines.joined(separator: "\n"))
+                    sections.append("RESÚMENES ENCONTRADOS:\n" + sumLines.joined(separator: "\n"))
                 }
 
                 let facts = (bundle.recall + bundle.core).filter { $0.kind != "self" && $0.kind != "summary" }
@@ -35,7 +39,7 @@ struct SearchMemoryTool: AgentTool {
                     sections.append("HECHOS Y DATOS RECORDADOS:\n" + factLines.joined(separator: "\n"))
                 }
 
-                if !bundle.recentTurns.isEmpty {
+                if scope == nil, !bundle.recentTurns.isEmpty {
                     let turnLines = bundle.recentTurns.prefix(4).map { "- \($0.role): \($0.text)" }
                     sections.append("TURNOS DE CHAT RELACIONADOS:\n" + turnLines.joined(separator: "\n"))
                 }

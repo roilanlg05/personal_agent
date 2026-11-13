@@ -19,6 +19,10 @@ struct RecentConversation {
         if messages.count > Self.messageLimit { messages.removeFirst() }
     }
 
+    func localHistory(threadID: String) -> [ChatMessage] {
+        self.threadID == threadID ? messages : []
+    }
+
     @MainActor
     func history(threadID: String, client: MemoryClient?) async -> [ChatMessage] {
         guard self.threadID == threadID else { return [] }
@@ -32,7 +36,7 @@ struct RecentConversation {
         return remote.suffix(messages.count).elementsEqual(messages) ? remote : messages
     }
 
-    private static func bounded(_ message: ChatMessage) -> ChatMessage? {
+    static func bounded(_ message: ChatMessage) -> ChatMessage? {
         guard message.role != .system,
               !message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         let bytes = message.content.utf8

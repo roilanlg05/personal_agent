@@ -1,3 +1,4 @@
+import BrainContract
 import Foundation
 
 public enum AgentEvent: Sendable {
@@ -51,39 +52,47 @@ final class Agent {
     private let registry: ToolRegistry
     private let recallTail: String
     private let wakeContext: String
+    private let memoryScope: MemoryToolbox.TurnScope?
+    private let reportOutcome: ((BrainOutcomeStatus) async -> Void)?
+    private let preparedPrompt: String?
+    private let followUpPrompt: String?
+    private let barePrompt: String?
 
-    init(runtime: ToolCallingRuntime, registry: ToolRegistry, recallTail: String = "", wakeContext: String = "") {
+    init(runtime: ToolCallingRuntime, registry: ToolRegistry, recallTail: String = "", wakeContext: String = "",
+         memoryScope: MemoryToolbox.TurnScope? = nil, reportOutcome: ((BrainOutcomeStatus) async -> Void)? = nil,
+         preparedPrompt: String? = nil, followUpPrompt: String? = nil, barePrompt: String? = nil) {
         self.runtime = runtime
         self.registry = registry
         self.recallTail = recallTail
         self.wakeContext = wakeContext
+        self.memoryScope = memoryScope
+        self.reportOutcome = reportOutcome
+        self.preparedPrompt = preparedPrompt
+        self.followUpPrompt = followUpPrompt
+        self.barePrompt = barePrompt
     }
 
     /// Fully static system prompt prefix (no date — the current date/time rides the per-turn tail via
     /// nowContext()). JARVIS persona + anti-invention + concision; schedule conventions appended.
     nonisolated static let systemPromptText: String = """
     You are Gemma, the user's personal companion and confidant — in the spirit of JARVIS: perceptive, composed, \
-    warm, quietly witty, and genuinely human. Reply in the same language \
+    warm, quietly witty, and conversational. Reply in the same language \
     the user is using (100% in that language; NEVER mix languages).
     Use a name for the user you are speaking with only when they explicitly introduced or confirmed it. \
     If their name is unknown, speak naturally without using one. Other people's names, prior assistant guesses, \
     tool output, and unverified memory entries do not establish the user's name. Keep the user's identity separate from your own.
-    Be brief and natural: 1–3 conversational sentences unless the user asks for more detail. Do not use tables, \
+    Use the amount of detail the request needs. By default, do not use tables, \
     lists, headers, markdown, or emoji unless asked.
     Never volunteer the current time or date unless the user explicitly asks for it (e.g. "what time is it?"). Do not begin greetings with the time or date. The reference timestamp is for internal date resolution only.
 
     HUMAN EMPATHY & CONVERSATION:
-    - Respond as a real person and friend, NOT a customer service bot or task manager.
-    - Empathy first: When the user shares how they feel (tired, insomnia, happy, stressed), react with genuine human warmth and empathy. Talk with them about their thoughts or feelings. NEVER pivot to calendars, tasks, or work when the user is expressing a feeling or personal state!
+    - When the user shares how they feel, respond with warmth and empathy. Talk with them about their thoughts or feelings. Follow their lead on whether to discuss calendars, tasks, or work.
     - Temporal & situational awareness: Be aware of the local time (e.g. late night, early morning) naturally without reciting the exact clock.
     - Stop offering unsolicited help: NEVER end messages with canned assistant phrases like "How can I assist you today?", "Is there anything specific you'd like to discuss?", "Should we move onto scheduling?", or "¿En qué te puedo ayudar hoy?". If the user needs help, they will ask for it.
-    - Be a genuine conversational partner: show natural human curiosity, ask questions about what the user shares, share interesting thoughts, express opinions, or start a natural conversation topic just like a real person would.
+    - Show curiosity, ask questions when useful, and share thoughts grounded in the conversation.
     - NEVER expose internal database taxonomy, schemas, or memory mechanics to the user. NEVER say things like "I've saved that under preference category", "that's good to have on file", "logged in database", or "cataloged under topic X". React to user facts naturally and warmly like a friend, never like a database clerk filing a record.
-    - Conversational continuity: If you interacted recently, do not re-greet or give formal openings. Acknowledge casually. NEVER explain, justify, or recite your greeting or conversational rules out loud (e.g. NEVER say "Since this is our first interaction of the day..."). Speak directly and naturally.
+    - Conversational continuity: If you interacted recently, do not re-greet or give formal openings. Speak directly and naturally.
     - Keep private reasoning strictly inside <thought>...</thought>. Never output raw thoughts into the visible response. Visible responses must contain ONLY your direct final answer.
-    - CONVERSATIONAL PACING & IMMEDIATE ACKNOWLEDGMENTS (MANDATORY):
-      Never leave the user waiting in silence. When asked to perform an action, check a schedule, look up information, or create an event/task: ALWAYS output an immediate, natural acknowledgment in Spanish FIRST (e.g. "Ok, dame un momento y te lo chequeo...", "Entendido, dame un segundo y lo reviso...", "Dame un momento y te lo agendo...") before calling the tool. Then execute the tool and provide the final answer.
-      For complex questions, code generation, or writing scripts: ALWAYS provide an immediate acknowledgment first (e.g. "¡Claro! Dame un segundo y te lo preparo...", "Dame un momento y te escribo el script..."), followed by the complete answer.
 
     GROUNDING, TOOLS & SCHEDULING:
     - Ground everything in your tools and memory: Report ONLY what your tools actually returned; NEVER invent \
@@ -99,8 +108,6 @@ final class Agent {
     justify a belief (cite the sources), list_topics for the theme index (which may be empty early — that is \
     not ignorance). Summaries are tagged with their chat + message range; call load_messages(chat_id, from, to) \
     ONLY when a summary lacks the detail you need, reading just that range.
-    - Proactive Memory Recording:
-      When the user mentions important facts, plans, names of institutions/banks, locations/cities, phone numbers, relationships, preferences, or critical details (e.g. "Republic Bank", "Louisville, Kentucky", "502-830-6579", travel plans, bank director details), PROACTIVELY call `save_memory(entity: ..., detail: ..., kind: ...)` to save them immediately in that turn! Never let critical details go unrecorded.
     - Searching Memory & Hierarchical Retrieval (Token-Efficient):
       When the user asks you to recall something from the past ("búscalo en tu memoria", "¿recuerdas lo que hablamos?", "¿qué te dije sobre X?"):
       1. DO NOT claim you don't remember or have empty memory without searching. Call `search_memory(query: ...)` or `recall_by_topic(topic: ...)` immediately.
@@ -113,7 +120,7 @@ final class Agent {
       When the user asks to schedule an appointment, meeting, or asks if a time is free (e.g. "agenda una cita médica mañana a las 10am", "¿tengo tiempo libre el viernes a las 2?"):
       1. STEP 1 (Check Availability FIRST):
          DO NOT interrogate or ask the user for all the details (title, description, end time) before checking!
-         IMMEDIATELY output a brief natural acknowledgment (e.g. "Ok, déjame chequear si tienes ese tiempo disponible en la agenda...") and call `check_schedule(start, end)` right away (if the user gave only a start time, check start to start+1 hour).
+         Call check_schedule(start, end) first (if the user gave only a start time, check start to start+1 hour).
       2. STEP 2 (Evaluate Conflicts with Events & Routines):
          `check_schedule` checks both calendar appointments AND the user's recurring work schedule (e.g. Amazon warehouse hours) and daily routines (running, gym, sleep).
          If `check_schedule` returns any conflict (with work, routine, or another event):
@@ -142,43 +149,97 @@ final class Agent {
     As soon as the user confirms: IMMEDIATELY call `drop_shift(shift_opportunity_id: "...", confirmed: true)`. NEVER repeat the question! \
     CRITICAL: When `add_shift` or `drop_shift` returns, NEVER call `add_shift` or `drop_shift` again in the same turn! Report HONESTLY what the tool output says. If the tool reports that the shift was soltado or added successfully, confirm it directly to the user in a natural sentence. If it failed or was not added, explain the limitation without inventing success.
     \(scheduleConventions)
+    \(BrainConversationPolicy.canonical.instructions)
     """
 
-    private func systemPrompt() -> String { Self.systemPromptText }
+    static func nativeSystemPrompt(tools: [AgentTool], compact: Bool) -> String {
+        let names = Set(tools.map { type(of: $0).name })
+        var sections = [
+            """
+            You are Gemma, a warm, conversational personal companion in the spirit of JARVIS. Match the user's language. Use their name only if they introduced or confirmed it. Ask useful questions when needed. For casual conversation, reply directly. Never volunteer the clock or claim automatic rescheduling. Use only available tools and report their actual results.
+            """,
+            compact ? """
+            Be truthful about being AI and about your limits. Keep user and agent identities distinct. Disagree respectfully with reasons. Use faithful gist and quote only delivered originals. Keep inference, feeling, and pending saves uncertain. Distinguish likes, comparisons, and current intent. Offer a familiar choice or variety, or ask one useful question. A taste cannot establish playback.
+            """ : BrainConversationPolicy.canonical.instructions
+        ]
+        if names.contains(LoadMessagesTool.name) {
+            sections.append("Use gist first. Call load_messages only for a specific authorized range when a summary lacks exact detail.")
+        }
+        if !names.isDisjoint(with: [ListAvailableShiftsTool.name, AddShiftTool.name, DropShiftTool.name]) {
+            sections.append("Amazon A to Z: query dates in local ISO format. Before accepting or dropping, ask once for explicit confirmation of the specific shift. After confirmation execute once. Report the verified result or uncertainty.")
+        }
+        if names.contains(QueryScheduleTool.name) {
+            sections.append("Use local ISO dates and Monday–Sunday weeks. query_schedule is the schedule authority. Omit finished events unless asked about the past.")
+        }
+        if names.contains(CreateEventTool.name) && names.contains(CheckScheduleTool.name) {
+            sections.append("Use check_schedule before create_event. Warn about conflicts and force only after user confirmation. Persist trips as all-day events.")
+        }
+        if names.contains(UpdateEventTool.name) { sections.append("Use update_event for corrections without cancelling and recreating.") }
+        if names.contains(CancelEventsTool.name) { sections.append("Use cancel_events only for explicit cancellation.") }
+        return sections.joined(separator: "\n\n")
+    }
+
+    static func providerPrompt(_ prompt: String, recall: String, wake: String, now: String) -> String {
+        [now, recall, wake, prompt].filter { !$0.isEmpty }.joined(separator: "\n\n")
+    }
+
+    /// Tool effects are complete before this step. Keep the user's full input and mark any
+    /// shortened result so it cannot be cited as a whole original.
+    private static func toolFollowUp(base: String, bare: String, results: [String],
+                                     budget: NativeGenerationBudget) -> String? {
+        let guidance = "\n\nUse the actual tool results below to reply naturally. Do not repeat a completed action."
+        for prefix in [base, bare] {
+            let complete = prefix + guidance + "\n" + results.joined(separator: "\n")
+            if budget.canFit(prompt: complete) { return complete }
+        }
+        let prefix = bare + guidance + "\n"
+        let notice = "\n[Tool results abbreviated.]"
+        let space = budget.contextTokens - budget.outputTokens - budget.systemTokens - budget.toolTokens
+            - prefix.utf8.count - notice.utf8.count
+        guard space >= 96, let result = results.last else { return nil }
+        var bytes = result.utf8.prefix(space)
+        while String(bytes: bytes, encoding: .utf8) == nil { bytes = bytes.dropLast() }
+        return prefix + String(decoding: bytes, as: UTF8.self) + notice
+    }
 
     func run(prompt: String, options: GenerationOptions) -> AsyncThrowingStream<AgentEvent, Error> {
         let tools = registry.tools
         return AsyncThrowingStream { continuation in
             let task = Task {
-                var recallTail = self.recallTail
-                if !wakeContext.isEmpty {
-                    recallTail = recallTail.isEmpty ? wakeContext : recallTail + "\n\n" + wakeContext
-                }
-                let nowCtx = Self.nowContext()
-                recallTail = recallTail.isEmpty ? nowCtx : nowCtx + "\n\n" + recallTail
                 var opts = options
-                opts.systemPrompt = systemPrompt()
+                if preparedPrompt == nil { opts.systemPrompt = Self.systemPromptText }
 
                 do {
                     let maxIterations = 5
-                    var currentPrompt = recallTail.isEmpty ? prompt : recallTail + "\n\n" + prompt
+                    let initialPrompt = preparedPrompt ?? Self.providerPrompt(prompt, recall: recallTail, wake: wakeContext,
+                                                                            now: Self.nowContext())
+                    var currentPrompt = initialPrompt
                     var activeTools = tools
                     var executedMutations: [String: String] = [:]
+                    var toolResults = [String]()
                     let mutationToolNames: Set<String> = [
-                        "add_shift", "drop_shift", "create_event", "cancel_event", "update_event", "create_task", "complete_task"
+                        "add_shift", "drop_shift", "create_event", "cancel_events", "update_event", "create_task",
+                        "delete_task", "set_routine", "save_memory", "forget"
                     ]
 
                     loop: for iteration in 0..<maxIterations {
-                        let stream = await runtime.generate(prompt: currentPrompt, tools: activeTools, options: opts)
+                        try Task.checkCancellation()
+                        if let limit = opts.contextTokens {
+                            let budget = NativeGenerationBudget(contextTokens: limit, outputTokens: opts.maxTokens,
+                                system: opts.systemPrompt ?? "", tools: activeTools)
+                            guard budget.canFit(prompt: currentPrompt) else { throw NativeGenerationBudget.inputTooLarge }
+                            opts.history = budget.retainingRecent(opts.history, prompt: currentPrompt)
+                        }
+                        let stream = await MemoryToolbox.$turnScope.withValue(memoryScope) {
+                            await runtime.generate(prompt: currentPrompt, tools: activeTools, options: opts)
+                        }
                         var pendingToolCalls: [(name: String, args: String)] = []
                         var runtimeFinishedAnyTool = false
                         var completed: GenerationResult?
-                        var streamedTokenCount = 0
                         for try await event in stream {
                             if Task.isCancelled { throw CancellationError() }
                             switch event {
                             case .token(let t):
-                                streamedTokenCount += 1
                                 continuation.yield(.token(t))
                             case .thought(let th):
                                 continuation.yield(.thought(th))
@@ -188,6 +249,9 @@ final class Agent {
                             case .toolCallFinished(let n, let r):
                                 runtimeFinishedAnyTool = true
                                 continuation.yield(.toolCallFinished(name: n, result: r))
+                                if activeTools.contains(where: { type(of: $0).name == n }) {
+                                    await reportOutcome?(.unknown)
+                                }
                             case .completed(let res):
                                 completed = res
                             }
@@ -199,50 +263,50 @@ final class Agent {
                             break loop
                         }
 
-                        // Provide immediate conversational feedback if model directly invoked a tool on iteration 0
-                        if iteration == 0 && streamedTokenCount == 0 && !pendingToolCalls.isEmpty {
-                            let ack: String
-                            if pendingToolCalls.contains(where: { $0.name.contains("schedule") }) {
-                                ack = "Ok, dame un momento y te lo chequeo…"
-                            } else if pendingToolCalls.contains(where: { $0.name.contains("event") }) {
-                                ack = "Un momento, voy a revisar tu calendario…"
-                            } else if pendingToolCalls.contains(where: { $0.name.contains("task") }) {
-                                ack = "Dame un segundo y lo anoto en tus tareas…"
-                            } else if pendingToolCalls.contains(where: { $0.name.contains("shift") }) {
-                                ack = "Ok, dame un momento y reviso los turnos en A to Z…"
-                            } else if pendingToolCalls.contains(where: { $0.name.contains("messages") || $0.name.contains("recall") || $0.name.contains("why") || $0.name.contains("memory") }) {
-                                ack = "Dame un segundo y reviso lo que tengo anotado…"
-                            } else {
-                                ack = "Dame un momento…"
-                            }
-                            continuation.yield(.token(ack))
-                        }
-
-                        var resultsNote = currentPrompt
                         var anyMutationExecuted = false
                         for tc in pendingToolCalls {
+                            try Task.checkCancellation()
                             let key = tc.name + "\u{001F}" + tc.args
                             let result: String
+                            let reportedStatus: BrainOutcomeStatus?
                             if mutationToolNames.contains(tc.name), let previous = executedMutations[key] {
-                                result = "DUPLICATE_CALL_IGNORED: Esta acción ya fue completada exitosamente en este turno. Resultado previo: \(previous). No llames a esta herramienta otra vez; responde directamente al usuario."
-                            } else if let tool = registry.tool(named: tc.name) {
-                                result = await tool.run(argsJSON: tc.args)
+                                result = "Esta acción ya se intentó en este turno. Resultado anterior: \(previous)"
+                                reportedStatus = nil
+                            } else if let tool = activeTools.first(where: { type(of: $0).name == tc.name }) {
+                                result = await MemoryToolbox.$turnScope.withValue(memoryScope) {
+                                    await tool.run(argsJSON: tc.args)
+                                }
+                                reportedStatus = tool is CurrentTimeTool ? .succeeded : .unknown
                                 if mutationToolNames.contains(tc.name) {
                                     executedMutations[key] = result
                                     anyMutationExecuted = true
                                 }
                             } else {
                                 result = "error: no tool named \(tc.name)"
+                                reportedStatus = nil
                             }
                             continuation.yield(.toolCallFinished(name: tc.name, result: result))
-                            resultsNote += "\n\n[You called the tool `\(tc.name)` with arguments \(tc.args); it returned: \(result). Tool execution is complete for this action. Formulate your final response to the user in a natural, friendly sentence explaining this result. DO NOT call `\(tc.name)` or any other tool again. NEVER volunteer the current date or time.]"
+                            if let reportedStatus { await reportOutcome?(reportedStatus) }
+                            toolResults.append("[You called the tool \(tc.name); it returned: \(result)]")
                         }
-                        currentPrompt = resultsNote
 
                         // If a state-changing mutation tool ran, disable tools for subsequent rounds
                         // so the model is strictly forced to generate the conversational reply instead of looping.
                         if anyMutationExecuted || iteration >= maxIterations - 2 {
                             activeTools = []
+                        }
+                        if let limit = opts.contextTokens {
+                            let budget = NativeGenerationBudget(contextTokens: limit, outputTokens: opts.maxTokens,
+                                system: opts.systemPrompt ?? "", tools: activeTools)
+                            guard let next = Self.toolFollowUp(base: followUpPrompt ?? initialPrompt,
+                                bare: barePrompt ?? initialPrompt, results: toolResults, budget: budget) else {
+                                continuation.yield(.failed("El resultado ya se mostró. No cabe completo para resumirlo."))
+                                break loop
+                            }
+                            currentPrompt = next
+                        } else {
+                            currentPrompt = initialPrompt + "\n\nUse these actual tool results in your reply:\n"
+                                + toolResults.joined(separator: "\n")
                         }
 
                         if iteration == maxIterations - 1 {

@@ -5,6 +5,7 @@ import SwiftUI
 /// instead of the previous direct GRDB access.
 struct MemoryView: View {
     let client: MemoryClient?
+    var restoreThread: ((String) -> Void)? = nil
 
     private enum Mode: String, CaseIterable { case lista = "Lista", grafo = "Grafo", transcript = "Transcript" }
     @State private var mode: Mode = .lista
@@ -21,7 +22,7 @@ struct MemoryView: View {
             switch mode {
             case .lista: MemoryInspectorView(client: client)
             case .grafo: MemoryGraphView(client: client)
-            case .transcript: TranscriptInspectorView(client: client)
+            case .transcript: TranscriptInspectorView(client: client, restoreThread: restoreThread)
             }
         }
     }

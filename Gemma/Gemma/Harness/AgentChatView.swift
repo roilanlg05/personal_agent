@@ -191,6 +191,13 @@ struct AgentChatView: View {
             consolidationBanner
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
+            if model.turnMemoryPersistence == .pending {
+                Label("Memoria del turno sin confirmar", systemImage: "exclamationmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+            }
 
             ZStack(alignment: .bottom) {
                 transcript
@@ -204,7 +211,11 @@ struct AgentChatView: View {
         .frame(minWidth: 560, minHeight: 420)
         #endif
         .task { startConsolidationPoll() }
-        .onDisappear { consolidationPollTask?.cancel() }
+        .onDisappear {
+            consolidationPollTask?.cancel()
+            dictationManager.stopDictation()
+            model.cancelDictationCue()
+        }
         .animation(.easeInOut(duration: 0.25), value: consolidationState?.isRunning)
         .toolbar {
             #if os(iOS)
@@ -274,7 +285,13 @@ struct AgentChatView: View {
             NavigationStack {
                 Group {
                     if let client = model.memoryClient() {
-                        MemoryView(client: client)
+                        MemoryView(client: client) { threadID in
+                            dictationManager.stopDictation()
+                            model.restoreConversation(threadID)
+                            input = ""
+                            attachments.removeAll()
+                            model.showMemory = false
+                        }
                     } else {
                         ContentUnavailableView("No memory client", systemImage: "brain",
                                                description: Text("Memory is disabled or not yet initialized. Send a message with memory enabled, then reopen."))
@@ -374,10 +391,13 @@ struct AgentChatView: View {
     private func toggleDictation() {
         if dictationManager.state == .recording {
             dictationManager.stopDictation()
+            model.cancelDictationCue()
         } else {
+            model.cancelDictationCue()
             Task {
                 let ok = await dictationManager.startDictation(existingText: input) { updatedText in
                     input = updatedText
+                    model.updateDictationCue(updatedText)
                 }
                 if !ok, let err = dictationManager.lastError {
                     model.agentLog.append(ChatLogEntry(role: "system", text: "Dictado: \(err)"))
@@ -464,7 +484,15 @@ struct AgentChatView: View {
                 }
 
                 HStack(alignment: .bottom, spacing: 6) {
-                    TextField(dictationManager.state == .recording ? "Escuchando…" : "Mensaje a Gemma…", text: $input, axis: .vertical)
+                    TextField(dictationManager.state == .recording ? "Escuchando…" : "Mensaje a Gemma…", text: Binding(
+                        get: { input },
+                        set: { newValue in
+                            if dictationManager.state == .recording {
+                                dictationManager.stopDictation()
+                                model.cancelDictationCue()
+                            }
+                            input = newValue
+                        }), axis: .vertical)
                         .lineLimit(1...5)
                         .textFieldStyle(.plain)
                         .padding(.leading, 10)

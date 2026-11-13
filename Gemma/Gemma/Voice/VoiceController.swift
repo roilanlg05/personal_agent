@@ -14,6 +14,7 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
     @ObservationIgnored var client: VoiceTurning?
     @ObservationIgnored var appendLine: (String) -> Void = { _ in }
     @ObservationIgnored var threadId: () -> String = { "voice" }
+    @ObservationIgnored var beginActiveEpisode: (() -> String)?
     @ObservationIgnored var onActiveTurn: (String, String, String) -> Void = { _, _, _ in }
     @ObservationIgnored private var player: AVAudioPlayer?
     /// Called after playback finishes if the server detected a closure phrase.
@@ -74,10 +75,14 @@ final class VoiceController: NSObject, AVAudioPlayerDelegate {
             return
         }
         do {
-            let episodeID = threadId()
+            let episodeID = isPassive ? threadId() : (beginActiveEpisode?() ?? threadId())
             let reply = try await client.turn(wav: wav, threadId: episodeID,
                                               timezone: TimeZone.current.identifier,
                                               isPassive: isPassive)
+            guard isPassive || beginActiveEpisode == nil || threadId() == episodeID else {
+                state = .idle
+                return
+            }
             if reply.audio.isEmpty {
                 state = .idle
                 return

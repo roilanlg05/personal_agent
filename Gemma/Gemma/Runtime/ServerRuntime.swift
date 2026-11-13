@@ -58,7 +58,7 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                     if !provider.kind.isLocalMLX, (provider.apiKey ?? "").isEmpty {
                         throw RuntimeError.generationFailed("\(provider.kind.displayName): falta la API key — agrégala en Settings → Modelos (y sal del campo para guardarla).")
                     }
-                    let effectiveMaxTokens = max(options.maxTokens, 4096)
+                    let effectiveMaxTokens = max(options.maxTokens, 1)
                     let isClaude = provider.kind == .claude
                     let endpoint = isClaude ? "messages" : "chat/completions"
                     var req = URLRequest(url: baseURL.appendingPathComponent(endpoint))
@@ -157,6 +157,9 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                     // Parse the OpenAI SSE stream: `data: {chunk}` lines, ending with `data: [DONE]`.
                     var visible = ""
                     var isPotentiallyToolCall: Bool? = nil
+                    var pendingContent: [String] = []
+                    var contentPrefix = ""
+                    let toolPrefixes = ["<execute_tool", "<tool_call", "<|tool", "call:", "{"]
                     var inThoughtTag = false
                     var thoughtBuffer = ""
                     var toolNames: [Int: String] = [:]
@@ -249,17 +252,20 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                                 continue
                             }
 
-                            if isPotentiallyToolCall == nil && visible.count >= 5 {
-                                let trimmed = visible.trimmingCharacters(in: .whitespacesAndNewlines)
-                                if trimmed.hasPrefix("<execute_tool") || trimmed.hasPrefix("<tool_call") ||
-                                   trimmed.hasPrefix("call:") || trimmed.hasPrefix("{") {
-                                    isPotentiallyToolCall = true
-                                } else {
-                                    isPotentiallyToolCall = false
-                                }
-                            }
                             if isPotentiallyToolCall == false {
                                 continuation.yield(.token(piece))
+                            } else if isPotentiallyToolCall == nil {
+                                pendingContent.append(piece)
+                                contentPrefix += piece
+                                let prefix = contentPrefix.trimmingCharacters(in: .whitespacesAndNewlines)
+                                if toolPrefixes.contains(where: { prefix.hasPrefix($0) }) {
+                                    isPotentiallyToolCall = true
+                                    pendingContent.removeAll()
+                                } else if !prefix.isEmpty && !toolPrefixes.contains(where: { $0.hasPrefix(prefix) }) {
+                                    isPotentiallyToolCall = false
+                                    for buffered in pendingContent { continuation.yield(.token(buffered)) }
+                                    pendingContent.removeAll()
+                                }
                             }
                         }
                         if let calls = delta["tool_calls"] as? [[String: Any]] {
@@ -290,7 +296,7 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                         continuation.yield(.toolCallStarted(name: toolNames[idx] ?? "", args: args))
                     }
 
-                    if isPotentiallyToolCall == true && toolNames.isEmpty && !cleanText.isEmpty {
+                    if isPotentiallyToolCall != false && !isClaude && toolNames.isEmpty && !cleanText.isEmpty {
                         continuation.yield(.token(cleanText))
                     }
 

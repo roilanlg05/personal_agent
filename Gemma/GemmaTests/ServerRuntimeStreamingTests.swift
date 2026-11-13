@@ -46,6 +46,26 @@ final class ServerRuntimeStreamingTests: XCTestCase {
         XCTAssertEqual(completedText, "Hola mundo", "final text is the concatenation of the deltas")
     }
 
+    func test_streaming_holds_split_text_tool_prefix_until_parsed() async throws {
+        SSEStub.body = """
+        data: {"choices":[{"delta":{"content":"<ex"}}]}
+
+        data: {"choices":[{"delta":{"content":"ecute_tool>get_current_time{}</execute_tool>"}}]}
+
+        data: [DONE]
+
+        """
+        let runtime = ServerRuntime(session: makeSession())
+        var tokens: [String] = []
+        var tools: [String] = []
+        for try await event in await runtime.generate(prompt: "hi", tools: [], options: GenerationOptions()) {
+            if case .token(let text) = event { tokens.append(text) }
+            if case .toolCallStarted(let name, _) = event { tools.append(name) }
+        }
+        XCTAssertTrue(tokens.isEmpty)
+        XCTAssertEqual(tools, ["get_current_time"])
+    }
+
     final class StallStub: URLProtocol {
         override class func canInit(with request: URLRequest) -> Bool { true }
         override class func canonicalRequest(for r: URLRequest) -> URLRequest { r }

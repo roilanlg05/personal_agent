@@ -6,6 +6,7 @@ struct ListTopicsTool: AgentTool {
     static let description = "List the topics/themes you have memories about (e.g. when the user asks what you know about them). No arguments."
     static let parameters: [AgentToolParam] = []
     func run(argsJSON: String) async -> String {
+        if MemoryToolbox.turnScope != nil { return "A scoped topic index is unavailable." }
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: "") }
         let result: String = await {
             guard let mem = await MemoryToolbox.shared.memory else { return "memory unavailable" }
@@ -23,8 +24,7 @@ struct ListTopicsTool: AgentTool {
 struct RecallByTopicTool: AgentTool {
     static let name = "recall_by_topic"
     static let description = """
-    Return EVERYTHING you remember about one topic/theme (e.g. "finanzas", "trabajo", "salud"), \
-    not just what you already see. Use it when the user asks for all you know about a subject.
+    Look up permitted memories about one topic, such as work or games.
     """
     static let parameters: [AgentToolParam] = [
         AgentToolParam(name: "topic", type: .string, description: "The topic/theme to enumerate, e.g. \"finanzas\".", required: true),
@@ -33,6 +33,9 @@ struct RecallByTopicTool: AgentTool {
         let obj = (try? JSONSerialization.jsonObject(with: Data(argsJSON.utf8))) as? [String: Any] ?? [:]
         let topic = ((obj["topic"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !topic.isEmpty else { return "need a topic" }
+        if let scope = MemoryToolbox.turnScope {
+            return scope.isTyped ? await scope.lookup(topic) : "Scoped topic search unavailable."
+        }
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: topic) }
         let result: String = await {
             guard let mem = await MemoryToolbox.shared.memory else { return "memory unavailable" }
@@ -54,7 +57,7 @@ struct WhyTool: AgentTool {
     static let description = """
     Explain WHY you believe something about the user, by tracing it to the source memories. \
     Use it when the user asks why you think that or what you're basing it on. Pass the belief/claim. \
-    Cite the sources it returns; don't invent a justification.
+    Ground the answer in delivered evidence and never invent a justification.
     """
     static let parameters: [AgentToolParam] = [
         AgentToolParam(name: "claim", type: .string, description: "The belief/claim to justify, e.g. \"the user trades options\".", required: true),
@@ -63,6 +66,9 @@ struct WhyTool: AgentTool {
         let obj = (try? JSONSerialization.jsonObject(with: Data(argsJSON.utf8))) as? [String: Any] ?? [:]
         let claim = ((obj["claim"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !claim.isEmpty else { return "need a claim" }
+        if let scope = MemoryToolbox.turnScope {
+            return scope.isTyped ? await scope.lookup(claim) : "Scoped memory explanation unavailable."
+        }
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: claim) }
         let result: String = await {
             guard let mem = await MemoryToolbox.shared.memory else { return "memory unavailable" }

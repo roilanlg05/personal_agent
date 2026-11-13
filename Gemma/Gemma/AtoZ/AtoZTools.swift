@@ -7,10 +7,10 @@ private func obj(_ argsJSON: String) -> [String: Any] {
 /// Tool for querying available shift opportunities from Amazon A to Z.
 struct ListAvailableShiftsTool: AgentTool {
     static let name = "list_available_shifts"
-    static let description = "Consulta los turnos y oportunidades disponibles en Amazon A to Z. Proporciona start_date y end_date en formato ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm). Devuelve los turnos con ID, horario y disponibilidad."
+    static let description = "Consulta turnos de Amazon A to Z. Devuelve ID, horario y disponibilidad."
     static let parameters: [AgentToolParam] = [
-        AgentToolParam(name: "start_date", type: .string, description: "Fecha de inicio del rango (ej. 2026-11-04 o 2026-11-04T00:00).", required: true),
-        AgentToolParam(name: "end_date", type: .string, description: "Fecha de fin del rango (ej. 2026-11-07 o 2026-11-07T23:59).", required: true)
+        AgentToolParam(name: "start_date", type: .string, description: "Inicio local en ISO.", required: true),
+        AgentToolParam(name: "end_date", type: .string, description: "Fin local en ISO.", required: true)
     ]
 
     func run(argsJSON: String) async -> String {
@@ -68,10 +68,10 @@ struct ListAvailableShiftsTool: AgentTool {
 /// Enforces two-step confirmation, authorization checks, and verification.
 struct AddShiftTool: AgentTool {
     static let name = "add_shift"
-    static let description = "Solicita la aceptación de un turno específico en Amazon A to Z. Requiere confirmación explícita previa del usuario indicando fecha y hora del turno antes de ejecutar."
+    static let description = "Acepta un turno específico de Amazon A to Z con confirmación explícita de fecha y hora."
     static let parameters: [AgentToolParam] = [
-        AgentToolParam(name: "shift_opportunity_id", type: .string, description: "ID único de la oportunidad de turno obtenido previamente de list_available_shifts.", required: true),
-        AgentToolParam(name: "confirmed", type: .boolean, description: "true solo si el usuario ha confirmado explícitamente la aceptación de este turno en específico tras haberle preguntado.", required: false)
+        AgentToolParam(name: "shift_opportunity_id", type: .string, description: "ID de list_available_shifts.", required: true),
+        AgentToolParam(name: "confirmed", type: .boolean, description: "True tras confirmación explícita.", required: false)
     ]
 
     func run(argsJSON: String) async -> String {
@@ -119,10 +119,10 @@ struct AddShiftTool: AgentTool {
 /// Tool for dropping or giving up a scheduled shift on Amazon A to Z.
 struct DropShiftTool: AgentTool {
     static let name = "drop_shift"
-    static let description = "Solicita renunciar o soltar (drop off) un turno asignado en Amazon A to Z. Requiere confirmación explícita previa del usuario con fecha y hora antes de ejecutar."
+    static let description = "Suelta un turno asignado de Amazon A to Z con confirmación explícita de fecha y hora."
     static let parameters: [AgentToolParam] = [
-        AgentToolParam(name: "shift_opportunity_id", type: .string, description: "ID único de la oportunidad de turno u oportunidad de drop obtenido de list_available_shifts o del horario.", required: true),
-        AgentToolParam(name: "confirmed", type: .boolean, description: "true solo si el usuario ha confirmado explícitamente renunciar a este turno en específico tras haberle preguntado.", required: false)
+        AgentToolParam(name: "shift_opportunity_id", type: .string, description: "ID de turno obtenido de la consulta o el horario.", required: true),
+        AgentToolParam(name: "confirmed", type: .boolean, description: "True tras confirmación explícita.", required: false)
     ]
 
     func run(argsJSON: String) async -> String {

@@ -77,6 +77,9 @@ final class ForgetToolTests: XCTestCase {
 
     func test_forget_calls_endpoint_and_returns_count() async {
         MemoryToolbox.shared.memory = makeStubMemoryClient { req in
+            if req.url?.path == "/v1/nodes" {
+                return (200, Data(#"{"nodes":[],"total":0}"#.utf8))
+            }
             XCTAssertEqual(req.url?.path, "/v1/memory/forget")
             return (200, #"{"removed":3}"#.data(using: .utf8)!)
         }

@@ -27,10 +27,12 @@ public final class HarnessModel {
     public var agentRunning: Bool = false
     public var showMemory: Bool = false
     var hasProactive: Bool = false
+    private(set) var turnMemoryPersistence: BrainConversationCoordinator.Persistence?
 
     @ObservationIgnored private var currentTurnTask: Task<Void, Never>?
     @ObservationIgnored private var activeTextTurnID: UUID?
     @ObservationIgnored private var recentConversation = RecentConversation()
+    @ObservationIgnored private let brainCue = BrainCuePrefetch()
 
     @ObservationIgnored private var runtime: ModelRuntime & ToolCallingRuntime
     @ObservationIgnored private let settingsStore = SettingsStore()
@@ -43,8 +45,7 @@ public final class HarnessModel {
     @ObservationIgnored let voice = VoiceController(recorder: AudioRecorder())
     /// Always-listening "Hey Jarvis". Built lazily (loads ONNX models) so a load failure doesn't crash init.
     @ObservationIgnored private(set) var wake: WakeListener?
-    @ObservationIgnored private var lastConversationActivity: Double = UserDefaults.standard.double(forKey: "lastTurnEndedAt")
-    private static let wakeGapSeconds: Double = 180   // first turn or a gap > this = a "wake"
+    @ObservationIgnored private var episode = ChatSession.Episode(lastActivity: UserDefaults.standard.double(forKey: "lastTurnEndedAt"))
 
     /// Build the per-turn "wake context" appended to the system prompt: what the agent was
     /// reflecting on (if a cycle is pending) + pending follow-ups (only on a wake turn).
@@ -59,23 +60,12 @@ public final class HarnessModel {
         }
         return parts.joined(separator: "\n\n")
     }
-    /// The active episode thread id. Persisted in UserDefaults so it survives app restarts.
-    /// Starts as a UUID (never "main") so each installation has its own scoped thread from day one.
-    @ObservationIgnored private var threadId: String = {
-        if let saved = UserDefaults.standard.string(forKey: "activeThreadId"), !saved.isEmpty {
-            return saved
-        }
-        let fresh = UUID().uuidString
-        UserDefaults.standard.set(fresh, forKey: "activeThreadId")
-        return fresh
-    }()
     /// The chat thread id voice turns join (same episode as typed chat).
-    var currentThreadId: String { threadId }
+    var currentThreadId: String { episode.id }
     var wakeDetector: WakeDetecting? {
         ensureWake()
         return wake?.detector
     }
-    @ObservationIgnored private var turnIndex = 0
 
     /// Owns the local mlx_vlm server process lifecycle (M2a). Built in init() so its initial
     /// ServerConfig reflects the persisted "keep model resident" toggle (M2c-1).
@@ -151,8 +141,13 @@ public final class HarnessModel {
         #endif
         voice.appendLine = { [weak self] line in self?.agentLog.append(ChatLogEntry(role: "system", text: line)) }
         voice.threadId = { [weak self] in self?.currentThreadId ?? "voice" }
+        voice.beginActiveEpisode = { [weak self] in
+            guard let self else { return "voice" }
+            self.cancelDictationCue()
+            return self.beginEpisode(at: Date().timeIntervalSince1970).id
+        }
         voice.onActiveTurn = { [weak self] episodeID, userText, assistantText in
-            guard let self, self.threadId == episodeID else { return }
+            guard let self, self.currentThreadId == episodeID else { return }
             self.recentConversation.start(threadID: episodeID)
             self.recentConversation.append(ChatMessage(role: .user, content: userText), threadID: episodeID)
             self.recentConversation.append(ChatMessage(role: .assistant, content: assistantText), threadID: episodeID)
@@ -246,13 +241,12 @@ public final class HarnessModel {
     /// `ensureMemory()` has been called at least once with valid settings.
     func memoryClient() -> MemoryClient? { memory }
 
-    private func makeGenerationOptions(history: [ChatMessage] = []) -> GenerationOptions {
+    private func makeGenerationOptions(contextTokens: Int) -> GenerationOptions {
         let maxTokens = UserDefaults.standard.object(forKey: "modelMaxTokens") as? Int ?? max(settings.maxOutputTokens, 2048)
         let temp = UserDefaults.standard.object(forKey: "modelTemperature") as? Double ?? 0.2
-        return GenerationOptions(maxTokens: maxTokens, temperature: temp,
+        return GenerationOptions(maxTokens: maxTokens, contextTokens: contextTokens, temperature: temp,
                           topP: settings.topP, topK: settings.topK,
-                          systemPrompt: settings.systemPrompt.isEmpty ? nil : settings.systemPrompt,
-                          history: history)
+                          systemPrompt: settings.systemPrompt.isEmpty ? nil : settings.systemPrompt)
     }
 
     /// Build (or rebuild) the `MemoryClient` from `UserDefaults` settings. The Settings UI
@@ -266,6 +260,7 @@ public final class HarnessModel {
     /// (Save / Forget / Reflect / LoadMessages) can reach the same instance.
     func ensureMemory() {
         guard settings.memoryEnabled ?? true else {
+            cancelDictationCue()
             self.memory = nil
             MemoryToolbox.shared.memory = nil
             MemoryToolbox.shared.reflectionRequest = nil
@@ -284,10 +279,13 @@ public final class HarnessModel {
             UserDefaults.standard.set(token, forKey: "memoryBearerToken")
         }
         guard let baseURL = URL(string: urlString) else {
+            cancelDictationCue()
             self.memory = nil
             MemoryToolbox.shared.memory = nil
             return
         }
+        if memory?.baseURL == baseURL, memory?.bearerToken == token { return }
+        cancelDictationCue()
         let client = MemoryClient(baseURL: baseURL, bearerToken: token)
         self.memory = client
         MemoryToolbox.shared.memory = client
@@ -396,6 +394,7 @@ public final class HarnessModel {
     }
 
     public func cancelAgentTurn() {
+        cancelDictationCue()
         currentTurnTask?.cancel()
         currentTurnTask = nil
         agentRunning = false
@@ -403,9 +402,44 @@ public final class HarnessModel {
     }
 
     private func noteConversationActivity(at time: Double) {
-        lastConversationActivity = time
+        episode.noteActivity(now: time)
         UserDefaults.standard.set(time, forKey: "lastTurnEndedAt")
     }
+
+    private func beginEpisode(at time: Double) -> (id: String, index: Int) {
+        let previous = episode.id
+        let started = episode.begin(now: time)
+        if previous != started.id {
+            cancelDictationCue()
+            recentConversation.start(threadID: started.id)
+        }
+        return started
+    }
+
+    func restoreConversation(_ threadID: String) {
+        guard !threadID.isEmpty, threadID != episode.id else { return }
+        cancelDictationCue()
+        currentTurnTask?.cancel()
+        currentTurnTask = nil
+        activeTextTurnID = nil
+        agentRunning = false
+        agentLog.removeAll()
+        turnMemoryPersistence = nil
+        let now = Date().timeIntervalSince1970
+        episode.restore(threadID: threadID, now: now)
+        recentConversation = RecentConversation()
+        recentConversation.start(threadID: threadID)
+        noteConversationActivity(at: now)
+    }
+
+    func updateDictationCue(_ partial: String) {
+        guard let memory, settings.memoryEnabled ?? true else { return }
+        let now = Date().timeIntervalSince1970
+        guard !ChatSession.shouldStartNewChat(lastActivity: episode.lastActivity, now: now) else { return }
+        brainCue.submit(partial: partial, threadID: episode.id, client: memory)
+    }
+
+    func cancelDictationCue() { brainCue.cancel() }
 
     public func runAgentTurn(_ prompt: String) async {
         guard !Task.isCancelled else { return }
@@ -415,6 +449,7 @@ public final class HarnessModel {
         if !(self.runtime is LlamaCppRuntime && provider.kind == .onDevice) {
             self.runtime = RuntimeFactory.make(provider)
         }
+        let runtime = self.runtime
         surfaceProactive()
         agentRunning = true
         defer {
@@ -424,34 +459,14 @@ public final class HarnessModel {
             }
         }
         agentLog.append(ChatLogEntry(role: "you", text: prompt))
+        turnMemoryPersistence = nil
         ensureMemory()
         let client = memory
-        let registry = ToolRegistry()
-        registry.register(CurrentTimeTool())
-        if client != nil {
-            registry.register(ForgetTool()); registry.register(ReflectTool()); registry.register(LoadMessagesTool())
-            registry.register(SaveMemoryTool()); registry.register(SearchMemoryTool())
-            registry.register(CheckScheduleTool()); registry.register(CreateEventTool())
-            registry.register(QueryScheduleTool()); registry.register(CancelEventsTool())
-            registry.register(UpdateEventTool())
-            registry.register(CreateTaskTool()); registry.register(ListTasksTool()); registry.register(DeleteTaskTool())
-            registry.register(ListTopicsTool()); registry.register(RecallByTopicTool()); registry.register(WhyTool())
-            registry.register(SetRoutineTool()); registry.register(ListRoutinesTool())
-        }
-        registry.register(ListAvailableShiftsTool())
-        registry.register(AddShiftTool())
-        registry.register(DropShiftTool())
+        let registry = ToolRegistry.native(memoryAvailable: client != nil)
         let now = Date().timeIntervalSince1970
-        let isWake = (lastConversationActivity == 0) || (now - lastConversationActivity > Self.wakeGapSeconds)
-        _ = isWake // followUps / focus are service-driven now (no per-turn HTTP for them in M3a)
-        if ChatSession.shouldStartNewChat(lastActivity: lastConversationActivity, now: now) {
-            threadId = UUID().uuidString   // new episode → new chat_id; server restarts seq at 1
-            UserDefaults.standard.set(threadId, forKey: "activeThreadId")
-            turnIndex = 0
-        }
-        let episodeID = threadId
-        let transcriptIndex = turnIndex
-        turnIndex += 1
+        let lastConversationActivity = episode.lastActivity
+        let (episodeID, transcriptIndex) = beginEpisode(at: now)
+        let operationID = brainCue.consume(final: prompt, threadID: episodeID, client: client)
         recentConversation.start(threadID: episodeID)
         let priorConversation = recentConversation
         recentConversation.append(ChatMessage(role: .user, content: prompt), threadID: episodeID)
@@ -476,25 +491,32 @@ public final class HarnessModel {
             return "Last interaction with user: \(timeDesc)."
         }()
         noteConversationActivity(at: now)
-        // Build recallTail via HTTP. recall() returns .empty on transport failure (see
-        // MemoryClient.recall), so an offline service degrades to "no recall" instead of crashing.
-        var recallTail = ""
-        if let client {
-            let bundle = (try? await client.recall(query: prompt, threadId: episodeID)) ?? .empty
-            recallTail = bundle.injectionBlock()
+        let coordinator = BrainConversationCoordinator(client: client, threadID: episodeID,
+                                                       transcriptIndex: transcriptIndex, operationID: operationID)
+        let prepared: BrainConversationCoordinator.PreparedTurn
+        do {
+            let limit = provider.kind.isLocalMLX ? min(settings.contextLength, provider.kind.nativeContextTokens) : provider.kind.nativeContextTokens
+            let options = makeGenerationOptions(contextTokens: limit)
+            prepared = try await coordinator.prepare(prompt: prompt, options: options,
+                priorConversation: priorConversation, wakeContext: wakeContext, registry: registry)
+        } catch is CancellationError {
+            return
+        } catch {
+            if activeTextTurnID == textTurnID {
+                agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
+            }
+            return
         }
-        guard !Task.isCancelled, activeTextTurnID == textTurnID else { return }
-        let history = await priorConversation.history(threadID: episodeID, client: client)
-        guard !Task.isCancelled, activeTextTurnID == textTurnID else { return }
-        let agent = Agent(runtime: runtime, registry: registry, recallTail: recallTail, wakeContext: wakeContext)
+        guard !Task.isCancelled, activeTextTurnID == textTurnID, currentThreadId == episodeID else { return }
+        turnMemoryPersistence = prepared.persistence
         var answer = ""
         var finalAssistantText = ""
         var currentThought = ""
         var activeGemmaIdx: Int? = nil
 
         do {
-            for try await event in agent.run(prompt: prompt, options: makeGenerationOptions(history: history)) {
-                guard !Task.isCancelled, activeTextTurnID == textTurnID else { break }
+            for try await event in prepared.run(runtime: runtime) {
+                guard !Task.isCancelled, activeTextTurnID == textTurnID, currentThreadId == episodeID else { break }
                 switch event {
                 case .thought(let th):
                     currentThought += th
@@ -562,19 +584,12 @@ public final class HarnessModel {
                 agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
             }
         }
-        guard !Task.isCancelled, activeTextTurnID == textTurnID else { return }
+        guard !Task.isCancelled, activeTextTurnID == textTurnID, currentThreadId == episodeID else { return }
         recentConversation.append(ChatMessage(role: .assistant, content: finalAssistantText), threadID: episodeID)
         noteConversationActivity(at: Date().timeIntervalSince1970)
-        // Append both turns to the transcript over HTTP. Failures are silent (service-down
-        // shouldn't crash a successful turn — the user can see Gemma's reply).
-        if let client {
-            try? await client.appendTranscript(threadId: episodeID, role: "user", text: prompt, turnIndex: transcriptIndex)
-            let cleanForTranscript = GemmaToolCallParser.strip(finalAssistantText)
-            if !cleanForTranscript.isEmpty {
-                try? await client.appendTranscript(threadId: episodeID, role: "assistant", text: cleanForTranscript, turnIndex: transcriptIndex)
-            }
-            // Signal the service to arm its consolidation timers. Fire-and-forget.
-            try? await client.consolidationTurnEnd(threadId: episodeID)
+        let persistence = await coordinator.complete(prepared, assistantText: finalAssistantText)
+        if !Task.isCancelled, activeTextTurnID == textTurnID {
+            turnMemoryPersistence = persistence
         }
     }
 }

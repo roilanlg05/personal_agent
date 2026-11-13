@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// Read-only view of the raw conversation log, newest-first.
+/// View of the raw conversation log, with deliberate restoration from a fetched row.
 /// Reads from the Memory Service over HTTP (`/v1/transcript/recent`).
 struct TranscriptInspectorView: View {
     let client: MemoryClient?
+    var restoreThread: ((String) -> Void)? = nil
     @State private var rows: [MemoryClient.TranscriptRow] = []
     @State private var errorMessage: String? = nil
 
@@ -21,6 +22,11 @@ struct TranscriptInspectorView: View {
                         Text(row.role == "assistant" ? "Gemma" : "Tú")
                             .font(.caption).foregroundStyle(row.role == "assistant" ? .blue : .secondary)
                         Text(row.text).textSelection(.enabled)
+                    }
+                    .contextMenu {
+                        if let restoreThread {
+                            Button("Continuar esta conversación") { restoreThread(row.threadId) }
+                        }
                     }
                 }
             }

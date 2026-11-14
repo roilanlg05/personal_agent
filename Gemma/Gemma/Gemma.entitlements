@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
+	<!-- Micrófono, para el dictado y la palabra de activación. -->
 	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<!-- Red: el servicio de memoria del i3 y el modelo servido por Mac. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+
+	<!-- WeatherKit. La capacidad está habilitada en el App ID `com.roilan.gemma`
+	     del equipo ST54FK4W4X; sin este entitlement `get_weather` falla siempre.
+	     El App ID anterior (`lambert-dev-group.Gemma`, equipo personal gratuito) no
+	     podía tener capacidades: los equipos personales no las ofrecen. -->
+	<key>com.apple.developer.weatherkit</key>
 	<true/>
 </dict></plist>

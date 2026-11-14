@@ -5,7 +5,7 @@
 Construir un asistente persistente tipo Jarvis que:
 
 - responda extremadamente rápido,
-- mantenga continuidad real,
+- mantenga continuidad real,si
 - recuerde preferencias, hábitos y contexto,
 - haga research de manera incremental,
 - use modelos relativamente pequeños y baratos,

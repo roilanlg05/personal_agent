@@ -26,9 +26,19 @@ struct SaveMemoryTool: AgentTool {
         let rawEntity = ((obj["entity"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let detail = (obj["detail"] as? String).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         let kindRaw = (obj["kind"] as? String) ?? "fact"
-        let permanent = (obj["permanent"] as? Bool) ?? false
+        let permanent = CancelAlarmTool.coerceBool(obj["permanent"]) ?? false
         let entity = Self.cleanLabel(rawEntity)
-        guard !entity.isEmpty, !Self.isJunkLabel(entity) else { return "nothing to save" }
+        // `invalid_entity` y no `missing_fields`: la guarda no distingue «no mandaste nada» de
+        // «mandaste una frase de relleno» —las dos salen por aquí— y lo que el modelo tiene que
+        // hacer es el mismo en los dos casos, mandar un ancla canónica. La familia `invalid_*`
+        // es abierta a propósito y lleva su frase en la fila («los datos no valían»).
+        guard !entity.isEmpty, !Self.isJunkLabel(entity) else {
+            return ToolJSONOutput.object([
+                "status": "invalid_entity",
+                "received": rawEntity,
+                "message": "No se guardó nada: 'entity' tiene que ser un ancla canónica corta («sushi», «Juan», «Madrid»), no una frase ni una palabra de relleno."
+            ])
+        }
 
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: entity) }
         let kind = kindRaw.isEmpty ? "fact" : kindRaw
@@ -36,11 +46,31 @@ struct SaveMemoryTool: AgentTool {
         // Pass permanence as an `extra` JSON hint so the service can decide identity vs daily layer.
         let extra: String? = permanent ? #"{"permanent":true}"# : nil
         let result: String = await {
-            guard let mem = await MemoryToolbox.shared.memory else { return "memory unavailable" }
+            guard let mem = await MemoryToolbox.shared.memory else {
+                return ToolJSONOutput.object([
+                    "status": "memory_unavailable",
+                    "entity": entity,
+                    "message": "La memoria de Gemma no está disponible ahora mismo, así que NO se guardó nada. Dile al usuario que no lo pudiste recordar; no le digas que lo recordarás."
+                ])
+            }
             do {
                 let r = try await mem.save(kind: kind, label: entity, body: body, extra: extra, sourceRef: nil)
-                return r.mergedInto != nil ? "Saved: \(entity)" : "Saved: \(entity)"
-            } catch { return "memory error: \(error)" }
+                return ToolJSONOutput.object([
+                    "status": "success",
+                    "entity": entity,
+                    "kind": kind,
+                    // El servicio funde un recuerdo nuevo con uno que ya decía lo mismo. El
+                    // modelo no tenía forma de saberlo: las dos ramas devolvían la misma frase.
+                    "merged_into": r.mergedInto,
+                    "message": "Guardado: \(entity)."
+                ])
+            } catch {
+                return ToolJSONOutput.object([
+                    "status": "failed",
+                    "entity": entity,
+                    "message": "No se pudo guardar: \(error.localizedDescription). Dile al usuario que no lo pudiste recordar."
+                ])
+            }
         }()
         await MainActor.run { ToolActivityRelay.shared.finished(name: Self.name, result: result) }
         return result

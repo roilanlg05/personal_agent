@@ -2,9 +2,10 @@ import Foundation
 
 public final class LlamaCppRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable {
     public nonisolated let identifier: String = "llamacpp-metal"
-    nonisolated static let nativeContextTokens = 8192
+    nonisolated static let nativeContextTokens = fallbackContextTokens
 
     private var context: LlamaContext?
+    private var loadedContextLength: Int?
     private var lastMetrics: RuntimeMetrics?
     private var isGenerating: Bool = false
     private let lock = NSLock()
@@ -70,7 +71,27 @@ public final class LlamaCppRuntime: ModelRuntime, ToolCallingRuntime, @unchecked
         )
         lock.lock()
         self.context = ctx
+        self.loadedContextLength = options.contextLength
         lock.unlock()
+    }
+
+    /// Ventana que se declara mientras no hay modelo cargado.
+    ///
+    /// Procedencia: es la que usa `ensureLoaded` cuando carga el modelo por su cuenta
+    /// (`ModelLoadOptions(modelPath: modelURL, contextLength: 8192, backend: .gpu)`), o sea la
+    /// ventana con la que este runtime se va a cargar si nadie le dice otra cosa.
+    ///
+    /// Se declara en lugar de devolver `nil` a propósito: `nil` significa «no hay ventana» y
+    /// quien decide lo trata como «cabe». Para el camino on-device eso seria mentira, y el
+    /// error caeria del lado caro — inyectar 17 KB en una ventana que no los aguanta hace que
+    /// `LlamaContext` deslice y se coma el prompt del sistema, donde viven las reglas de
+    /// seguridad. Mejor declarar una ventana estrecha de mas que ninguna.
+    public nonisolated static let fallbackContextTokens = 8192
+
+    public var contextTokenBudget: Int? {
+        lock.lock()
+        defer { lock.unlock() }
+        return loadedContextLength ?? Self.fallbackContextTokens
     }
 
     private func ensureLoaded() async throws {
@@ -115,6 +136,7 @@ public final class LlamaCppRuntime: ModelRuntime, ToolCallingRuntime, @unchecked
     public func unload() async {
         lock.lock()
         self.context = nil
+        self.loadedContextLength = nil
         lock.unlock()
     }
 

@@ -3,11 +3,99 @@ import UniformTypeIdentifiers
 
 /// macOS Settings (⌘,). M2c-1 hosts the "keep model resident" toggle; later M2c slices add
 /// host/port/model and image options here.
+/// Un campo de ajustes con botón de borrar. Existe por una avería concreta: en el iPhone
+/// no había forma de vaciar la URL ni el token del servicio de memoria. Dos causas, y las
+/// dos están cerradas aquí y en `HarnessModel.ensureMemory()`:
+///
+///  1. `ensureMemory()` reescribía el ajuste cuando lo encontraba vacío, y Ajustes lo llama
+///     en cada pulsación de tecla, así que el valor viejo se volvía a escribir completo.
+///     Eso se arregló allí: un ajuste solo se escribe donde el usuario lo escribe.
+///  2. Un `SecureField` es, para iOS, un campo de contraseña: el relleno automático se
+///     ofrece a repoblarlo y el teclado le aplica mayúsculas y autocorrección. De ahí que
+///     un token pegado llegara con una mayúscula de más o con un espacio al final.
+///
+/// El botón de borrar, además de ser la vía rápida, es la que no depende del teclado:
+/// pone la cadena vacía de una vez, sin pasar por el relleno automático.
+private struct SettingsCredentialField: View {
+    let titulo: String
+    /// `true` para un secreto (se pinta con puntos y se puede revelar).
+    let esSecreto: Bool
+    @Binding var texto: String
+    /// Se muestra debajo del campo cuando está vacío y vacío significa algo.
+    var avisoSiVacio: String? = nil
+    @State private var revelado = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                campo
+                    .textFieldStyle(.roundedBorder)
+                    #if os(iOS)
+                    // Sin esto el teclado mete una mayúscula inicial y la autocorrección
+                    // cambia lo pegado: un token hexadecimal no sobrevive a ninguna de las dos.
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(esSecreto ? .asciiCapable : .URL)
+                    // `.none` apaga el relleno automático de contraseñas, que es lo que
+                    // repoblaba el campo en cuanto se quedaba vacío.
+                    .textContentType(.none)
+                    #endif
+                if esSecreto {
+                    Button {
+                        revelado.toggle()
+                    } label: {
+                        Image(systemName: revelado ? "eye.slash" : "eye")
+                    }
+                    .buttonStyle(.borderless)
+                    .help(revelado ? "Ocultar" : "Mostrar")
+                    .accessibilityLabel(revelado ? "Ocultar \(titulo)" : "Mostrar \(titulo)")
+                }
+                Button {
+                    texto = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .disabled(texto.isEmpty)
+                .help("Borrar \(titulo)")
+                .accessibilityLabel("Borrar \(titulo)")
+            }
+            if let avisoSiVacio, texto.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(avisoSiVacio)
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    @ViewBuilder private var campo: some View {
+        if esSecreto && !revelado {
+            SecureField(titulo, text: $texto)
+        } else {
+            TextField(titulo, text: $texto)
+        }
+    }
+}
+
 struct SettingsView: View {
     let model: HarnessModel
     @AppStorage(SettingsKeys.keepModelResident) private var keepResident = false
     @AppStorage("memoryBaseURL") private var memoryBaseURL: String = "http://localhost:8081"
-    @AppStorage("memoryBearerToken") private var memoryBearerToken: String = "replace-me-with-a-long-random-string"
+    /// NO es `@AppStorage`, y ésa es la Tarea 6b. Con este token se lee y se escribe la memoria
+    /// personal entera del usuario en el i3, y la voz comparte el mismo secreto, así que vive en
+    /// el llavero (`TokenDeMemoria`) y no en `UserDefaults`. El campo de abajo ya se pintaba como
+    /// secreto; antes de esto el almacén mentía. Y su valor por omisión **era el placeholder
+    /// débil** `replace-me-with-a-long-random-string`: se va con el `@AppStorage`. Se carga al
+    /// aparecer (lo que además dispara la migración del sitio viejo) y se guarda en cada cambio.
+    @State private var memoryBearerToken: String = ""
+    @AppStorage(SettingsKeys.browserBaseURL) private var browserBaseURL: String = ""
+    /// NO es `@AppStorage`, y ésa es la Tarea 6. Este token autoriza al agente a conducir el
+    /// navegador y al panel a verlo, así que vive en el llavero (`TokenDeConducir`) y no en
+    /// `UserDefaults`. El campo de abajo ya se pintaba como secreto; antes de esto el almacén
+    /// mentía. Se carga al aparecer (lo que además dispara la migración del sitio viejo) y se
+    /// guarda en cada cambio.
+    @State private var browserBearerToken: String = ""
     @AppStorage("voiceBaseURL") private var voiceBaseURL: String = ""
     #if os(iOS)
     @AppStorage(SettingsKeys.chatProvider) private var chatProvider = "onDevice"
@@ -82,21 +170,64 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
             Section("Memory Service") {
-                TextField("Base URL", text: $memoryBaseURL)
-                    .textFieldStyle(.roundedBorder)
-                    .help("URL del servicio de memoria. Si lo movés al i3, cambia esto a la Tailscale IP.")
-                SecureField("Bearer token", text: $memoryBearerToken)
-                    .textFieldStyle(.roundedBorder)
+                SettingsCredentialField(titulo: "Base URL", esSecreto: false, texto: $memoryBaseURL,
+                                        avisoSiVacio: "Sin URL no hay memoria: el agente no recuerda nada entre turnos.")
+                    .help("URL del servicio de memoria en el i3, p. ej. http://100.x.y.z:8081.")
+                SettingsCredentialField(titulo: "Bearer token", esSecreto: true, texto: $memoryBearerToken,
+                                        avisoSiVacio: "Sin token el servidor responde 401 a todo.")
                     .help("Mismo valor que MEMORY_BEARER_TOKEN en el .env del docker-compose.")
-                Text("La app reconecta al cambiar estos valores. Default: http://localhost:8081.")
+                Text("La app reconecta al cambiar estos valores. Puerto del servicio de memoria: 8081 "
+                     + "(la voz es 8082 y el navegador 8083 — son tres servicios distintos en la misma máquina).")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
             .onChange(of: memoryBaseURL) { _, _ in model.ensureMemory() }
-            .onChange(of: memoryBearerToken) { _, _ in model.ensureMemory() }
+            // El token del servicio de memoria se lee del llavero al abrir Ajustes, NO de
+            // `UserDefaults`. Esta primera lectura es además la que dispara la migración: un
+            // usuario que ya tenía el token escrito en claro lo ve seguir en el campo, y el sitio
+            // viejo queda vacío.
+            .onAppear {
+                TokenDeMemoria.migrar()
+                memoryBearerToken = TokenDeMemoria.leer()
+            }
+            // UN SOLO `onChange` para este token, y el orden importa: primero se GUARDA en el
+            // llavero y solo después se reconstruyen los clientes, porque los dos leen de ahí. Con
+            // los tres efectos en `onChange` separados (como estaban, uno por sección) el orden
+            // entre ellos no está garantizado y `ensureMemory()` podía reconstruir el cliente con
+            // el token ANTERIOR.
+            .onChange(of: memoryBearerToken) { _, nuevo in
+                TokenDeMemoria.guardar(nuevo)
+                model.ensureMemory()
+                model.ensureVoice()
+            }
+            Section("Navegador (i3)") {
+                SettingsCredentialField(titulo: "URL base del navegador (opcional)",
+                                        esSecreto: false, texto: $browserBaseURL)
+                    .help("Servicio del navegador en el i3, p. ej. http://100.x.y.z:8083.")
+                SettingsCredentialField(titulo: "Token de acceso", esSecreto: true, texto: $browserBearerToken)
+                    .help("Token del servicio del navegador en el i3.")
+                #if os(macOS)
+                Text("Vacío → el agente usa agent-browser en este Mac. Con URL, conduce el navegador del i3. Se aplica en el siguiente turno.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                #else
+                Text("Pon aquí la URL del navegador del i3 para que el agente pueda navegar. Vacío → el agente no tiene navegador. Se aplica en el siguiente turno.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                #endif
+            }
+            // El token de conducir se lee del llavero al abrir Ajustes, NO de `UserDefaults`.
+            // Esta primera lectura es además la que dispara la migración: un usuario que ya tenía
+            // el token escrito en claro lo ve seguir en el campo, y el sitio viejo queda vacío.
+            .onAppear {
+                TokenDeConducir.migrar()
+                browserBearerToken = TokenDeConducir.leer()
+            }
+            .onChange(of: browserBearerToken) { _, nuevo in TokenDeConducir.guardar(nuevo) }
+
             Section("Voice Service") {
-                TextField("Voice base URL (opcional)", text: $voiceBaseURL)
-                    .textFieldStyle(.roundedBorder)
+                SettingsCredentialField(titulo: "Voice base URL (opcional)",
+                                        esSecreto: false, texto: $voiceBaseURL)
                     .help("Override del servicio de voz. Vacío = usa el host de Memory en el puerto 8082.")
                 Text("Vacío → deriva del Memory Service en :8082 (mismo i3). Usa el mismo bearer token.")
                     .font(.footnote)
@@ -104,7 +235,8 @@ struct SettingsView: View {
             }
             .onChange(of: voiceBaseURL) { _, _ in model.ensureVoice() }
             .onChange(of: memoryBaseURL) { _, _ in model.ensureVoice() }
-            .onChange(of: memoryBearerToken) { _, _ in model.ensureVoice() }
+            // El `onChange` del token vive arriba, junto al `guardar`, para que el guardado pase
+            // antes que los dos `ensure*`. Ver el comentario de la sección "Memory Service".
             
             Section("Wake Word (Activación por voz)") {
                 Toggle("Habilitar activación por voz", isOn: $useWakeWord)
@@ -251,14 +383,15 @@ private struct ProviderPicker: View {
     @FocusState private var keyFocused: Bool
 
     private var kind: ModelProvider.Kind { ModelProvider.Kind(rawValue: providerRaw) ?? .defaultKind }
-    private var keyAccount: String { "apiKey.\(kind.rawValue)" }
-
     /// Persist the typed key (whitespace/newline-trimmed) to the Keychain and rebuild. Called on
     /// Enter AND on focus-loss, so the user doesn't have to remember to press Return — relying on
     /// `.onSubmit` alone silently dropped pasted keys (sent no auth → provider 403).
     private func commitKey() {
         let k = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !k.isEmpty { KeychainStore.shared.set(k, account: keyAccount); apiKey = "" }
+        // Al llavero del dispositivo, y NUNCA a `UserDefaults`: el almacén viejo escribía además
+        // una copia en claro (`keychain_fallback.<cuenta>`) de la que la lectura tiraba, así que
+        // el llavero era decorativo. Ver `ClaveDeProveedor`.
+        if !k.isEmpty { ClaveDeProveedor.guardar(k, proveedor: kind.rawValue); apiKey = "" }
         onChange()
     }
 
@@ -316,7 +449,8 @@ private struct ProviderPicker: View {
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(onChange)
                 if !kind.isLocalMLX {
-                    SecureField(KeychainStore.shared.get(account: keyAccount) == nil ? "API key" : "•••• guardada",
+                    SecureField(ClaveDeProveedor.leer(proveedor: kind.rawValue) == nil
+                                    ? "API key" : "•••• guardada",
                                 text: $apiKey)
                         .textFieldStyle(.roundedBorder)
                         .focused($keyFocused)

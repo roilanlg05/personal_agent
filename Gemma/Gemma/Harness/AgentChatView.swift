@@ -191,6 +191,7 @@ struct AgentChatView: View {
             consolidationBanner
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
+
             if model.turnMemoryPersistence == .pending {
                 Label("Memoria del turno sin confirmar", systemImage: "exclamationmark.circle")
                     .font(.caption)
@@ -213,7 +214,6 @@ struct AgentChatView: View {
         .task { startConsolidationPoll() }
         .onDisappear {
             consolidationPollTask?.cancel()
-            dictationManager.stopDictation()
             model.cancelDictationCue()
         }
         .animation(.easeInOut(duration: 0.25), value: consolidationState?.isRunning)
@@ -285,13 +285,7 @@ struct AgentChatView: View {
             NavigationStack {
                 Group {
                     if let client = model.memoryClient() {
-                        MemoryView(client: client) { threadID in
-                            dictationManager.stopDictation()
-                            model.restoreConversation(threadID)
-                            input = ""
-                            attachments.removeAll()
-                            model.showMemory = false
-                        }
+                        MemoryView(client: client)
                     } else {
                         ContentUnavailableView("No memory client", systemImage: "brain",
                                                description: Text("Memory is disabled or not yet initialized. Send a message with memory enabled, then reopen."))
@@ -364,7 +358,12 @@ struct AgentChatView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach($model.agentLog) { $entry in
-                        ChatLogRow(entry: $entry)
+                        ChatLogRow(entry: $entry,
+                                   panel: entry.panelID.flatMap { model.browserPanels.panels[$0] },
+                                   formulario: entry.role == "form" ? model.especificacionDeFormulario(entry) : nil,
+                                   avisoFormulario: entry.role == "form" ? model.avisoDeFormulario(entry) : nil,
+                                   onEnviarFormulario: { model.enviaFormulario(entry, valores: $0) },
+                                   onCancelarFormulario: { model.cancelaFormulario(entry) })
                             .id(entry.id)
                     }
                     Color.clear.frame(height: 75)
@@ -484,15 +483,7 @@ struct AgentChatView: View {
                 }
 
                 HStack(alignment: .bottom, spacing: 6) {
-                    TextField(dictationManager.state == .recording ? "Escuchando…" : "Mensaje a Gemma…", text: Binding(
-                        get: { input },
-                        set: { newValue in
-                            if dictationManager.state == .recording {
-                                dictationManager.stopDictation()
-                                model.cancelDictationCue()
-                            }
-                            input = newValue
-                        }), axis: .vertical)
+                    TextField(dictationManager.state == .recording ? "Escuchando…" : "Mensaje a Gemma…", text: $input, axis: .vertical)
                         .lineLimit(1...5)
                         .textFieldStyle(.plain)
                         .padding(.leading, 10)
@@ -596,6 +587,15 @@ struct AgentChatView: View {
 
 struct ChatLogRow: View {
     @Binding var entry: ChatLogEntry
+    /// Estado del panel de navegador de esta fila; `nil` si no es una fila de panel o ya no existe.
+    let panel: BrowserPanelState?
+    /// Solo filas `form`: el formulario a dibujar y a quién avisar. Opcionales con valor por
+    /// omisión para no tocar otros sitios que construyan la fila.
+    var formulario: FormSpec? = nil
+    /// «Se guardará para: <host>» cuando el formulario pide secretos (ver `FormCardView.aviso`).
+    var avisoFormulario: String? = nil
+    var onEnviarFormulario: (([String: String]) -> Void)? = nil
+    var onCancelarFormulario: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -612,17 +612,20 @@ struct ChatLogRow: View {
                 }
 
             case "tool":
-                HStack(spacing: 6) {
-                    Text(entry.text)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .textSelection(.enabled)
-                    Spacer()
+                ToolLogRow(entry: $entry)
+
+            case "form":
+                if let formulario {
+                    FormCardView(spec: formulario,
+                                 aviso: avisoFormulario,
+                                 enviado: entry.formEstado != "pendiente",
+                                 cancelado: entry.formEstado == "cancelado",
+                                 onEnviar: { onEnviarFormulario?($0) },
+                                 onCancelar: { onCancelarFormulario?() })
                 }
+
+            case "browserPanel":
+                if let panel { BrowserPanelView(state: panel) }
 
             case "system":
                 HStack {

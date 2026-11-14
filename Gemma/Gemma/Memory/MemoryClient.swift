@@ -126,6 +126,9 @@ final class MemoryClient {
         let salience: Double?
         let mentionCount: Int?
         let confidence: String?
+        /// When the service last touched the node. The mirrored device stores read it to renew
+        /// a node before the consolidation sweep gets close to it.
+        let lastSeenAt: Double?
     }
     struct Edge: Decodable, Sendable, Identifiable {
         let id: String
@@ -232,9 +235,16 @@ final class MemoryClient {
     }
 
     // MARK: memory
-    func save(kind: String, label: String, body: String?, extra: String?, sourceRef: String?) async throws -> SaveResult {
-        struct B: Encodable { let kind: String; let label: String; let body: String?; let extra: String?; let sourceRef: String? }
-        return try await post("/v1/memory/save", B(kind: kind, label: label, body: body, extra: extra, sourceRef: sourceRef))
+    /// `layer` is optional and almost never set: the server picks `daily` by itself, which is
+    /// right for a fact the model just learned. The mirrored device stores (notes, places,
+    /// shortcuts…) do set it — see `MemoryClient.mirrorSave` for why they must.
+    func save(kind: String, label: String, body: String?, extra: String?, sourceRef: String?,
+              layer: String? = nil) async throws -> SaveResult {
+        struct B: Encodable { let kind: String; let label: String; let body: String?; let extra: String?
+                              let sourceRef: String?; let layer: String? }
+        return try await post("/v1/memory/save",
+                              B(kind: kind, label: label, body: body, extra: extra,
+                                sourceRef: sourceRef, layer: layer))
     }
     func forget(label: String? = nil, id: String? = nil) async throws -> Int {
         struct B: Encodable { let label: String?; let id: String? }
@@ -255,6 +265,20 @@ final class MemoryClient {
             return .empty
         }
     }
+    /// Igual que `recall`, pero propaga el fallo en vez de devolver un paquete vacío.
+    ///
+    /// `recall` se traga los 5xx y los `URLError` a propósito: así el agente sigue
+    /// conversando si la memoria se cae, aunque esa vez no inyecte nada. Para la
+    /// BÚSQUEDA explícita (`search_memory`) ese silencio es una mentira: la herramienta
+    /// recibía un paquete vacío indistinguible de «no hay nada» y el modelo le decía al
+    /// usuario «no recuerdo nada de eso» cuando el servicio estaba caído. Quien pregunta
+    /// a propósito tiene derecho a saber que no se pudo mirar.
+    func recallStrict(query: String, scope: String? = nil, limit: Int? = nil,
+                      threadId: String? = nil) async throws -> RecallBundle {
+        struct B: Encodable { let query: String; let scope: String?; let limit: Int?; let threadId: String? }
+        return try await post("/v1/memory/recall", B(query: query, scope: scope, limit: limit, threadId: threadId))
+    }
+
     func loadMessages(chatId: String, from: Int, to: Int?) async throws -> RangeResult {
         let toq = to.map { "&to=\($0)" } ?? ""
         return try await get("/v1/transcript/range?chat_id=\(escape(chatId))&from=\(from)\(toq)")
@@ -396,9 +420,25 @@ final class MemoryClient {
         URL(string: path, relativeTo: baseURL) ?? baseURL.appendingPathComponent(path)
     }
 
+    /// El token con el que se firma cada petición: **el que haya, recortado, y nada más.**
+    ///
+    /// AQUÍ HABÍA UN PLACEHOLDER DÉBIL CABLEADO EN EL BINARIO, y se quita en la Tarea 6b. Decía
+    /// `t.isEmpty ? "replace-me-with-…" : t` (el literal entero, con sus comillas, no se escribe
+    /// ni en prosa: `TokenDeMemoriaTests` lo busca en el fuente CRUDO), o sea: con el ajuste vacío, el
+    /// cliente firmaba con el token de fábrica del `.env` del compose del i3. Tres cosas malas de
+    /// golpe, y la tercera es la que lo hacía invisible:
+    ///
+    /// 1. Una **credencial conocida cableada en el binario**, la misma que `AtoZConfig` y el valor
+    ///    por omisión del campo de Ajustes repetían (tres copias del mismo literal).
+    /// 2. Convertía en mentira lo que `HarnessModel.memorySettings` documenta y una prueba
+    ///    afirma: «el token vacío sí devuelve cliente, el servidor contesta 401 y eso se ve».
+    ///    No se veía: el cliente metía el placeholder y el servidor, que llevaba ese mismo token
+    ///    de fábrica, contestaba 200.
+    /// 3. Por eso mismo **nadie se enteró**: funcionaba. Y en cuanto el usuario rote el token del
+    ///    servidor, firmar con el placeholder deja de dar 200 y empieza a dar un 401 que ya no
+    ///    sabe de dónde viene. Fallar pronto y en voz alta es mejor.
     private var effectiveToken: String {
-        let t = bearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
-        return t.isEmpty ? "replace-me-with-a-long-random-string" : t
+        bearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func get<R: Decodable>(_ path: String) async throws -> R {

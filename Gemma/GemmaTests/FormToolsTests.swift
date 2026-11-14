@@ -1,0 +1,485 @@
+import Foundation
+import XCTest
+@testable import Gemma
+
+/// Red de seguridad: por defecto el plazo del broker vence al instante, así que una herramienta
+/// que presenta un formulario que NO debía presentarse devuelve `timeout` y la prueba falla en
+/// ROJO en vez de colgarse 10 minutos. Las pruebas que simulan a un usuario lo apagan.
+final class RelojDePrueba: @unchecked Sendable {
+    var esperaDeVerdad = false
+}
+
+/// Almacén que acepta las primeras `escrituras` escrituras y rechaza todas las demás, como un
+/// llavero que se bloquea a mitad de una operación. Sirve para que FALLE el deshacer.
+final class AlmacenQueFallaTras: AlmacenDeSecretos, @unchecked Sendable {
+    private let base: AlmacenEnMemoria
+    private var restantes: Int
+    init(escrituras: Int, inicial: [String: String]) {
+        base = AlmacenEnMemoria(inicial)
+        restantes = escrituras
+    }
+    func leer(cuenta: String) -> String? { base.leer(cuenta: cuenta) }
+    func borrar(cuenta: String) { base.borrar(cuenta: cuenta) }
+    @discardableResult func escribir(_ valor: String, cuenta: String) -> Bool {
+        guard restantes > 0 else { return false }
+        restantes -= 1
+        return base.escribir(valor, cuenta: cuenta)
+    }
+}
+
+/// El doble de siempre, pero declarando que SÍ sabe pasar entrada estándar, como el
+/// `ProcessAgentBrowserInvoker` local de la Mac. `present_form` solo acepta campos `secret` con un
+/// invocador así (sin él `browser_fill_secret` nunca podría teclearlos), de modo que las pruebas
+/// de formularios con secretos lo usan por defecto y las de rechazo usan el `MockAgentBrowserInvoker`
+/// pelado, que es como el HTTP del i3: no acepta entrada estándar.
+final class EnvoltorioConStdin: AgentBrowserInvokingConStdin, @unchecked Sendable {
+    let base: MockAgentBrowserInvoker
+    init(_ base: MockAgentBrowserInvoker) { self.base = base }
+
+    func invoke(arguments: [String], timeout: TimeInterval) async
+        -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
+        await base.invoke(arguments: arguments, timeout: timeout)
+    }
+
+    func invoke(arguments: [String], timeout: TimeInterval, stdin: Data?) async
+        -> Result<AgentBrowserInvocation, AgentBrowserInvocationFailure> {
+        await base.invoke(arguments: arguments, timeout: timeout)
+    }
+}
+
+@MainActor
+final class FormToolsTests: XCTestCase {
+    private let urlGoogle = #"{"success":true,"data":{"url":"https://Accounts.Google.com:8443/signin/v2?continue=x#frag"},"error":null}"#
+    private let sinPagina = #"{"success":false,"data":null,"error":"No page open"}"#
+
+    private let reloj = RelojDePrueba()
+
+    private struct Montaje {
+        let tool: PresentFormTool
+        let broker: FormBroker
+        let vault: SecretVault
+        let almacen: AlmacenEnMemoria
+        let mock: MockAgentBrowserInvoker
+    }
+
+    private func monta(stdout: String? = nil, conServicio: Bool = true, conStdin: Bool = true,
+                       almacen: AlmacenEnMemoria = AlmacenEnMemoria()) -> Montaje {
+        let mock = MockAgentBrowserInvoker.succeeding(stdout: stdout ?? urlGoogle)
+        let invocador: any AgentBrowserInvoking = conStdin ? EnvoltorioConStdin(mock) : mock
+        let vault = SecretVault(almacen: almacen)
+        let reloj = self.reloj
+        let broker = FormBroker(dormir: { _ in if reloj.esperaDeVerdad { try await Task.sleep(for: .seconds(3600)) } })
+        let service = conServicio ? AgentBrowserService(invoker: invocador, sessionName: "gemma") : nil
+        return Montaje(tool: PresentFormTool(broker: broker, vault: vault, service: service),
+                       broker: broker, vault: vault, almacen: almacen, mock: mock)
+    }
+
+    private func parse(_ out: String) throws -> [String: Any] {
+        try XCTUnwrap(JSONSerialization.jsonObject(with: Data(out.utf8)) as? [String: Any], "got: \(out)")
+    }
+
+    private func args(fields: String, title: String = "Entrar") -> String {
+        let obj: [String: Any] = ["title": title, "fields": fields]
+        return String(decoding: try! JSONSerialization.data(withJSONObject: obj), as: UTF8.self)
+    }
+
+    private let campoSecreto = #"{"id":"pw","label":"Contraseña","kind":"secret","secret_name":"gmail_password"}"#
+
+    /// Lanza la herramienta, espera a que el formulario esté abierto y lo envía (o cancela).
+    private func ejecuta(_ m: Montaje, fields: String, enviar: [String: String]?) async throws -> String {
+        reloj.esperaDeVerdad = true
+        let t = Task { await m.tool.run(argsJSON: args(fields: fields)) }
+        var id: String?
+        for _ in 0..<500 {
+            if let p = m.broker.pendiente { id = p.id; break }
+            await Task.yield()
+        }
+        let abierto = try XCTUnwrap(id, "el formulario nunca se abrió")
+        if let enviar { m.broker.envia(id: abierto, valores: enviar) } else { m.broker.cancela(id: abierto) }
+        return await t.value
+    }
+
+    // MARK: present_form
+
+    func test_present_form_con_un_secreto_lo_guarda_con_el_origen_de_la_pagina_y_el_resultado_no_lleva_el_valor() async throws {
+        let m = monta()
+        let out = try await ejecuta(m, fields: "[\(campoSecreto)]", enviar: ["pw": "hunter2-super"])
+        XCTAssertFalse(out.contains("hunter2-super"))
+        XCTAssertTrue(out.contains("[secreto guardado: gmail_password]"), out)
+        XCTAssertEqual(try parse(out)["status"] as? String, "submitted")
+        XCTAssertEqual(m.vault.origen(de: "gmail_password"), "accounts.google.com")
+        XCTAssertEqual(m.vault.valor(de: "gmail_password"), "hunter2-super")
+    }
+
+    func test_el_origen_guardado_es_un_host_limpio_sin_puerto_ruta_ni_query() async throws {
+        let m = monta(stdout: #"{"success":true,"data":{"url":"https://Login.Example.COM:8443/a/b?x=1#h"},"error":null}"#)
+        _ = try await ejecuta(m, fields: "[\(campoSecreto)]", enviar: ["pw": "x1"])
+        XCTAssertEqual(m.vault.origen(de: "gmail_password"), "login.example.com")
+    }
+
+    func test_una_url_basura_da_error_y_no_presenta_nada() async throws {
+        for basura in ["", "no es una url", "about:blank"] {
+            let stdout = #"{"success":true,"data":{"url":"\#(basura)"},"error":null}"#
+            let m = monta(stdout: stdout)
+            let out = await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+            XCTAssertEqual(try parse(out)["status"] as? String, "error", "url: \(basura)")
+            XCTAssertNil(m.broker.pendiente)
+            XCTAssertTrue(m.vault.lista().isEmpty)
+        }
+    }
+
+    func test_present_form_con_secreto_y_sin_pagina_abierta_devuelve_error() async throws {
+        let m = monta(stdout: sinPagina)
+        let out = await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("abre primero la página"), out)
+        XCTAssertNil(m.broker.pendiente)
+    }
+
+    func test_present_form_con_secreto_y_sin_servicio_de_navegador_devuelve_error() async throws {
+        let m = monta(conServicio: false)
+        let out = await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertNil(m.broker.pendiente)
+    }
+
+    func test_present_form_con_campos_invalidos_devuelve_el_error_de_validacion() async throws {
+        let m = monta()
+        for malo in ["no json", "[]", #"[{"id":"a","label":"A","kind":"text"},{"id":"a","label":"B","kind":"text"}]"#,
+                     #"[{"id":"s","label":"S","kind":"secret"}]"#] {
+            let out = await m.tool.run(argsJSON: args(fields: malo))
+            XCTAssertEqual(try parse(out)["status"] as? String, "error", malo)
+        }
+        XCTAssertNil(m.broker.pendiente)
+        XCTAssertTrue(m.mock.receivedArguments.isEmpty)
+    }
+
+    func test_present_form_sin_titulo_o_sin_campos_devuelve_error() async throws {
+        let m = monta()
+        let a = await m.tool.run(argsJSON: #"{"fields":"[]"}"#)
+        let b = await m.tool.run(argsJSON: #"{"title":"T"}"#)
+        XCTAssertEqual(try parse(a)["status"] as? String, "error")
+        XCTAssertEqual(try parse(b)["status"] as? String, "error")
+    }
+
+    func test_dos_secretos_con_el_mismo_secret_name_se_rechazan_antes_de_presentar() async throws {
+        let m = monta()
+        let dup = #"[{"id":"a","label":"A","kind":"secret","secret_name":"clave"},{"id":"b","label":"B","kind":"secret","secret_name":"clave"}]"#
+        let out = await m.tool.run(argsJSON: args(fields: dup))
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("clave"))
+        XCTAssertNil(m.broker.pendiente)
+        XCTAssertTrue(m.mock.receivedArguments.isEmpty)
+    }
+
+    func test_present_form_cancelado_no_guarda_nada() async throws {
+        let m = monta()
+        let out = try await ejecuta(m, fields: "[\(campoSecreto)]", enviar: nil)
+        XCTAssertEqual(try parse(out)["status"] as? String, "cancelled")
+        XCTAssertTrue(m.vault.lista().isEmpty)
+    }
+
+    func test_present_form_sin_secretos_no_consulta_la_pagina() async throws {
+        let m = monta()
+        let out = try await ejecuta(m, fields: #"[{"id":"n","label":"Nombre","kind":"text"}]"#, enviar: ["n": "Ana"])
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "submitted")
+        XCTAssertEqual((j["values"] as? [String: String])?["n"], "Ana")
+        XCTAssertTrue(m.mock.receivedArguments.isEmpty)
+    }
+
+    func test_present_form_con_otro_formulario_abierto_devuelve_error() async throws {
+        let m = monta()
+        reloj.esperaDeVerdad = true
+        let primero = Task { await m.tool.run(argsJSON: args(fields: #"[{"id":"n","label":"N","kind":"text"}]"#)) }
+        for _ in 0..<500 where m.broker.pendiente == nil { await Task.yield() }
+        let out = await m.tool.run(argsJSON: args(fields: #"[{"id":"n","label":"N","kind":"text"}]"#))
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        m.broker.cancelaTodo()
+        _ = await primero.value
+    }
+
+    func test_si_la_boveda_rechaza_guardar_el_resultado_es_error_y_no_dice_guardado() async throws {
+        let almacen = AlmacenEnMemoria()
+        let m = monta(almacen: almacen)
+        reloj.esperaDeVerdad = true
+        let t = Task { await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]")) }
+        for _ in 0..<500 where m.broker.pendiente == nil { await Task.yield() }
+        almacen.rechazaEscrituras = true
+        m.broker.envia(id: m.broker.pendiente!.id, valores: ["pw": "hunter2-super"])
+        let out = await t.value
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertFalse(out.contains("[secreto guardado"))
+        XCTAssertFalse(out.contains("hunter2-super"))
+    }
+
+    func test_si_el_segundo_secreto_falla_se_deshace_el_primero() async throws {
+        let m = monta()
+        let dos = #"[{"id":"a","label":"A","kind":"secret","secret_name":"uno"},{"id":"b","label":"B","kind":"secret","secret_name":"dos"}]"#
+        // El segundo valor llega vacío siendo obligatorio: la bóveda lo rechaza.
+        let out = try await ejecuta(m, fields: dos, enviar: ["a": "valor-a", "b": ""])
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertNil(m.vault.valor(de: "uno"), "no debe quedar guardado a medias")
+        XCTAssertFalse(out.contains("valor-a"))
+    }
+
+    func test_secreto_opcional_vacio_no_se_guarda_y_no_dice_guardado() async throws {
+        let m = monta()
+        let f = #"[{"id":"pw","label":"P","kind":"secret","secret_name":"opc","required":false}]"#
+        let out = try await ejecuta(m, fields: f, enviar: ["pw": ""])
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "submitted")
+        XCTAssertEqual((j["values"] as? [String: String])?["pw"], "")
+        XCTAssertNil(m.vault.valor(de: "opc"))
+    }
+
+    func test_con_el_indice_ilegible_present_form_con_secreto_falla_cerrado() async throws {
+        let m = monta(almacen: AlmacenEnMemoria(["indice": "{basura"]))
+        let out = await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("la bóveda de secretos no se puede leer"))
+        XCTAssertNil(m.broker.pendiente)
+    }
+
+    func test_con_el_indice_ilegible_un_formulario_sin_secretos_sigue_funcionando() async throws {
+        let m = monta(almacen: AlmacenEnMemoria(["indice": "{basura"]))
+        let out = try await ejecuta(m, fields: #"[{"id":"n","label":"N","kind":"text"}]"#, enviar: ["n": "x"])
+        XCTAssertEqual(try parse(out)["status"] as? String, "submitted")
+    }
+
+    // MARK: ronda de arreglo 1
+
+    func test_un_secret_name_existente_con_otro_origen_se_rechaza_antes_de_presentar() async throws {
+        let m = monta()   // la página actual es accounts.google.com
+        m.vault.guarda(name: "gmail_password", value: "original", etiqueta: "Gmail", origen: "evil.com")
+        let out = await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("forget_secret"), out)
+        XCTAssertNil(m.broker.pendiente)
+        XCTAssertEqual(m.vault.origen(de: "gmail_password"), "evil.com")
+        XCTAssertEqual(m.vault.valor(de: "gmail_password"), "original")
+    }
+
+    func test_un_secret_name_existente_con_el_mismo_origen_se_reemplaza() async throws {
+        let m = monta()
+        m.vault.guarda(name: "gmail_password", value: "vieja", etiqueta: "Gmail", origen: "accounts.google.com")
+        let out = try await ejecuta(m, fields: "[\(campoSecreto)]", enviar: ["pw": "nueva"])
+        XCTAssertEqual(try parse(out)["status"] as? String, "submitted")
+        XCTAssertEqual(m.vault.valor(de: "gmail_password"), "nueva")
+        XCTAssertEqual(m.vault.origen(de: "gmail_password"), "accounts.google.com")
+    }
+
+    func test_el_deshacer_restaura_un_secreto_preexistente_con_valor_etiqueta_y_origen() async throws {
+        let m = monta()
+        m.vault.guarda(name: "uno", value: "valor-viejo", etiqueta: "Etiqueta vieja", origen: "accounts.google.com")
+        let dos = #"[{"id":"a","label":"A","kind":"secret","secret_name":"uno"},{"id":"b","label":"B","kind":"secret","secret_name":"dos"}]"#
+        let out = try await ejecuta(m, fields: dos, enviar: ["a": "valor-nuevo", "b": ""])
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertEqual(m.vault.valor(de: "uno"), "valor-viejo")
+        XCTAssertEqual(m.vault.origen(de: "uno"), "accounts.google.com")
+        XCTAssertEqual(m.vault.lista().first { $0.name == "uno" }?.etiqueta, "Etiqueta vieja")
+        XCTAssertNil(m.vault.valor(de: "dos"))
+        XCTAssertFalse(out.contains("valor-viejo") || out.contains("valor-nuevo"))
+    }
+
+    // MARK: revisión final — I2: secretos que luego no se podrían teclear
+
+    /// Con un invocador sin entrada estándar (el HTTP del i3, el de iOS sin configurar) un secreto
+    /// guardado no se podría teclear nunca: `browser_fill_secret` se negaría siempre. Pedirle la
+    /// contraseña al usuario en esas condiciones es la peor experiencia, así que se rechaza ANTES
+    /// de presentar y sin preguntar siquiera por la página.
+    func test_con_un_invocador_sin_stdin_un_formulario_con_secreto_se_rechaza_antes_de_presentar() async throws {
+        let m = monta(conStdin: false)
+        let out = await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("navegador local de la Mac"), out)
+        XCTAssertNil(m.broker.pendiente, "no se debe presentar nada")
+        XCTAssertTrue(m.vault.lista().isEmpty)
+        XCTAssertTrue(m.mock.receivedArguments.isEmpty, "ni siquiera se consulta la página")
+    }
+
+    func test_con_el_invocador_de_ios_sin_configurar_un_formulario_con_secreto_se_rechaza() async throws {
+        let broker = FormBroker(dormir: { _ in })
+        let vault = SecretVault(almacen: AlmacenEnMemoria())
+        let tool = PresentFormTool(broker: broker, vault: vault,
+                                   service: AgentBrowserService(invoker: UnconfiguredBrowserInvoker(), sessionName: "gemma"))
+        let out = await tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("navegador local de la Mac"), out)
+        XCTAssertNil(broker.pendiente)
+    }
+
+    func test_con_el_invocador_http_un_formulario_con_secreto_se_rechaza() async throws {
+        let broker = FormBroker(dormir: { _ in })
+        let vault = SecretVault(almacen: AlmacenEnMemoria())
+        let http = HTTPAgentBrowserInvoker(baseURL: URL(string: "http://127.0.0.1:1")!, bearerToken: "t")
+        let tool = PresentFormTool(broker: broker, vault: vault,
+                                   service: AgentBrowserService(invoker: http, sessionName: "gemma"))
+        let out = await tool.run(argsJSON: args(fields: "[\(campoSecreto)]"))
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("navegador local de la Mac"), out)
+        XCTAssertNil(broker.pendiente)
+    }
+
+    /// El rechazo es solo para secretos: un formulario normal sigue funcionando en iOS y con el i3.
+    func test_con_un_invocador_sin_stdin_un_formulario_sin_secretos_sigue_funcionando() async throws {
+        let m = monta(conStdin: false)
+        let out = try await ejecuta(m, fields: #"[{"id":"n","label":"N","kind":"text"}]"#, enviar: ["n": "x"])
+        XCTAssertEqual(try parse(out)["status"] as? String, "submitted")
+    }
+
+    /// Y con el invocador con stdin (la Mac local) el secreto se pide y se guarda.
+    func test_con_un_invocador_con_stdin_un_formulario_con_secreto_se_presenta() async throws {
+        let m = monta(conStdin: true)
+        let out = try await ejecuta(m, fields: "[\(campoSecreto)]", enviar: ["pw": "x1"])
+        XCTAssertEqual(try parse(out)["status"] as? String, "submitted")
+        XCTAssertEqual(m.vault.valor(de: "gmail_password"), "x1")
+    }
+
+    // MARK: revisión final — I1: la tarjeta dice a qué sitio queda atado el secreto
+
+    /// Una página inyectada puede pedir «google_pw» con el título «Contraseña de Google» estando en
+    /// evil.com. El título y las etiquetas los escribe el modelo; el host NO: es el de la página
+    /// abierta, y es lo único que le permite al usuario ver dónde va a quedar su contraseña.
+    func test_el_formulario_pendiente_con_secreto_porta_el_host_y_su_aviso() async throws {
+        let m = monta()   // página abierta: accounts.google.com
+        reloj.esperaDeVerdad = true
+        let t = Task { await m.tool.run(argsJSON: args(fields: "[\(campoSecreto)]")) }
+        for _ in 0..<500 where m.broker.pendiente == nil { await Task.yield() }
+        let p = try XCTUnwrap(m.broker.pendiente)
+        XCTAssertEqual(p.origen, "accounts.google.com")
+        XCTAssertEqual(p.avisoDeAtadura, "Se guardará para: accounts.google.com")
+        m.broker.cancelaTodo()
+        _ = await t.value
+    }
+
+    func test_un_formulario_sin_secretos_no_lleva_aviso_de_atadura() async throws {
+        let m = monta()
+        reloj.esperaDeVerdad = true
+        let t = Task { await m.tool.run(argsJSON: args(fields: #"[{"id":"n","label":"N","kind":"text"}]"#)) }
+        for _ in 0..<500 where m.broker.pendiente == nil { await Task.yield() }
+        let p = try XCTUnwrap(m.broker.pendiente)
+        XCTAssertNil(p.origen)
+        XCTAssertNil(p.avisoDeAtadura)
+        m.broker.cancelaTodo()
+        _ = await t.value
+    }
+
+    // MARK: revisión final — minors que fallaban abiertos
+
+    /// (a) Sin origen (o un campo `secret` sin nombre) no hay dónde guardar: antes el bucle hacía
+    /// `continue` y el valor CRUDO se quedaba en `values` camino del modelo. Inalcanzable por
+    /// `run` (el origen se exige antes de presentar y `FormSpec.parse` exige el nombre), así que
+    /// se prueba sobre `guarda` directamente.
+    func test_guardar_sin_origen_es_error_sin_valores() throws {
+        let m = monta()
+        let campo = FormField(id: "pw", label: "Contraseña", kind: .secret, secretName: "gmail_password")
+        let out = m.tool.guarda(secretos: [campo], origen: nil,
+                                en: FormResponse(status: .submitted, values: ["pw": "valor-crudo", "n": "Ana"]))
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertFalse(out.contains("valor-crudo"), out)
+        XCTAssertNil(try parse(out)["values"])
+        XCTAssertTrue(m.vault.lista().isEmpty)
+    }
+
+    func test_un_campo_secret_sin_nombre_es_error_sin_valores_y_deshace_lo_guardado() throws {
+        let m = monta()
+        let bueno = FormField(id: "a", label: "A", kind: .secret, secretName: "uno")
+        let sinNombre = FormField(id: "b", label: "B", kind: .secret)
+        let out = m.tool.guarda(secretos: [bueno, sinNombre], origen: "accounts.google.com",
+                                en: FormResponse(status: .submitted, values: ["a": "valor-a", "b": "valor-b"]))
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertFalse(out.contains("valor-a") || out.contains("valor-b"), out)
+        XCTAssertNil(m.vault.valor(de: "uno"), "lo guardado antes del campo roto se deshace")
+    }
+
+    /// (c) Un secreto previo fuera del índice (su registro existe pero `lista()` no lo trae, así
+    /// que no hay etiqueta) contaba como «nuevo» y el deshacer lo BORRABA. Se restaura con lo que haya.
+    func test_el_deshacer_restaura_un_secreto_previo_aunque_le_falte_la_etiqueta() async throws {
+        let almacen = AlmacenEnMemoria(["secreto.uno": #"{"value":"valor-viejo","etiqueta":"Vieja","origen":"accounts.google.com"}"#])
+        let m = monta(almacen: almacen)
+        let dos = #"[{"id":"a","label":"A","kind":"secret","secret_name":"uno"},{"id":"b","label":"B","kind":"secret","secret_name":"dos"}]"#
+        let out = try await ejecuta(m, fields: dos, enviar: ["a": "valor-nuevo", "b": ""])
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+        XCTAssertEqual(m.vault.valor(de: "uno"), "valor-viejo", "el secreto previo se borró en vez de restaurarse")
+        XCTAssertEqual(m.vault.origen(de: "uno"), "accounts.google.com")
+    }
+
+    /// (c) Si restaurar falla, el mensaje no puede decir «No se ha guardado ninguno»: el secreto
+    /// previo se ha quedado con el valor nuevo, y el modelo y el usuario tienen que saberlo.
+    func test_si_restaurar_falla_el_mensaje_no_miente() async throws {
+        let almacen = AlmacenQueFallaTras(escrituras: 1, inicial: [
+            "indice": #"["uno"]"#,
+            "secreto.uno": #"{"value":"valor-viejo","etiqueta":"Vieja","origen":"accounts.google.com"}"#])
+        let mock = MockAgentBrowserInvoker.succeeding(stdout: urlGoogle)
+        let vault = SecretVault(almacen: almacen)
+        reloj.esperaDeVerdad = true
+        let reloj = self.reloj
+        let broker = FormBroker(dormir: { _ in if reloj.esperaDeVerdad { try await Task.sleep(for: .seconds(3600)) } })
+        let tool = PresentFormTool(broker: broker, vault: vault,
+                                   service: AgentBrowserService(invoker: EnvoltorioConStdin(mock), sessionName: "gemma"))
+        let dos = #"[{"id":"a","label":"A","kind":"secret","secret_name":"uno"},{"id":"b","label":"B","kind":"secret","secret_name":"dos"}]"#
+        let t = Task { await tool.run(argsJSON: args(fields: dos)) }
+        for _ in 0..<500 where broker.pendiente == nil { await Task.yield() }
+        broker.envia(id: try XCTUnwrap(broker.pendiente).id, valores: ["a": "valor-nuevo", "b": "valor-b"])
+        let out = await t.value
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        let msg = j["message"] as? String ?? ""
+        XCTAssertFalse(msg.contains("No se ha guardado ninguno"), msg)
+        XCTAssertTrue(msg.contains("uno"), msg)
+        XCTAssertFalse(out.contains("valor-nuevo") || out.contains("valor-viejo") || out.contains("valor-b"), out)
+    }
+
+    // MARK: list_secrets / forget_secret
+
+    func test_list_secrets_no_contiene_valores() async throws {
+        let v = SecretVault(almacen: AlmacenEnMemoria())
+        v.guarda(name: "gmail_password", value: "hunter2-super", etiqueta: "Gmail", origen: "google.com")
+        let out = await ListSecretsTool(vault: v).run(argsJSON: "{}")
+        XCTAssertFalse(out.contains("hunter2-super"))
+        let j = try parse(out)
+        let lista = try XCTUnwrap(j["secrets"] as? [[String: String]])
+        XCTAssertEqual(lista, [["name": "gmail_password", "etiqueta": "Gmail", "origen": "google.com"]])
+    }
+
+    func test_list_secrets_con_indice_ilegible_es_error_no_lista_vacia() async throws {
+        let v = SecretVault(almacen: AlmacenEnMemoria(["indice": "{basura"]))
+        let out = await ListSecretsTool(vault: v).run(argsJSON: "{}")
+        XCTAssertEqual(try parse(out)["status"] as? String, "error")
+    }
+
+    func test_forget_secret_borra() async throws {
+        let v = SecretVault(almacen: AlmacenEnMemoria())
+        v.guarda(name: "k", value: "v1", etiqueta: "K", origen: "a.com")
+        let out = await ForgetSecretTool(vault: v).run(argsJSON: #"{"name":"k"}"#)
+        XCTAssertEqual(try parse(out)["status"] as? String, "success")
+        XCTAssertNil(v.valor(de: "k"))
+        XCTAssertTrue(v.lista().isEmpty)
+    }
+
+    func test_forget_secret_sin_nombre_o_inexistente_es_error() async throws {
+        let v = SecretVault(almacen: AlmacenEnMemoria())
+        let a = await ForgetSecretTool(vault: v).run(argsJSON: "{}")
+        let b = await ForgetSecretTool(vault: v).run(argsJSON: #"{"name":"nada"}"#)
+        XCTAssertEqual(try parse(a)["status"] as? String, "error")
+        XCTAssertEqual(try parse(b)["status"] as? String, "error")
+    }
+
+    func test_forget_secret_con_indice_ilegible_falla_cerrado_y_no_borra() async throws {
+        let almacen = AlmacenEnMemoria(["indice": "{basura", "secreto.k": #"{"value":"v1","etiqueta":"K","origen":"a.com"}"#])
+        let v = SecretVault(almacen: almacen)
+        let out = await ForgetSecretTool(vault: v).run(argsJSON: #"{"name":"k"}"#)
+        let j = try parse(out)
+        XCTAssertEqual(j["status"] as? String, "error")
+        XCTAssertTrue((j["message"] as? String ?? "").contains("la bóveda de secretos no se puede leer"))
+        XCTAssertEqual(v.valor(de: "k"), "v1")
+    }
+}

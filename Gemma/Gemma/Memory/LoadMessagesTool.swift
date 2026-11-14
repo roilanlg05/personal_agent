@@ -1,14 +1,35 @@
 import BrainContract
 import Foundation
 
-/// Drill-down (CAPA 1): given a summary's refs (chat_id + message range), return the verbatim
-/// chat messages behind it. A READ tool — the model calls it ONLY when a summary lacks the
-/// detail it needs, reading just that range. Delegates to `/v1/transcript/range`.
+/// Drill-down (CAPA 1): dado el `chat_id` y el rango de un resumen episódico, devuelve
+/// los mensajes textuales que hay detrás. Es una herramienta de LECTURA: el modelo la
+/// llama solo cuando un resumen no trae el detalle que necesita, y lee únicamente ese
+/// rango. Delega en `/v1/transcript/range`.
+///
+/// ## El defecto que tenía
+///
+/// Su `catch` devolvía literalmente `"no messages found for chat \(chatId)"`. Es decir:
+/// si el servicio de memoria estaba caído, el endpoint fallaba o la respuesta no se
+/// podía decodificar, la herramienta informaba de que **no había mensajes**. El modelo le
+/// decía al usuario que esa conversación no existía o que no quedaba nada de ella, cuando
+/// la verdad era «no se pudo consultar». Es «no se pudo saber» disfrazado de «no hay
+/// nada», que es justo lo que el contrato de honestidad prohíbe: el usuario tomaba por
+/// perdido un trozo de su propio historial.
+///
+/// Además recortaba la salida con `.prefix(4000)` sin decirlo, así que el modelo creía
+/// haber leído el rango completo cuando podía faltarle el final.
 struct LoadMessagesTool: AgentTool {
     static let name = "load_messages"
     static let description = """
-    Read exact messages in the active conversation when its authorized sources permit it. \
-    Pass a delivered evidence_id, or the chat and range on a legacy service.
+    Usa evidence_id para una fuente autorizada del turno activo. En servicios antiguos, carga los mensajes exactos que hay detrás de un resumen episódico, SOLO cuando el \
+    resumen no contiene el detalle que necesitas. Pásale el 'chat_id' y el rango \
+    ('from'/'to') que aparecen junto al resumen. Lee solo ese rango, nunca un chat \
+    entero. Lee 'status': 'ok' = los mensajes vienen en 'messages'; 'empty' = ese rango \
+    de ese chat no tiene mensajes (el rango está mal o se borraron), pide el rango \
+    correcto; 'memory_unavailable' o 'failed' = NO se pudo consultar el historial, que no \
+    es lo mismo que no haber mensajes — dile al usuario que no pudiste leer esa parte de \
+    la conversación, nunca que no existe; 'missing_fields' = falta 'chat_id' o 'from'. Si \
+    viene 'truncated': true, el rango no cabía entero: pide un rango más estrecho.
     """
     static let parameters: [AgentToolParam] = [
         AgentToolParam(name: "evidence_id", type: .string, description: "Exact source ID delivered in this turn.", required: false),
@@ -44,35 +65,85 @@ struct LoadMessagesTool: AgentTool {
             (obj[key] as? Int) ?? (obj[key] as? Double).flatMap(Int.init(exactly:))
                 ?? (obj[key] as? String).flatMap(Int.init)
         }
-        guard !chatId.isEmpty, let from = sequence("from"), from > 0, from <= Int.max - 79,
-              obj["to"] == nil || sequence("to") != nil else { return "need valid chat_id and message sequence" }
-        let to = sequence("to") ?? from
-        guard to >= from else { return "need a nondecreasing message range" }
-        if let scope, chatId != scope.threadID {
-            return "No authorized originals in the requested range."
+        let from = sequence("from") ?? 0
+        let to = sequence("to")
+
+        // Los mensajes se numeran desde 1 (la columna `seq` del servidor), así que un
+        // `from` de 0 o negativo es un argumento mal puesto, no el principio del chat.
+        var missing: [String] = []
+        if chatId.isEmpty { missing.append("chat_id") }
+        if from <= 0 { missing.append("from") }
+        guard missing.isEmpty else {
+            return ToolJSONOutput.object([
+                "status": "missing_fields",
+                "required": missing,
+                "received": ["chat_id": chatId, "from": from],
+                "message": "Faltan estos argumentos: \(missing.joined(separator: ", ")). Son el 'chat_id' y el número del primer mensaje que vienen junto al resumen; los mensajes se numeran desde 1."
+            ])
         }
-        let cappedTo = min(to, from + 79)
-        await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: "\(chatId):\(from)-\(cappedTo)") }
+
+        if let scope, chatId != scope.threadID { return "No authorized originals in the requested range." }
+        guard from <= Int.max - 79, obj["to"] == nil || to != nil, (to ?? from) >= from else {
+            return MemoryQuerySupport.missingField("to", "usa un rango de mensajes válido")
+        }
+        let scopedEnd = scope == nil ? to : min(to ?? from, from + 79)
+        await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: "\(chatId):\(from)-\(to ?? from)") }
         let result: String = await {
-            guard let mem = await MemoryToolbox.shared.memory else { return "memory unavailable" }
+            guard let mem = await MemoryToolbox.shared.memory else {
+                return MemoryQuerySupport.memoryUnavailable("leer los mensajes del chat \(chatId)")
+            }
             do {
-                let result = try await mem.loadMessages(chatId: chatId, from: from, to: cappedTo)
-                let rows = result.messages.filter { row in
-                    (from...cappedTo).contains(row.seq) && ["assistant", "user"].contains(row.role)
+                let r = try await mem.loadMessages(chatId: chatId, from: from, to: scopedEnd)
+                if scope != nil {
+                    let range = from...(scopedEnd ?? from)
+                    let rows = r.messages.filter { range.contains($0.seq) && ["assistant", "user"].contains($0.role) }
+                    guard !rows.isEmpty else { return "No authorized originals in the requested range." }
+                    var lines = [String]()
+                    var remaining = 3600
+                    for row in rows {
+                        let line = "\(row.role == "assistant" ? "Gemma" : "User"): \(row.text)"
+                        guard line.utf8.count + 1 <= remaining else { break }
+                        lines.append(line)
+                        remaining -= line.utf8.count + 1
+                    }
+                    if lines.count < r.messages.count || r.truncated || scopedEnd != (to ?? from) {
+                        lines.append("Some messages were omitted. Quote only the complete lines shown.")
+                    }
+                    return lines.joined(separator: "\n")
                 }
-                guard !rows.isEmpty else { return "No authorized originals in the requested range." }
-                var lines = [String]()
-                var remaining = 3600
-                for row in rows {
-                    let line = "\(row.role == "assistant" ? "Gemma" : "User"): \(row.text)"
-                    guard line.utf8.count + 1 <= remaining else { break }
-                    lines.append(line)
-                    remaining -= line.utf8.count + 1
+                let (shown, capWarning) = MemoryQuerySupport.cap(
+                    r.messages, to: MemoryQuerySupport.Caps.messages, noun: "mensajes"
+                )
+                var warnings: [String] = []
+                if let capWarning { warnings.append(capWarning) }
+                if r.truncated {
+                    warnings.append("El servidor recortó el rango: hay más mensajes de los que se devolvieron. Pide un rango más estrecho si necesitas el resto.")
                 }
-                let partial = lines.count < rows.count || rows.count < result.messages.count || result.truncated || cappedTo != to
-                if partial { lines.append("Some messages were omitted. Quote only the complete lines shown.") }
-                return lines.joined(separator: "\n")
-            } catch { return "no messages found for chat \(chatId)" }
+                return ToolJSONOutput.object([
+                    "status": r.messages.isEmpty ? "empty" : "ok",
+                    "chat_id": chatId,
+                    "from": from,
+                    "to": to ?? from,
+                    "count": shown.count,
+                    "messages": shown.map { ["seq": $0.seq, "role": $0.role, "text": $0.text] },
+                    "truncated": (r.truncated || capWarning != nil) ? true : nil,
+                    "warnings": warnings.isEmpty ? nil : warnings,
+                    "message": r.messages.isEmpty
+                        ? "El chat \(chatId) no tiene mensajes entre \(from) y \(to ?? from). Comprueba el rango que venía con el resumen; no supongas que la conversación se perdió."
+                        : "\(shown.count) mensaje(s) del chat \(chatId)."
+                ])
+            } catch {
+                // Antes esto devolvía "no messages found for chat X": un fallo de red o de
+                // servidor se le contaba al usuario como un trozo de su historial que no
+                // existía.
+                return ToolJSONOutput.object([
+                    "status": "failed",
+                    "chat_id": chatId,
+                    "from": from,
+                    "to": to ?? from,
+                    "message": "No se pudo leer el historial del chat \(chatId): \(error.localizedDescription). Dile al usuario que no pudiste consultar esa parte de la conversación; NO le digas que no hay mensajes ni que se perdió."
+                ])
+            }
         }()
         await MainActor.run { ToolActivityRelay.shared.finished(name: Self.name, result: result) }
         return result

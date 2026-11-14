@@ -83,7 +83,7 @@ struct BrainConversationCoordinator {
             }
         }
 
-        func run(runtime: ToolCallingRuntime) -> AsyncThrowingStream<AgentEvent, Error> {
+        func run(runtime: ToolCallingRuntime, bóveda: SecretVault? = nil) -> AsyncThrowingStream<AgentEvent, Error> {
             if case .admitted(let receipt) = route, !receipt.reply.isEmpty {
                 return AsyncThrowingStream { continuation in
                     let metrics = RuntimeMetrics(tokensGenerated: 0, elapsedSeconds: 0, timeToFirstTokenSeconds: 0,
@@ -110,7 +110,7 @@ struct BrainConversationCoordinator {
             }
             return Agent(runtime: runtime, registry: registry, memoryScope: toolScope,
                          reportOutcome: reportOutcome, preparedPrompt: providerPrompt, followUpPrompt: followUpPrompt,
-                         barePrompt: barePrompt)
+                         barePrompt: barePrompt, bóveda: bóveda)
                 .run(prompt: prompt, options: options)
         }
 
@@ -158,7 +158,8 @@ struct BrainConversationCoordinator {
         guard maxOutput > 0 else { throw NativeGenerationBudget.inputTooLarge }
         let priority = registry.prioritized(for: prompt, history: local)
         let requestedOutput = max(options.maxTokens, 1)
-        let groupSize = client == nil || ToolRegistry.isShortConfirmation(prompt) ? 3 : 2
+        let isConfirmation = ToolRegistry.isShortConfirmation(prompt)
+        let groupSize = client == nil || isConfirmation ? 3 : 2
         let mainTools = Array(priority.prefix(contextTokens <= 8192 ? groupSize : priority.count))
         let prioritySystem = Agent.nativeSystemPrompt(tools: mainTools, compact: compact)
         let fixed = NativeGenerationBudget(contextTokens: contextTokens, outputTokens: 0,

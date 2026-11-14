@@ -6,17 +6,36 @@ import UIKit
 
 public struct ChatLogEntry: Identifiable, Sendable, Equatable {
     public let id: String
-    public var role: String // "you", "gemma", "tool", "system", "error"
+    public var role: String // "you", "gemma", "tool", "system", "error", "browserPanel", "form"
     public var text: String
     public var thought: String?
     public var isThoughtExpanded: Bool = false
+    /// Solo para `role == "browserPanel"`: id del panel en `HarnessModel.browserPanels`.
+    public var panelID: String?
+    /// Solo para `role == "tool"`: nombre de la herramienta, su resultado crudo
+    /// (nil mientras corre) y si la fila está abierta. El resultado no va en `text`.
+    public var toolName: String?
+    public var toolDetail: String?
+    public var isToolExpanded: Bool = false
+    /// Solo para `role == "form"`: id del formulario en `FormBroker` (`PendingForm.id`). El título
+    /// del formulario va en `text`. La fila NUNCA lleva valores: ni los tecleados ni los enviados.
+    public var formID: String?
+    /// Solo para `role == "form"`: `"pendiente"`, `"enviado"` o `"cancelado"` (incluye plazo vencido
+    /// y fin de turno). Es lo único que la tarjeta recuerda del desenlace.
+    public var formEstado: String?
 
-    public init(id: String = UUID().uuidString, role: String, text: String, thought: String? = nil, isThoughtExpanded: Bool = false) {
+    public init(id: String = UUID().uuidString, role: String, text: String, thought: String? = nil, isThoughtExpanded: Bool = false, panelID: String? = nil, toolName: String? = nil, toolDetail: String? = nil, isToolExpanded: Bool = false, formID: String? = nil, formEstado: String? = nil) {
         self.id = id
         self.role = role
         self.text = text
         self.thought = thought
         self.isThoughtExpanded = isThoughtExpanded
+        self.panelID = panelID
+        self.toolName = toolName
+        self.toolDetail = toolDetail
+        self.isToolExpanded = isToolExpanded
+        self.formID = formID
+        self.formEstado = formEstado
     }
 }
 
@@ -34,18 +53,41 @@ public final class HarnessModel {
     @ObservationIgnored private var recentConversation = RecentConversation()
     @ObservationIgnored private let brainCue = BrainCuePrefetch()
 
+    /// Paneles de navegador del chat (uno por turno). Inyectable para poder probar el cierre
+    /// del panel sin abrir un socket real; por omisión usa el relé del i3 si está configurado.
+    @ObservationIgnored public private(set) var browserPanels: BrowserPanelCoordinator
+
     @ObservationIgnored private var runtime: ModelRuntime & ToolCallingRuntime
     @ObservationIgnored private let settingsStore = SettingsStore()
     @ObservationIgnored private(set) var settings: GenerationSettings
     /// HTTP client to the Memory Service (Docker). Built once in `ensureMemory()` from
-    /// `UserDefaults` (`memoryBaseURL`, `memoryBearerToken`); shared with `MemoryToolbox`
-    /// so tools (Save / Forget / Reflect / LoadMessages) can reach it.
+    /// `UserDefaults` (`memoryBaseURL`) + el llavero (el token, vía `TokenDeMemoria`); shared with
+    /// `MemoryToolbox` so tools (Save / Forget / Reflect / LoadMessages) can reach it.
     @ObservationIgnored private(set) var memory: MemoryClient?
+    /// De dónde salen los secretos de este modelo (hoy: el token del servicio de memoria, que la
+    /// voz comparte). **Inyectable, y no es un adorno de diseño: es lo que impide que una prueba
+    /// toque la entrada de producción del llavero.** `init` llama a `ensureVoice()`, que lee el
+    /// token; tres ficheros de prueba construyen un `HarnessModel`, y el host de las pruebas es la
+    /// propia app, así que sin esto una corrida leería el token real del usuario —y un acceso al
+    /// llavero desde el binario de pruebas puede además abrir un diálogo y colgar la corrida de
+    /// todos. Esas tres pruebas pasan un `AlmacenEnMemoria`.
+    @ObservationIgnored let almacenDeSecretos: any AlmacenDeSecretos
+    /// Intermediario de los formularios que pide el agente (`present_form`). Uno por modelo: la
+    /// tarjeta del chat observa su `pendiente`.
+    @ObservationIgnored let formularios = FormBroker()
+    /// Bóveda de secretos del usuario. Con el llavero real usa SU servicio propio
+    /// (`SecretVault.servicioDelLlavero`, distinto del de los tokens); con un almacén inyectado
+    /// (las pruebas) usa ese mismo almacén, de modo que una prueba NUNCA toca el Keychain real.
+    @ObservationIgnored let boveda: SecretVault
     /// In-app voice: records mic audio, sends it to the i3 voice service, plays the reply.
     @ObservationIgnored let voice = VoiceController(recorder: AudioRecorder())
     /// Always-listening "Hey Jarvis". Built lazily (loads ONNX models) so a load failure doesn't crash init.
     @ObservationIgnored private(set) var wake: WakeListener?
     @ObservationIgnored private var episode = ChatSession.Episode(lastActivity: UserDefaults.standard.double(forKey: "lastTurnEndedAt"))
+    var lastTurnEndedAt: Double {
+        get { episode.lastActivity }
+        set { episode.noteActivity(now: newValue) }
+    }
 
     /// Build the per-turn "wake context" appended to the system prompt: what the agent was
     /// reflecting on (if a cycle is pending) + pending follow-ups (only on a wake turn).
@@ -80,8 +122,21 @@ public final class HarnessModel {
         keepResident ? residentWiredLimitBytes : 0
     }
 
+    /// La búsqueda de API keys que usa producción: el almacén nuevo (`LlaveroDelSistema` vía
+    /// `ClaveDeProveedor`), **nunca** `UserDefaults`.
+    ///
+    /// Está aquí, en un solo sitio, porque los lectores de la key son **cinco** en este fichero
+    /// (`isMissingApiKey`, `rebuildRuntime`, `init`, `pushConsolidationConfig`, `runAgentTurn`) y
+    /// uno de ellos corre en cada arranque. Con la expresión repetida cinco veces, el que se
+    /// quedara sin cambiar dejaría la key vieja viva en el llavero de ficheros y el arreglo a
+    /// medias, con todo verde.
+    nonisolated static func clavesDelAlmacen(_ almacen: any AlmacenDeSecretos)
+    -> (ModelProvider.Kind) -> String? {
+        { kind in ClaveDeProveedor.leer(proveedor: kind.rawValue, almacen: almacen) }
+    }
+
     /// Build the chat provider from settings. `keyLookup` returns the stored API key for a kind
-    /// (injected for tests; production passes KeychainStore.shared.get).
+    /// (injected for tests; production passes `Self.clavesDelAlmacen(almacenDeSecretos)`).
     static func chatProvider(keyLookup: (ModelProvider.Kind) -> String?) -> ModelProvider {
         #if os(iOS)
         let defaultKind = ModelProvider.Kind.onDevice
@@ -109,25 +164,32 @@ public final class HarnessModel {
         guard !chatUsesLocalServer else { return false }
         let kind = currentProviderKind
         guard !kind.isLocalMLX else { return false }
-        let key = KeychainStore.shared.get(account: "apiKey.\(kind.rawValue)")
+        let key = ClaveDeProveedor.leer(proveedor: kind.rawValue, almacen: almacenDeSecretos)
         return key == nil || key?.isEmpty == true
     }
 
     /// Rebuild the chat runtime from current settings (called when chat settings change).
     func rebuildRuntime() {
-        let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
+        let provider = Self.chatProvider(keyLookup: Self.clavesDelAlmacen(almacenDeSecretos))
         self.runtime = RuntimeFactory.make(provider)
         self.isPreheated = false
         preheatRuntime()
     }
 
-    public init() {
+    public init(browserPanels: BrowserPanelCoordinator? = nil,
+                almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido,
+                boveda: SecretVault? = nil) {
+        self.almacenDeSecretos = almacen
+        self.boveda = boveda ?? (almacen is LlaveroDelSistema ? SecretVault() : SecretVault(almacen: almacen))
+        self.browserPanels = browserPanels ?? BrowserPanelCoordinator(stream: { Self.makeRelayStream() })
         var cfg = ServerConfig.default
         cfg.wiredLimitBytes = Self.wiredLimitBytes(
             keepResident: UserDefaults.standard.bool(forKey: SettingsKeys.keepModelResident))
         self.serverManager = ServerManager(config: cfg)
         self.settings = settingsStore.load()
-        self.runtime = RuntimeFactory.make(Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") }))
+        Self.migrateMemoryBaseURLIfNeeded()
+        self.runtime = RuntimeFactory.make(Self.chatProvider(keyLookup: Self.clavesDelAlmacen(almacen)))
+        observaFormularios()
         #if os(macOS)
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { [weak self] _ in
@@ -249,15 +311,69 @@ public final class HarnessModel {
                           systemPrompt: settings.systemPrompt.isEmpty ? nil : settings.systemPrompt)
     }
 
-    /// Build (or rebuild) the `MemoryClient` from `UserDefaults` settings. The Settings UI
-    /// (Task 14) will surface these keys; today users may override via `defaults write`.
+    /// Clave de la migración de una sola vez de `memoryBaseURL` en iOS. Lleva versión en el
+    /// nombre porque una migración futura necesitará su propia bandera, no reutilizar esta.
+    static let memoryURLMigrationKey = "memoryBaseURLMigratedToTailscale.v1"
+
+    /// Las dos direcciones que un iPhone NO puede alcanzar y que quedaron guardadas de
+    /// cuando la app era de escritorio: `localhost` es el propio teléfono, y la IP de LAN
+    /// solo vale dentro de casa. Se sustituyen UNA VEZ por la del i3 en Tailscale.
+    static let unreachableMemoryHostsOnPhone = ["http://localhost:8081", "http://192.168.1.50:8081"]
+
+    /// Migración de una sola vez: corre al construir el modelo, NUNCA desde Ajustes.
     ///
-    /// Keys:
-    /// - `memoryBaseURL` (String, default `http://localhost:8081`)
-    /// - `memoryBearerToken` (String, default empty)
+    /// Antes esto vivía dentro de `ensureMemory()`, y de ahí salió una avería fea: Ajustes
+    /// llama a `ensureMemory()` en CADA PULSACIÓN de tecla, y la versión antigua reescribía
+    /// los ajustes cuando el campo estaba vacío. Resultado: borrabas el campo para poner un
+    /// token nuevo y la app te lo volvía a escribir entero, así que cambiarlo era imposible
+    /// — no un fastidio, imposible. Un ajuste solo se escribe donde el usuario lo escribe.
     ///
-    /// Mirrors the client into `MemoryToolbox.shared.memory` so the memory tools
-    /// (Save / Forget / Reflect / LoadMessages) can reach the same instance.
+    /// Por eso aquí **el campo vacío no se toca**: vacío significa «lo he borrado yo», y la
+    /// respuesta correcta es quedarse sin memoria y decirlo, no inventar un servidor.
+    static func migrateMemoryBaseURLIfNeeded(defaults: UserDefaults = .standard) {
+        #if os(iOS)
+        guard !defaults.bool(forKey: memoryURLMigrationKey) else { return }
+        defaults.set(true, forKey: memoryURLMigrationKey)
+        let guardado = (defaults.string(forKey: "memoryBaseURL") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard unreachableMemoryHostsOnPhone.contains(guardado) else { return }
+        defaults.set("http://100.91.174.81:8081", forKey: "memoryBaseURL")
+        #endif
+    }
+
+    /// Lee la dirección del servicio de memoria y su token de lo GUARDADO, **sin escribir
+    /// nada**. `nil` cuando el campo de la URL está vacío o no es una URL http(s) con host:
+    /// en los dos casos la respuesta es quedarse sin cliente de memoria, que es visible,
+    /// en vez de fabricar uno contra un servidor que nadie pidió.
+    ///
+    /// El token vacío **sí** devuelve cliente: el servidor contesta 401 y eso se ve. Meterle
+    /// un token por omisión a espaldas del usuario es lo que hacía que el placeholder débil
+    /// reapareciera solo cada vez que alguien intentaba quitarlo.
+    ///
+    /// LA URL SALE DE `UserDefaults`; EL TOKEN, DEL LLAVERO. No es asimetría por descuido: la
+    /// dirección del i3 no es un secreto y el token lo es todo —con él se lee y se escribe la
+    /// memoria personal entera del usuario—. Ver `TokenDeMemoria`. Migrar es trabajo de
+    /// `migrar`, no de esta función: **leer no escribe**, que es la regla que cerró la avería del
+    /// campo que se volvía a escribir solo.
+    static func memorySettings(defaults: UserDefaults = .standard,
+                               almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido)
+    -> (url: URL, token: String)? {
+        let raw = (defaults.string(forKey: "memoryBaseURL") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
+              url.host != nil else { return nil }
+        return (url, TokenDeMemoria.leer(almacen: almacen))
+    }
+
+    /// Construye (o reconstruye) el `MemoryClient` desde `UserDefaults`.
+    ///
+    /// Claves:
+    /// - `memoryBaseURL` (String de `UserDefaults`; vacía o inválida → sin memoria)
+    /// - el token del servicio de memoria, **del llavero** (`TokenDeMemoria`, no de
+    ///   `UserDefaults`; vacío → se usa vacío y el servidor da 401)
+    ///
+    /// Espeja el cliente en `MemoryToolbox.shared.memory` para que las herramientas de
+    /// memoria (Save / Forget / Reflect / LoadMessages) alcancen la misma instancia.
     func ensureMemory() {
         guard settings.memoryEnabled ?? true else {
             cancelDictationCue()
@@ -266,20 +382,9 @@ public final class HarnessModel {
             MemoryToolbox.shared.reflectionRequest = nil
             return
         }
-        var urlString = UserDefaults.standard.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
-        #if os(iOS)
-        if urlString == "http://localhost:8081" || urlString == "http://192.168.1.50:8081" || urlString.isEmpty {
-            urlString = "http://100.91.174.81:8081"
-            UserDefaults.standard.set(urlString, forKey: "memoryBaseURL")
-        }
-        #endif
-        var token = UserDefaults.standard.string(forKey: "memoryBearerToken") ?? ""
-        if token.isEmpty {
-            token = "replace-me-with-a-long-random-string"
-            UserDefaults.standard.set(token, forKey: "memoryBearerToken")
-        }
-        guard let baseURL = URL(string: urlString) else {
+        guard let (baseURL, token) = Self.memorySettings(almacen: almacenDeSecretos) else {
             cancelDictationCue()
+            MemoryToolbox.shared.reflectionRequest = nil
             self.memory = nil
             MemoryToolbox.shared.memory = nil
             return
@@ -292,6 +397,19 @@ public final class HarnessModel {
         MemoryToolbox.shared.reflectionRequest = { [weak client] in
             Task { _ = try? await client?.reflect() }
         }
+        // Lo que antes solo vivía en el contenedor de la app (notas, atajos, alias,
+        // lugares, alarmas) vive ahora en el servicio de memoria. En cuanto hay cliente,
+        // se sube lo pendiente y se trae lo que haya en el servidor.
+        //
+        // `memoryBaseURL` y `memoryBearerToken` NO se espejan, y no es un olvido: son la
+        // dirección del servidor y su contraseña. Guardarlos en el servidor sería un
+        // círculo — sin ellos no hay forma de llegar al servidor para leerlos. Lo mismo
+        // vale para cualquier ajuste que describa solo a este aparato (el host del modelo
+        // local, el interruptor de la palabra de activación): son configuración del
+        // dispositivo, no datos del usuario.
+        // La clave es la dirección del servidor: si el usuario la cambia en Ajustes, se
+        // vuelve a hidratar desde el servidor nuevo en vez de seguir con lo del viejo.
+        MirrorSyncer.shared.start(serverKey: baseURL.absoluteString)
     }
 
     /// Resolve the voice base URL: the explicit `voiceBaseURL` if set, otherwise the Memory host
@@ -335,15 +453,29 @@ public final class HarnessModel {
         self.wake?.isVoiceBusy = { [weak self] in self?.voice.state != .idle }
     }
 
-    /// Build (or rebuild) the voice client from `UserDefaults`. Reuses the memory bearer token
-    /// (the i3 voice service shares it). `voiceBaseURL` (optional) overrides; empty → derive from
-    /// `memoryBaseURL` on port 8082.
+    /// Build (or rebuild) the voice client from `UserDefaults` (las URLs) y del llavero (el
+    /// token). Reuses the memory bearer token (the i3 voice service shares it, así que es el
+    /// MISMO secreto y sale del mismo sitio: ver `TokenDeMemoria`). `voiceBaseURL` (optional)
+    /// overrides; empty → derive from `memoryBaseURL` on port 8082.
     func ensureVoice() {
-        let explicit = UserDefaults.standard.string(forKey: "voiceBaseURL") ?? ""
-        let memory = UserDefaults.standard.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
-        let token = UserDefaults.standard.string(forKey: "memoryBearerToken") ?? ""
-        guard let baseURL = URL(string: Self.voiceURLString(explicit: explicit, memory: memory)) else { return }
+        guard let (baseURL, token) = Self.voiceSettings(almacen: almacenDeSecretos) else { return }
         voice.configure(baseURL: baseURL, token: token)
+    }
+
+    /// La dirección del servicio de voz y su token, de lo GUARDADO y **sin escribir nada**.
+    ///
+    /// Es `static` y toma sus dos fuentes por parámetro por el mismo motivo que `memorySettings`:
+    /// así la decisión «de dónde sale el token» se puede medir sin construir un `HarnessModel`
+    /// (que en el host de las pruebas observa notificaciones de la app) y **sin tocar la entrada
+    /// de producción del llavero**. El token es el del servicio de memoria: el i3 lo comparte
+    /// entre memoria y voz, así que es el mismo secreto y sale del mismo sitio (`TokenDeMemoria`).
+    nonisolated static func voiceSettings(defaults: UserDefaults = .standard,
+                                          almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido)
+    -> (url: URL, token: String)? {
+        let explicit = defaults.string(forKey: "voiceBaseURL") ?? ""
+        let memory = defaults.string(forKey: "memoryBaseURL") ?? "http://localhost:8081"
+        guard let baseURL = URL(string: voiceURLString(explicit: explicit, memory: memory)) else { return nil }
+        return (baseURL, TokenDeMemoria.leer(almacen: almacen))
     }
 
     /// Push the consolidation provider config to the i3 (key included, over the authed channel).
@@ -354,7 +486,9 @@ public final class HarnessModel {
         let kind = ModelProvider.Kind(rawValue: kindRaw) ?? .defaultKind
         let model = UserDefaults.standard.string(forKey: SettingsKeys.consolidationModel)
         let provider = ModelProvider(kind: kind, model: model,
-                                     apiKey: kind.isLocalMLX ? nil : KeychainStore.shared.get(account: "apiKey.\(kind.rawValue)"))
+                                     apiKey: kind.isLocalMLX ? nil
+                                        : ClaveDeProveedor.leer(proveedor: kind.rawValue,
+                                                                almacen: almacenDeSecretos))
         Task {
             try? await client.setModelConfig(provider: kind.rawValue,
                                               baseURL: provider.baseURL.absoluteString,
@@ -385,22 +519,6 @@ public final class HarnessModel {
         // service so the harness can surface them again without GRDB access.
     }
 
-    public func startAgentTurn(_ prompt: String) {
-        currentTurnTask?.cancel()
-        currentTurnTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-            await self.runAgentTurn(prompt)
-        }
-    }
-
-    public func cancelAgentTurn() {
-        cancelDictationCue()
-        currentTurnTask?.cancel()
-        currentTurnTask = nil
-        agentRunning = false
-        agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
-    }
-
     private func noteConversationActivity(at time: Double) {
         episode.noteActivity(now: time)
         UserDefaults.standard.set(time, forKey: "lastTurnEndedAt")
@@ -412,6 +530,7 @@ public final class HarnessModel {
         if previous != started.id {
             cancelDictationCue()
             recentConversation.start(threadID: started.id)
+            browserPanels.retireLivePanel(porque: "conversación nueva")
         }
         return started
     }
@@ -421,6 +540,8 @@ public final class HarnessModel {
         cancelDictationCue()
         currentTurnTask?.cancel()
         currentTurnTask = nil
+        cierraFormularioAbierto()
+        browserPanels.retireLivePanel(porque: "se restauró otra conversación")
         activeTextTurnID = nil
         agentRunning = false
         agentLog.removeAll()
@@ -441,15 +562,390 @@ public final class HarnessModel {
 
     func cancelDictationCue() { brainCue.cancel() }
 
+    /// Solo pruebas: sustituye `runAgentTurn` para probar `startAgentTurn` sin modelo ni red.
+    @ObservationIgnored var turnRunnerOverride: (@MainActor (String) async -> Void)?
+
+    public func startAgentTurn(_ prompt: String) {
+        // Hablarle al agente es actividad: reinicia el reloj de inactividad del panel vivo.
+        browserPanels.noteUserActivity()
+        currentTurnTask?.cancel()
+        // Determinista: el panel del turno anterior se cierra por orden, no por la carrera
+        // con la cancelación (si perdiera, el turno nuevo se quedaría sin panel).
+        // Interrumpir para decir algo es lo mismo que detener: el turno que se abandona no acabó
+        // por su pie, así que su panel se congela aunque el navegador siga abierto. Esto NO toca
+        // el panel vivo de un turno anterior (con `activeID == nil` es un no-op): que el usuario
+        // hable de otra cosa no debe cortarle el video. Por eso aquí NO va `retireLivePanel()`.
+        browserPanels.endTurn(survive: false, porque: "el usuario mandó otro mensaje")
+        cierraFormularioAbierto()
+        // Hasta que el turno nuevo se declare, ninguno es vigente: el abandonado ya no puede abrir
+        // un formulario que ocupe el hueco del siguiente.
+        formularios.turnoVigente = nil
+        currentTurnTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            if let runner = self.turnRunnerOverride { await runner(prompt) } else { await self.runAgentTurn(prompt) }
+        }
+    }
+
+    public func cancelAgentTurn() {
+        cancelDictationCue()
+        activeTextTurnID = nil
+        currentTurnTask?.cancel()
+        currentTurnTask = nil
+        // Detener es una orden explícita: congela aunque el navegador siga abierto.
+        browserPanels.endTurn(survive: false, porque: "el usuario pulsó detener")
+        cierraFormularioAbierto()
+        formularios.turnoVigente = nil
+        agentRunning = false
+        agentLog.append(ChatLogEntry(role: "system", text: "⏹ Generación detenida"))
+    }
+
+    /// Flujo del relé del i3 para un panel nuevo, o `nil` sin `browserBaseURL` válida (sin
+    /// dependencias de plataforma: sirve igual en macOS y en iOS). `BrowserRelayClient` es un actor y su `events()`
+    /// es `async`, así que se puentea: un `Task` reenvía los eventos y, al terminar el flujo
+    /// (cierre del panel), se cancela y se llama a `stop()` para no dejar el socket abierto.
+    ///
+    /// `abreElSocket` se reenvía tal cual a `BrowserRelayClient`, que ya tenía ese costurón: con
+    /// `nil` (producción) abre el socket de verdad. Pasarlo por aquí es lo que hace OBSERVABLE
+    /// que el token con el que se firma el handshake sea el del llavero y no el que quedara en
+    /// claro en `UserDefaults`; sin él esa propiedad solo se podría leer, no medir.
+    static func makeRelayStream(defaults: UserDefaults = .standard,
+                                almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido,
+                                abreElSocket: (@Sendable (URL, String) -> SocketDelVisor)? = nil)
+        -> AsyncStream<BrowserRelayEvent>? {
+        let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
+              url.host != nil else { return nil }
+        // Del LLAVERO, no de `UserDefaults`: este token autoriza el visor y al agente, y lo que vive
+        // en `UserDefaults` se respalda, se sincroniza y se lee sin desbloquear nada. La
+        // migración del sitio viejo NO se hace aquí (ver `TokenDeConducir.leer`): leer no escribe.
+        let token = TokenDeConducir.leer(almacen: almacen)
+        let client = BrowserRelayClient(baseURL: url, bearerToken: token,
+                                        abreElSocket: abreElSocket)
+        let (stream, continuation) = AsyncStream<BrowserRelayEvent>.makeStream(bufferingPolicy: .bufferingNewest(64))
+        let forwarder = Task {
+            for await event in await client.events() {
+                continuation.yield(event)
+            }
+            continuation.finish()
+        }
+        continuation.onTermination = { razon in
+            // El único momento en que la app suelta su visor. Saber si llegó por `.cancelled`
+            // (alguien retiró el panel) o por `.finished` (el cliente del relé se rindió o el
+            // relé cerró) distingue las dos familias de causa sin tener que adivinarlo después.
+            PanelLog.note("el flujo del relé termina (\(razon)): se cierra el socket del visor")
+            forwarder.cancel()
+            Task { await client.stop() }
+        }
+        return stream
+    }
+
+    /// Registra en `registry` las nueve herramientas de navegador (`read_webpage` y `browser_*`).
+    /// Comparten una única instancia de `AgentBrowserService`, y por tanto la misma sesión de
+    /// `agent-browser`. Es la única ruta de registro: `runAgentTurn` y `browserToolRegistry()` la usan.
+    /// `userAskedToClose` viaja hasta `BrowserCloseTool`: es el único camino por el que el
+    /// navegador se puede cerrar. Por defecto `false`, así que un registro que no diga nada
+    /// (las pruebas, `browserToolRegistry()`) no puede cerrar nada.
+    ///
+    /// `almacen` existe para que una PRUEBA no tenga que leer el token real del usuario del
+    /// llavero: este método es la única ruta hasta `browserInvoker`, y cinco pruebas lo alcanzan
+    /// por `browserToolRegistry()`.
+    ///
+    /// `formBroker` y `boveda` son opcionales y las cuatro herramientas de formularios/secretos
+    /// (`present_form`, `list_secrets`, `forget_secret`, `browser_fill_secret`) solo se registran si
+    /// llegan AMBOS: comparten el `AgentBrowserService` de abajo (la atadura al origen lee la página
+    /// abierta por él) y sin bóveda o sin dónde mostrar la tarjeta ninguna tiene sentido.
+    static func registerBrowserTools(into registry: ToolRegistry, userAskedToClose: Bool = false,
+                                     almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido,
+                                     formBroker: FormBroker? = nil, boveda: SecretVault? = nil,
+                                     turno: UUID? = nil) {
+        let service = AgentBrowserService(invoker: browserInvoker(almacen: almacen))
+        registry.register(ReadWebpageTool(service: service))
+        registry.register(BrowserOpenTool(service: service))
+        registry.register(BrowserSnapshotTool(service: service))
+        registry.register(BrowserClickTool(service: service))
+        registry.register(BrowserFillTool(service: service))
+        registry.register(BrowserPressTool(service: service))
+        registry.register(BrowserWaitTool(service: service))
+        registry.register(BrowserGetTool(service: service))
+        registry.register(BrowserCloseTool(service: service, userAskedToClose: userAskedToClose))
+        if let formBroker, let boveda {
+            registry.register(PresentFormTool(broker: formBroker, vault: boveda, service: service, turno: turno))
+            registry.register(ListSecretsTool(vault: boveda))
+            registry.register(ForgetSecretTool(vault: boveda))
+            registry.register(BrowserFillSecretTool(service: service, vault: boveda))
+        }
+    }
+
+    /// Con `browserBaseURL` configurada el navegador es el del i3 (HTTP); sin ella, en macOS el
+    /// `agent-browser` local de siempre y en iOS ninguno (hay que configurarla en Ajustes). Se lee en cada registro, así que Ajustes surte efecto en el turno siguiente.
+    static func browserInvoker(defaults: UserDefaults = .standard,
+                               session: URLSession = .shared,
+                               almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido)
+        -> any AgentBrowserInvoking {
+        let raw = (defaults.string(forKey: SettingsKeys.browserBaseURL) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Solo el campo VACÍO es "sin i3" (comportamiento de siempre). Una URL escrita pero
+        // inválida no debe caer al navegador local a espaldas del usuario: ver `InvalidBrowserURLInvoker`.
+        if raw.isEmpty {
+            #if os(macOS)
+            // El agente solo llama a `browser_open`/`browser_close`; la app abre y cierra el Chrome real.
+            return ProcessAgentBrowserInvoker(navegadorReal: ChromeRealDeLaMac())
+            #else
+            // iOS no tiene navegador local: el campo vacío manda a Ajustes, no a instalar nada.
+            return UnconfiguredBrowserInvoker()
+            #endif
+        }
+        guard let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()),
+              url.host != nil else {
+            return InvalidBrowserURLInvoker()
+        }
+        // Token vacío con URL válida: se usa el HTTP igualmente. El servicio responderá 401 y
+        // el invocador lo traduce a "el i3 rechazó el token", que es accionable; desviar al
+        // navegador local sería peor (ver arriba).
+        // Del LLAVERO, no de `UserDefaults` (ver `TokenDeConducir`). Es el SEGUNDO de los dos
+        // lectores del token, y no hay un tercero: medido con un grep de la clave sobre todo el
+        // árbol de la app, los únicos sitios que la nombran son `TokenDeConducir` y sus pruebas.
+        let token = TokenDeConducir.leer(almacen: almacen)
+        return HTTPAgentBrowserInvoker(baseURL: url, bearerToken: token, session: session)
+    }
+
+    /// Registro con solo las herramientas de navegador, para poder probarlas sin arrancar un turno.
+    ///
+    /// Incluye las herramientas de formularios con un broker y una bóveda sobre el MISMO `almacen`
+    /// inyectado, igual que producción: así el registro de prueba es el de verdad y no toca el Keychain.
+    static func browserToolRegistry(almacen: any AlmacenDeSecretos = LlaveroDelSistema.compartido)
+        -> ToolRegistry {
+        let registry = ToolRegistry()
+        registerBrowserTools(into: registry, almacen: almacen,
+                             formBroker: FormBroker(), boveda: SecretVault(almacen: almacen))
+        return registry
+    }
+
+    /// Quita del texto del asistente el aviso que escribió la APP, si lo lleva pegado al final.
+    ///
+    /// LO QUE SE MUESTRA Y LO QUE SE ARCHIVA NO SON LA MISMA COSA, Y ESTO ES LO QUE LOS SEPARA.
+    /// La línea de estado del navegador (`Agent.lineaDeEstadoDelNavegador`) viaja concatenada al
+    /// `text` del `.completed` porque la interfaz tiene que pintarla; pero ese mismo texto es el
+    /// que `runAgentTurn` persiste en el servicio de memoria como «lo que dijo el asistente», y
+    /// de ahí pasa a los resúmenes, a la consolidación y a `reflect`. Sin esto, un aviso de la
+    /// app —«la última acción sobre la página devolvió `refused`»— acaba guardado como una frase
+    /// del asistente y puede terminar convertido en un «insight» sobre el usuario: memoria a
+    /// largo plazo contaminada con diagnóstico de la app.
+    ///
+    /// Es un SUFIJO DECLARADO, no una búsqueda: el aviso llega aparte en
+    /// `GenerationResult.appNotice` y aquí solo se comprueba que de verdad esté al final. Si no
+    /// está, no se quita nada — el texto del modelo no se toca nunca por si acaso.
+    nonisolated static func sinElAvisoDeLaApp(_ texto: String, aviso: String?) -> String {
+        guard let aviso, !aviso.isEmpty, texto.hasSuffix(aviso) else { return texto }
+        return String(texto.dropLast(aviso.count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Consume los eventos de un turno: pinta el registro del chat y gobierna el panel del
+    /// navegador. Separado de `runAgentTurn` para poder probar el cableado sin modelo ni red.
+    /// Devuelve el texto final del asistente, para la transcripción.
+    func consumeAgentEvents<S: AsyncSequence>(_ events: S, isCurrent: () -> Bool = { true }) async -> String
+    where S.Element == AgentEvent {
+        var answer = ""
+        var finalAssistantText = ""
+        var currentThought = ""
+        var activeGemmaIdx: Int? = nil
+
+        do {
+            for try await event in events {
+                guard isCurrent() else { return "" }
+                switch event {
+                case .thought(let th):
+                    currentThought += th
+                    if let idx = activeGemmaIdx {
+                        agentLog[idx].thought = currentThought
+                    } else {
+                        agentLog.append(ChatLogEntry(role: "gemma", text: "", thought: currentThought))
+                        activeGemmaIdx = agentLog.count - 1
+                    }
+                case .token(let t):
+                    answer += t
+                    finalAssistantText = answer
+                    let stripped = GemmaToolCallParser.strip(answer)
+                    let trimmed = stripped.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty && trimmed != "<|" && !trimmed.hasPrefix("<|") {
+                        if let idx = activeGemmaIdx {
+                            agentLog[idx].text = stripped
+                        } else {
+                            agentLog.append(ChatLogEntry(role: "gemma", text: stripped, thought: currentThought.isEmpty ? nil : currentThought))
+                            activeGemmaIdx = agentLog.count - 1
+                        }
+                    }
+                case .toolCallStarted(let n, _):
+                    if let idx = activeGemmaIdx {
+                        // A tool call has started: any text streamed prior to this tool call
+                        // was an internal tool invocation fragment and must never remain as user answer.
+                        if agentLog[idx].thought?.isEmpty ?? true {
+                            agentLog.remove(at: idx)
+                        } else {
+                            agentLog[idx].text = ""
+                        }
+                    }
+                    agentLog.append(ChatLogEntry(role: "tool", text: "", toolName: n))
+                    if let id = browserPanels.openIfNeeded(toolName: n) {
+                        agentLog.append(ChatLogEntry(role: "browserPanel", text: "", panelID: id))
+                    }
+                    activeGemmaIdx = nil
+                    currentThought = ""
+                    answer = ""
+                    finalAssistantText = ""
+                case .toolCallFinished(let n, let r):
+                    ToolLogRow.closeRow(in: &agentLog, toolName: n, result: r)
+                    browserPanels.toolFinished(toolName: n, result: r)
+                    activeGemmaIdx = nil
+                    currentThought = ""
+                    answer = ""
+                    finalAssistantText = ""
+                case .completed(let res):
+                    let chosen = !res.text.isEmpty ? res.text : answer
+                    let stripped = GemmaToolCallParser.strip(chosen)
+                    // LO QUE SE MUESTRA LLEVA EL AVISO DE LA APP; LO QUE SE ARCHIVA, NO. Ver
+                    // `sinElAvisoDeLaApp`: el valor que devuelve este bucle es lo que se
+                    // persiste en el servicio de memoria como texto del asistente, y de ahi
+                    // pasa a la consolidacion y a `reflect`.
+                    finalAssistantText = Self.sinElAvisoDeLaApp(stripped, aviso: res.appNotice)
+                    if let idx = activeGemmaIdx {
+                        agentLog[idx].text = stripped
+                    } else if !stripped.isEmpty {
+                        agentLog.append(ChatLogEntry(role: "gemma", text: stripped))
+                    }
+                case .failed(let m):
+                    agentLog.append(ChatLogEntry(role: "error", text: m))
+                }
+            }
+        } catch is CancellationError {
+            guard isCurrent() else { return "" }
+            browserPanels.endTurn(survive: false, porque: "el turno fue cancelado")
+            if let idx = activeGemmaIdx {
+                let current = agentLog[idx].text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if current.isEmpty && (agentLog[idx].thought?.isEmpty ?? true) {
+                    agentLog.remove(at: idx)
+                }
+            }
+        } catch {
+            guard isCurrent() else { return "" }
+            browserPanels.endTurn(survive: false, porque: "el turno falló: \(type(of: error))")
+            agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
+        }
+        guard isCurrent() else { return "" }
+        // Salida normal del bucle: congela el panel (no-op si ya lo cerró un catch).
+        browserPanels.endTurn()
+        return finalAssistantText
+    }
+
+    /// Tras más de 30 min de silencio empieza un episodio nuevo. Con él se retira también el panel
+    /// de navegador que siguiera vivo: es una conversación distinta y nadie lo está mirando.
+    func startNewChatIfIdle(now: Double) {
+        guard ChatSession.shouldStartNewChat(lastActivity: lastTurnEndedAt, now: now) else { return }
+        _ = beginEpisode(at: now)
+        browserPanels.retireLivePanel(porque: "más de 30 min en silencio: conversación nueva")
+    }
+
+    /// El `Agent` de producción. Separado de `runAgentTurn` para poder PROBAR que recibe la bóveda:
+    /// sin ella el redactor (`SecretRedactor`) es código muerto y un secreto podría llegar al
+    /// registro, al transcript o al modelo en el resultado de una herramienta.
+    func construyeAgent(registry: ToolRegistry, recallTail: String, wakeContext: String) -> Agent {
+        Agent(runtime: runtime, registry: registry, recallTail: recallTail, wakeContext: wakeContext,
+              bóveda: boveda)
+    }
+
+    // MARK: - Formularios
+
+    /// Observa `formularios.pendiente`: cada vez que cambia, sincroniza el chat. `onChange` salta
+    /// ANTES del cambio y una sola vez, así que se salta al siguiente ciclo del hilo principal para
+    /// leer el valor nuevo y se vuelve a armar.
+    private func observaFormularios() {
+        withObservationTracking {
+            _ = self.formularios.pendiente
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.sincronizaFormularios()
+                self?.observaFormularios()
+            }
+        }
+    }
+
+    /// Pone el chat al día con el broker: una sola tarjeta por formulario (se identifica por su id),
+    /// y toda tarjeta que seguía «pendiente» sin ser ya el formulario abierto pasa a «cancelado»
+    /// (plazo vencido, fin de turno o cancelación del llamador; enviar y cancelar desde la tarjeta
+    /// ya la marcan ellos mismos antes de resolver).
+    func sincronizaFormularios() {
+        let abierto = formularios.pendiente
+        for i in agentLog.indices where agentLog[i].role == "form"
+            && agentLog[i].formEstado == "pendiente" && agentLog[i].formID != abierto?.id {
+            agentLog[i].formEstado = "cancelado"
+        }
+        if let abierto, !agentLog.contains(where: { $0.formID == abierto.id }) {
+            agentLog.append(ChatLogEntry(role: "form", text: abierto.spec.title,
+                                         formID: abierto.id, formEstado: "pendiente"))
+        }
+    }
+
+    /// Detener / mensaje nuevo: lo que esté abierto se cierra como cancelado (es del turno que se
+    /// abandona).
+    func cierraFormularioAbierto() {
+        formularios.cancelaTodo()
+        sincronizaFormularios()
+    }
+
+    /// Fin de UN turno: solo se cierra el formulario que pidió ese turno. Un turno viejo cancelado
+    /// que termina tarde no debe cerrar el del turno nuevo.
+    func cierraFormularioAbierto(delTurno turno: UUID) {
+        formularios.cancela(turno: turno)
+        if formularios.turnoVigente == turno { formularios.turnoVigente = nil }
+        sincronizaFormularios()
+    }
+
+    /// Lo que la tarjeta de esta fila necesita para dibujarse. Abierta: el formulario real. Ya
+    /// resuelta: solo el título, sin campos y por tanto sin posibilidad de mostrar valores.
+    func especificacionDeFormulario(_ entry: ChatLogEntry) -> FormSpec {
+        if entry.formEstado == "pendiente", let p = formularios.pendiente, p.id == entry.formID {
+            return p.spec
+        }
+        return FormSpec(title: entry.text, description: nil, submitLabel: nil, fields: [])
+    }
+
+    /// «Se guardará para: <host>» mientras la tarjeta de esta fila está abierta y pide secretos;
+    /// `nil` en otro caso. Ver `FormBroker.PendingForm.avisoDeAtadura`.
+    func avisoDeFormulario(_ entry: ChatLogEntry) -> String? {
+        guard entry.formEstado == "pendiente", let p = formularios.pendiente, p.id == entry.formID else { return nil }
+        return p.avisoDeAtadura
+    }
+
+    func enviaFormulario(_ entry: ChatLogEntry, valores: [String: String]) {
+        guard let id = entry.formID, let i = agentLog.firstIndex(where: { $0.id == entry.id }),
+              agentLog[i].formEstado == "pendiente" else { return }
+        // Primero la tarjeta, luego el broker: al resolver, el observador no debe ver una tarjeta
+        // «pendiente» huérfana y marcarla como cancelada.
+        agentLog[i].formEstado = "enviado"
+        formularios.envia(id: id, valores: valores)
+    }
+
+    func cancelaFormulario(_ entry: ChatLogEntry) {
+        guard let id = entry.formID, let i = agentLog.firstIndex(where: { $0.id == entry.id }),
+              agentLog[i].formEstado == "pendiente" else { return }
+        agentLog[i].formEstado = "cancelado"
+        formularios.cancela(id: id)
+    }
+
     public func runAgentTurn(_ prompt: String) async {
         guard !Task.isCancelled else { return }
         let textTurnID = UUID()
         activeTextTurnID = textTurnID
-        let provider = Self.chatProvider(keyLookup: { KeychainStore.shared.get(account: "apiKey.\($0.rawValue)") })
+        let provider = Self.chatProvider(keyLookup: Self.clavesDelAlmacen(almacenDeSecretos))
         if !(self.runtime is LlamaCppRuntime && provider.kind == .onDevice) {
             self.runtime = RuntimeFactory.make(provider)
         }
         let runtime = self.runtime
+        let turno = textTurnID
+        formularios.turnoVigente = turno
+        defer { cierraFormularioAbierto(delTurno: turno) }
         surfaceProactive()
         agentRunning = true
         defer {
@@ -463,6 +959,63 @@ public final class HarnessModel {
         ensureMemory()
         let client = memory
         let registry = ToolRegistry.native(memoryAvailable: client != nil)
+        registry.register(PlayMusicTool())
+        registry.register(ListMusicPlaylistsTool())
+        registry.register(RunShortcutTool())
+        registry.register(ListShortcutsTool())
+        registry.register(RememberShortcutTool())
+        registry.register(InstallShortcutTool())
+        registry.register(ListInstallableShortcutsTool())
+        // Compartir es transversal: hoy conoce las notas de Gemma; las tareas,
+        // memorias, insights, mensajes y chats se añaden como fuentes nuevas.
+        registry.register(ShareTool())
+        // CRUD completo de las notas de Gemma: crear, leer, buscar, editar, borrar.
+        registry.register(CreateNoteTool())
+        registry.register(SearchNotesTool())
+        registry.register(ReadNoteTool())
+        registry.register(UpdateNoteTool())
+        registry.register(DeleteNoteTool())
+        registry.register(GetDeviceStatusTool())
+        registry.register(OpenAppTool())
+        registry.register(WebSearchTool())
+        Self.registerBrowserTools(into: registry,
+                                  userAskedToClose: BrowserCloseIntent.userAskedToClose(prompt),
+                                  formBroker: formularios, boveda: boveda, turno: turno)
+        registry.register(GetWeatherTool())
+        registry.register(GetForecastTool())
+        registry.register(CreateAlarmTool())
+        registry.register(ListAlarmsTool())
+        registry.register(CancelAlarmTool())
+        registry.register(ListRemindersTool())
+        registry.register(UpdateReminderTool())
+        registry.register(DeleteReminderTool())
+        registry.register(ControlMusicTool())
+        registry.register(UpdateAlarmTool())
+        registry.register(ForgetShortcutTool())
+        registry.register(ListContactAliasesTool())
+        registry.register(ForgetContactAliasTool())
+        if client != nil {
+            registry.register(UpdateTaskTool(), requiresMemory: true)
+            registry.register(DeleteRoutineTool(), requiresMemory: true)
+        }
+        registry.register(RenamePlaceTool())
+        registry.register(CreateTimerTool())
+        registry.register(SearchContactsTool())
+        registry.register(MakePhoneCallTool())
+        registry.register(DraftMessageTool())
+        registry.register(SendMessageTool())
+        registry.register(CreateCalendarEventTool())
+        registry.register(ListCalendarEventsTool())
+        registry.register(UpdateCalendarEventTool())
+        registry.register(DeleteCalendarEventTool())
+        registry.register(CurrentLocationTool())
+        registry.register(OpenNavigationTool())
+        registry.register(SavePlaceTool())
+        registry.register(ListPlacesTool())
+        registry.register(DeletePlaceTool())
+        registry.register(CurrentActivityTool())
+        registry.register(RememberContactAliasTool())
+        registry.register(CreateReminderTool())
         let now = Date().timeIntervalSince1970
         let lastConversationActivity = episode.lastActivity
         let (episodeID, transcriptIndex) = beginEpisode(at: now)
@@ -516,81 +1069,10 @@ public final class HarnessModel {
         }
         guard !Task.isCancelled, activeTextTurnID == textTurnID, currentThreadId == episodeID else { return }
         turnMemoryPersistence = prepared.persistence
-        var answer = ""
-        var finalAssistantText = ""
-        var currentThought = ""
-        var activeGemmaIdx: Int? = nil
-
-        do {
-            for try await event in prepared.run(runtime: runtime) {
-                guard !Task.isCancelled, activeTextTurnID == textTurnID, currentThreadId == episodeID else { break }
-                switch event {
-                case .thought(let th):
-                    currentThought += th
-                    if let idx = activeGemmaIdx {
-                        agentLog[idx].thought = currentThought
-                    } else {
-                        agentLog.append(ChatLogEntry(role: "gemma", text: "", thought: currentThought))
-                        activeGemmaIdx = agentLog.count - 1
-                    }
-                case .token(let t):
-                    answer += t
-                    let stripped = GemmaToolCallParser.strip(answer)
-                    let trimmed = stripped.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty && trimmed != "<|" && !trimmed.hasPrefix("<|") {
-                        if let idx = activeGemmaIdx {
-                            agentLog[idx].text = stripped
-                        } else {
-                            agentLog.append(ChatLogEntry(role: "gemma", text: stripped, thought: currentThought.isEmpty ? nil : currentThought))
-                            activeGemmaIdx = agentLog.count - 1
-                        }
-                    }
-                case .toolCallStarted(let n, _):
-                    if let idx = activeGemmaIdx {
-                        // A tool call has started: any text streamed prior to this tool call
-                        // was an internal tool invocation fragment and must never remain as user answer.
-                        if agentLog[idx].thought?.isEmpty ?? true {
-                            agentLog.remove(at: idx)
-                        } else {
-                            agentLog[idx].text = ""
-                        }
-                    }
-                    agentLog.append(ChatLogEntry(role: "tool", text: "🔧 \(n)…"))
-                    activeGemmaIdx = nil
-                    currentThought = ""
-                    answer = ""
-                    finalAssistantText = ""
-                case .toolCallFinished(let n, let r):
-                    agentLog.append(ChatLogEntry(role: "tool", text: "🔧 \(n) ✓ \(r)"))
-                    activeGemmaIdx = nil
-                    currentThought = ""
-                    answer = ""
-                    finalAssistantText = ""
-                case .completed(let res):
-                    let chosen = !res.text.isEmpty ? res.text : answer
-                    let stripped = GemmaToolCallParser.strip(chosen)
-                    finalAssistantText = stripped
-                    if let idx = activeGemmaIdx {
-                        agentLog[idx].text = stripped
-                    } else if !stripped.isEmpty {
-                        agentLog.append(ChatLogEntry(role: "gemma", text: stripped))
-                    }
-                case .failed(let m):
-                    agentLog.append(ChatLogEntry(role: "error", text: m))
-                }
-            }
-        } catch is CancellationError {
-            if activeTextTurnID == textTurnID, let idx = activeGemmaIdx {
-                let current = agentLog[idx].text.trimmingCharacters(in: .whitespacesAndNewlines)
-                if current.isEmpty && (agentLog[idx].thought?.isEmpty ?? true) {
-                    agentLog.remove(at: idx)
-                }
-            }
-        } catch {
-            if activeTextTurnID == textTurnID {
-                agentLog.append(ChatLogEntry(role: "error", text: "\(error)"))
-            }
+        let finalAssistantText = await consumeAgentEvents(prepared.run(runtime: runtime, bóveda: boveda)) {
+            !Task.isCancelled && self.activeTextTurnID == textTurnID && self.currentThreadId == episodeID
         }
+        cierraFormularioAbierto(delTurno: turno)
         guard !Task.isCancelled, activeTextTurnID == textTurnID, currentThreadId == episodeID else { return }
         recentConversation.append(ChatMessage(role: .assistant, content: finalAssistantText), threadID: episodeID)
         noteConversationActivity(at: Date().timeIntervalSince1970)

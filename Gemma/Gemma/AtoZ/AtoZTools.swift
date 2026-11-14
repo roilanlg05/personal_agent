@@ -28,21 +28,12 @@ struct ListAvailableShiftsTool: AgentTool {
 
         let result: String = await {
             do {
-                let list = try await AtoZClient.shared.listAvailableShifts(start: start, end: end)
-                if list.isEmpty {
-                    return "No hay turnos disponibles para ese período."
-                }
-                var lines: [String] = []
-                for opp in list {
-                    let desc = AtoZFormat.describe(opp)
-                    let elig = opp.isEligible ? "Disponible" : "No disponible (\(opp.unclaimableReasonCodes.joined(separator: ", ")))"
-                    lines.append("• [ID: \(opp.id)] \(desc) — \(elig)")
-                }
-                return "Turnos encontrados:\n" + lines.joined(separator: "\n")
+                return AtoZToolOutput.listJSON(
+                    try await AtoZClient.shared.listAvailableShifts(start: start, end: end))
             } catch let failure as AtoZFailure {
-                return failure.userMessage
+                return AtoZToolOutput.listFailureJSON(failure.userMessage)
             } catch {
-                return "Error al consultar turnos: \(error.localizedDescription)"
+                return AtoZToolOutput.listFailureJSON(error.localizedDescription)
             }
         }()
 
@@ -77,10 +68,13 @@ struct AddShiftTool: AgentTool {
     func run(argsJSON: String) async -> String {
         let args = obj(argsJSON)
         let oppId = ((args["shift_opportunity_id"] as? String) ?? "").trimmingCharacters(in: .whitespaces)
+        // Estricto a propósito: solo un booleano nativo `true` confirma. Una confirmación no debe
+        // convertirse en `true` porque una cadena sea «verdadera»; con `"true"` falla hacia el
+        // lado SEGURO (no acepta ni renuncia al turno y se vuelve a pedir la confirmación).
         let confirmed = (args["confirmed"] as? Bool) ?? false
 
         guard !oppId.isEmpty else {
-            return "Se requiere el identificador de la oportunidad (shift_opportunity_id)."
+            return AtoZToolOutput.missingOpportunityID(action: .add)
         }
 
         await MainActor.run {
@@ -90,22 +84,11 @@ struct AddShiftTool: AgentTool {
         let result: String = await {
             do {
                 let outcome = try await AtoZClient.shared.requestAddShift(opportunityId: oppId, confirmed: confirmed)
-                switch outcome {
-                case .confirmationRequired(let prompt):
-                    return prompt
-                case .dryRun(let desc):
-                    return desc
-                case .confirmed(let opp):
-                    return "¡Turno aceptado y verificado en tu horario exitosamente! (\(AtoZFormat.describe(opp)))"
-                case .unknownOutcome(let opp, let reason):
-                    return "Resultado incierto para el turno (\(AtoZFormat.describe(opp))): \(reason). Por seguridad no se reintentará automáticamente; por favor verifica tu aplicación A to Z."
-                case .failed(let failure):
-                    return failure.userMessage
-                }
+                return AtoZToolOutput.json(Self.normalizado(outcome), action: .add)
             } catch let failure as AtoZFailure {
-                return failure.userMessage
+                return AtoZToolOutput.json(.failed(failure), action: .add)
             } catch {
-                return "Error al solicitar turno: \(error.localizedDescription)"
+                return AtoZToolOutput.json(.failed(.unknown(error.localizedDescription)), action: .add)
             }
         }()
 
@@ -113,6 +96,19 @@ struct AddShiftTool: AgentTool {
             ToolActivityRelay.shared.finished(name: Self.name, result: result)
         }
         return result
+    }
+
+    /// `AtoZAddShiftResult` → la forma normalizada que `AtoZToolOutput` traduce. Es un mapeo
+    /// caso por caso y nada más: la decisión de qué `status` le toca a cada uno vive en
+    /// `AtoZToolOutput.json`, que es pura y se mide sin red.
+    private static func normalizado(_ outcome: AtoZAddShiftResult) -> AtoZToolOutput.Outcome {
+        switch outcome {
+        case .confirmationRequired(let prompt): return .confirmationRequired(prompt)
+        case .dryRun(let desc): return .dryRun(desc)
+        case .confirmed(let opp): return .confirmed(AtoZFormat.describe(opp))
+        case .unknownOutcome(let opp, let reason): return .unknownOutcome(AtoZFormat.describe(opp), reason)
+        case .failed(let failure): return .failed(failure)
+        }
     }
 }
 
@@ -128,10 +124,13 @@ struct DropShiftTool: AgentTool {
     func run(argsJSON: String) async -> String {
         let args = obj(argsJSON)
         let oppId = ((args["shift_opportunity_id"] as? String) ?? "").trimmingCharacters(in: .whitespaces)
+        // Estricto a propósito: solo un booleano nativo `true` confirma. Una confirmación no debe
+        // convertirse en `true` porque una cadena sea «verdadera»; con `"true"` falla hacia el
+        // lado SEGURO (no acepta ni renuncia al turno y se vuelve a pedir la confirmación).
         let confirmed = (args["confirmed"] as? Bool) ?? false
 
         guard !oppId.isEmpty else {
-            return "Se requiere el identificador de la oportunidad (shift_opportunity_id)."
+            return AtoZToolOutput.missingOpportunityID(action: .drop)
         }
 
         await MainActor.run {
@@ -141,22 +140,11 @@ struct DropShiftTool: AgentTool {
         let result: String = await {
             do {
                 let outcome = try await AtoZClient.shared.requestDropShift(opportunityId: oppId, confirmed: confirmed)
-                switch outcome {
-                case .confirmationRequired(let prompt):
-                    return prompt
-                case .dryRun(let desc):
-                    return desc
-                case .confirmed(let opp):
-                    return "¡Turno soltado (drop) y verificado en tu horario exitosamente! (\(AtoZFormat.describe(opp)))"
-                case .unknownOutcome(let opp, let reason):
-                    return "Resultado incierto al soltar el turno (\(AtoZFormat.describe(opp))): \(reason). Por seguridad no se reintentará automáticamente; por favor verifica tu aplicación A to Z."
-                case .failed(let failure):
-                    return failure.userMessage
-                }
+                return AtoZToolOutput.json(Self.normalizado(outcome), action: .drop)
             } catch let failure as AtoZFailure {
-                return failure.userMessage
+                return AtoZToolOutput.json(.failed(failure), action: .drop)
             } catch {
-                return "Error al soltar turno: \(error.localizedDescription)"
+                return AtoZToolOutput.json(.failed(.unknown(error.localizedDescription)), action: .drop)
             }
         }()
 
@@ -164,5 +152,17 @@ struct DropShiftTool: AgentTool {
             ToolActivityRelay.shared.finished(name: Self.name, result: result)
         }
         return result
+    }
+
+    /// `AtoZDropShiftResult` → la forma normalizada. Ver `AddShiftTool.normalizado`: las dos
+    /// enumeraciones de A to Z son la misma escrita dos veces.
+    private static func normalizado(_ outcome: AtoZDropShiftResult) -> AtoZToolOutput.Outcome {
+        switch outcome {
+        case .confirmationRequired(let prompt): return .confirmationRequired(prompt)
+        case .dryRun(let desc): return .dryRun(desc)
+        case .confirmed(let opp): return .confirmed(AtoZFormat.describe(opp))
+        case .unknownOutcome(let opp, let reason): return .unknownOutcome(AtoZFormat.describe(opp), reason)
+        case .failed(let failure): return .failed(failure)
+        }
     }
 }

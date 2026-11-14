@@ -156,10 +156,13 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
 
                     // Parse the OpenAI SSE stream: `data: {chunk}` lines, ending with `data: [DONE]`.
                     var visible = ""
-                    var isPotentiallyToolCall: Bool? = nil
-                    var pendingContent: [String] = []
-                    var contentPrefix = ""
-                    let toolPrefixes = ["<execute_tool", "<tool_call", "<|tool", "call:", "{"]
+                    // Compuerta de sintaxis de herramienta: todo texto que llega al usuario pasa
+                    // por ella (ver `ToolSyntaxStreamGate`). En el camino de Anthropic las
+                    // llamadas vienen estructuradas, así que no se aplica la regla de inicio.
+                    var gate = ToolSyntaxStreamGate(checksStart: !isClaude)
+                    func emitVisible(_ shown: String) {
+                        if !shown.isEmpty { continuation.yield(.token(shown)) }
+                    }
                     var inThoughtTag = false
                     var thoughtBuffer = ""
                     var toolNames: [Int: String] = [:]
@@ -179,7 +182,7 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                                     let deltaType = delta["type"] as? String
                                     if deltaType == "text_delta", let piece = delta["text"] as? String, !piece.isEmpty {
                                         visible += piece
-                                        continuation.yield(.token(piece))
+                                        emitVisible(gate.feed(piece))
                                     } else if deltaType == "input_json_delta", let partial = delta["partial_json"] as? String {
                                         let idx = (chunk["index"] as? Int) ?? 0
                                         toolArgs[idx, default: ""] += partial
@@ -217,8 +220,8 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                                     if !inside.isEmpty { continuation.yield(.thought(inside)) }
                                     thoughtBuffer = ""
                                     inThoughtTag = false
-                                    if !remainder.isEmpty && isPotentiallyToolCall == false {
-                                        continuation.yield(.token(remainder))
+                                    if !remainder.isEmpty {
+                                        emitVisible(gate.feed(remainder))
                                     }
                                 } else {
                                     // Emit thought incrementally while holding back potential partial closing tag
@@ -242,8 +245,8 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                                     if let r = remainder.range(of: tag) {
                                         let before = String(remainder[..<r.lowerBound])
                                         remainder = String(remainder[r.upperBound...])
-                                        if !before.isEmpty && isPotentiallyToolCall == false {
-                                            continuation.yield(.token(before))
+                                        if !before.isEmpty {
+                                            emitVisible(gate.feed(before))
                                         }
                                         break
                                     }
@@ -252,21 +255,7 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                                 continue
                             }
 
-                            if isPotentiallyToolCall == false {
-                                continuation.yield(.token(piece))
-                            } else if isPotentiallyToolCall == nil {
-                                pendingContent.append(piece)
-                                contentPrefix += piece
-                                let prefix = contentPrefix.trimmingCharacters(in: .whitespacesAndNewlines)
-                                if toolPrefixes.contains(where: { prefix.hasPrefix($0) }) {
-                                    isPotentiallyToolCall = true
-                                    pendingContent.removeAll()
-                                } else if !prefix.isEmpty && !toolPrefixes.contains(where: { $0.hasPrefix(prefix) }) {
-                                    isPotentiallyToolCall = false
-                                    for buffered in pendingContent { continuation.yield(.token(buffered)) }
-                                    pendingContent.removeAll()
-                                }
-                            }
+                            emitVisible(gate.feed(piece))
                         }
                         if let calls = delta["tool_calls"] as? [[String: Any]] {
                             for call in calls {
@@ -277,6 +266,9 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                             }
                         }
                     }
+
+                    // Suelta (o descarta) lo que la compuerta aún retenía al terminar el mensaje.
+                    emitVisible(gate.finish())
 
                     // Flush any remaining thought buffer if stream ended without explicit close
                     if inThoughtTag && !thoughtBuffer.isEmpty {
@@ -296,8 +288,17 @@ final class ServerRuntime: ModelRuntime, ToolCallingRuntime, @unchecked Sendable
                         continuation.yield(.toolCallStarted(name: toolNames[idx] ?? "", args: args))
                     }
 
-                    if isPotentiallyToolCall != false && !isClaude && toolNames.isEmpty && !cleanText.isEmpty {
-                        continuation.yield(.token(cleanText))
+                    // Si la compuerta descartó algo que resultó no ser una llamada ejecutable
+                    // (sin cerrar, o tokens de control sueltos), el usuario aún debe ver la
+                    // parte limpia que no llegó a emitirse.
+                    //   Salvo cuando lo descartado era sintaxis de INVOCACION (`<function_calls>`,
+                    // `<invoke …>`): `strip` no la reconoce entera y deja restos como
+                    // ` name="browser_wait">` en `cleanText`, y esta via los sacaba a pantalla
+                    // (chat del 2026-11-11, seq 20). Ese resto no es prosa; el bucle del agente lo
+                    // trata como llamada rota (`BrokenToolCallDetector`).
+                    let eraInvocacion = BrokenToolCallDetector.marcasDeInvocacion.contains { visible.contains($0) }
+                    if gate.phase == .suppressing && toolNames.isEmpty && !cleanText.isEmpty && !eraInvocacion {
+                        emitVisible(gate.remainder(ofCleanText: cleanText))
                     }
 
                     continuation.yield(.completed(GenerationResult(

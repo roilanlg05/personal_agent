@@ -12,7 +12,16 @@ struct CurrentTimeTool: AgentTool {
         fmt.timeStyle = .short
         let text = fmt.string(from: Date())
         await MainActor.run { ToolActivityRelay.shared.started(name: Self.name, args: "{}") }
-        await MainActor.run { ToolActivityRelay.shared.finished(name: Self.name, result: text) }
-        return text
+        // DEVOLVÍA LA FECHA A PELO, Y ESO NO ES UN OBJETO JSON. `ToolLogRow.summarize` empieza
+        // por parsear el resultado y lo que no parsea cae en la rama de fallo: preguntar la hora
+        // —que funciona siempre— salía en el chat con CRUZ ROJA. La fecha no se toca; lo que
+        // cambia es que viaja declarada.
+        let result = ToolJSONOutput.object([
+            "status": "success",
+            "local_time": text,
+            "message": "Ahora son las \(text) en la hora local del usuario."
+        ])
+        await MainActor.run { ToolActivityRelay.shared.finished(name: Self.name, result: result) }
+        return result
     }
 }

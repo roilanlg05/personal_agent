@@ -18,16 +18,32 @@ final class AtoZTests: XCTestCase {
     private var mockTransport: MockAtoZTransport!
     private var client: AtoZClient!
 
+    /// El almacén de secretos que tenía el gestor antes de esta suite, para devolverlo.
+    private var almacenDeAntes: (any AlmacenDeSecretos)!
+
     override func setUp() async throws {
         try await super.setUp()
         defaults = UserDefaults(suiteName: "AtoZTests-\(UUID().uuidString)")!
         mockTransport = MockAtoZTransport()
         client = AtoZClient(transport: mockTransport)
-        AtoZSessionManager.shared.clearSession()
+        // 🔴 NO LEER LA ENTRADA DE PRODUCCIÓN DEL LLAVERO. `setSession` y `clearSession` lanzan,
+        // con `syncToServer` por omisión, un `Task` que habla con el servicio de memoria del i3 y
+        // que por tanto PIDE SU TOKEN. Desde la Tarea 6b ese token vive en el llavero, y el host
+        // de estas pruebas es la propia app: sin esta línea una corrida de la suite leería el
+        // token real del usuario (y un acceso al llavero desde el binario de pruebas puede abrir
+        // un diálogo del sistema y colgar la corrida de todos).
+        almacenDeAntes = AtoZSessionManager.shared.almacenDeSecretos
+        AtoZSessionManager.shared.almacenDeSecretos = AlmacenEnMemoria()
+        // `removeFromRemote: false`: limpiar la sesión LOCAL es lo que estas pruebas quieren; el
+        // `DELETE` al i3 que el valor por omisión dispara es un `Task` suelto que ni esperamos ni
+        // necesitamos, y que al correr después del `tearDown` volvería a pedir el token cuando el
+        // almacén de verdad ya está puesto otra vez.
+        AtoZSessionManager.shared.clearSession(removeFromRemote: false)
     }
 
     override func tearDown() async throws {
-        AtoZSessionManager.shared.clearSession()
+        AtoZSessionManager.shared.clearSession(removeFromRemote: false)
+        AtoZSessionManager.shared.almacenDeSecretos = almacenDeAntes
         defaults.removePersistentDomain(forName: defaults.description)
         try await super.tearDown()
     }

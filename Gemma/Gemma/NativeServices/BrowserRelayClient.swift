@@ -1,0 +1,260 @@
+import Foundation
+// Portabilidad: solo Foundation, más la capacidad de red donde vive separada
+// (en Linux y Windows URLSessionWebSocketTask está en FoundationNetworking).
+// `canImport` pregunta por una capacidad, no por un sistema operativo: no hay
+// ramas por plataforma. Un cliente de iOS lo reusará tal cual.
+// No decodifica la imagen: el JPEG sube en bytes.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
+/// Lo que el relé del i3 puede decirle al visor. Seis casos, ninguno con sitio
+/// para parámetros de acciones: ni programando mal se podría transportar un secreto.
+public nonisolated enum BrowserRelayEvent: Equatable, Sendable {
+    /// Un fotograma JPEG. El relé viejo mandaba además las dimensiones de la página del
+    /// i3; se ignoran al decodificar (ya nada necesita situar un toque).
+    case frame(seq: Int, jpeg: Data, capturedAt: Date)
+    case narration(String)
+    case host(String)
+    case state(live: Bool, collapsed: Bool)
+    case summary(String)
+    case closed(reason: String)
+}
+
+/// El socket del visor, visto por lo poco que este cliente necesita de él: recibir texto,
+/// mandar texto y cerrarse.
+///
+/// Existe para que una prueba inyecte su propio socket y lea lo que salió, sin red ni relé. Lo
+/// único que el visor manda por él es el `ack` de cada fotograma.
+public protocol SocketDelVisor: Sendable {
+    /// El siguiente mensaje de texto, o `nil` si lo que llegó no era texto (un marco binario,
+    /// que este cliente ignora igual que antes). Lanza cuando el socket se cae.
+    func recibeTexto() async throws -> String?
+    func envia(_ texto: String) async throws
+    func cierra()
+}
+
+extension URLSessionWebSocketTask: SocketDelVisor {
+    public func recibeTexto() async throws -> String? {
+        switch try await receive() {
+        case .string(let texto): return texto
+        case .data: return nil
+        @unknown default: return nil
+        }
+    }
+
+    public func envia(_ texto: String) async throws {
+        try await send(.string(texto))
+    }
+
+    public func cierra() {
+        cancel(with: .goingAway, reason: nil)
+    }
+}
+
+/// Visor del WebSocket `/v1/browser/stream`. Acusa cada frame (el relé no acusa
+/// al demonio hasta que se lo acusan a él) y reconecta con retroceso exponencial
+/// cuando el relé cierra, porque el relé no se reengancha solo.
+public actor BrowserRelayClient {
+    /// Retroceso: 1, 2, 4, 8, 16, 30 s (tope). Sin esto, un `closed` inmediato
+    /// (servicio del navegador caído) sería una tormenta de reconexiones.
+    public static let maxReconnectDelay: TimeInterval = 30
+    /// Fallos CONSECUTIVOS sin recibir ni un frame antes de rendirse (~2 min de espera total).
+    public static let maxReconnectAttempts = 8
+
+    public static func reconnectDelay(attempt: Int) -> TimeInterval {
+        let exponent = max(0, min(attempt - 1, 10))
+        return min(maxReconnectDelay, TimeInterval(1 << exponent))
+    }
+
+    /// Contador de fallos consecutivos tras un ciclo de conexión: un frame
+    /// recibido lo reinicia a 1 (conexión sana); sin frame, crece de uno en uno.
+    public static func nextFailureCount(current: Int, gotFrame: Bool) -> Int {
+        gotFrame ? 1 : current + 1
+    }
+
+    /// Se rinde cuando los fallos consecutivos superan `maxReconnectAttempts`.
+    public static func shouldGiveUp(failures: Int) -> Bool {
+        failures > maxReconnectAttempts
+    }
+
+    private let baseURL: URL
+    private let bearerToken: String
+    /// Tope de fotogramas que la app PIDE. `nil` en producción: el tope del visor
+    /// es del servicio, porque sale de su medición de caudal (el enlace móvil), y la
+    /// app no debe tener una segunda opinión. Con `nil` el relé aplica su
+    /// `DEFAULT_VIEWER_MAX_FPS`. Solo una prueba pasa un valor.
+    private let maxFps: Int?
+    private var loop: Task<Void, Never>?
+    private var continuation: AsyncStream<BrowserRelayEvent>.Continuation?
+    private var generation = 0
+    /// Cómo se abre el socket. En producción es un `URLSessionWebSocketTask` ya arrancado; una
+    /// prueba inyecta el suyo (ver `SocketDelVisor`).
+    private let abreElSocket: @Sendable (URL, String) -> SocketDelVisor
+    public init(baseURL: URL, bearerToken: String, maxFps: Int? = nil, session: URLSession = .shared,
+                abreElSocket: (@Sendable (URL, String) -> SocketDelVisor)? = nil) {
+        self.baseURL = baseURL
+        self.bearerToken = bearerToken
+        self.maxFps = maxFps
+        self.abreElSocket = abreElSocket ?? { url, token in
+            var request = URLRequest(url: url)
+            // El token va SOLO en la cabecera del handshake, nunca en la URL.
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            let socket = session.webSocketTask(with: request)
+            socket.resume()
+            return socket
+        }
+    }
+
+    // MARK: puras
+
+    public static func socketURL(baseURL: URL, maxFps: Int? = nil) -> URL? {
+        guard var parts = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else { return nil }
+        switch parts.scheme?.lowercased() {
+        case "http", "ws": parts.scheme = "ws"
+        case "https", "wss": parts.scheme = "wss"
+        default: return nil
+        }
+        let base = parts.path.hasSuffix("/") ? String(parts.path.dropLast()) : parts.path
+        parts.path = base + "/v1/browser/stream"
+        // Solo `maxFps` va en la query; el token va en la cabecera del handshake y
+        // NO debe pasar a la URL (acaba en logs). Sin tope pedido no se añade nada.
+        parts.queryItems = maxFps.map { [URLQueryItem(name: "maxFps", value: String($0))] }
+        return parts.url
+    }
+
+    public static func decode(_ text: String) -> BrowserRelayEvent? {
+        guard let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any],
+              let type = object["type"] as? String else { return nil }
+        switch type {
+        case "frame":
+            guard let seq = (object["seq"] as? NSNumber)?.intValue,
+                  let b64 = object["jpeg"] as? String,
+                  // El relé puede pasar base64 envuelto en líneas; sin esto el panel quedaría negro.
+                  let jpeg = Data(base64Encoded: b64, options: .ignoreUnknownCharacters),
+                  let seconds = (object["captured_at"] as? NSNumber)?.doubleValue else { return nil }
+            return .frame(seq: seq, jpeg: jpeg, capturedAt: Date(timeIntervalSince1970: seconds))
+        case "narration":
+            return (object["text"] as? String).map { .narration($0) }
+        case "host":
+            return (object["host"] as? String).map { .host($0) }
+        case "state":
+            guard let live = object["live"] as? Bool, let collapsed = object["collapsed"] as? Bool else { return nil }
+            return .state(live: live, collapsed: collapsed)
+        case "summary":
+            return (object["text"] as? String).map { .summary($0) }
+        case "closed":
+            return .closed(reason: (object["reason"] as? String) ?? "")
+        default:
+            return nil
+        }
+    }
+
+    public static func ackPayload(seq: Int) -> String {
+        "{\"type\":\"ack\",\"seq\":\(seq)}"
+    }
+
+    // MARK: ciclo de vida
+
+    /// Un solo consumidor a la vez: pedir otro flujo termina el anterior.
+    public func events() -> AsyncStream<BrowserRelayEvent> {
+        endCurrent()
+        generation += 1
+        let mine = generation
+        let (stream, cont) = AsyncStream<BrowserRelayEvent>.makeStream(bufferingPolicy: .bufferingNewest(64))
+        continuation = cont
+        loop = Task { [weak self] in
+            await self?.run(cont)
+            await self?.finishIfCurrent(generation: mine)
+        }
+        // Cancelar al consumidor cancela el bucle, y éste cierra el socket.
+        cont.onTermination = { [weak self] _ in
+            Task { await self?.terminated(generation: mine) }
+        }
+        return stream
+    }
+
+    public func stop() {
+        endCurrent()
+    }
+
+    private func endCurrent() {
+        loop?.cancel()
+        loop = nil
+        continuation?.finish()
+        continuation = nil
+    }
+
+    private func terminated(generation g: Int) {
+        guard g == generation else { return }
+        loop?.cancel()
+        loop = nil
+        continuation = nil
+    }
+
+    private func finishIfCurrent(generation g: Int) {
+        guard g == generation else { return }
+        continuation?.finish()
+        continuation = nil
+        loop = nil
+    }
+
+    // MARK: bucle
+
+    private func run(_ cont: AsyncStream<BrowserRelayEvent>.Continuation) async {
+        guard let url = Self.socketURL(baseURL: baseURL, maxFps: maxFps) else {
+            cont.yield(.closed(reason: "URL del relé inválida"))
+            return
+        }
+        var failures = 0
+        while !Task.isCancelled {
+            let gotFrame = await runOnce(url: url, cont)
+            if Task.isCancelled {
+                PanelLog.note("visor: la conexión acabó y la tarea está cancelada; no se reintenta")
+                return
+            }
+            failures = Self.nextFailureCount(current: failures, gotFrame: gotFrame)
+            PanelLog.note("visor: conexión terminada (llegaron fotogramas=\(gotFrame)), fallos consecutivos=\(failures)")
+            if Self.shouldGiveUp(failures: failures) {
+                PanelLog.note("visor: se rinde tras \(failures) fallos; el panel se congelará")
+                return
+            }
+            do { try await Task.sleep(for: .seconds(Self.reconnectDelay(attempt: failures))) }
+            catch { return }
+        }
+    }
+
+    /// Una conexión. Devuelve si llegó al menos un frame (conexión sana).
+    private func runOnce(url: URL, _ cont: AsyncStream<BrowserRelayEvent>.Continuation) async -> Bool {
+        let socket = abreElSocket(url, bearerToken)
+        var gotFrame = false
+        await withTaskCancellationHandler {
+            while !Task.isCancelled {
+                let texto: String?
+                do { texto = try await socket.recibeTexto() }
+                catch {
+                    if !Task.isCancelled { cont.yield(.closed(reason: "fallo de recepción")) }
+                    break
+                }
+                guard let texto, let event = Self.decode(texto) else { continue }
+                if case .frame(let seq, _, _) = event {
+                    gotFrame = true
+                    // El demonio ignora en silencio lo que no entiende: un acuse que no
+                    // llega solo se vería como frames que dejan de llegar. Si el envío
+                    // falla, la conexión está caída: salir y dejar que reconecte.
+                    do { try await socket.envia(Self.ackPayload(seq: seq)) }
+                    catch {
+                        if !Task.isCancelled { cont.yield(.closed(reason: "fallo al acusar")) }
+                        break
+                    }
+                }
+                cont.yield(event)
+                if case .closed = event { break }
+            }
+        } onCancel: {
+            socket.cierra()
+        }
+        socket.cierra()
+        return gotFrame
+    }
+}

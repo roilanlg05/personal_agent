@@ -33,3 +33,6 @@ graphify-out/2026-06-04/
 # Local read-only build inputs and isolated build outputs
 Gemma/Gemma/Frameworks
 .build/
+
+# Scratch de subagent-driven-development (no versionar)
+.superpowers/

@@ -423,6 +423,26 @@ final class BrainConversationCoordinatorTests: XCTestCase {
         XCTAssertFalse(request.prompt.contains("omitted-original"))
     }
 
+    func testCloudReservesReplyBeforeSelectingTools() async throws {
+        struct OversizedTool: AgentTool {
+            static let name = "oversized_fixture"
+            static let description = String(repeating: "schema ", count: 3000)
+            func run(argsJSON: String) async -> String { "" }
+        }
+        let registry = ToolRegistry.withDefaults()
+        registry.register(OversizedTool())
+        let coordinator = BrainConversationCoordinator(client: nil, threadID: "cloud-window", transcriptIndex: 0)
+        let prepared = try await coordinator.prepare(prompt: "Hola", options: .init(maxTokens: 2048, contextTokens: 16_384),
+            priorConversation: RecentConversation(), wakeContext: "", registry: registry)
+        let runtime = RecordingRuntime()
+        for try await _ in prepared.run(runtime: runtime) {}
+
+        let request = try XCTUnwrap(runtime.requests.first)
+        XCTAssertEqual(request.options.maxTokens, 2048)
+        XCTAssertEqual(request.tools, [CurrentTimeTool.name])
+        XCTAssertTrue(request.prompt.hasSuffix("Hola"))
+    }
+
     func testFirstProviderRequestHonorsTotal4096WindowAndKeepsCurrentInput() async throws {
         let journal = HTTPJournal()
         let input = "Sigamos con el proyecto Lirio."

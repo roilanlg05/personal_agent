@@ -160,7 +160,9 @@ struct BrainConversationCoordinator {
         let requestedOutput = max(options.maxTokens, 1)
         let isConfirmation = ToolRegistry.isShortConfirmation(prompt)
         let groupSize = client == nil || isConfirmation ? 3 : 2
-        let mainTools = Array(priority.prefix(contextTokens <= 8192 ? groupSize : priority.count))
+        // Small windows may need to trade output for a few related tools. With a larger
+        // window, reserve the reply first and let the admission loop fit the tool schemas.
+        let mainTools = compact ? Array(priority.prefix(groupSize)) : []
         let prioritySystem = Agent.nativeSystemPrompt(tools: mainTools, compact: compact)
         let fixed = NativeGenerationBudget(contextTokens: contextTokens, outputTokens: 0,
                                            system: prioritySystem, tools: mainTools)

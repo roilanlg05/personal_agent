@@ -164,13 +164,16 @@ final class Agent {
             Be honest about limits. Keep identities distinct. Disagree respectfully with reasons. Use gist and quote only delivered originals. Mark inferences, feelings, and pending saves as uncertain. Distinguish tastes, preferences, and current intent. Offer a familiar choice or variety, or ask one useful question. Verify playback.
             """ : BrainConversationPolicy.canonical.instructions
         var sections = [policy, """
-            Use a name only if the user introduced or confirmed it. Use available tools only. Report verified outcomes. Never volunteer the clock or claim automatic rescheduling.
+            Use a name only if the user introduced or confirmed it. Use available tools only. Report verified outcomes. Never volunteer the clock or claim automatic rescheduling. Never substitute a calendar event for an alarm or reminder.
             """]
         if names.contains(LoadMessagesTool.name) {
             sections.append("Use gist first. Call load_messages with a delivered evidence_id for exact text.")
         }
         if !names.isDisjoint(with: [ListAvailableShiftsTool.name, AddShiftTool.name, DropShiftTool.name]) {
             sections.append("Amazon A to Z: query dates in local ISO format. Before accepting or dropping, ask once for explicit confirmation of the specific shift. After confirmation execute once. Report the verified result or uncertainty.")
+        }
+        if names.contains(CreateAlarmTool.name) || names.contains(CreateReminderTool.name) {
+            sections.append("Use create_alarm for alarms and create_reminder for reminders when available. Keep the requested time and report the tool result.")
         }
         if names.contains(QueryScheduleTool.name) {
             sections.append("Use local ISO dates and Monday–Sunday weeks. query_schedule is the schedule authority. Omit finished events unless asked about the past.")

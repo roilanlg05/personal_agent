@@ -45,6 +45,30 @@ final class ToolRegistry {
         let text = prompt.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
         func group(_ text: String) -> [String] {
             func includes(_ words: [String]) -> Bool { words.contains { text.contains($0) } }
+            if includes(["alarma", "alarm", "despertador", "despiertame", "despertame", "wake me"]) {
+                if includes(["cancela", "borra", "elimina", "cancel", "delete"]) {
+                    return [CancelAlarmTool.name, ListAlarmsTool.name]
+                }
+                if includes(["cambia", "mueve", "update", "move"]) {
+                    return [UpdateAlarmTool.name, ListAlarmsTool.name]
+                }
+                if includes(["creaste", "pusiste", "recuerd", "que alarmas", "what alarms", "tengo una alarma", "tengo alguna alarma", "is there an alarm", "do i have an alarm"]) {
+                    return [ListAlarmsTool.name, QueryScheduleTool.name]
+                }
+                return [CreateAlarmTool.name, ListAlarmsTool.name]
+            }
+            if includes(["recordatorio", "reminder"]) {
+                if includes(["cancela", "borra", "elimina", "cancel", "delete"]) {
+                    return [DeleteReminderTool.name, ListRemindersTool.name]
+                }
+                if includes(["cambia", "mueve", "update", "move"]) {
+                    return [UpdateReminderTool.name, ListRemindersTool.name]
+                }
+                if includes(["creaste", "pusiste", "recuerd", "choca", "choque", "conflict", "que recordatorios", "what reminders"]) {
+                    return [ListRemindersTool.name, QueryScheduleTool.name, CheckScheduleTool.name]
+                }
+                return [CreateReminderTool.name, ListRemindersTool.name]
+            }
             if includes(["turno", "shift", "amazon"]) {
                 if includes(["soltar", "suelta", "renunci", "drop", "release"]) {
                     return [DropShiftTool.name, ListAvailableShiftsTool.name, AddShiftTool.name]
@@ -74,7 +98,7 @@ final class ToolRegistry {
         var priorities = group(text)
         let words = text.split(whereSeparator: \.isWhitespace).count
         if priorities.isEmpty, words <= 5 {
-            for message in history.suffix(3).reversed() {
+            for message in history.suffix(4).reversed() where message.role == .user {
                 priorities = group(message.content.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil))
                 if !priorities.isEmpty { break }
             }

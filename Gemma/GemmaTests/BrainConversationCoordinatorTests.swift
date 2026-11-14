@@ -815,6 +815,33 @@ final class BrainConversationCoordinatorTests: XCTestCase {
         XCTAssertTrue(first.options.history.isEmpty)
     }
 
+    func testAlarmAndReminderRequestsPrioritizeTheirNativeTool() {
+        let registry = ToolRegistry.native(memoryAvailable: true)
+        registry.register(CreateAlarmTool())
+        registry.register(ListAlarmsTool())
+        registry.register(CreateReminderTool())
+        registry.register(ListRemindersTool())
+
+        let alarm = registry.prioritized(for: "Configúrame tres alarmas.", history: [])
+        XCTAssertEqual(alarm.first.map { type(of: $0).name }, CreateAlarmTool.name)
+
+        let existing = registry.prioritized(for: "¿Tengo una alarma para las 4:25?", history: [])
+        XCTAssertEqual(existing.first.map { type(of: $0).name }, ListAlarmsTool.name)
+
+        let reminder = registry.prioritized(for: "Sí, ponlo como recordatorio.", history: [])
+        XCTAssertEqual(reminder.first.map { type(of: $0).name }, CreateReminderTool.name)
+
+        let followUp = registry.prioritized(for: "Ponle Breaks", history: [
+            .init(role: .user, content: "Crea un recordatorio a las 08:10"),
+            .init(role: .assistant, content: "No he creado nada en la agenda.")
+        ])
+        XCTAssertEqual(followUp.first.map { type(of: $0).name }, CreateReminderTool.name)
+
+        let attribution = registry.prioritized(for: "¿Tú creaste el recordatorio que choca?", history: [])
+        XCTAssertEqual(Array(attribution.prefix(2).map { type(of: $0).name }),
+                       [ListRemindersTool.name, QueryScheduleTool.name])
+    }
+
     func testProductionRegistrySelectsRelevantShiftAndCalendarToolsAt4096() async throws {
         let client = makeStubMemoryClient { request in
             let (record, _) = HTTPJournal().record(request)
@@ -822,11 +849,17 @@ final class BrainConversationCoordinatorTests: XCTestCase {
         }
         let runtime = RecordingRuntime()
         let registry = ToolRegistry.native(memoryAvailable: true)
+        registry.register(CreateAlarmTool())
+        registry.register(ListAlarmsTool())
+        registry.register(CreateReminderTool())
         let inputs: [(String, Set<String>)] = [
             ("¿Puedes soltar mi turno del martes?", ["drop_shift"]),
             ("Quiero aceptar ese turno en Amazon.", ["add_shift"]),
             ("¿Qué tengo agendado en mi calendario el martes?", ["query_schedule"]),
-            ("Agenda una cita mañana a las diez.", ["check_schedule", "create_event"])
+            ("Agenda una cita mañana a las diez.", ["check_schedule", "create_event"]),
+            ("Necesito que me prepares una alarma para las 4:25 P.M.", ["create_alarm"]),
+            ("Pon una alarma hoy a las 4:25 para mi turno de Amazon.", ["create_alarm"]),
+            ("Despiértame mañana a las siete.", ["create_alarm"])
         ]
         for (prompt, expected) in inputs {
             let coordinator = BrainConversationCoordinator(client: client, threadID: "tool-choice", transcriptIndex: 0)
@@ -834,6 +867,10 @@ final class BrainConversationCoordinatorTests: XCTestCase {
                 priorConversation: RecentConversation(), wakeContext: "", registry: registry)
             for try await _ in prepared.run(runtime: runtime) {}
             let request = try XCTUnwrap(runtime.requests.last)
+            if expected.contains("create_alarm") {
+                XCTAssertEqual(request.tools.first, "create_alarm")
+                XCTAssertTrue(request.options.systemPrompt?.contains("Use create_alarm for alarms") == true)
+            }
             XCTAssertTrue(Set(request.tools).isSuperset(of: expected), "\(prompt) received \(request.tools)")
         }
     }

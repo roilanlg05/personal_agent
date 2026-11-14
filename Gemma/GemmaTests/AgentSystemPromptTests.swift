@@ -22,8 +22,13 @@ final class AgentSystemPromptTests: XCTestCase {
         for try await _ in agent.run(prompt: "hi", options: GenerationOptions()) {}
         XCTAssertFalse(rt.capturedSystem.lowercased().contains("save_memory"),
                        "live-turn system prompt must not instruct the model to call save_memory")
-        XCTAssertTrue(rt.capturedSystem.contains("Answer only what was asked"),
-                      "the answer-only guidance stays")
+    }
+
+    func test_initiative_stays_within_the_request_and_authorization() async throws {
+        let rt = CapturingRuntime()
+        let agent = Agent(runtime: rt, registry: ToolRegistry())
+        for try await _ in agent.run(prompt: "hi", options: GenerationOptions()) {}
+        XCTAssertTrue(rt.capturedSystem.contains("Take initiative within the user's request and existing authorization."))
     }
 
     func test_current_date_rides_the_tail_not_the_static_prefix() async throws {

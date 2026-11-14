@@ -1,3 +1,4 @@
+import BrainContract
 import XCTest
 @testable import Gemma
 
@@ -13,7 +14,7 @@ final class AgentJarvisPromptTests: XCTestCase {
 
     func test_systemPrompt_isJarvis_constrained_dateless() {
         let p = Agent.systemPromptText
-        XCTAssertTrue(p.contains("JARVIS"), "persona")
+        XCTAssertTrue(p.hasPrefix(BrainConversationPolicy.persona), "shared persona")
         XCTAssertTrue(p.contains("Report ONLY what your tools actually returned"), "anti-invent")
         XCTAssertTrue(p.contains("NEVER invent"), "anti-invent")
         XCTAssertTrue(p.localizedCaseInsensitiveContains("automatic-rescheduling"), "no fake feature")
@@ -23,6 +24,14 @@ final class AgentJarvisPromptTests: XCTestCase {
         XCTAssertTrue(p.localizedCaseInsensitiveContains("event to PERSIST"), "trips are persisted as events")
         XCTAssertFalse(p.contains("Today is"), "no static date in prefix")
         XCTAssertFalse(p.contains("2026-06-10"), "no hard-coded date example")
+    }
+
+    func test_native_prompts_keep_shared_persona_in_both_context_budgets() {
+        for compact in [true, false] {
+            let prompt = Agent.nativeSystemPrompt(tools: [], compact: compact)
+            XCTAssertTrue(prompt.hasPrefix(BrainConversationPolicy.persona))
+            XCTAssertTrue(prompt.contains("only if the user introduced or confirmed it"))
+        }
     }
 
     func test_prompt_declares_self_is_the_user() {

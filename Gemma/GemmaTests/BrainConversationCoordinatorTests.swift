@@ -1,3 +1,4 @@
+import BrainContract
 import Foundation
 import CryptoKit
 import XCTest
@@ -451,6 +452,7 @@ final class BrainConversationCoordinatorTests: XCTestCase {
         let system = try XCTUnwrap(budget["systemTokens"])
         let tools = try XCTUnwrap(budget["toolTokens"])
         XCTAssertEqual(budget["contextTokens"], 4096)
+        XCTAssertTrue(try XCTUnwrap(request.options.systemPrompt).hasPrefix(BrainConversationPolicy.persona))
         XCTAssertEqual(request.options.maxTokens, budget["outputTokens"])
         XCTAssertGreaterThan(system, 0)
         XCTAssertGreaterThan(tools, 0)

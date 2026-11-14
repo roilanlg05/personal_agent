@@ -1,6 +1,6 @@
 **Plan del cerebro de Gemma: identidad, memoria, aprendizaje y conversación**
 
-Fecha: 5 de noviembre de 2026. Estado: propuesta de diseño e implementación; las funciones nuevas de este documento todavía no están implementadas. Se apoya en la revisión del servicio de memoria y en la conversación con el usuario. No autoriza por sí mismo despliegues, entrenamiento con datos personales ni captura de nuevas fuentes.
+Diseño del 5 de noviembre de 2026, basado en la revisión del servicio de memoria y en la conversación con el usuario. El [relevo de la tarea 17](../handoffs/2026-11-14-gemma-memory-task-17.md) registra lo implementado, la migración de HomeLab y las verificaciones pendientes.
 
 **El resultado que buscamos.**
 
@@ -436,6 +436,10 @@ Los criterios siguientes son objetivos de aceptación propuestos, no resultados 
 | 10. Validación longitudinal | Sesiones prolongadas, fallos, restauraciones, drift y cambios de modelo. | Todos. | No se degrada silenciosamente al crecer el historial; cada regresión tiene reproducción y plan de corrección. |
 
 No se ejecutarán todos los hitos como una reescritura simultánea. Una ruta nueva puede funcionar en sombra antes de reemplazar la anterior. Los cambios de esquema serán aditivos al principio; los nodos históricos mantienen su estado de procedencia desconocida cuando no pueda reconstruirse con evidencia.
+
+**Estado al 14 de noviembre de 2026**
+
+Los hitos 0–4 cuentan con cobertura de software para admisión, persistencia, corrección, procedencia, olvido e identidad. En los hitos 5–7 hay pruebas de políticas y contratos, incluida la invalidación de procedimientos ante un cambio de entorno. Siguen pendientes la revisión humana de naturalidad y afecto y la mejora procedimental medida con ejecución real. El hito 8 se verificó con intercambios interceptados de Anthropic y OpenAI. La comparación del hito 9 empleó vectores sintéticos y casos pequeños, por lo que queda pendiente medir el ranking semántico y la contribución del grafo en historiales representativos. El hito 10 verificó rutas de memoria, reapertura de SQLite, compactación, continuidad y retirada de fuentes con datos sintéticos. Falta medir el comportamiento longitudinal del modelo y de la app instalada.
 
 **Dónde se implementaría.**
 

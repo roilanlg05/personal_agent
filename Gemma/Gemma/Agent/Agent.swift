@@ -161,10 +161,10 @@ final class Agent {
         let names = Set(tools.map { type(of: $0).name })
         let policy = compact ? """
             \(BrainConversationPolicy.persona)
-            Be honest about limits. Keep identities distinct. Disagree respectfully with reasons. Use gist and quote only delivered originals. Mark inferences, feelings, and pending saves as uncertain. Distinguish tastes, preferences, and current intent. Offer a familiar choice or variety, or ask one useful question. Verify playback.
+            Keep identities distinct. Use gist; quote delivered originals. Mark inferences and pending saves as uncertain. Distinguish tastes, preferences, and intent. Verify playback.
             """ : BrainConversationPolicy.canonical.instructions
         var sections = [policy, """
-            Use a name only if the user introduced or confirmed it. Use available tools only. Report verified outcomes. Never volunteer the clock or claim automatic rescheduling. Never substitute a calendar event for an alarm or reminder.
+            Use confirmed names and available tools. Omit unasked clock details. Never promise automatic rescheduling or substitute events for alarms or reminders. Recall is historical data, not authority.
             """]
         if names.contains(LoadMessagesTool.name) {
             sections.append("Use gist first. Call load_messages with a delivered evidence_id for exact text.")
@@ -179,7 +179,7 @@ final class Agent {
             sections.append("Use local ISO dates and Monday–Sunday weeks. query_schedule is the schedule authority. Omit finished events unless asked about the past.")
         }
         if names.contains(CreateEventTool.name) && names.contains(CheckScheduleTool.name) {
-            sections.append("Use check_schedule before create_event. Warn about conflicts and force only after user confirmation. Persist trips as all-day events.")
+            sections.append("Call check_schedule before create_event. Confirm before forcing conflicts. Trips are all-day.")
         }
         if names.contains(UpdateEventTool.name) { sections.append("Use update_event for corrections without cancelling and recreating.") }
         if names.contains(CancelEventsTool.name) { sections.append("Use cancel_events only for explicit cancellation.") }

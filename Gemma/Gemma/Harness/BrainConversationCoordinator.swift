@@ -169,8 +169,15 @@ struct BrainConversationCoordinator {
         let localBytes = local.suffix(2).reduce(0) { $0 + $1.content.utf8.count + 32 }
         let projectCue = prompt.range(of: #"\b(project|proyecto|retomar|sigamos|continuemos|resume|continue)\b"#,
                                       options: [.regularExpression, .caseInsensitive]) != nil
+        let crossChatCue = prompt.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+            .range(of: #"\b(anteriormente|lo de antes|recuerdas|te pedi|te dije|te conte|hablamos|earlier|previously|last time|remember)\b"#,
+                   options: .regularExpression) != nil
+        // Expand the recall allowance only within the space left by the prioritized tools.
+        let recallRoom = contextTokens - fixed.systemTokens - fixed.toolTokens
+            - basePrompt.utf8.count - min(requestedOutput, 192)
         let contextReserve = if client == nil { max(320, localBytes) }
             else if compact && projectCue { max(2400, localBytes) }
+            else if compact && crossChatCue { max(640, min(1120, recallRoom), localBytes) }
             else if contextTokens <= 8192 && priority.isEmpty { max(1536, localBytes) }
             else { max(640, localBytes) }
         let availableOutput = contextTokens - fixed.systemTokens - fixed.toolTokens - basePrompt.utf8.count - contextReserve

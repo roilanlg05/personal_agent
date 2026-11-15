@@ -216,9 +216,8 @@ private enum ScheduleRange {
 struct CheckScheduleTool: AgentTool {
     static let name = "check_schedule"
     static let description = """
-    Comprueba agenda y rutinas en ISO local antes de agendar. Status free: libre. conflict: \
-    lee conflicts. partial: lee warnings y no afirmes que está libre. memory_unavailable: \
-    no se pudo consultar. missing_fields, invalid_datetime o invalid_range: corrige los datos.
+    Comprueba agenda y rutinas. free: libre. conflict: lee conflicts. partial: lee warnings, \
+    disponibilidad incierta. memory_unavailable: consulta fallida. Corrige fechas o datos inválidos.
     """
     static let parameters: [AgentToolParam] = [
         AgentToolParam(name: "start", type: .string, description: "Local ISO datetime, e.g. 2026-06-09T08:00", required: true),
@@ -291,15 +290,14 @@ struct CheckScheduleTool: AgentTool {
 struct CreateEventTool: AgentTool {
     static let name = "create_event"
     static let description = """
-    Crea un evento en ISO local. Ante conflicto, informa y usa force solo con confirmación. \
-    Status created: confirmado. created_with_warnings: confirma e indica qué no se pudo comprobar. \
-    conflict: lee conflicts. missing_fields: pide lo que falta. rejected, invalid_datetime, \
-    invalid_range, memory_unavailable y failed: no se agendó.
+    Guarda un evento. force exige confirmación. created: guardado. created_with_warnings: \
+    guardado con reservas. conflict: lee conflicts. missing_fields: pide los datos. \
+    Cualquier otro status indica que no se guardó.
     """
     static let parameters: [AgentToolParam] = [
-        AgentToolParam(name: "title", type: .string, description: "Short event title, e.g. \"dentist\", \"Miami meeting\".", required: true),
+        AgentToolParam(name: "title", type: .string, description: "Event title.", required: true),
         AgentToolParam(name: "start", type: .string, description: "Local ISO datetime, e.g. 2026-06-09T08:00.", required: true),
-        AgentToolParam(name: "end", type: .string, description: "Local ISO datetime end. If the user gave only a start, ASK for the end first.", required: true),
+        AgentToolParam(name: "end", type: .string, description: "Local ISO end. Ask if missing.", required: true),
         AgentToolParam(name: "allDay", type: .boolean, description: "true for all-day/multi-day (e.g. trips).", required: false),
         AgentToolParam(name: "location", type: .string, description: "Place only (city/venue), not prose.", required: false),
         AgentToolParam(name: "force", type: .boolean, description: "true to book despite a conflict (only after the user confirms).", required: false),

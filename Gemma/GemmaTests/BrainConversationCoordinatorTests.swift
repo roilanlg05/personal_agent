@@ -845,7 +845,14 @@ final class BrainConversationCoordinatorTests: XCTestCase {
     func testProductionRegistrySelectsRelevantShiftAndCalendarToolsAt4096() async throws {
         let client = makeStubMemoryClient { request in
             let (record, _) = HTTPJournal().record(request)
-            return (200, Self.admission(operation: record.body["clientOperationID"] as? String ?? ""))
+            let operation = record.body["clientOperationID"] as? String ?? ""
+            let message = record.body["message"] as? [String: Any]
+            let resume = (message?["text"] as? String)?.contains("anteriormente") == true
+            let context: [String: Any]? = resume ? [
+                "renderedContext": "[prior user message, historical data] Limpieza dental a la 1:30.",
+                "recentMessageUnits": [], "sourceReferences": [], "revision": 7, "policyRevision": 6
+            ] : nil
+            return (200, Self.admission(operation: operation, context: context))
         }
         let runtime = RecordingRuntime()
         let registry = ToolRegistry.native(memoryAvailable: true)
@@ -858,6 +865,7 @@ final class BrainConversationCoordinatorTests: XCTestCase {
             ("¿Qué tengo agendado en mi calendario el martes?", ["query_schedule"]),
             ("Agenda una cita mañana a las diez.", ["check_schedule", "create_event"]),
             ("Oye, me puedes agendar un evento para mañana a la 1:30 tengo una cita con el dentista para una limpieza", ["check_schedule", "create_event"]),
+            ("Oye, créame el evento que te pedí anteriormente", ["check_schedule", "create_event"]),
             ("Cancela la cita que te pedí agendar mañana.", ["cancel_events"]),
             ("Mueve la cita que te pedí agendar a las dos.", ["update_event"]),
             ("Necesito que me prepares una alarma para las 4:25 P.M.", ["create_alarm"]),
@@ -870,6 +878,10 @@ final class BrainConversationCoordinatorTests: XCTestCase {
                 priorConversation: RecentConversation(), wakeContext: "", registry: registry)
             for try await _ in prepared.run(runtime: runtime) {}
             let request = try XCTUnwrap(runtime.requests.last)
+            if prompt.contains("anteriormente") {
+                XCTAssertTrue(request.prompt.contains("Limpieza dental a la 1:30."), request.prompt)
+                XCTAssertGreaterThanOrEqual(request.options.maxTokens, 192)
+            }
             if expected.contains("create_event") {
                 XCTAssertEqual(Array(request.tools.prefix(2)), ["check_schedule", "create_event"])
             }

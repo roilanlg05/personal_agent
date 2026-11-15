@@ -79,11 +79,11 @@ final class ToolRegistry {
                 return [ListAvailableShiftsTool.name, AddShiftTool.name, DropShiftTool.name]
             }
             if includes(["agenda", "calendario", "calendar", "appointment", "schedule", " cita ", " reunion "]) {
-                if includes(["agenda una", "agendame", "programa", "crea ", "book ", "schedule a "]) {
-                    return [CheckScheduleTool.name, CreateEventTool.name, QueryScheduleTool.name]
-                }
                 if includes(["cancela", "cancel "]) { return [CancelEventsTool.name, QueryScheduleTool.name] }
                 if includes(["cambia", "mueve", "update ", "move "]) { return [UpdateEventTool.name, QueryScheduleTool.name] }
+                if includes(["agenda un", "agendame", "agendar", "programa", "crea ", "book ", "schedule a "]) {
+                    return [CheckScheduleTool.name, CreateEventTool.name, QueryScheduleTool.name]
+                }
                 return [QueryScheduleTool.name, CheckScheduleTool.name]
             }
             if includes(["musica", "music", "videojuego", "game", "artista", "prefer", "gusto", "playlist"]) {

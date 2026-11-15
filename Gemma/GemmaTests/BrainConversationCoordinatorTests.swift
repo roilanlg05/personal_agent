@@ -857,6 +857,9 @@ final class BrainConversationCoordinatorTests: XCTestCase {
             ("Quiero aceptar ese turno en Amazon.", ["add_shift"]),
             ("¿Qué tengo agendado en mi calendario el martes?", ["query_schedule"]),
             ("Agenda una cita mañana a las diez.", ["check_schedule", "create_event"]),
+            ("Oye, me puedes agendar un evento para mañana a la 1:30 tengo una cita con el dentista para una limpieza", ["check_schedule", "create_event"]),
+            ("Cancela la cita que te pedí agendar mañana.", ["cancel_events"]),
+            ("Mueve la cita que te pedí agendar a las dos.", ["update_event"]),
             ("Necesito que me prepares una alarma para las 4:25 P.M.", ["create_alarm"]),
             ("Pon una alarma hoy a las 4:25 para mi turno de Amazon.", ["create_alarm"]),
             ("Despiértame mañana a las siete.", ["create_alarm"])
@@ -867,6 +870,11 @@ final class BrainConversationCoordinatorTests: XCTestCase {
                 priorConversation: RecentConversation(), wakeContext: "", registry: registry)
             for try await _ in prepared.run(runtime: runtime) {}
             let request = try XCTUnwrap(runtime.requests.last)
+            if expected.contains("create_event") {
+                XCTAssertEqual(Array(request.tools.prefix(2)), ["check_schedule", "create_event"])
+            }
+            if expected.contains("cancel_events") { XCTAssertEqual(request.tools.first, "cancel_events") }
+            if expected.contains("update_event") { XCTAssertEqual(request.tools.first, "update_event") }
             if expected.contains("create_alarm") {
                 XCTAssertEqual(request.tools.first, "create_alarm")
                 XCTAssertTrue(request.options.systemPrompt?.contains("Use create_alarm for alarms") == true)

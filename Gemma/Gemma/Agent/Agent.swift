@@ -951,8 +951,15 @@ final class Agent {
     /// español: el turno se para, pero nunca en silencio.
     nonisolated static let avisoDeLlamadaRota = "La llamada a la herramienta no llegó bien dos veces, así que paro aquí. Si quieres, pídemelo de nuevo."
 
+    nonisolated static let memoryLookupToolNames: Set<String> = [
+        SearchMemoryTool.name, RecallByTopicTool.name, WhyTool.name
+    ]
+
     nonisolated static func toolResultNote(toolName: String, result: String) -> String {
         let outcome = "[You called the tool `\(toolName)`; it returned: \(result)."
+        if memoryLookupToolNames.contains(toolName) || toolName == CheckScheduleTool.name || toolName == QueryScheduleTool.name {
+            return outcome + " Use this result to continue the current request. Call another tool only if needed for an authorized next step. Avoid repeating this lookup without a new reason. If essential information is missing, ask the user.]"
+        }
         guard browserToolNames.contains(toolName) else {
             return outcome + " Tool execution is complete for this action. Formulate your final response to the user in a natural, friendly sentence explaining this result. DO NOT call `\(toolName)` or any other tool again. NEVER volunteer the current date or time.]"
         }
@@ -1286,6 +1293,8 @@ final class Agent {
                             appNotice: linea)))
                     }
 
+                    var unproductiveMemoryLookups = 0
+                    var usefulMemoryResults = Set<String>()
                     var iteration = 0
                     var retainedOriginal = false
                     // Si este turno ya gasto su UNICO reintento por llamada rota. Ver
@@ -1494,6 +1503,22 @@ final class Agent {
                             }
                             continuation.yield(.toolCallFinished(name: tc.name, result: result))
                             if let reportedStatus { await reportOutcome?(reportedStatus) }
+                            if reportedStatus != nil, Self.memoryLookupToolNames.contains(tc.name) {
+                                let status = Self.estadoDelResultado(result)
+                                let newResult = (status == "success" || status == "ok") && usefulMemoryResults.insert(result).inserted
+                                unproductiveMemoryLookups = newResult ? 0 : unproductiveMemoryLookups + 1
+                                if unproductiveMemoryLookups == 3 {
+                                    let skipped = ToolJSONOutput.object(["status": "cancelled", "message": "Se detuvo el turno antes de ejecutar esta llamada."])
+                                    for queued in pendingToolCalls.dropFirst(indice + 1) {
+                                        continuation.yield(.toolCallFinished(name: queued.name, result: skipped))
+                                    }
+                                    let reply = "No pude recuperar suficiente contexto. ¿Me das una pista para retomar lo que hablamos?"
+                                    let metrics = completed?.metrics ?? RuntimeMetrics(tokensGenerated: 0, elapsedSeconds: 0,
+                                        timeToFirstTokenSeconds: 0, peakResidentMemoryBytes: 0, draftAcceptanceRate: nil)
+                                    continuation.yield(.completed(GenerationResult(text: reply, metrics: metrics)))
+                                    break loop
+                                }
+                            }
                             deliveredOriginal = deliveredOriginal || tc.name == LoadMessagesTool.name
                             if memoryScope?.erasure.committed == true {
                                 opts.history = []
@@ -1672,6 +1697,8 @@ final class Agent {
                         iteration += 1
                     }
                     continuation.finish()
+                } catch is CancellationError {
+                    continuation.finish(throwing: CancellationError())
                 } catch {
                     continuation.yield(.failed("\(error)"))
                     continuation.finish()

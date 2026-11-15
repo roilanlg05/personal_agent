@@ -31,18 +31,25 @@ final class MemoryToolbox {
         var isTyped: Bool { revision != nil }
 
         func lookup(_ query: String) async -> String {
-            guard let client, isTyped, query.utf8.count <= 640 else { return "Scoped memory search unavailable." }
+            let unavailable = ToolJSONOutput.object([
+                "status": "memory_unavailable", "message": "No pude consultar la memoria en este turno."
+            ])
+            guard let client, isTyped, query.utf8.count <= 640 else { return unavailable }
             do {
-                let budget = try BrainContextBudget(contextTokens: 2048, outputTokens: 256)
+                let budget = try BrainContextBudget(contextTokens: 3072, outputTokens: 256)
                 let request = try BrainContextRequest(clientOperationID: UUID().uuidString, threadID: threadID,
-                    query: query, budget: budget, quoteEvidenceIDs: [], detailEvidenceIDs: [])
+                    query: "Recuerda " + query, budget: budget, quoteEvidenceIDs: [], detailEvidenceIDs: [])
                 let context = try await client.brainContext(request, cueOnly: true)
-                guard !context.renderedContext.isEmpty, context.renderedContext.utf8.count <= 1800 else {
-                    return "No additional scoped memory was delivered."
+                guard context.sourceUses?.values.contains(where: { $0.contains(.recalledSupport) }) == true,
+                      !context.renderedContext.isEmpty else {
+                    return ToolJSONOutput.object([
+                        "status": "empty", "message": "Esta búsqueda no devolvió recuerdos pertinentes."
+                    ])
                 }
-                return context.renderedContext
-            } catch { return "Scoped memory search unavailable." }
+                return ToolJSONOutput.object(["status": "ok", "context": context.renderedContext])
+            } catch { return unavailable }
         }
+
     }
 
     @TaskLocal static var turnScope: TurnScope?

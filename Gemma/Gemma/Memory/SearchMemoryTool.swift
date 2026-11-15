@@ -22,7 +22,7 @@ struct SearchMemoryTool: AgentTool {
     static let description = """
     Busca en la memoria a largo plazo: conversaciones pasadas, hechos, lugares y planes. \
     Llámala cuando te pidan buscar o verificar un detalle de la memoria. Lee 'status': \
-    'ok' = hay resultados en 'facts' (hechos recordados), 'summaries' (resúmenes de \
+    'ok' = lee 'context' si aparece. Si no, lee 'facts' (hechos), 'summaries' (resúmenes de \
     conversaciones; si necesitas el diálogo exacto de uno, llama a load_messages con su \
     'chat_id', 'from' y 'to') y 'recent_turns'; 'empty' = se buscó y NO hay nada que \
     encaje, dilo tal cual; 'memory_unavailable' o 'failed' = la memoria no se pudo \

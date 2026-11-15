@@ -32,6 +32,17 @@ final class BrowserPanelHarnessWiringTests: XCTestCase {
         .completed(GenerationResult(text: "listo", metrics: .init(tokensGenerated: 0, elapsedSeconds: 0, timeToFirstTokenSeconds: 0, peakResidentMemoryBytes: 0, draftAcceptanceRate: nil)))
     }
 
+    func testFailedTurnWithoutProseGetsAVisiblePersistableResponse() async {
+        let (model, cont) = makeModel(); defer { cont.finish() }
+        let reply = await model.consumeAgentEvents(turn([
+            .toolCallStarted(name: "search_memory", args: "{}"),
+            .toolCallFinished(name: "search_memory", result: Self.fail),
+            .failed("tool loop did not converge")
+        ]))
+        XCTAssertTrue(reply.contains("no puedo confirmar"))
+        XCTAssertTrue(model.agentLog.contains { $0.role == "gemma" && $0.text == reply })
+    }
+
     func test_un_turno_ordinario_que_deja_el_navegador_abierto_deja_el_panel_vivo() async {
         let (model, cont) = makeModel(); defer { cont.finish() }
         _ = await model.consumeAgentEvents(turn([

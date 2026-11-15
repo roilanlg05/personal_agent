@@ -127,7 +127,7 @@ struct RecallByTopicTool: AgentTool {
     static let description = """
     Devuelve todo lo que recuerdas de un tema concreto («finanzas», «trabajo», «salud»), \
     no solo lo que ya tienes delante. Úsalo cuando el usuario pida todo lo que sabes de \
-    un asunto. Lee 'status': 'ok' = los recuerdos vienen en 'memories' y 'total' dice \
+    un asunto. Lee 'status': 'ok' = lee 'context' si aparece. Si no, 'memories' y 'total' indican \
     cuántos hay en total; 'empty' = ese tema existe pero no tiene nada dentro; \
     'unknown_topic' = ese tema no está en la memoria, ofrécele list_topics para ver los \
     que sí hay en vez de afirmar que no sabes nada del asunto; 'memory_unavailable' o \
@@ -193,7 +193,7 @@ struct WhyTool: AgentTool {
     static let description = """
     Explica POR QUÉ crees algo sobre el usuario, rastreándolo hasta los recuerdos de los \
     que sale. Úsalo cuando pregunte por qué piensas eso o en qué te basas. Pásale la \
-    creencia. Lee 'status': 'ok' = las fuentes vienen en 'sources', CÍTALAS tal cual; \
+    creencia. Lee 'status': 'ok' = lee 'context' como referencia o cita las fuentes exactas de 'sources'; \
     'no_sources' = tienes la creencia pero sin ningún recuerdo que la respalde — dile \
     exactamente eso y NO te inventes una razón; 'not_found' = no encontraste esa \
     creencia en tu memoria, dilo en vez de justificar algo que no crees; \

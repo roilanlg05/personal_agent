@@ -747,6 +747,7 @@ public final class HarnessModel {
     /// Devuelve el texto final del asistente, para la transcripción.
     func consumeAgentEvents<S: AsyncSequence>(_ events: S, isCurrent: () -> Bool = { true }) async -> String
     where S.Element == AgentEvent {
+        var cancelled = false
         var answer = ""
         var finalAssistantText = ""
         var currentThought = ""
@@ -820,6 +821,7 @@ public final class HarnessModel {
                 }
             }
         } catch is CancellationError {
+            cancelled = true
             guard isCurrent() else { return "" }
             browserPanels.endTurn(survive: false, porque: "el turno fue cancelado")
             if let idx = activeGemmaIdx {
@@ -836,6 +838,16 @@ public final class HarnessModel {
         guard isCurrent() else { return "" }
         // Salida normal del bucle: congela el panel (no-op si ya lo cerró un catch).
         browserPanels.endTurn()
+        guard !cancelled, !Task.isCancelled else { return finalAssistantText }
+        if GemmaToolCallParser.strip(finalAssistantText).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let reply = "El turno se interrumpió antes de poder responder. Si pediste una acción, no puedo confirmar que se haya completado."
+            if let idx = activeGemmaIdx {
+                agentLog[idx].text = reply
+            } else {
+                agentLog.append(ChatLogEntry(role: "gemma", text: reply))
+            }
+            return reply
+        }
         return finalAssistantText
     }
 

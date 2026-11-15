@@ -749,6 +749,37 @@ final class AgentTests: XCTestCase {
         }
     }
 
+    func testMemoryLookupAndScheduleCheckLeaveRoomForAuthorizedCreation() {
+        for name in [SearchMemoryTool.name, CheckScheduleTool.name, QueryScheduleTool.name] {
+            let note = Agent.toolResultNote(toolName: name, result: #"{"status":"ok"}"#)
+            XCTAssertTrue(note.contains("authorized next step"))
+            XCTAssertFalse(note.contains("or any other tool again"))
+        }
+        let mutation = Agent.toolResultNote(toolName: CreateEventTool.name, result: #"{"status":"created"}"#)
+        XCTAssertTrue(mutation.contains("or any other tool again"))
+    }
+
+    func testThreeEmptyMemorySearchesFinishWithOneResponse() async throws {
+        struct EmptySearchTool: AgentTool {
+            static let name = SearchMemoryTool.name
+            static let description = "Búsqueda de prueba"
+            func run(argsJSON: String) async -> String { #"{"status":"empty"}"# }
+        }
+        let registry = ToolRegistry()
+        registry.register(EmptySearchTool())
+        let calls = (0..<9).map { (name: SearchMemoryTool.name, args: "{\"query\":\"topic-\($0)\"}") }
+        let runtime = ScriptedRuntime([calls])
+        var attempts = 0
+        var responses = [String]()
+        for try await event in Agent(runtime: runtime, registry: registry).run(prompt: "Recuerda lo anterior.", options: .init()) {
+            if case .toolCallFinished(_, let result) = event, Agent.estadoDelResultado(result) != "cancelled" { attempts += 1 }
+            if case .completed(let result) = event { responses.append(result.text) }
+        }
+        XCTAssertEqual(attempts, 3)
+        XCTAssertEqual(responses.count, 1)
+        XCTAssertTrue(responses.first?.contains("No pude recuperar suficiente contexto") == true)
+    }
+
     private func registroConLaQueFalla() -> ToolRegistry {
         FakeBrowserAlwaysFails.calls = 0
         let r = registroDeNavegadorFalso()

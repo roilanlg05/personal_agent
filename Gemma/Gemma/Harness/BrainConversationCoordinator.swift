@@ -177,7 +177,7 @@ struct BrainConversationCoordinator {
             - basePrompt.utf8.count - min(requestedOutput, 192)
         let contextReserve = if client == nil { max(320, localBytes) }
             else if compact && projectCue { max(2400, localBytes) }
-            else if compact && crossChatCue { max(640, min(1120, recallRoom), localBytes) }
+            else if crossChatCue { max(640, min(compact ? 1120 : 1600, recallRoom), localBytes) }
             else if contextTokens <= 8192 && priority.isEmpty { max(1536, localBytes) }
             else { max(640, localBytes) }
         let availableOutput = contextTokens - fixed.systemTokens - fixed.toolTokens - basePrompt.utf8.count - contextReserve

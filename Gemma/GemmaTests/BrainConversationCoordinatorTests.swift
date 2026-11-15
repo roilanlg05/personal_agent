@@ -895,6 +895,38 @@ final class BrainConversationCoordinatorTests: XCTestCase {
         }
     }
 
+    func testCloudTurnReservesRecallBeforeFittingTools() async throws {
+        let query = "Créame el evento de lo que hablamos anteriormente"
+        let journal = HTTPJournal()
+        let client = makeStubMemoryClient { request in
+            let (record, _) = journal.record(request)
+            let budget = record.body["budget"] as? [String: Int] ?? [:]
+            let room = budget["contextTokens", default: 0] - budget["outputTokens", default: 0]
+                - budget["systemTokens", default: 0] - budget["toolTokens", default: 0]
+            let bundle: [String: Any] = [
+                "renderedContext": room >= 1120 ? "[prior user message] Limpieza con el dentista a la 1:30." : "",
+                "recentMessageUnits": [], "sourceReferences": [], "revision": 7, "policyRevision": 6
+            ]
+            return (200, Self.admission(operation: record.body["clientOperationID"] as? String ?? "", context: bundle))
+        }
+        let registry = ToolRegistry.native(memoryAvailable: true)
+        registry.register(CreateAlarmTool())
+        registry.register(CreateReminderTool())
+        let coordinator = BrainConversationCoordinator(client: client, threadID: "cloud-recall", transcriptIndex: 0)
+        let prepared = try await coordinator.prepare(prompt: query,
+            options: .init(maxTokens: 2048, contextTokens: 16_384), priorConversation: RecentConversation(),
+            wakeContext: "", registry: registry)
+        let runtime = RecordingRuntime()
+        for try await _ in prepared.run(runtime: runtime) {}
+        let budget = try XCTUnwrap(journal.requests.first?.body["budget"] as? [String: Int])
+        let room = budget["contextTokens", default: 0] - budget["outputTokens", default: 0]
+            - budget["systemTokens", default: 0] - budget["toolTokens", default: 0]
+        XCTAssertGreaterThanOrEqual(room, 1600)
+        let first = try XCTUnwrap(runtime.requests.first)
+        XCTAssertTrue(first.prompt.contains("Limpieza con el dentista"))
+        XCTAssertEqual(Array(first.tools.prefix(2)), ["check_schedule", "create_event"])
+    }
+
     func testFollowUpNeverLabelsTrimmedHistoryAsItsOriginalIndex() async throws {
         let thread = "new-connection"
         let oldest = "Primera nota: " + String(repeating: "primera ", count: 79)

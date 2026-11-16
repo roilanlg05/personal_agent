@@ -81,7 +81,7 @@ final class ToolRegistry {
             if includes(["agenda", "calendario", "evento", "calendar", "appointment", "schedule", " cita ", " reunion "]) {
                 if includes(["cancela", "cancel "]) { return [CancelEventsTool.name, QueryScheduleTool.name] }
                 if includes(["cambia", "mueve", "update ", "move "]) { return [UpdateEventTool.name, QueryScheduleTool.name] }
-                if includes(["agenda un", "agendame", "agendar", "programa", "crea ", "creame ", "book ", "schedule a "]) {
+                if includes(["agenda un", "agendame", "agendar", "agendando", "agendalo", "agendemos", "programa", "crea ", "creame ", "book ", "schedule a "]) {
                     return [CheckScheduleTool.name, CreateEventTool.name, QueryScheduleTool.name]
                 }
                 return [QueryScheduleTool.name, CheckScheduleTool.name]

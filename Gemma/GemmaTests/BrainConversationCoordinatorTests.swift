@@ -866,8 +866,11 @@ final class BrainConversationCoordinatorTests: XCTestCase {
             ("Agenda una cita mañana a las diez.", ["check_schedule", "create_event"]),
             ("Oye, me puedes agendar un evento para mañana a la 1:30 tengo una cita con el dentista para una limpieza", ["check_schedule", "create_event"]),
             ("Oye, créame el evento que te pedí anteriormente", ["check_schedule", "create_event"]),
+            ("Q continuemos agendando el evento", ["check_schedule", "create_event"]),
             ("Cancela la cita que te pedí agendar mañana.", ["cancel_events"]),
             ("Mueve la cita que te pedí agendar a las dos.", ["update_event"]),
+            ("Continuemos, cancela el evento anterior.", ["cancel_events"]),
+            ("Sigamos, mueve el evento de antes a las dos.", ["update_event"]),
             ("Necesito que me prepares una alarma para las 4:25 P.M.", ["create_alarm"]),
             ("Pon una alarma hoy a las 4:25 para mi turno de Amazon.", ["create_alarm"]),
             ("Despiértame mañana a las siete.", ["create_alarm"])
@@ -896,7 +899,7 @@ final class BrainConversationCoordinatorTests: XCTestCase {
     }
 
     func testCloudTurnReservesRecallBeforeFittingTools() async throws {
-        let query = "Créame el evento de lo que hablamos anteriormente"
+        let query = "Q continuemos agendando el evento"
         let journal = HTTPJournal()
         let client = makeStubMemoryClient { request in
             let (record, _) = journal.record(request)
@@ -912,9 +915,13 @@ final class BrainConversationCoordinatorTests: XCTestCase {
         let registry = ToolRegistry.native(memoryAvailable: true)
         registry.register(CreateAlarmTool())
         registry.register(CreateReminderTool())
-        let coordinator = BrainConversationCoordinator(client: client, threadID: "cloud-recall", transcriptIndex: 0)
+        let coordinator = BrainConversationCoordinator(client: client, threadID: "cloud-recall", transcriptIndex: 2)
+        var prior = RecentConversation()
+        prior.start(threadID: "cloud-recall")
+        prior.append(.init(role: .user, content: "Hola"), threadID: "cloud-recall")
+        prior.append(.init(role: .assistant, content: "Hola. Aquí estoy."), threadID: "cloud-recall")
         let prepared = try await coordinator.prepare(prompt: query,
-            options: .init(maxTokens: 2048, contextTokens: 16_384), priorConversation: RecentConversation(),
+            options: .init(maxTokens: 2048, contextTokens: 16_384), priorConversation: prior,
             wakeContext: "", registry: registry)
         let runtime = RecordingRuntime()
         for try await _ in prepared.run(runtime: runtime) {}
@@ -924,6 +931,7 @@ final class BrainConversationCoordinatorTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(room, 1600)
         let first = try XCTUnwrap(runtime.requests.first)
         XCTAssertTrue(first.prompt.contains("Limpieza con el dentista"))
+        XCTAssertEqual(first.options.history.map(\.content), ["Hola", "Hola. Aquí estoy."])
         XCTAssertEqual(Array(first.tools.prefix(2)), ["check_schedule", "create_event"])
     }
 
